@@ -20,6 +20,7 @@ from __future__ import annotations
 import ctypes
 import ctypes.wintypes as wt
 import json
+import re
 import sys
 import time
 from datetime import date, timedelta
@@ -30,6 +31,8 @@ import requests
 REPO_ROOT = Path(__file__).resolve().parent.parent
 OUT_PATH = REPO_ROOT / "data" / "analytics.json"
 CREDENTIAL_NAME = "cloudflare_analytics"
+# Идентификатор аккаунта — не секрет, но у каждого свой, поэтому вынесен рядом.
+CONFIG_PATH = Path(__file__).resolve().parent / "analytics_config.json"
 API_URL = "https://api.cloudflare.com/client/v4/graphql"
 TIMEOUT = 60
 
@@ -85,33 +88,35 @@ def query(token: str, document: str, variables: dict) -> dict:
     return payload["data"]
 
 
-def find_account_and_site(token: str) -> tuple[str, str]:
-    """Находит аккаунт и сайт, чтобы не хранить их идентификаторы в коде."""
-    response = requests.get(
-        "https://api.cloudflare.com/client/v4/accounts",
-        headers={"Authorization": f"Bearer {token}"},
-        timeout=TIMEOUT,
-    )
-    response.raise_for_status()
-    accounts = response.json().get("result") or []
-    if not accounts:
-        raise RuntimeError("токен не видит ни одного аккаунта Cloudflare")
-    account_id = accounts[0]["id"]
+def find_account_and_site() -> tuple[str, str]:
+    """Берёт идентификаторы аккаунта и сайта — оба публичные, не секреты.
 
-    response = requests.get(
-        f"https://api.cloudflare.com/client/v4/accounts/{account_id}/rum/site_info/list",
-        headers={"Authorization": f"Bearer {token}"},
-        timeout=TIMEOUT,
-    )
-    response.raise_for_status()
-    sites = response.json().get("result") or []
-    for site in sites:
-        if "ucenka-vi" in (site.get("ruleset", {}).get("zone_name") or "") or \
-           "ucenka-vi" in json.dumps(site, ensure_ascii=False):
-            return account_id, site["site_tag"]
-    if sites:
-        return account_id, sites[0]["site_tag"]
-    raise RuntimeError("в аккаунте нет ни одного сайта Web Analytics")
+    Спрашивать их у Cloudflare нельзя: аналитический токен не имеет права
+    листать аккаунты, а GraphQL требует accountTag явным фильтром. Поэтому
+    аккаунт лежит в конфиге рядом, а сайт читается из beacon на главной —
+    он и так виден в исходниках страницы.
+    """
+    if not CONFIG_PATH.exists():
+        raise RuntimeError(
+            f"нет файла {CONFIG_PATH.name}. Создать рядом со скриптом:\n"
+            '{ "accountTag": "идентификатор аккаунта из адресной строки Cloudflare" }'
+        )
+    config = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+    account = (config.get("accountTag") or "").strip()
+    if not account:
+        raise RuntimeError(f"в {CONFIG_PATH.name} пустой accountTag")
+
+    site = (config.get("siteTag") or "").strip() or site_tag_from_beacon()
+    return account, site
+
+
+def site_tag_from_beacon() -> str:
+    """Достаёт идентификатор сайта из тега Cloudflare на главной странице."""
+    index = REPO_ROOT / "index.html"
+    match = re.search(r'data-cf-beacon=\'{"token":\s*"([0-9a-f]+)"', index.read_text(encoding="utf-8"))
+    if not match:
+        raise RuntimeError("на главной странице не найден тег Cloudflare Web Analytics")
+    return match.group(1)
 
 
 TOTALS_QUERY = """
@@ -183,7 +188,7 @@ def totals_for(token: str, account: str, site: str, days: int) -> dict:
 
 
 def collect(token: str) -> dict:
-    account, site = find_account_and_site(token)
+    account, site = find_account_and_site()
     log(f"аккаунт {account[:8]}…, сайт {site[:8]}…")
 
     since = date.today() - timedelta(days=HISTORY_DAYS - 1)
