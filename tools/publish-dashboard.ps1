@@ -133,6 +133,9 @@ $shellHtml = @'
   </div>
 </section>
 <script src="usage.js?v=20260902-1" defer></script>
+<!-- Аналитика вставляется здесь, а не в исходной выгрузке: иначе она пропадала
+     при каждой перепубликации дашборда. Идентификатор публичный. -->
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token":"85a2c48f22834923b7c34b931c8c514e"}'></script>
 <!-- SITE-SHELL-END -->
 '@
 
