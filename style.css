@@ -213,17 +213,61 @@ h1 {
   display: grid;
   grid-template-columns: minmax(270px, 0.72fr) minmax(0, 1.55fr);
   gap: 18px;
-  align-items: start;
+  /* Карточки тянутся до общей высоты: разная длина колонок выглядела обрубком. */
+  align-items: stretch;
 }
 
 .card {
+  position: relative;
   border: 1px solid var(--line);
   border-radius: 22px;
   background: linear-gradient(160deg, rgba(20, 29, 41, 0.96), rgba(12, 19, 28, 0.93));
   box-shadow: var(--shadow);
 }
 
-.databaseCard { padding: 21px; }
+/* Медленный перелив по краю карточки — только подсветка, содержимое не трогает. */
+.card::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    115deg,
+    rgba(0, 200, 83, 0) 18%,
+    rgba(0, 200, 83, 0.55) 34%,
+    rgba(120, 220, 255, 0.35) 46%,
+    rgba(0, 200, 83, 0) 62%
+  );
+  background-size: 280% 100%;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  opacity: 0.75;
+  pointer-events: none;
+  animation: cardSheen 9s linear infinite;
+}
+
+.searchCard::before { animation-delay: -4.5s; }
+
+@keyframes cardSheen {
+  from { background-position: 140% 0; }
+  to { background-position: -140% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card::before { animation: none; opacity: 0.35; }
+}
+
+.databaseCard {
+  padding: 21px;
+  /* Примечание прижато вниз, чтобы растянутая карточка не зияла пустотой. */
+  display: flex;
+  flex-direction: column;
+}
+
+.databaseCard .databaseNote { margin-top: auto; }
 .searchCard { min-width: 0; padding: 24px; }
 
 .cardHeading {

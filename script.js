@@ -436,7 +436,7 @@
   }
 
   /** Тянет шарды пачками, чтобы не открывать полсотни запросов разом. */
-  async function loadShardsFor(codes, operationVersion, onProgress) {
+  async function loadShardsFor(codes, operationVersion, onProgress, isEnough) {
     const keys = [...new Set(codes.map(shardKey))];
     const rowsByCode = new Map();
     for (let index = 0; index < keys.length; index += NAME_FETCH_CONCURRENCY) {
@@ -447,6 +447,9 @@
         for (const row of rows) rowsByCode.set(field(row, "Штрихкод"), row);
       }
       onProgress?.(Math.min(1, (index + batch.length) / keys.length));
+      // Хватит качать, как только набралось на полную выдачу: у частого слова
+      // кандидатов тысячи, и без этой остановки поиск тянул бы десятки мегабайт.
+      if (isEnough?.(rowsByCode)) break;
     }
     return rowsByCode;
   }
@@ -515,20 +518,33 @@
         return;
       }
 
+      // Слова ищем в любом порядке: в базе товар записан как «Bosch Перфоратор»,
+      // а спрашивают обычно наоборот.
+      const matches = (row) => {
+        const name = normalizeName(field(row, "Наименование"));
+        return tokens.every((token) => name.includes(token));
+      };
+
       setProgress(true, 30);
-      const rowsByCode = await loadShardsFor(candidates, operationVersion, (fraction) =>
-        setProgress(true, 30 + fraction * 65),
+      const rowsByCode = await loadShardsFor(
+        candidates,
+        operationVersion,
+        (fraction) => setProgress(true, 30 + fraction * 65),
+        (loaded) => {
+          let ready = 0;
+          for (const code of candidates) {
+            const row = loaded.get(code);
+            if (row && matches(row) && (ready += 1) >= MAX_RESULTS) return true;
+          }
+          return false;
+        },
       );
       if (operationVersion !== version) return;
 
-      // Слова ищем в любом порядке: в базе товар записан как «Bosch Перфоратор»,
-      // а спрашивают обычно наоборот.
       const found = [];
       for (const code of candidates) {
         const row = rowsByCode.get(code);
-        if (!row) continue;
-        const name = normalizeName(field(row, "Наименование"));
-        if (!tokens.every((token) => name.includes(token))) continue;
+        if (!row || !matches(row)) continue;
         found.push(row);
         if (found.length >= MAX_RESULTS) break;
       }
