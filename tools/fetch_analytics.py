@@ -34,7 +34,7 @@ CREDENTIAL_NAME = "cloudflare_analytics"
 # Идентификатор аккаунта — не секрет, но у каждого свой, поэтому вынесен рядом.
 CONFIG_PATH = Path(__file__).resolve().parent / "analytics_config.json"
 API_URL = "https://api.cloudflare.com/client/v4/graphql"
-TIMEOUT = 60
+TIMEOUT = 180
 
 # Сколько дней показываем на графике.
 HISTORY_DAYS = 30
@@ -74,18 +74,28 @@ def log(message: str) -> None:
     print(f"[{time.strftime('%H:%M:%S')}] {message}", flush=True)
 
 
-def query(token: str, document: str, variables: dict) -> dict:
-    response = requests.post(
-        API_URL,
-        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
-        json={"query": document, "variables": variables},
-        timeout=TIMEOUT,
-    )
-    response.raise_for_status()
-    payload = response.json()
-    if payload.get("errors"):
-        raise RuntimeError(f"Cloudflare вернул ошибку: {payload['errors']}")
-    return payload["data"]
+def query(token: str, document: str, variables: dict, tries: int = 3) -> dict:
+    """Запрос к GraphQL с повтором: аналитика отвечает медленно и рвёт соединение."""
+    last: Exception | None = None
+    for attempt in range(1, tries + 1):
+        try:
+            response = requests.post(
+                API_URL,
+                headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+                json={"query": document, "variables": variables},
+                timeout=TIMEOUT,
+            )
+            response.raise_for_status()
+            payload = response.json()
+            if payload.get("errors"):
+                raise RuntimeError(f"Cloudflare вернул ошибку: {payload['errors']}")
+            return payload["data"]
+        except (requests.Timeout, requests.ConnectionError) as error:
+            last = error
+            if attempt < tries:
+                log(f"повтор запроса ({attempt} из {tries})")
+                time.sleep(3 * attempt)
+    raise RuntimeError(f"Cloudflare не ответил за {tries} попытки: {last}")
 
 
 def find_account_and_site() -> tuple[str, str]:
@@ -172,19 +182,18 @@ query Pages($accountTag: String!, $siteTag: String!, $since: Date!, $until: Date
 """
 
 
-def totals_for(token: str, account: str, site: str, days: int) -> dict:
-    until = date.today() + timedelta(days=1)
-    since = date.today() - timedelta(days=days - 1)
-    data = query(token, TOTALS_QUERY, {
-        "accountTag": account,
-        "siteTag": site,
-        "since": f"{since}T00:00:00Z",
-        "until": f"{until}T00:00:00Z",
-    })
-    groups = data["viewer"]["accounts"][0]["total"]
-    if not groups:
-        return {"просмотры": 0, "посетители": 0}
-    return {"просмотры": groups[0]["count"], "посетители": groups[0]["sum"]["visits"]}
+def totals_from(days: list[dict], last: int) -> dict:
+    """Складывает последние дни разбивки.
+
+    Отдельные запросы за период отдавали несходящиеся числа: на длинном
+    интервале Cloudflare оценивает по выборке, и месяц выходил меньше недели.
+    Дневная разбивка точная, поэтому периоды считаем по ней.
+    """
+    tail = days[-last:] if last else days
+    return {
+        "просмотры": sum(day["просмотры"] for day in tail),
+        "посетители": sum(day["посетители"] for day in tail),
+    }
 
 
 def collect(token: str) -> dict:
@@ -203,21 +212,23 @@ def collect(token: str) -> dict:
     daily = query(token, DAILY_QUERY, variables)["viewer"]["accounts"][0]["days"]
     pages = query(token, PAGES_QUERY, variables)["viewer"]["accounts"][0]["pages"]
 
+    by_day = [
+        {
+            "дата": row["dimensions"]["date"],
+            "просмотры": row["count"],
+            "посетители": row["sum"]["visits"],
+        }
+        for row in daily
+    ]
+
     return {
         "обновлено": time.strftime("%Y-%m-%d %H:%M:%S"),
         "запериод": {
-            "сутки": totals_for(token, account, site, 1),
-            "неделя": totals_for(token, account, site, 7),
-            "месяц": totals_for(token, account, site, 30),
+            "сутки": totals_from(by_day, 1),
+            "неделя": totals_from(by_day, 7),
+            "месяц": totals_from(by_day, 30),
         },
-        "поДням": [
-            {
-                "дата": row["dimensions"]["date"],
-                "просмотры": row["count"],
-                "посетители": row["sum"]["visits"],
-            }
-            for row in daily
-        ],
+        "поДням": by_day,
         "поСтраницам": [
             {
                 "страница": row["dimensions"]["requestPath"],
