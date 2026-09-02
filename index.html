@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0a1018">
+  <title>Пикалка · Уценка и предсорт</title>
+  <link rel="icon" type="image/svg+xml" href="assets/brand/vi-mark.svg?v=20260902-3">
+  <link rel="preload" href="assets/fonts/VI_Sans_Regular.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/VI_Sans_ExtraBold.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="style.css?v=20260902-3">
+  <script src="script.js?v=20260902-3" defer></script>
+</head>
+<body data-mode="ucenka">
+  <main class="shell">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="Пикалка — главная">
+        <img class="brand__mark" src="assets/brand/vi-mark.svg?v=20260902-3" alt="" width="22" height="22">
+        <span>Пикалка</span>
+      </a>
+      <div class="topActions">
+        <a class="dashboardLink" href="dashboard/">Дашборд</a>
+        <span class="privacy">База работает прямо в браузере</span>
+      </div>
+    </header>
+
+    <section class="hero">
+      <div>
+        <p class="eyebrow" id="eyebrow">Рубрика и себестоимость</p>
+        <h1 id="pageTitle">Уценка</h1>
+        <p class="lead" id="modeDescription">
+          Сканируйте штрихкод — получите рубрику и себестоимость товара.
+        </p>
+      </div>
+      <div class="tabs" role="tablist" aria-label="Раздел Пикалки">
+        <button class="tab" type="button" role="tab" data-mode="ucenka" aria-selected="true">Уценка</button>
+        <button class="tab" type="button" role="tab" data-mode="presort" aria-selected="false">Предсорт</button>
+      </div>
+    </section>
+
+    <section class="layout">
+      <aside class="card databaseCard" aria-live="polite">
+        <div class="cardHeading">
+          <div>
+            <p class="overline">Справочник</p>
+            <h2>База товаров</h2>
+          </div>
+          <span class="modePill" id="modePill">Уценка</span>
+        </div>
+
+        <div class="connection loading" id="connection">
+          <span class="connection__icon" id="connectionIcon" aria-hidden="true">↻</span>
+          <div>
+            <strong id="connectionTitle">Загружаю справочник</strong>
+            <p id="connectionHint">Ничего выбирать не нужно.</p>
+          </div>
+        </div>
+        <div class="progress" id="progress" hidden><i id="progressValue"></i></div>
+
+        <dl class="stats">
+          <div><dt>Строк</dt><dd id="rowCount">—</dd></div>
+          <div><dt>Кусочков в памяти</dt><dd id="partCount">0</dd></div>
+          <div><dt>Состояние</dt><dd id="readyState">Подключение</dd></div>
+        </dl>
+
+        <button class="retry" id="retry" type="button" hidden>Повторить подключение</button>
+        <p class="databaseNote">
+          Для каждого штрихкода скачивается только его кусочек справочника — обычно меньше 30 КБ. Он остаётся в кэше браузера.
+        </p>
+      </aside>
+
+      <section class="card searchCard">
+        <div class="cardHeading searchHeading">
+          <div>
+            <p class="overline">Поиск</p>
+            <h2>Найти товар</h2>
+          </div>
+          <span class="readyPill"><i></i>Сканер</span>
+        </div>
+
+        <label class="fieldLabel" for="scan">Штрихкод</label>
+        <div class="searchRow">
+          <input id="scan" type="text" inputmode="numeric" autocomplete="off" spellcheck="false"
+                 placeholder="Подключаю базу…" disabled>
+          <button class="action" id="go" type="button" disabled>Найти</button>
+        </div>
+
+        <label class="fieldLabel nameLabel" for="nameSearch">Наименование</label>
+        <div class="searchRow searchRow--name">
+          <input id="nameSearch" type="text" autocomplete="off" spellcheck="false"
+                 placeholder="Введите минимум 3 символа…" disabled>
+          <button class="action action--secondary" id="goName" type="button" disabled>Найти</button>
+        </div>
+        <p class="nameNote">Поиск по названию идёт по словарю: скачивается только нужный кусочек.</p>
+
+        <p class="message" id="message">Подключаю справочник…</p>
+
+        <article class="answer" id="answer" aria-live="polite">
+          <div class="primary" id="primary">
+            <span id="primaryLabel">Себестоимость</span>
+            <strong id="primaryValue">—</strong>
+          </div>
+          <div class="answer__info">
+            <span class="answer__label">Наименование</span>
+            <h3 id="productName">—</h3>
+            <span class="secondary" id="secondary">—</span>
+            <p class="code" id="productCode"></p>
+          </div>
+        </article>
+
+        <div class="results" id="nameResults">
+          <table>
+            <thead>
+              <tr>
+                <th>Штрихкод</th>
+                <th>Наименование</th>
+                <th id="extraHead1">Рубрика</th>
+                <th id="extraHead2">Цена</th>
+              </tr>
+            </thead>
+            <tbody id="nameResultsBody"></tbody>
+          </table>
+        </div>
+
+        <div class="details" id="details">
+          <table><tbody id="detailsBody"></tbody></table>
+        </div>
+
+        <p class="scannerNote">
+          Сканер обычно отправляет <kbd>Enter</kbd> после кода. Поле очистится и сразу будет готово к следующему товару.
+        </p>
+      </section>
+    </section>
+  </main>
+  <!-- Cloudflare Web Analytics -->
+  <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token":"907d91d4e2e044f682da0d451e684f83"}'></script>
+  <!-- End Cloudflare Web Analytics -->
+</body>
+</html>

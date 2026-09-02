@@ -1,0 +1,32 @@
+{
+  "version": 2,
+  "builtAt": "2026-09-02 18:41:09",
+  "shardDigits": 4,
+  "shardPath": "data/v2/shards/{prefix}/{key}.csv.gz",
+  "wordPath": "data/v2/words/{prefix}.txt.gz",
+  "wordBigPath": "data/v2/words/big/w-{token}.txt.gz",
+  "wordPrefix": 2,
+  "postingsPerToken": 2000,
+  "inlineLimit": 500,
+  "fields": [
+    "Штрихкод",
+    "Наименование",
+    "Рубрика",
+    "Себес",
+    "Кластер"
+  ],
+  "rows": 6122122,
+  "skipped": 49629,
+  "duplicates": 68,
+  "shardCount": 10000,
+  "compressedBytes": 310846916,
+  "rawBytes": 875939820,
+  "shardBytesMedian": 30224,
+  "shardBytesMax": 86908,
+  "wordFiles": 3189,
+  "wordBigFiles": 9769,
+  "wordBytes": 105624135,
+  "wordBytesMedian": 1748,
+  "wordBytesMax": 1064001,
+  "emptyShards": []
+}
