@@ -161,7 +161,15 @@
 .import-status.ok { color: var(--good); }
 .import-status.error { color: var(--critical); }
 .import-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
-@media (max-width: 720px) { .site-nav { padding-inline: 14px; } .site-nav__back { display: none; } .import-panel { padding-inline: 14px; } .import-card { grid-template-columns: 1fr; } .import-actions { justify-content: flex-start; } }
+.site-usage { max-width: 1280px; margin: 10px auto 0; padding: 0 24px; font-family: "VI Sans", system-ui, sans-serif; }
+.site-usage[hidden] { display: none; }
+.site-usage__row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 16px; padding: 9px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--muted); font-size: 12px; }
+.site-usage__title { color: var(--ink-2); font-weight: 700; }
+.site-usage__item b { color: var(--ink); font-size: 14px; font-variant-numeric: tabular-nums; }
+.site-usage__spark { display: inline-flex; align-items: flex-end; gap: 2px; height: 18px; margin-left: auto; }
+.site-usage__spark i { width: 3px; min-height: 1px; border-radius: 1px; background: var(--accent); opacity: 0.65; }
+.site-usage__stamp { color: var(--muted); font-size: 11px; }
+@media (max-width: 720px) { .site-nav { padding-inline: 14px; } .site-nav__back { display: none; } .import-panel { padding-inline: 14px; } .import-card { grid-template-columns: 1fr; } .import-actions { justify-content: flex-start; } .site-usage { padding-inline: 14px; } .site-usage__spark { margin-left: 0; } }
 </style>
 <link rel="stylesheet" href="dashboard-redesign.css?v=20260902-3">
 </head>
@@ -190,6 +198,17 @@
     <p class="import-status" id="import-status">Обновления сохраняются только в этом браузере. Исходные файлы никуда не отправляются.</p>
   </div>
 </section>
+<section class="site-usage" id="site-usage" hidden aria-label="Посещаемость">
+  <div class="site-usage__row">
+    <span class="site-usage__title">Заходили на сайт</span>
+    <span class="site-usage__item"><b id="usage-day">—</b> за сутки</span>
+    <span class="site-usage__item"><b id="usage-week">—</b> за неделю</span>
+    <span class="site-usage__item"><b id="usage-month">—</b> за месяц</span>
+    <span class="site-usage__spark" id="usage-spark" aria-hidden="true"></span>
+    <span class="site-usage__stamp" id="usage-stamp"></span>
+  </div>
+</section>
+<script src="usage.js?v=20260902-1" defer></script>
 <!-- SITE-SHELL-END -->
 
 
