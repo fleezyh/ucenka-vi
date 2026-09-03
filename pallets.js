@@ -9,10 +9,14 @@
   const DATA_URL = "data/pallets.csv.gz";
   const STAMP_URL = "data/pallets-stamp.json";
   const MAX_SHOWN = 300;
+  // Библиотека для выгрузки в Excel весит почти мегабайт, поэтому подключается
+  // только когда её действительно попросили. Лежит там же, где её берёт дашборд.
+  const XLSX_URL = "dashboard/vendor/xlsx.full.min.js";
 
   const $ = (id) => document.getElementById(id);
   const input = $("palletInput");
   const goButton = $("palletGo");
+  const exportButton = $("palletExport");
   const clearButton = $("palletClear");
   const message = $("palletMessage");
   const results = $("palletResults");
@@ -29,6 +33,9 @@
   let registry = null;
   let loading = null;
   let columns = [];
+  // Последний результат поиска — его и выгружаем, вместе с ненайденными.
+  let lastFound = [];
+  let lastMissing = [];
 
   function say(text, type = "") {
     message.textContent = text;
@@ -175,6 +182,77 @@
     return line;
   }
 
+  function loadXlsx() {
+    if (window.XLSX) return Promise.resolve(window.XLSX);
+    return new Promise((resolve, reject) => {
+      const tag = document.createElement("script");
+      tag.src = XLSX_URL;
+      tag.onload = () => (window.XLSX ? resolve(window.XLSX) : reject(new Error("библиотека не загрузилась")));
+      tag.onerror = () => reject(new Error("не удалось загрузить библиотеку"));
+      document.head.appendChild(tag);
+    });
+  }
+
+  function number(value) {
+    const parsed = Number(String(value ?? "").replace(",", "."));
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  async function exportExcel() {
+    if (!lastFound.length) return;
+    exportButton.disabled = true;
+    const wasText = exportButton.textContent;
+    exportButton.textContent = "Готовлю…";
+
+    try {
+      const XLSX = await loadXlsx();
+      // Числа кладём числами, а не текстом: иначе в Excel по ним не посчитать
+      // сумму, а стоимость встанет по левому краю.
+      const rows = lastFound.map((cells) => ({
+        "Паллета": cells[0],
+        "Ячейка": cells[1],
+        "Зона": cells[2],
+        "Регион": cells[3],
+        "Штук": number(cells[4]),
+        "SKU": number(cells[5]),
+        "Стоимость": number(cells[6]),
+        "Последнее движение": cells[7],
+        "В зоне уценки": cells[8],
+      }));
+
+      const book = XLSX.utils.book_new();
+      const sheet = XLSX.utils.json_to_sheet(rows);
+      sheet["!cols"] = [
+        { wch: 30 }, { wch: 32 }, { wch: 34 }, { wch: 26 },
+        { wch: 9 }, { wch: 7 }, { wch: 14 }, { wch: 18 }, { wch: 14 },
+      ];
+      sheet["!autofilter"] = { ref: sheet["!ref"] };
+      XLSX.utils.book_append_sheet(book, sheet, "Паллеты");
+
+      if (lastMissing.length) {
+        // Ненайденные — отдельным листом, чтобы не мешались в основном.
+        const missingSheet = XLSX.utils.json_to_sheet(
+          lastMissing.map((name) => ({ "Не найдены в реестре": name })),
+        );
+        missingSheet["!cols"] = [{ wch: 40 }];
+        XLSX.utils.book_append_sheet(book, missingSheet, "Не найдены");
+      }
+
+      const now = new Date();
+      const stamp = [
+        now.getFullYear(),
+        String(now.getMonth() + 1).padStart(2, "0"),
+        String(now.getDate()).padStart(2, "0"),
+      ].join("-");
+      XLSX.writeFile(book, `Паллеты ${stamp}.xlsx`);
+    } catch (error) {
+      say(`Не удалось собрать файл: ${error?.message || error}`, "error");
+    } finally {
+      exportButton.disabled = false;
+      exportButton.textContent = wasText;
+    }
+  }
+
   async function search() {
     const names = parseNames(input.value);
     if (!names.length) {
@@ -194,11 +272,16 @@
         else missing.push(name);
       }
 
+      lastFound = found;
+      lastMissing = missing;
+
       resultsBody.replaceChildren();
       for (const cells of found.slice(0, MAX_SHOWN)) {
         resultsBody.appendChild(renderRow(cells));
       }
       results.style.display = found.length ? "block" : "none";
+      // В файл уходит весь результат, даже если на экране показаны не все строки.
+      exportButton.hidden = !found.length;
 
       if (missing.length) {
         missingList.textContent = missing.join(", ");
@@ -227,11 +310,15 @@
   }
 
   goButton.addEventListener("click", search);
+  exportButton.addEventListener("click", exportExcel);
   clearButton.addEventListener("click", () => {
     input.value = "";
     resultsBody.replaceChildren();
     results.style.display = "none";
     missingBlock.hidden = true;
+    exportButton.hidden = true;
+    lastFound = [];
+    lastMissing = [];
     say("Вставьте список паллет и нажмите «Найти».");
     input.focus();
   });
