@@ -10,7 +10,7 @@
 
 .tiles {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -19,10 +19,12 @@
    Порядок строк: название, значение, график, подвал с целью. */
 .tile {
   display: grid;
-  grid-template-rows: 36px auto 1fr 30px;
-  gap: 8px;
-  min-height: 218px;
-  padding: 14px 16px 12px;
+  /* Пропорции как в исходном чарте: плитка широкая и низкая, а не квадратная.
+     Название в одну строку — на четырёх колонках оно помещается. */
+  grid-template-rows: 18px auto 1fr 26px;
+  gap: 7px;
+  min-height: 168px;
+  padding: 13px 16px 11px;
   border-radius: 16px;
   color: #fff;
   /* Градиент по тону статуса: сверху чуть светлее, снизу глубже. */
@@ -39,10 +41,11 @@
   box-shadow: 0 20px 40px -20px rgba(6, 10, 16, 1);
 }
 
-/* Две строки под название всегда: одна строка не поднимает всё остальное. */
+/* Название в одну строку: на широкой плитке оно помещается целиком, а лишние
+   строки разносили плитку по высоте. Не влезло — обрезаем многоточием. */
 .tile__head {
   display: flex;
-  align-items: flex-start;
+  align-items: baseline;
   justify-content: space-between;
   gap: 10px;
   overflow: hidden;
@@ -51,16 +54,16 @@
 /* Крупный текст просит отрицательный трекинг, мелкий — наоборот, положительный. */
 .tile__name {
   margin: 0;
-  font: 600 13.5px/1.3 var(--ui);
+  font: 600 13.5px/18px var(--ui);
   letter-spacing: -0.005em;
-  overflow-wrap: break-word;
-  word-break: normal;
-  hyphens: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .tile__block {
   flex: none;
-  font: 700 9.5px/1 var(--ui);
+  font: 700 9.5px/18px var(--ui);
   letter-spacing: 0.09em;
   text-transform: uppercase;
   opacity: 0.6;
@@ -69,7 +72,7 @@
 
 .tile__value {
   margin: 0;
-  font: 800 26px/1.05 var(--ui);
+  font: 800 27px/1.05 var(--ui);
   /* Табличные цифры на VI Sans разъезжаются в «-1 , 19%» — не включаем. */
   letter-spacing: -0.02em;
   font-feature-settings: "tnum" 0, "pnum" 1;
@@ -133,7 +136,7 @@
 
 .tile__plot {
   position: relative;
-  height: 34px;
+  height: 30px;
 }
 
 .tile__spark { width: 100%; height: 100%; overflow: visible; }
@@ -175,7 +178,7 @@
 .tile__foot {
   align-self: end;
   width: 100%;
-  padding-top: 9px;
+  padding-top: 7px;
   border-top: 1px solid rgba(255, 255, 255, 0.18);
   font: 600 11.5px/1.25 var(--ui);
   letter-spacing: 0.008em;

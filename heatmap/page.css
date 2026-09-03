@@ -50,19 +50,18 @@ body[data-mode="heatmap"] .shell { width: min(1760px, 100%); }
 
 #tiles { margin-top: 4px; }
 
-/* Ниже определённой ширины плитка становится теснее тех ~270 пикселей, на
-   которых название держится в две строки. Убираем колонку, а не размер букв. */
-@media (max-width: 1500px) { .tiles { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
-@media (max-width: 1240px) { .tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
-@media (max-width: 1000px) { .tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+/* Плитка держит название в одну строку примерно от 380 пикселей ширины.
+   Ниже — убираем колонку, а не размер букв. */
+@media (max-width: 1560px) { .tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 1080px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 760px) {
-  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .tiles { gap: 10px; }
   .heroHeatmap { grid-template-columns: 1fr; }
   .periodBox { min-width: 0; }
-  .tile { min-height: 164px; padding: 13px 14px 11px; }
+  .tile { min-height: 158px; padding: 12px 14px 10px; }
   .tile__value { font-size: 24px; }
 }
-@media (max-width: 430px) { .tiles { grid-template-columns: 1fr; } }
+@media (max-width: 560px) { .tiles { grid-template-columns: 1fr; } }
 
 @media (prefers-reduced-transparency: reduce) {
   .periodBox select { backdrop-filter: none; background-color: #0d141d; }
