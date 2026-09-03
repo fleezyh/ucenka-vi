@@ -1,34 +1,201 @@
-.hu,.hu *{box-sizing:border-box;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif!important;-webkit-font-smoothing:antialiased}
-.hu{width:100%;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));grid-auto-rows:164px;gap:10px;padding:4px 2px 6px}
-.hu-cell{position:relative;border-radius:14px;color:#fff;overflow:hidden;border:1px solid rgba(255,255,255,.08);box-shadow:inset 0 1px 0 rgba(255,255,255,.10),0 18px 40px -24px rgba(15,20,30,.6);display:grid;grid-template-rows:auto 1fr;padding:11px 14px 10px;transition:transform .32s cubic-bezier(.22,1,.36,1),box-shadow .32s cubic-bezier(.22,1,.36,1),border-color .32s cubic-bezier(.22,1,.36,1)}
-.hu-cell:hover{transform:translateY(-2px);border-color:rgba(255,255,255,.55)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 26px 54px -24px rgba(15,20,30,.8);z-index:6}
-.hu-cell:active{transform:scale(.988);transition:transform .1s ease-out}
-.hu-aur{position:absolute;left:-30%;top:-50%;width:160%;height:200%;z-index:1;pointer-events:none;filter:blur(18px);opacity:.07;background:linear-gradient(115deg,#FF561C,#FFB72D 18%,#12BEB0 38%,#8444FF 58%,#E8341C 78%,#FF561C);background-size:300% 100%;animation:humesh 16s linear infinite}
-@keyframes humesh{from{background-position:0 50%}to{background-position:300% 50%}}
-.hu-cell:nth-child(5n+2) .hu-aur{animation-delay:-3.2s}
-.hu-cell:nth-child(5n+3) .hu-aur{animation-delay:-6.4s}
-.hu-cell:nth-child(5n+4) .hu-aur{animation-delay:-9.6s}
-.hu-cell:nth-child(5n) .hu-aur{animation-delay:-12.8s}
-.hu-cell:hover .hu-aur{opacity:.11;animation-duration:6s}
-.hu-head{grid-row:1;position:relative;z-index:3}
-.hu-foot{grid-row:2;align-self:end;position:relative;z-index:3;min-width:0}
-.hu-head{display:flex;justify-content:space-between;align-items:flex-start;gap:6px;min-width:0}
-.hu-name{font-size:14px!important;font-weight:700!important;line-height:1.22;letter-spacing:-.005em;overflow-wrap:anywhere;text-shadow:0 1px 4px rgba(8,10,14,.45)}
-.hu-icon{font-size:10px;font-weight:700;opacity:.42;flex-shrink:0;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
-.hu-val{display:flex;align-items:baseline;gap:7px;flex-wrap:wrap;font-size:28px!important;font-weight:800!important;line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums;text-shadow:0 1px 4px rgba(8,10,14,.45)}
-.hu-val2{font-size:inherit!important;font-weight:inherit!important;opacity:1;white-space:nowrap}
-.hu-val2:not(:empty)::before{content:'/';opacity:.45;margin-right:7px;font-weight:400}
-@media (max-width:1000px){.hu{grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-rows:126px}.hu-val{font-size:24px!important}}
-.hu-meta{font-size:11.5px!important;font-weight:600!important;opacity:.82;margin-top:6px;line-height:1.2;font-variant-numeric:tabular-nums}
-.hu-cell:hover .hu-bar{background:rgba(255,255,255,.62)}
-.hu-cell:hover .hu-bar-now{background:#fff}
-.hu-meta{margin-top:5px!important}
-.hu-plot{position:relative;height:40px;margin:14px 6px 0 2px}
-.hu-area{position:absolute;left:0;right:0;top:0;bottom:0;background:rgba(255,255,255,.20)}
-.hu-dot{position:absolute;width:6px;height:6px;margin:-3px 0 0 -3px;border-radius:50%;background:#fff;box-shadow:0 0 0 2px rgba(0,0,0,.18)}
-.hu-dot-now{width:8px;height:8px;margin:-4px 0 0 -6px}
-.hu-dot b{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);font-size:9.5px;font-weight:700;white-space:nowrap;text-shadow:0 1px 3px rgba(8,10,14,.9)}
-.hu-dot-now b{left:auto;right:0;transform:none}
-.hu-meta{margin-top:3px!important}
-.hu-wks{display:flex;justify-content:space-between;margin:2px 4px 0 0;font-size:9px;letter-spacing:.04em;opacity:.55;font-variant-numeric:tabular-nums}
-.hu-dot-off{display:none}
+/* Плитки хитмапа.
+ *
+ * Из Superset перенесены только данные, вид сделан заново: там шрифт был прибит
+ * к Inter через !important, а точки динамики стояли отдельными кружками с
+ * absolute-позицией — без линии между ними они выглядели рассыпанными.
+ *
+ * Материал: цвет статуса лежит подложкой, поверх — полупрозрачное стекло со
+ * светлым краем сверху, как свет, поймавший поверхность. Стекло не наслаивается
+ * само на себя: слой ровно один.
+ */
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  min-height: 176px;
+  padding: 15px 17px 13px;
+  border-radius: 20px;
+  color: #fff;
+  isolation: isolate;
+  overflow: hidden;
+  /* Цвет статуса приходит из запроса, стекло — сверху. */
+  background:
+    linear-gradient(158deg, rgba(255, 255, 255, 0.17), rgba(255, 255, 255, 0.03) 46%,
+                    rgba(0, 0, 0, 0.16)),
+    var(--tone, #7d8794);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.34),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.10),
+    0 18px 38px -22px rgba(6, 10, 16, 0.9);
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Блик по верхней кромке: узкая полоса света, а не общий осветлитель. */
+.tile::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 52%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.16), transparent);
+  pointer-events: none;
+  z-index: -1;
+}
+
+.tile:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.46),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.18),
+    0 26px 52px -24px rgba(6, 10, 16, 1);
+}
+
+.tile__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+/* Крупный текст просит отрицательный трекинг, мелкий — наоборот, положительный. */
+.tile__name {
+  margin: 0;
+  font: 600 13.5px/1.3 var(--ui);
+  letter-spacing: -0.005em;
+  overflow-wrap: break-word;
+  word-break: normal;
+  hyphens: none;
+  text-shadow: 0 1px 3px rgba(6, 10, 16, 0.35);
+}
+
+.tile__block {
+  flex: none;
+  font: 700 9.5px/1 var(--ui);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  opacity: 0.55;
+  white-space: nowrap;
+}
+
+.tile__value {
+  margin: 0;
+  font: 800 27px/1 var(--ui);
+  /* VI Sans на табличных цифрах разъезжается: «-1 , 19%» вместо «-1,19%».
+     Поэтому фичу не включаем, а ширину колонок держим на nowrap. */
+  letter-spacing: -0.02em;
+  font-feature-settings: "tnum" 0, "pnum" 1;
+  text-shadow: 0 1px 4px rgba(6, 10, 16, 0.4);
+  white-space: nowrap;
+}
+
+.tile__value2 {
+  margin-left: 6px;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  opacity: 0.72;
+}
+
+/* Динамика по неделям. Высота фиксированная — иначе плитки в ряду разъезжаются. */
+.tile__plot {
+  position: relative;
+  height: 38px;
+  margin-top: auto;
+}
+
+.tile__spark {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.tile__sparkFill { fill: rgba(255, 255, 255, 0.16); }
+
+.tile__sparkLine {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.75);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Точки лежат поверх линии по тем же координатам, поэтому не могут «съехать». */
+.tile__dot {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 1px 3px rgba(6, 10, 16, 0.45);
+  pointer-events: none;
+}
+
+/* Текущий период — крупнее и с ободком: взгляд цепляется за него первым. */
+.tile__dot--now {
+  width: 9px;
+  height: 9px;
+  margin: -4.5px 0 0 -4.5px;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.22), 0 2px 5px rgba(6, 10, 16, 0.5);
+}
+
+.tile__last {
+  position: absolute;
+  transform: translate(-50%, -158%);
+  font: 700 11px/1 var(--ui);
+  letter-spacing: 0.005em;
+  font-feature-settings: "tnum" 0, "pnum" 1;
+  white-space: nowrap;
+  opacity: 0.94;
+  text-shadow: 0 1px 4px rgba(6, 10, 16, 0.6);
+  pointer-events: none;
+}
+
+/* Точка у верхней кромки — подпись уходит вниз, иначе её срежет. */
+.tile__last--below { transform: translate(-50%, 62%); }
+
+.tile__foot {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 9px;
+  border-top: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+/* Мелкий текст на цветном фоне: чуть плотнее по весу и с положительным
+   трекингом, иначе на красном он расплывается. */
+.tile__meta {
+  font: 600 11.5px/1.25 var(--ui);
+  letter-spacing: 0.008em;
+  font-feature-settings: "tnum" 0, "pnum" 1;
+  opacity: 0.88;
+}
+
+.tile__period {
+  flex: none;
+  font: 700 9.5px/1 var(--ui);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  opacity: 0.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tile { transition: none; }
+  .tile:hover { transform: none; }
+}
+
+/* Прозрачность выключена — оставляем чистый цвет статуса без бликов. */
+@media (prefers-reduced-transparency: reduce) {
+  .tile { background: var(--tone, #7d8794); }
+  .tile::before { display: none; }
+}
