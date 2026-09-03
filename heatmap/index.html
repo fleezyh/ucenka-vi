@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0a1018">
+  <title>Хитмап уценки · Пикалка</title>
+  <link rel="icon" type="image/svg+xml" href="../assets/brand/vi-mark.svg">
+  <link rel="preload" href="../assets/fonts/VI_Sans_Regular.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="../style.css?v=20260903-3">
+  <link rel="stylesheet" href="tiles.css?v=20260903-1">
+  <link rel="stylesheet" href="page.css?v=20260903-1">
+  <script src="heatmap.js?v=20260903-1" defer></script>
+</head>
+<body data-mode="heatmap">
+  <main class="shell">
+    <header class="topbar">
+      <a class="brand" href="../" aria-label="Пикалка — главная">
+        <img class="brand__mark" src="../assets/brand/vi-mark.svg" alt="" width="22" height="22">
+        <span>Пикалка</span>
+      </a>
+      <div class="topActions">
+        <a class="dashboardLink" href="../dashboard/">Дашборд</a>
+        <a class="dashboardLink" href="../">Уценка и предсорт</a>
+      </div>
+    </header>
+
+    <section class="hero heroHeatmap">
+      <div>
+        <p class="eyebrow">Основные показатели</p>
+        <h1>Хитмап уценки</h1>
+        <p class="lead" id="lead">
+          Факт против цели по всем контурам: деньги, затраты, операционка и резерв.
+        </p>
+      </div>
+      <div class="periodBox">
+        <label class="fieldLabel" for="period">Период</label>
+        <select id="period"></select>
+        <p class="stamp" id="stamp"></p>
+      </div>
+    </section>
+
+    <p class="message" id="message">Загружаю показатели…</p>
+
+    <div id="tiles"></div>
+
+    <p class="scannerNote">
+      Наведите на плитку — покажу цель, отклонение и из чего сложилось число.
+      Данные считаются вместе с утренней выгрузкой уценки.
+    </p>
+  </main>
+</body>
+</html>

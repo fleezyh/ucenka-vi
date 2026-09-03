@@ -1,0 +1,61 @@
+/* Обвязка страницы хитмапа. Сами плитки рисует tiles.css — он перенесён из
+   чарта Superset как есть, чтобы вид не разъехался с привычным. */
+
+body[data-mode="heatmap"] {
+  background:
+    radial-gradient(1000px 620px at 3% -8%, rgba(154, 92, 246, 0.15), transparent 59%),
+    radial-gradient(850px 560px at 100% 2%, rgba(77, 141, 247, 0.11), transparent 58%),
+    var(--bg);
+}
+
+body[data-mode="heatmap"] .eyebrow { color: #c3a6ff; }
+
+.heroHeatmap { align-items: end; margin-bottom: 22px; }
+
+.periodBox {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 210px;
+}
+
+.periodBox select {
+  padding: 11px 13px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: var(--text);
+  background: rgba(8, 13, 20, 0.72);
+  font: 500 15px var(--ui);
+  cursor: pointer;
+}
+
+.periodBox select:focus { outline: none; border-color: var(--line-strong); }
+
+.stamp { margin: 0; color: var(--muted); font-size: 12px; }
+
+#tiles { margin-top: 4px; }
+
+/* В чарте стоит overflow-wrap:anywhere — на узкой плитке он рвёт слова посреди
+   буквы: «Себестоимос ть проданных». Переносим по словам, а не по символам. */
+.hu-name {
+  overflow-wrap: break-word !important;
+  word-break: normal !important;
+  hyphens: auto;
+}
+
+/* Шрифт сайта шире, чем Inter в чарте: на узких плитках длинные названия
+   перестают помещаться, поэтому чуть уменьшаем. */
+@media (max-width: 1240px) {
+  .hu-name { font-size: 13px !important; }
+  .hu-val { font-size: 25px !important; }
+}
+
+/* Плитки в чарте всегда в шесть колонок — на узком экране это нечитаемо. */
+@media (max-width: 1100px) { .hu { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; } }
+@media (max-width: 820px)  { .hu { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; } }
+@media (max-width: 620px)  {
+  .hu { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; grid-auto-rows: 150px !important; }
+  .heroHeatmap { grid-template-columns: 1fr; }
+  .periodBox { min-width: 0; }
+}
+@media (max-width: 380px)  { .hu { grid-template-columns: 1fr !important; } }
