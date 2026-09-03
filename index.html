@@ -5,17 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0a1018">
   <title>Пикалка · Уценка и предсорт</title>
-  <link rel="icon" type="image/svg+xml" href="assets/brand/vi-mark.svg?v=20260903-1">
+  <link rel="icon" type="image/svg+xml" href="assets/brand/vi-mark.svg?v=20260903-2">
   <link rel="preload" href="assets/fonts/VI_Sans_Regular.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="assets/fonts/VI_Sans_ExtraBold.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="style.css?v=20260903-1">
-  <script src="script.js?v=20260903-1" defer></script>
+  <link rel="stylesheet" href="style.css?v=20260903-2">
+  <script src="script.js?v=20260903-2" defer></script>
+  <script src="pallets.js?v=20260903-2" defer></script>
 </head>
 <body data-mode="ucenka">
   <main class="shell">
     <header class="topbar">
       <a class="brand" href="/" aria-label="Пикалка — главная">
-        <img class="brand__mark" src="assets/brand/vi-mark.svg?v=20260903-1" alt="" width="22" height="22">
+        <img class="brand__mark" src="assets/brand/vi-mark.svg?v=20260903-2" alt="" width="22" height="22">
         <span>Пикалка</span>
       </a>
       <div class="topActions">
@@ -35,6 +36,7 @@
       <div class="tabs" role="tablist" aria-label="Раздел Пикалки">
         <button class="tab" type="button" role="tab" data-mode="ucenka" aria-selected="true">Уценка</button>
         <button class="tab" type="button" role="tab" data-mode="presort" aria-selected="false">Предсорт</button>
+        <button class="tab" type="button" role="tab" data-mode="pallets" aria-selected="false">Паллеты</button>
       </div>
     </section>
 
@@ -129,6 +131,54 @@
         <p class="scannerNote">
           Сканер обычно отправляет <kbd>Enter</kbd> после кода. Поле очистится и сразу будет готово к следующему товару.
         </p>
+      </section>
+
+      <section class="card searchCard palletsCard">
+        <div class="cardHeading searchHeading">
+          <div>
+            <p class="overline">Поиск</p>
+            <h2>Где паллеты</h2>
+          </div>
+          <span class="readyPill"><i></i>Список</span>
+        </div>
+
+        <label class="fieldLabel" for="palletInput">Названия паллет</label>
+        <textarea id="palletInput" rows="6" autocomplete="off" spellcheck="false"
+                  placeholder="Вставьте список — по одной паллете в строке или через пробел"></textarea>
+        <div class="searchRow searchRow--pallets">
+          <button class="action" id="palletGo" type="button">Найти</button>
+          <button class="action action--secondary" id="palletClear" type="button">Очистить</button>
+        </div>
+
+        <p class="message" id="palletMessage">Вставьте список паллет и нажмите «Найти».</p>
+
+        <div class="results" id="palletResults">
+          <table>
+            <thead>
+              <tr>
+                <th>Паллета</th>
+                <th>Ячейка</th>
+                <th>Зона</th>
+                <th>Регион</th>
+                <th class="num">Штук</th>
+                <th class="num">SKU</th>
+                <th class="num">Стоимость</th>
+                <th>Двигали</th>
+              </tr>
+            </thead>
+            <tbody id="palletResultsBody"></tbody>
+          </table>
+        </div>
+
+        <div class="palletMissing" id="palletMissing" hidden>
+          <strong>Не нашлись:</strong>
+          <span id="palletMissingList"></span>
+          <p class="palletMissingHint">
+            Паллета попадает в реестр, только пока на ней есть остаток. Пустую или уже отгруженную здесь не найти.
+          </p>
+        </div>
+
+        <p class="scannerNote" id="palletStamp"></p>
       </section>
     </section>
   </main>

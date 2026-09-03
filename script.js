@@ -44,6 +44,17 @@
       extra1: "Рубрика",
       extra2: "Кластер",
     },
+    // Отдельный сценарий: не сканирование по одному, а список паллет разом.
+    // Поиск живёт в pallets.js, здесь раздел нужен только ради вкладки.
+    pallets: {
+      title: "Паллеты",
+      eyebrow: "Где сейчас паллета",
+      description: "Вставьте список паллет — покажу, где каждая лежит и какая стоит не в своей зоне.",
+      primary: "",
+      extra1: "",
+      extra2: "",
+      external: true,
+    },
   };
 
   const MANIFEST_URL = "data/v2/manifest.json";
@@ -151,10 +162,12 @@
     $("pageTitle").textContent = config.title;
     $("modeDescription").textContent = config.description;
     $("modePill").textContent = config.title;
+    tabs.forEach((tab) => tab.setAttribute("aria-selected", String(tab.dataset.mode === mode)));
+    if (config.external) return;
+
     $("extraHead1").textContent = config.extra1;
     $("extraHead2").textContent = config.extra2;
     primaryLabel.textContent = config.primary;
-    tabs.forEach((tab) => tab.setAttribute("aria-selected", String(tab.dataset.mode === mode)));
     renderStats();
   }
 
@@ -620,6 +633,8 @@
     const shown = productCode.textContent.trim();
     mode = nextMode;
     renderMode();
+    // У паллет своя карточка и свой поиск — здесь делать нечего.
+    if (MODES[mode].external) return;
     if (!manifest) return;
 
     resetResults();
@@ -651,6 +666,9 @@
     }
   });
   document.addEventListener("click", (event) => {
+    // В разделе паллет курсор должен оставаться в поле списка, а не убегать
+    // обратно в сканер.
+    if (MODES[mode].external) return;
     const insideNameSearch =
       event.target === nameSearch || event.target === goName || nameResults.contains(event.target);
     const insideTabs = tabs.some((tab) => tab.contains(event.target));
