@@ -667,3 +667,61 @@ body[data-mode="pallets"] .readyPill i { background: var(--amber); }
 .hit--warn td:nth-child(3) { color: var(--amber); font-weight: 700; }
 
 .results td.num, .results th.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* ---- Общая навигация ------------------------------------------------------
+   Два верхних раздела: «Уценка» — это отчётность (антигенерация и хитмап),
+   «Инструменты» — то, чем пользуются на складе. Раньше ссылки висели вперемешку
+   и было не понять, что к чему относится. */
+
+.siteNav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.navGroup {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 4px 4px 11px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: rgba(8, 13, 20, 0.6);
+}
+
+.navGroup__label {
+  margin-right: 5px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.navLink {
+  padding: 6px 11px;
+  border-radius: 9px;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 140ms ease, color 140ms ease;
+}
+
+.navLink:hover { background: rgba(255, 255, 255, 0.08); }
+
+/* Текущий раздел не ссылка, а метка места: куда пришёл — видно сразу. */
+.navLink[aria-current="page"] {
+  background: rgba(255, 255, 255, 0.13);
+  color: #fff;
+}
+
+@media (max-width: 900px) {
+  .siteNav { gap: 7px; }
+  .navGroup { padding-left: 9px; }
+  .navGroup__label { display: none; }
+  .navLink { padding: 6px 9px; font-size: 12.5px; }
+}

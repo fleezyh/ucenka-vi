@@ -75,6 +75,13 @@ $shellCss = @'
 .import-status.ok { color: var(--good); }
 .import-status.error { color: var(--critical); }
 .import-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.site-nav__links { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.navGroup { display: flex; align-items: center; gap: 3px; padding: 3px 3px 3px 10px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface-2); }
+.navGroup__label { margin-right: 4px; color: var(--faint); font-size: 9.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; white-space: nowrap; }
+.navLink { padding: 5px 10px; border-radius: 8px; color: var(--ink); font: 600 12.5px "VI Sans", system-ui, sans-serif; text-decoration: none; white-space: nowrap; }
+.navLink:hover { background: rgba(255,255,255,.07); }
+.navLink[aria-current="page"] { background: rgba(255,255,255,.12); color: #fff; }
+@media (max-width: 760px) { .navGroup__label { display: none; } }
 .site-usage { max-width: 1280px; margin: 10px auto 0; padding: 0 24px; font-family: "VI Sans", system-ui, sans-serif; }
 .site-usage[hidden] { display: none; }
 .site-usage__row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 16px; padding: 9px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--muted); font-size: 12px; }
@@ -104,7 +111,15 @@ $shellHtml = @'
   <a class="site-nav__brand" href="../"><img src="../assets/brand/vi-mark.svg" alt=""><span>Пикалка</span></a>
   <div class="site-nav__actions">
     <button class="data-button primary" id="import-open" type="button">Обновить данные</button>
-    <a class="site-nav__back" href="../">← Уценка и предсорт</a>
+    <span class="navGroup">
+      <span class="navGroup__label">Уценка</span>
+      <a class="navLink" href="./" aria-current="page">Антигенерация</a>
+      <a class="navLink" href="../heatmap/">Хитмап</a>
+    </span>
+    <span class="navGroup">
+      <span class="navGroup__label">Инструменты</span>
+      <a class="navLink" href="../">Пикалка</a>
+    </span>
   </div>
 </nav>
 <section class="import-panel" id="import-panel" hidden aria-label="Обновление данных">
