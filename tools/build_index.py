@@ -50,6 +50,37 @@ SHARD_COUNT = 10 ** SHARD_DIGITS
 # не разбирая строку целиком.
 FIELDS = ["Штрихкод", "Наименование", "Рубрика", "Себес", "Кластер"]
 
+# Каталог сайта рубрики переименовал, а витрина 9901_Name осталась на старых
+# названиях. Показываем те же слова, что видит человек на vseinstrumenti.ru,
+# иначе на складе сверять неудобно. На кластеры предсорта это не влияет: они
+# считаются в SQL по исходным названиям DWH.
+RUBRIC_ALIASES = {
+    "Сантехника": "Сантехника и инженерные системы",
+    "Товары для офиса и дома": "Офис и дом",
+    "Крепеж": "Крепёж и фурнитура",
+    "Автогаражное оборудование": "Автотовары",
+    "Станки": "Станки и промкомпоненты",
+    "Строительные материалы": "Отделочные и стройматериалы",
+    "Все для сада": "Всё для сада",
+    "Товары для отдыха": "Спорт и туризм",
+    "Складское оборудование": "Склад",
+    "Клининговое оборудование": "Клининг и химия",
+    "Климатическое оборудование": "Климат, отопление и вентиляция",
+}
+
+# Рубрики, которые приходят из DWH уже в нужном виде, плюс служебная заглушка
+# для незаполненного каталога. Всё, чего нет ни здесь, ни в RUBRIC_ALIASES, —
+# новая рубрика: о ней сборка предупредит, чтобы правило кластеров обновили.
+RUBRIC_KNOWN = {
+    "Инструмент",
+    "Электрика и свет",
+    "Ручной инструмент",
+    "Спецодежда и СИЗ",
+    "Строительное оборудование",
+    "Расходные материалы",
+    "Проверьте на сайте",
+}
+
 FLUSH_EVERY = 500_000
 
 
@@ -114,6 +145,8 @@ def build(source: Path) -> dict:
         shutil.rmtree(WORDS_DIR)
     WORDS_DIR.mkdir(parents=True, exist_ok=True)
 
+    rubric_index = FIELDS.index("Рубрика")
+    unknown_rubrics: dict[str, int] = defaultdict(int)
     buckets: dict[str, list[str]] = defaultdict(list)
     words: dict[str, list[str]] = defaultdict(list)
     # Сколько штрихкодов уже записано под каждое слово. Держим только счётчики:
@@ -149,6 +182,12 @@ def build(source: Path) -> dict:
         if not barcode or not barcode.isdigit() or not (6 <= len(barcode) <= 30):
             rows_skipped += 1
             continue
+        rubric = row[rubric_index]
+        if rubric in RUBRIC_ALIASES:
+            row[rubric_index] = RUBRIC_ALIASES[rubric]
+        elif rubric and rubric not in RUBRIC_KNOWN:
+            unknown_rubrics[rubric] += 1
+
         buffer = []
         writer = csv.writer(_LineSink(buffer), lineterminator="\n")
         writer.writerow(row)
@@ -170,6 +209,12 @@ def build(source: Path) -> dict:
     log(f"обработано строк: {rows_total:,}".replace(",", " "))
     log(f"пропущено строк: {rows_skipped:,}".replace(",", " "))
     log(f"уникальных слов: {len(token_seen):,}".replace(",", " "))
+
+    if unknown_rubrics:
+        log("ВНИМАНИЕ: в выгрузке рубрики, которых нет в списке известных.")
+        log("Проверьте правило кластеров в Пикалка_ЕДИНАЯ.sql и RUBRIC_ALIASES:")
+        for name, count in sorted(unknown_rubrics.items(), key=lambda item: -item[1]):
+            log(f"  {name} — {count:,} строк".replace(",", " "))
 
     words_stats = collapse_words()
     return compress(rows_total, rows_skipped, words_stats)
