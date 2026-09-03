@@ -22,21 +22,39 @@
 
   const SVG_NS = "http://www.w3.org/2000/svg";
 
+  /** Наступила ли неделя вида «W36» — по календарю ISO. */
+  function weekStarted(label) {
+    const number = Number(String(label).replace(/\D/g, ""));
+    if (!number) return false;
+    const now = new Date();
+    const thursday = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+    thursday.setUTCDate(thursday.getUTCDate() + 4 - (thursday.getUTCDay() || 7));
+    const yearStart = new Date(Date.UTC(thursday.getUTCFullYear(), 0, 1));
+    const current = Math.ceil(((thursday - yearStart) / 86400000 + 1) / 7);
+    return number <= current;
+  }
+
   /** Точки динамики: приходят из запроса в процентах от поля графика. */
   function points(tile) {
     const result = [];
     for (let index = 1; index <= 4; index += 1) {
       const x = Number(tile[`x${index}`]);
-      const y = Number(tile[`y${index}`]);
+      let y = Number(tile[`y${index}`]);
       if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
       // Запрос гасит точки, которых ещё нет, подменой класса — уважаем это.
       const hidden = index === 2 ? tile.cls2 : index === 3 ? tile.cls3 : "";
       if (hidden && !String(hidden).includes("hu-dot")) continue;
-      // Период без факта приходит с пустой подписью: рисовать его нельзя,
-      // иначе линия уходит в угол графика через несуществующее значение.
-      const label = String(tile[`t${index}`] ?? "").trim();
-      if (!label) continue;
-      result.push({ x, y, label, period: tile[`d${index}`] ?? "" });
+      const period = String(tile[`d${index}`] ?? "").trim();
+      let label = String(tile[`t${index}`] ?? "").trim();
+      if (!label) {
+        // Пустая подпись бывает двух видов: неделя ещё не наступила — её не
+        // рисуем совсем; неделя прошла, а движений не было — это честный ноль,
+        // и он должен быть виден, иначе кажется, что данных нет.
+        if (!period || !weekStarted(period)) continue;
+        label = "0";
+        y = 100;
+      }
+      result.push({ x, y, label, period });
     }
 
     // Координата x из запроса рассчитана под фиксированный шаг и при четырёх
