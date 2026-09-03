@@ -10,9 +10,13 @@ body[data-mode="heatmap"] {
 
 body[data-mode="heatmap"] .eyebrow { color: #c3a6ff; }
 
-/* Плиткам нужна ширина: в шесть колонок на 1120 пикселях они сжимаются вдвое
-   против борда, и названия начинают ломаться посреди слова. */
-body[data-mode="heatmap"] .shell { width: min(1760px, 100%); }
+/* Хитмап занимает всю ширину экрана: поля по бокам съедали место, которое
+   нужнее плиткам. Отступ оставляем только чтобы содержимое не липло к краю. */
+body[data-mode="heatmap"] .shell {
+  width: 100%;
+  max-width: none;
+  padding-inline: 22px;
+}
 
 .heroHeatmap { align-items: end; margin-bottom: 24px; }
 
@@ -52,8 +56,9 @@ body[data-mode="heatmap"] .shell { width: min(1760px, 100%); }
 
 /* Плитка держит название в одну строку примерно от 380 пикселей ширины.
    Ниже — убираем колонку, а не размер букв. */
-@media (max-width: 1560px) { .tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-@media (max-width: 1080px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 1700px) { .tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (max-width: 1360px) { .tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 1020px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 760px) {
   .tiles { gap: 10px; }
   .heroHeatmap { grid-template-columns: 1fr; }
