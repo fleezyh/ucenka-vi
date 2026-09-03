@@ -84,15 +84,70 @@ body[data-mode="heatmap"] .shell {
 @media (max-width: 1480px) { .tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 @media (max-width: 1180px) { .tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 900px)  { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* Телефон: сюда заходят посмотреть картину целиком, а не изучать динамику.
+   Плитки сжимаются до цвета, числа и отклонения — так весь месяц умещается
+   в пару экранов, а не в двадцать четыре карточки подряд. */
 @media (max-width: 760px) {
-  .tiles { gap: 10px; }
-  .heroHeatmap { grid-template-columns: 1fr; }
+  body[data-mode="heatmap"] .shell { padding-inline: 12px; }
+  .heroHeatmap { grid-template-columns: 1fr; gap: 14px; margin-bottom: 16px; }
   .periodBox { min-width: 0; }
-  .tile { min-height: 158px; padding: 12px 14px 10px; }
+  .stamp { font-size: 11px; }
+
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .tile {
+    min-height: 0;
+    gap: 2px;
+    padding: 11px 12px 10px;
+    border-radius: 13px;
+    grid-template-rows: auto auto auto;
+  }
+  .tile__name { font: 700 12.5px/16px var(--ui); -webkit-line-clamp: 2; }
+  .tile__block { display: none; }
+  .tile__value { font-size: 21px; }
+  .tile__slash { margin: 0 4px; }
+  /* График убран: на 160 пикселях он всё равно нечитаем, а место съедает. */
+  .tile__chart { display: none; }
+  .tile__foot { margin-top: 5px; padding-top: 5px; font-size: 11px; }
+  .tile__foot--empty { display: none; }
+}
+
+@media (max-width: 330px) {
+  .tiles { grid-template-columns: 1fr; }
   .tile__value { font-size: 24px; }
 }
-@media (max-width: 560px) { .tiles { grid-template-columns: 1fr; } }
 
 @media (prefers-reduced-transparency: reduce) {
   .periodBox select { backdrop-filter: none; background-color: #0d141d; }
+}
+
+/* Сводка: сколько метрик в норме, а сколько отстаёт. На телефоне это первое,
+   что видно, — картина целиком до всякой прокрутки. */
+.summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 14px;
+}
+
+.summary__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 13px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(8, 13, 20, 0.6);
+  font: 600 13px var(--ui);
+  color: var(--text);
+}
+
+.summary__item b { font-weight: 800; font-size: 15px; margin-right: 1px; }
+.summary__item--good b { color: #6fdf9b; }
+.summary__item--warn b { color: #f5c26b; }
+.summary__item--bad b { color: #f4808f; }
+.summary__item--flat b { color: var(--muted); }
+
+@media (max-width: 760px) {
+  .summary { gap: 6px; margin-bottom: 12px; }
+  .summary__item { padding: 7px 11px; font-size: 12px; }
 }

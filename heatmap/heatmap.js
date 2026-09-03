@@ -232,6 +232,41 @@
     return cell;
   }
 
+  /** Сколько метрик в норме, а сколько отстаёт — по цвету плитки.
+   *
+   * Цвет считает запрос с оглядкой на направление метрики, так что это
+   * честный светофор, а не сравнение чисел на глаз.
+   */
+  function renderSummary(list) {
+    const groups = { good: 0, warn: 0, bad: 0, flat: 0 };
+    for (const tile of list) {
+      const tone = String(tile.bg_color || "").toLowerCase();
+      if (tone.includes("2f8a2f") || tone.includes("27c46b")) groups.good += 1;
+      else if (tone.includes("c0392b") || tone.includes("f05d72")) groups.bad += 1;
+      else if (tone.includes("e0a")  || tone.includes("f5ad32") || tone.includes("d9a")) groups.warn += 1;
+      else groups.flat += 1;
+    }
+
+    const box = document.createElement("div");
+    box.className = "summary";
+    const items = [
+      ["good", "в норме", groups.good],
+      ["warn", "на грани", groups.warn],
+      ["bad", "отстают", groups.bad],
+      ["flat", "справочные", groups.flat],
+    ];
+    for (const [kind, label, count] of items) {
+      if (!count) continue;
+      const item = document.createElement("span");
+      item.className = `summary__item summary__item--${kind}`;
+      const value = document.createElement("b");
+      value.textContent = count;
+      item.append(value, document.createTextNode(` ${label}`));
+      box.appendChild(item);
+    }
+    return box;
+  }
+
   function render(period) {
     const list = payload.поПериодам?.[period] || payload.плитки;
     const box = document.createElement("div");
@@ -243,7 +278,7 @@
       return byBlock || (a.block_ord - b.block_ord) || (a.ord - b.ord);
     });
     for (const tile of sorted) box.appendChild(renderTile(tile));
-    tiles.replaceChildren(box);
+    tiles.replaceChildren(renderSummary(sorted), box);
 
     stamp.textContent = `обновлено ${payload.обновлено}`;
     say("");
