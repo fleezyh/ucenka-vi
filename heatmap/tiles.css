@@ -10,7 +10,7 @@
 
 .tiles {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -21,9 +21,9 @@
   display: grid;
   /* Пропорции как в исходном чарте: плитка широкая и низкая, а не квадратная.
      Название в одну строку — на четырёх колонках оно помещается. */
-  grid-template-rows: 18px auto 1fr 26px;
+  grid-template-rows: 38px auto 1fr 28px;
   gap: 7px;
-  min-height: 168px;
+  min-height: 190px;
   padding: 13px 16px 11px;
   border-radius: 16px;
   color: #fff;
@@ -41,8 +41,8 @@
   box-shadow: 0 20px 40px -20px rgba(6, 10, 16, 1);
 }
 
-/* Название в одну строку: на широкой плитке оно помещается целиком, а лишние
-   строки разносили плитку по высоте. Не влезло — обрезаем многоточием. */
+/* Под название всегда две строки: длинные вроде «Коэффициент выход/вход
+   регионы» в одну не помещаются, а плавающая высота разносила бы графики. */
 .tile__head {
   display: flex;
   align-items: baseline;
@@ -54,16 +54,20 @@
 /* Крупный текст просит отрицательный трекинг, мелкий — наоборот, положительный. */
 .tile__name {
   margin: 0;
-  font: 600 13.5px/18px var(--ui);
+  font: 600 14.5px/19px var(--ui);
   letter-spacing: -0.005em;
-  white-space: nowrap;
+  overflow-wrap: break-word;
+  word-break: normal;
+  hyphens: none;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .tile__block {
   flex: none;
-  font: 700 9.5px/18px var(--ui);
+  font: 700 10px/19px var(--ui);
   letter-spacing: 0.09em;
   text-transform: uppercase;
   opacity: 0.6;
@@ -72,19 +76,27 @@
 
 .tile__value {
   margin: 0;
-  font: 800 27px/1.05 var(--ui);
+  font: 800 30px/1.05 var(--ui);
   /* Табличные цифры на VI Sans разъезжаются в «-1 , 19%» — не включаем. */
   letter-spacing: -0.02em;
   font-feature-settings: "tnum" 0, "pnum" 1;
   white-space: nowrap;
 }
 
+/* Вторая величина — не сноска, а равноправное число: «34,12 млн / 8991 шт».
+   Чуть меньше основного, но того же веса. */
 .tile__value2 {
-  margin-left: 7px;
-  font-size: 16px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  opacity: 0.75;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  opacity: 0.9;
+}
+
+.tile__slash {
+  margin: 0 6px;
+  font-size: 22px;
+  font-weight: 400;
+  opacity: 0.5;
 }
 
 /* ---- График -------------------------------------------------------------- */
@@ -102,7 +114,7 @@
 .tile__marks,
 .tile__weeks {
   position: relative;
-  height: 12px;
+  height: 13px;
 }
 
 .tile__mark,
@@ -115,7 +127,7 @@
 }
 
 .tile__mark {
-  font: 600 10px/12px var(--ui);
+  font: 600 10.5px/13px var(--ui);
   letter-spacing: 0.01em;
   opacity: 0.72;
 }
@@ -123,7 +135,7 @@
 .tile__mark--now { font-weight: 800; opacity: 1; }
 
 .tile__week {
-  font: 700 8.5px/12px var(--ui);
+  font: 700 9px/13px var(--ui);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   opacity: 0.45;
@@ -180,7 +192,7 @@
   width: 100%;
   padding-top: 7px;
   border-top: 1px solid rgba(255, 255, 255, 0.18);
-  font: 600 11.5px/1.25 var(--ui);
+  font: 600 12.5px/1.25 var(--ui);
   letter-spacing: 0.008em;
   font-feature-settings: "tnum" 0, "pnum" 1;
   opacity: 0.9;

@@ -102,10 +102,14 @@
     value.className = "tile__value";
     value.append(document.createTextNode(tile.fact_txt ?? ""));
     if (tile.val2_txt) {
+      // Слэш рисовал сам чарт, в данных его нет: «34,12 млн / 8991 шт».
+      const slash = document.createElement("span");
+      slash.className = "tile__slash";
+      slash.textContent = "/";
       const second = document.createElement("span");
       second.className = "tile__value2";
       second.textContent = tile.val2_txt;
-      value.appendChild(second);
+      value.append(slash, second);
     }
 
     const list = points(tile);
