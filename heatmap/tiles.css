@@ -32,6 +32,10 @@
     linear-gradient(168deg, rgba(255, 255, 255, 0.13), rgba(0, 0, 0, 0.15)),
     var(--tone, #7d8794);
   box-shadow: 0 12px 26px -18px rgba(6, 10, 16, 0.9);
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
   transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1),
               box-shadow 200ms cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -41,8 +45,25 @@
   box-shadow: 0 20px 40px -20px rgba(6, 10, 16, 1);
 }
 
+/* Отдача на нажатие: реакция на само касание, а не на отпускание. */
+.tile:active {
+  transform: scale(0.985);
+  transition-duration: 90ms;
+}
+
 /* Под название всегда две строки: длинные вроде «Коэффициент выход/вход
    регионы» в одну не помещаются, а плавающая высота разносила бы графики. */
+/* Аура: слабое свечение из верхнего угла, как в исходном чарте. */
+.tile::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(120% 80% at 12% -10%, rgba(255, 255, 255, 0.085), transparent 62%);
+  pointer-events: none;
+}
+
+.tile > * { position: relative; }
+
 .tile__head {
   display: flex;
   align-items: baseline;
@@ -102,19 +123,20 @@
 /* ---- График -------------------------------------------------------------- */
 
 /* График прижат к низу своей строки — так он стоит на одной высоте во всех
-   плитках, даже если значение оказалось короче или длиннее. */
+   плитках. И растянут в поля плитки: у самого края он читается крупнее. */
 .tile__chart {
   align-self: end;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
+  margin: 0 -6px;
 }
 
 /* Строки подписей: высота фиксирована, подпись держится за x своей точки. */
 .tile__marks,
 .tile__weeks {
   position: relative;
-  height: 13px;
+  height: 14px;
 }
 
 .tile__mark,
@@ -127,7 +149,7 @@
 }
 
 .tile__mark {
-  font: 600 10.5px/13px var(--ui);
+  font: 700 12px/14px var(--ui);
   letter-spacing: 0.01em;
   opacity: 0.72;
 }
@@ -135,7 +157,7 @@
 .tile__mark--now { font-weight: 800; opacity: 1; }
 
 .tile__week {
-  font: 700 9px/13px var(--ui);
+  font: 700 10.5px/14px var(--ui);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   opacity: 0.45;

@@ -1,11 +1,32 @@
 /* Обвязка страницы хитмапа: фон, шапка, выбор периода.
    Сами плитки — в tiles.css. */
 
-body[data-mode="heatmap"] {
+body[data-mode="heatmap"] { background: var(--bg); }
+
+/* Фон переливается: пятна света медленно ходят за содержимым. Слой отдельный и
+   зафиксирован, чтобы прокрутка не тащила за собой перерисовку. */
+body[data-mode="heatmap"]::before {
+  content: "";
+  position: fixed;
+  inset: -20%;
+  z-index: -1;
+  pointer-events: none;
   background:
-    radial-gradient(1100px 660px at 4% -10%, rgba(154, 92, 246, 0.16), transparent 58%),
-    radial-gradient(900px 580px at 100% 0%, rgba(77, 141, 247, 0.12), transparent 56%),
-    var(--bg);
+    radial-gradient(46% 42% at 12% 8%, rgba(154, 92, 246, 0.22), transparent 62%),
+    radial-gradient(42% 40% at 88% 4%, rgba(77, 141, 247, 0.18), transparent 60%),
+    radial-gradient(38% 44% at 62% 96%, rgba(39, 196, 107, 0.12), transparent 62%);
+  /* Цикл длинный: короткая петля мозолит глаз, на медленной он отдыхает. */
+  animation: heatmapAura 34s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+@keyframes heatmapAura {
+  from { transform: translate3d(-2%, -1%, 0) scale(1); }
+  to   { transform: translate3d(3%, 2%, 0) scale(1.08); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body[data-mode="heatmap"]::before { animation: none; }
 }
 
 body[data-mode="heatmap"] .eyebrow { color: #c3a6ff; }
