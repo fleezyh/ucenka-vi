@@ -21,15 +21,16 @@
   display: grid;
   /* Пропорции как в исходном чарте: плитка широкая и низкая, а не квадратная.
      Название в одну строку — на четырёх колонках оно помещается. */
-  grid-template-rows: 38px auto 1fr auto;
-  gap: 4px;
+  grid-template-rows: auto auto 1fr auto;
+  gap: 3px;
   min-height: 190px;
-  padding: 13px 16px 10px;
+  padding: 12px 16px 9px;
   border-radius: 16px;
   color: #fff;
   /* Градиент по тону статуса: сверху чуть светлее, снизу глубже. */
   background:
-    linear-gradient(168deg, rgba(255, 255, 255, 0.13), rgba(0, 0, 0, 0.15)),
+    linear-gradient(157deg, rgba(255, 255, 255, 0.26) 0%, rgba(255, 255, 255, 0.06) 38%,
+                    rgba(0, 0, 0, 0.10) 62%, rgba(0, 0, 0, 0.30) 100%),
     var(--tone, #7d8794);
   box-shadow: 0 12px 26px -18px rgba(6, 10, 16, 0.9);
   position: relative;
@@ -58,7 +59,7 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: radial-gradient(120% 80% at 12% -10%, rgba(255, 255, 255, 0.085), transparent 62%);
+  background: radial-gradient(120% 85% at 10% -14%, rgba(255, 255, 255, 0.16), transparent 58%);
   pointer-events: none;
 }
 
@@ -66,7 +67,7 @@
 
 .tile__head {
   display: flex;
-  align-items: baseline;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 10px;
   overflow: hidden;
@@ -75,7 +76,7 @@
 /* Крупный текст просит отрицательный трекинг, мелкий — наоборот, положительный. */
 .tile__name {
   margin: 0;
-  font: 600 14.5px/19px var(--ui);
+  font: 700 16px/20px var(--ui);
   letter-spacing: -0.005em;
   overflow-wrap: break-word;
   word-break: normal;
@@ -88,7 +89,7 @@
 
 .tile__block {
   flex: none;
-  font: 700 10px/19px var(--ui);
+  font: 700 10px/20px var(--ui);
   letter-spacing: 0.09em;
   text-transform: uppercase;
   opacity: 0.6;
@@ -212,8 +213,8 @@
 .tile__foot {
   align-self: end;
   width: 100%;
-  margin-top: 8px;
-  padding-top: 7px;
+  margin-top: 6px;
+  padding-top: 6px;
   border-top: 1px solid rgba(255, 255, 255, 0.18);
   font: 600 12.5px/1.25 var(--ui);
   letter-spacing: 0.008em;

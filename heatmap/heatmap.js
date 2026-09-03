@@ -20,6 +20,49 @@
     message.style.display = text ? "block" : "none";
   }
 
+  // Разбивка по блокам из запроса местами не сходится: «Отгружено, тыс шт» и
+  // коэффициент к нему лежали в деньгах, хотя считаются в штуках, а брак —
+  // в операционке вместе с потоками. Раскладываем по смыслу.
+  const BLOCKS = [
+    { key: "деньги", label: "Деньги", icon: "💰" },
+    { key: "затраты", label: "Затраты", icon: "💸" },
+    { key: "поток", label: "Поток", icon: "📦" },
+    { key: "качество", label: "Качество", icon: "⚠️" },
+    { key: "запасы", label: "Запасы", icon: "🏦" },
+  ];
+
+  const METRIC_BLOCK = {
+    "Уценка (фин рез юнита)": "деньги",
+    "Продано (деньги на счёт)": "деньги",
+    "Себестоимость проданных": "деньги",
+    "Отгружено уценки": "деньги",
+    "Себестоимость отгруженных": "деньги",
+    "% окупаемости": "деньги",
+    "ФОТ штат": "затраты",
+    "Аутсорс": "затраты",
+    "Аренда": "затраты",
+    "Списание ТМЦ (утиль)": "затраты",
+    "Переупаковка": "затраты",
+    "Ошибки ФБ": "затраты",
+    "Вход, тыс шт": "поток",
+    "Выход, тыс шт": "поток",
+    "Коэффициент выход/вход": "поток",
+    "Вход регионы, тыс шт": "поток",
+    "Выход регионы, тыс шт": "поток",
+    "Коэффициент выход/вход регионы": "поток",
+    "Отгружено, тыс шт": "поток",
+    "Коэффициент отгруженные/выход": "поток",
+    "% брака от выручки": "качество",
+    "% брака от проданных штук": "качество",
+    "Беклог хранения, тыс шт": "запасы",
+    "Резерв на брак": "запасы",
+  };
+
+  function blockOf(tile) {
+    const key = METRIC_BLOCK[String(tile.metric || "").trim()];
+    return BLOCKS.find((block) => block.key === key) || BLOCKS[0];
+  }
+
   const SVG_NS = "http://www.w3.org/2000/svg";
 
   /** Наступила ли неделя вида «W36» — по календарю ISO. */
@@ -111,9 +154,10 @@
     const name = document.createElement("h3");
     name.className = "tile__name";
     name.textContent = tile.metric || "";
+    const group = blockOf(tile);
     const block = document.createElement("span");
     block.className = "tile__block";
-    block.textContent = tile.block_name || "";
+    block.textContent = `${group.icon} ${group.label}`;
     head.append(name, block);
 
     const value = document.createElement("p");
@@ -193,9 +237,11 @@
     const box = document.createElement("div");
     box.className = "tiles";
     // Порядок задан запросом: блоки идут по block_ord, плитки внутри — по ord.
-    const sorted = [...list].sort(
-      (a, b) => (a.block_ord - b.block_ord) || (a.ord - b.ord),
-    );
+    // Внутри блока сохраняем порядок запроса, сами блоки идут по своему списку.
+    const sorted = [...list].sort((a, b) => {
+      const byBlock = BLOCKS.indexOf(blockOf(a)) - BLOCKS.indexOf(blockOf(b));
+      return byBlock || (a.block_ord - b.block_ord) || (a.ord - b.ord);
+    });
     for (const tile of sorted) box.appendChild(renderTile(tile));
     tiles.replaceChildren(box);
 
