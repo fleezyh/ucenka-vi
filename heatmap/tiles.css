@@ -1,12 +1,11 @@
 /* Плитки хитмапа.
  *
- * Из Superset перенесены только данные, вид сделан заново: там шрифт был прибит
- * к Inter через !important, а точки динамики стояли отдельными кружками с
- * absolute-позицией — без линии между ними они выглядели рассыпанными.
+ * Плитка плоская: цвет статуса и есть смысл, стекло поверх него только мешает
+ * читать. Шрифт — VI Sans, как на остальном сайте.
  *
- * Материал: цвет статуса лежит подложкой, поверх — полупрозрачное стекло со
- * светлым краем сверху, как свет, поймавший поверхность. Стекло не наслаивается
- * само на себя: слой ровно один.
+ * График разложен на три этажа — значения недель, линия, номера недель.
+ * Пока подписи стояли поверх линии по координате точки, они налезали и на
+ * точку, и друг на друга; у каждого этажа своя строка, пересечься нечему.
  */
 
 .tiles {
@@ -16,46 +15,22 @@
 }
 
 .tile {
-  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 9px;
-  min-height: 176px;
-  padding: 15px 17px 13px;
-  border-radius: 20px;
+  gap: 10px;
+  min-height: 194px;
+  padding: 14px 16px 12px;
+  border-radius: 16px;
   color: #fff;
-  isolation: isolate;
-  overflow: hidden;
-  /* Цвет статуса приходит из запроса, стекло — сверху. */
-  background:
-    linear-gradient(158deg, rgba(255, 255, 255, 0.17), rgba(255, 255, 255, 0.03) 46%,
-                    rgba(0, 0, 0, 0.16)),
-    var(--tone, #7d8794);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.34),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.10),
-    0 18px 38px -22px rgba(6, 10, 16, 0.9);
-  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
-              box-shadow 220ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-/* Блик по верхней кромке: узкая полоса света, а не общий осветлитель. */
-.tile::before {
-  content: "";
-  position: absolute;
-  inset: 0 0 auto;
-  height: 52%;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.16), transparent);
-  pointer-events: none;
-  z-index: -1;
+  background: var(--tone, #7d8794);
+  box-shadow: 0 12px 26px -18px rgba(6, 10, 16, 0.9);
+  transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 200ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .tile:hover {
   transform: translateY(-2px);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.46),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.18),
-    0 26px 52px -24px rgba(6, 10, 16, 1);
+  box-shadow: 0 20px 40px -20px rgba(6, 10, 16, 1);
 }
 
 .tile__head {
@@ -73,7 +48,6 @@
   overflow-wrap: break-word;
   word-break: normal;
   hyphens: none;
-  text-shadow: 0 1px 3px rgba(6, 10, 16, 0.35);
 }
 
 .tile__block {
@@ -81,47 +55,84 @@
   font: 700 9.5px/1 var(--ui);
   letter-spacing: 0.09em;
   text-transform: uppercase;
-  opacity: 0.55;
+  opacity: 0.6;
   white-space: nowrap;
 }
 
 .tile__value {
   margin: 0;
-  font: 800 27px/1 var(--ui);
-  /* VI Sans на табличных цифрах разъезжается: «-1 , 19%» вместо «-1,19%».
-     Поэтому фичу не включаем, а ширину колонок держим на nowrap. */
+  font: 800 26px/1.05 var(--ui);
+  /* Табличные цифры на VI Sans разъезжаются в «-1 , 19%» — не включаем. */
   letter-spacing: -0.02em;
   font-feature-settings: "tnum" 0, "pnum" 1;
-  text-shadow: 0 1px 4px rgba(6, 10, 16, 0.4);
   white-space: nowrap;
 }
 
 .tile__value2 {
-  margin-left: 6px;
-  font-size: 17px;
+  margin-left: 7px;
+  font-size: 16px;
   font-weight: 700;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.01em;
+  opacity: 0.75;
+}
+
+/* ---- График -------------------------------------------------------------- */
+
+.tile__chart {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+/* Строки подписей: высота фиксирована, подпись держится за x своей точки. */
+.tile__marks,
+.tile__weeks {
+  position: relative;
+  height: 12px;
+}
+
+.tile__mark,
+.tile__week {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-feature-settings: "tnum" 0, "pnum" 1;
+}
+
+.tile__mark {
+  font: 600 10px/12px var(--ui);
+  letter-spacing: 0.01em;
   opacity: 0.72;
 }
 
-/* Динамика по неделям. Высота фиксированная — иначе плитки в ряду разъезжаются. */
+.tile__mark--now { font-weight: 800; opacity: 1; }
+
+.tile__week {
+  font: 700 8.5px/12px var(--ui);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.45;
+}
+
+.tile__week--now { opacity: 0.8; }
+
+/* Все подписи центрируются по своей точке. Крайние выходят в поле отступа
+   плитки, но не за неё, — а сдвиг «прижать к краю» наезжал на соседнюю. */
+
 .tile__plot {
   position: relative;
-  height: 38px;
-  margin-top: auto;
+  height: 34px;
 }
 
-.tile__spark {
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-}
+.tile__spark { width: 100%; height: 100%; overflow: visible; }
 
-.tile__sparkFill { fill: rgba(255, 255, 255, 0.16); }
+.tile__sparkFill { fill: rgba(255, 255, 255, 0.15); }
 
 .tile__sparkLine {
   fill: none;
-  stroke: rgba(255, 255, 255, 0.75);
+  stroke: rgba(255, 255, 255, 0.8);
   stroke-width: 1.6;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -130,72 +141,37 @@
 /* Точки лежат поверх линии по тем же координатам, поэтому не могут «съехать». */
 .tile__dot {
   position: absolute;
-  width: 6px;
-  height: 6px;
-  margin: -3px 0 0 -3px;
+  width: 5px;
+  height: 5px;
+  margin: -2.5px 0 0 -2.5px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 1px 3px rgba(6, 10, 16, 0.45);
+  background: rgba(255, 255, 255, 0.9);
   pointer-events: none;
 }
 
-/* Текущий период — крупнее и с ободком: взгляд цепляется за него первым. */
+/* Текущая неделя — крупнее и с ободком: взгляд цепляется за неё первым. */
 .tile__dot--now {
-  width: 9px;
-  height: 9px;
-  margin: -4.5px 0 0 -4.5px;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
   background: #fff;
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.22), 0 2px 5px rgba(6, 10, 16, 0.5);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.25);
 }
 
-.tile__last {
-  position: absolute;
-  transform: translate(-50%, -158%);
-  font: 700 11px/1 var(--ui);
-  letter-spacing: 0.005em;
-  font-feature-settings: "tnum" 0, "pnum" 1;
-  white-space: nowrap;
-  opacity: 0.94;
-  text-shadow: 0 1px 4px rgba(6, 10, 16, 0.6);
-  pointer-events: none;
-}
+/* ---- Подвал -------------------------------------------------------------- */
 
-/* Точка у верхней кромки — подпись уходит вниз, иначе её срежет. */
-.tile__last--below { transform: translate(-50%, 62%); }
-
+/* Мелкий текст на цветном фоне: плотнее по весу и чуть разрежен, иначе на
+   красном расплывается. */
 .tile__foot {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 10px;
   padding-top: 9px;
-  border-top: 1px solid rgba(255, 255, 255, 0.16);
-}
-
-/* Мелкий текст на цветном фоне: чуть плотнее по весу и с положительным
-   трекингом, иначе на красном он расплывается. */
-.tile__meta {
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
   font: 600 11.5px/1.25 var(--ui);
   letter-spacing: 0.008em;
   font-feature-settings: "tnum" 0, "pnum" 1;
-  opacity: 0.88;
-}
-
-.tile__period {
-  flex: none;
-  font: 700 9.5px/1 var(--ui);
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-  opacity: 0.5;
+  opacity: 0.9;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .tile { transition: none; }
   .tile:hover { transform: none; }
-}
-
-/* Прозрачность выключена — оставляем чистый цвет статуса без бликов. */
-@media (prefers-reduced-transparency: reduce) {
-  .tile { background: var(--tone, #7d8794); }
-  .tile::before { display: none; }
 }

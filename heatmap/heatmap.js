@@ -98,41 +98,55 @@
     }
 
     const list = points(tile);
-    const spark = document.createElement("div");
-    spark.className = "tile__plot";
-    spark.appendChild(renderSpark(list));
+    // График разложен на три этажа: значения недель, линия, номера недель.
+    // Раньше подписи стояли поверх линии по координате точки и налезали на неё
+    // и друг на друга — теперь у каждого этажа своё место, пересечься нечему.
+    const chart = document.createElement("div");
+    chart.className = "tile__chart";
+
+    const marks = document.createElement("div");
+    marks.className = "tile__marks";
+    const plot = document.createElement("div");
+    plot.className = "tile__plot";
+    const weeks = document.createElement("div");
+    weeks.className = "tile__weeks";
+
+    plot.appendChild(renderSpark(list));
     // Точки — обычные элементы поверх линии, а не круги внутри SVG: график
     // растянут по ширине, и круг в его системе координат стал бы эллипсом.
     for (let index = 0; index < list.length; index += 1) {
+      const point = list[index];
+      const last = index === list.length - 1;
+
       const dot = document.createElement("span");
-      dot.className = index === list.length - 1 ? "tile__dot tile__dot--now" : "tile__dot";
-      dot.style.left = `${list[index].x}%`;
-      dot.style.top = `${list[index].y}%`;
-      spark.appendChild(dot);
-    }
-    if (list.length) {
-      const last = list[list.length - 1];
-      const badge = document.createElement("span");
-      // Подпись держится за свою точку, а не за угол графика: иначе на плитках,
-      // где последняя неделя ушла вверх, число ложилось прямо на точку.
-      badge.className = last.y < 42 ? "tile__last tile__last--below" : "tile__last";
-      badge.style.left = `${Math.min(Math.max(last.x, 8), 92)}%`;
-      badge.style.top = `${last.y}%`;
-      badge.textContent = last.label;
-      spark.appendChild(badge);
+      dot.className = last ? "tile__dot tile__dot--now" : "tile__dot";
+      dot.style.left = `${point.x}%`;
+      dot.style.top = `${point.y}%`;
+      plot.appendChild(dot);
+
+      const mark = document.createElement("span");
+      mark.className = last ? "tile__mark tile__mark--now" : "tile__mark";
+      mark.style.left = `${point.x}%`;
+      mark.textContent = point.label;
+      marks.appendChild(mark);
+
+      const week = document.createElement("span");
+      week.className = last ? "tile__week tile__week--now" : "tile__week";
+      week.style.left = `${point.x}%`;
+      week.textContent = point.period;
+      weeks.appendChild(week);
     }
 
+    chart.append(marks, plot, weeks);
+
+    // Цель и отклонение — внизу отдельной строкой. Номер недели туда больше не
+    // дублируется: он теперь стоит под своей точкой.
     const foot = document.createElement("footer");
     foot.className = "tile__foot";
-    const meta = document.createElement("span");
-    meta.className = "tile__meta";
-    meta.textContent = tile.meta_txt || "";
-    const period = document.createElement("span");
-    period.className = "tile__period";
-    period.textContent = list.length ? list[list.length - 1].period : "";
-    foot.append(meta, period);
+    foot.textContent = tile.meta_txt || "";
 
-    cell.append(head, value, spark, foot);
+    cell.append(head, value, chart);
+    if (tile.meta_txt) cell.appendChild(foot);
     // Подсказка собирает то, что не поместилось: цель, отклонение и всю динамику.
     const hint = [tile.metric, tile.meta_txt,
                   list.map((p) => `${p.period}: ${p.label}`).join(" · ")]
