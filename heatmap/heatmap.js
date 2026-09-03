@@ -140,13 +140,13 @@
     chart.append(marks, plot, weeks);
 
     // Цель и отклонение — внизу отдельной строкой. Номер недели туда больше не
-    // дублируется: он теперь стоит под своей точкой.
+    // дублируется: он теперь стоит под своей точкой. Строка рисуется всегда,
+    // даже пустой: без неё плитка без цели становится ниже соседних.
     const foot = document.createElement("footer");
-    foot.className = "tile__foot";
+    foot.className = tile.meta_txt ? "tile__foot" : "tile__foot tile__foot--empty";
     foot.textContent = tile.meta_txt || "";
 
-    cell.append(head, value, chart);
-    if (tile.meta_txt) cell.appendChild(foot);
+    cell.append(head, value, chart, foot);
     // Подсказка собирает то, что не поместилось: цель, отклонение и всю динамику.
     const hint = [tile.metric, tile.meta_txt,
                   list.map((p) => `${p.period}: ${p.label}`).join(" · ")]
