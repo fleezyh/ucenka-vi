@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Хитмап · варианты ширины</title>
+  <link rel="stylesheet" href="../style.css?v=20260903-3">
+  <link rel="stylesheet" href="tiles.css?v=20260903-8">
+  <link rel="stylesheet" href="page.css?v=20260903-3">
+  <style>
+    /* Страница для выбора: четыре раскладки на одних и тех же данных. */
+    body { padding-bottom: 60px; }
+    .variant { margin: 0 0 42px; }
+    .variant__head {
+      display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
+      margin: 0 0 14px; padding-bottom: 10px;
+      border-bottom: 1px solid var(--line);
+    }
+    .variant__head h2 { margin: 0; font-size: 19px; letter-spacing: -0.01em; }
+    .variant__note { color: var(--muted); font-size: 13px; }
+    .variant__width { margin-left: auto; color: #72e6a2; font-size: 12px; font-weight: 700; }
+    .v4 .tiles { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+    .v5 .tiles { grid-template-columns: repeat(5, minmax(0, 1fr)) !important; }
+    .v6 .tiles { grid-template-columns: repeat(6, minmax(0, 1fr)) !important; }
+    .v3 .tiles { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+  </style>
+  <script src="heatmap.js?v=20260903-8" defer></script>
+  <script defer>
+    // Показываем первые восемь плиток в каждой раскладке: этого хватает, чтобы
+    // увидеть, как ведут себя длинные названия и график.
+    window.addEventListener("load", () => {
+      setTimeout(() => {
+        const source = document.querySelector("#tiles .tiles");
+        if (!source) return;
+        for (const box of document.querySelectorAll(".variant .slot")) {
+          const copy = source.cloneNode(true);
+          while (copy.children.length > 8) copy.lastElementChild.remove();
+          box.replaceChildren(copy);
+        }
+        document.getElementById("tiles").hidden = true;
+        for (const el of document.querySelectorAll(".variant__width")) {
+          const tile = el.closest(".variant").querySelector(".tile");
+          if (tile) el.textContent = `плитка ${Math.round(tile.getBoundingClientRect().width)} px`;
+        }
+      }, 900);
+    });
+  </script>
+</head>
+<body data-mode="heatmap">
+  <main class="shell">
+    <header class="topbar">
+      <a class="brand" href="../"><span>Пикалка</span></a>
+      <div class="topActions"><a class="dashboardLink" href="./">К хитмапу</a></div>
+    </header>
+
+    <section class="hero heroHeatmap">
+      <div>
+        <p class="eyebrow">Выбор раскладки</p>
+        <h1>Четыре варианта ширины</h1>
+        <p class="lead">Одни и те же данные за август. Скажи номер — оставлю его.</p>
+      </div>
+      <div class="periodBox">
+        <label class="fieldLabel" for="period">Период</label>
+        <select id="period"></select>
+        <p class="stamp" id="stamp"></p>
+      </div>
+    </section>
+
+    <p class="message" id="message" style="display:none"></p>
+    <div id="tiles"></div>
+
+    <section class="variant v6">
+      <div class="variant__head">
+        <h2>1 — шесть в ряд</h2>
+        <span class="variant__note">как сейчас: весь месяц на одном экране, но плитка тесная</span>
+        <span class="variant__width"></span>
+      </div>
+      <div class="slot"></div>
+    </section>
+
+    <section class="variant v5">
+      <div class="variant__head">
+        <h2>2 — пять в ряд</h2>
+        <span class="variant__note">чуть просторнее, почти все названия в одну строку</span>
+        <span class="variant__width"></span>
+      </div>
+      <div class="slot"></div>
+    </section>
+
+    <section class="variant v4">
+      <div class="variant__head">
+        <h2>3 — четыре в ряд</h2>
+        <span class="variant__note">названия в строку, график с запасом; шесть рядов на 24 плитки</span>
+        <span class="variant__width"></span>
+      </div>
+      <div class="slot"></div>
+    </section>
+
+    <section class="variant v3">
+      <div class="variant__head">
+        <h2>4 — три в ряд</h2>
+        <span class="variant__note">самые крупные плитки, но придётся прокручивать</span>
+        <span class="variant__width"></span>
+      </div>
+      <div class="slot"></div>
+    </section>
+  </main>
+</body>
+</html>

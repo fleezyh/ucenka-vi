@@ -38,6 +38,17 @@
       if (!label) continue;
       result.push({ x, y, label, period: tile[`d${index}`] ?? "" });
     }
+
+    // Координата x из запроса рассчитана под фиксированный шаг и при четырёх
+    // точках заканчивается на 77% — справа зияла четверть плитки. Раскладываем
+    // сами: от края до края, с отступом под крайние подписи.
+    const left = 9;
+    const right = 91;
+    for (let index = 0; index < result.length; index += 1) {
+      result[index].x = result.length === 1
+        ? 50
+        : left + (right - left) * (index / (result.length - 1));
+    }
     return result;
   }
 
