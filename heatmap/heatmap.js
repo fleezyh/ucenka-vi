@@ -259,12 +259,26 @@
   // Тридцать дней по умолчанию: на этой длине точка каждого дня ещё читается.
   let dailyDepth = 30;
 
+  /** Число за один день — целым, с разделителями разрядов.
+   *
+   * Плитка считает тысячами штук и миллионами рублей, но в дне это давало
+   * «0,41» вместо понятных 410. Дробную часть оставляем только совсем мелким
+   * значениям, где округление до целого съело бы всё.
+   */
   function niceNumber(value) {
     const abs = Math.abs(value);
-    const digits = abs >= 100 ? 0 : abs >= 10 ? 1 : 2;
+    const digits = abs >= 10 ? 0 : abs >= 1 ? 1 : abs > 0 ? 2 : 0;
     return value.toLocaleString("ru-RU", {
       minimumFractionDigits: digits, maximumFractionDigits: digits,
     });
+  }
+
+  /** Крупные суммы в подписи над точкой сокращаем: «117 тыс» вместо «116 852». */
+  function shortNumber(value) {
+    const abs = Math.abs(value);
+    if (abs >= 1e6) return `${niceNumber(value / 1e6)} млн`;
+    if (abs >= 10000) return `${Math.round(value / 1000).toLocaleString("ru-RU")} тыс`;
+    return niceNumber(value);
   }
 
   function dayLabel(iso) {
@@ -332,6 +346,7 @@
     cell.classList.add("tile--open");
 
     const entry = payload.ряды[metricKey];
+    const unit = entry.единица || "";
     const all = entry.точки;
     const list = dailyDepth ? all.slice(-dailyDepth) : all;
 
@@ -346,7 +361,7 @@
     title.textContent = entry.metric;
     const sub = document.createElement("p");
     sub.className = "daily__sub";
-    sub.textContent = `по дням · ${dayLabel(list[0].день)} — ${dayLabel(list[list.length - 1].день)}`;
+    sub.textContent = `по дням, ${unit} · ${dayLabel(list[0].день)} — ${dayLabel(list[list.length - 1].день)}`;
     const close = document.createElement("button");
     close.className = "daily__close";
     close.type = "button";
@@ -397,13 +412,13 @@
       const dot = document.createElement("i");
       dot.style.left = `${left}%`;
       dot.style.top = `${top}%`;
-      dot.title = `${dayLabel(point.день)} — ${niceNumber(point.значение)}`;
+      dot.title = `${dayLabel(point.день)} — ${niceNumber(point.значение)} ${unit}`;
       dots.appendChild(dot);
 
       if (index % step) return;
       const label = document.createElement("b");
       label.className = "daily__pin";
-      label.textContent = niceNumber(point.значение);
+      label.textContent = shortNumber(point.значение);
       label.style.left = `${left}%`;
       label.style.top = `${top}%`;
       dots.appendChild(label);
@@ -419,9 +434,9 @@
     const scale = document.createElement("div");
     scale.className = "daily__scale";
     const top = document.createElement("span");
-    top.textContent = niceNumber(high);
+    top.textContent = shortNumber(high);
     const bottom = document.createElement("span");
-    bottom.textContent = niceNumber(low);
+    bottom.textContent = shortNumber(low);
     scale.append(top, bottom);
     plot.append(scale, canvas);
 
@@ -443,8 +458,9 @@
     const last = list[list.length - 1];
     const facts = document.createElement("p");
     facts.className = "daily__facts";
-    facts.textContent = `дней: ${list.length} · среднее за день ${niceNumber(sum / list.length)}`
-      + ` · максимум ${niceNumber(high)} · последний день (${dayLabel(last.день)}) ${niceNumber(last.значение)}`;
+    facts.textContent = `дней: ${list.length} · среднее за день ${niceNumber(sum / list.length)} ${unit}`
+      + ` · максимум ${niceNumber(high)} ${unit}`
+      + ` · последний день (${dayLabel(last.день)}) ${niceNumber(last.значение)} ${unit}`;
 
     box.append(head, plot, axis, facts);
     tiles.appendChild(box);
