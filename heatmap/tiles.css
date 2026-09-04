@@ -54,16 +54,46 @@
 
 /* Под название всегда две строки: длинные вроде «Коэффициент выход/вход
    регионы» в одну не помещаются, а плавающая высота разносила бы графики. */
-/* Аура: слабое свечение из верхнего угла, как в исходном чарте. */
+/* Аура — та же, что в исходном чарте Superset: размытая радужная лента,
+   которая медленно ползёт под плиткой. Здесь раньше стоял статичный блик из
+   угла, и переливания не было вовсе.
+   Значения один в один из styleTemplate чарта 2934: blur 18px, прозрачность
+   .07, шестнадцать секунд на оборот. */
 .tile::after {
   content: "";
   position: absolute;
-  inset: 0;
-  background: radial-gradient(120% 85% at 10% -14%, rgba(255, 255, 255, 0.16), transparent 58%);
+  left: -30%;
+  top: -50%;
+  width: 160%;
+  height: 200%;
+  z-index: 1;
   pointer-events: none;
+  filter: blur(18px);
+  opacity: 0.07;
+  background: linear-gradient(115deg, #FF561C, #FFB72D 18%, #12BEB0 38%,
+                              #8444FF 58%, #E8341C 78%, #FF561C);
+  background-size: 300% 100%;
+  animation: tileAura 16s linear infinite;
 }
 
-.tile > * { position: relative; }
+@keyframes tileAura {
+  from { background-position: 0 50%; }
+  to   { background-position: 300% 50%; }
+}
+
+/* Сдвиг фазы по колонкам: иначе все плитки переливаются в такт и это заметно. */
+.tile:nth-child(5n + 2)::after { animation-delay: -3.2s; }
+.tile:nth-child(5n + 3)::after { animation-delay: -6.4s; }
+.tile:nth-child(5n + 4)::after { animation-delay: -9.6s; }
+.tile:nth-child(5n)::after     { animation-delay: -12.8s; }
+
+.tile:hover::after { opacity: 0.11; animation-duration: 6s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tile::after { animation: none; }
+}
+
+.tile > * { position: relative; z-index: 3; }
 
 .tile__head {
   display: flex;
@@ -130,12 +160,11 @@
   display: flex;
   flex-direction: column;
   gap: 1px;
-  /* Блок целиком — значение, точка, номер недели — прижат к подвалу.
-     Отрицательный отступ снизу и есть этот сдвиг: наверху, у названия,
-     воздуха достаточно, а внизу его было слишком много.
-     Двигать надо весь блок: опустить только номер недели мало, тогда
-     значение с точкой остаются висеть в середине. */
-  margin: 0 -7px -13px;
+  /* Блок целиком — значение, точка, номер недели — опущен ближе к подвалу:
+     наверху, у названия, воздуха достаточно, а внизу его было слишком много.
+     Ноль, а не отрицательный отступ: на минусе номер недели наезжал на линию
+     цели и та перечёркивала текст. Сдвиг даёт подвал, ужатый ниже. */
+  margin: 0 -7px 0;
 }
 
 /* Строки подписей: высота фиксирована, подпись держится за x своей точки. */
@@ -218,9 +247,10 @@
 .tile__foot {
   align-self: end;
   width: 100%;
-  /* Ужато, чтобы освободить место графику: он спускается сюда. */
-  margin-top: 2px;
-  padding-top: 5px;
+  /* Ужато, чтобы график спустился ниже. Меньше делать нельзя: линия цели
+     подойдёт вплотную к номеру недели. */
+  margin-top: 4px;
+  padding-top: 6px;
   border-top: 1px solid rgba(255, 255, 255, 0.18);
   font: 600 12.5px/1.25 var(--ui);
   letter-spacing: 0.008em;
