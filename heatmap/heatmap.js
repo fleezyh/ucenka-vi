@@ -165,6 +165,9 @@
     value.append(document.createTextNode(tile.fact_txt ?? ""));
     if (tile.val2_txt) {
       // Слэш рисовал сам чарт, в данных его нет: «34,12 млн / 8991 шт».
+      // Две величины в строке шире одной: на прежнем кегле «22,43 тыс /
+      // 46,33 млн» упиралось в край и обрезалось на полуслове.
+      value.classList.add("tile__value--pair");
       const slash = document.createElement("span");
       slash.className = "tile__slash";
       slash.textContent = "/";
@@ -422,15 +425,19 @@
     scale.append(top, bottom);
     plot.append(scale, canvas);
 
+    // Дата под каждой точкой, ровно по её координате. Пять подписей по краям
+    // не давали ответа на вопрос «а это какой день» — приходилось считать.
+    // На длинных окнах подписи прореживаются тем же шагом, что и значения.
     const axis = document.createElement("div");
     axis.className = "daily__axis";
-    // Пять подписей по всей длине: по одной на каждый день их не прочесть.
-    for (let i = 0; i < 5; i += 1) {
-      const at = Math.round((list.length - 1) * (i / 4));
+    list.forEach((point, index) => {
+      if (index % step) return;
       const mark = document.createElement("span");
-      mark.textContent = dayLabel(list[at].день);
+      mark.className = "daily__day";
+      mark.textContent = dayLabel(point.день);
+      mark.style.left = list.length === 1 ? "50%" : `${(index / (list.length - 1)) * 100}%`;
       axis.appendChild(mark);
-    }
+    });
 
     const sum = list.reduce((acc, p) => acc + p.значение, 0);
     const last = list[list.length - 1];

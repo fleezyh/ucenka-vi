@@ -231,10 +231,20 @@
   text-overflow: ellipsis;
 }
 
-/* У справочных метрик цели нет — строку оставляем, чтобы высота совпала. */
+/* У справочных метрик цели нет. Строку оставляем — но пустой элемент имеет
+   нулевую высоту, и график в такой плитке съезжал ниже, чем у соседей с целью:
+   у одних он стоял над линией, у других уходил к самому краю. Неразрывный
+   пробел держит ту же высоту строки, что и текст цели. */
 .tile__foot--empty { border-top-color: rgba(255, 255, 255, 0.1); }
+.tile__foot--empty::before { content: " "; }
 
 @media (prefers-reduced-motion: reduce) {
   .tile { transition: none; }
   .tile:hover { transform: none; }
 }
+
+/* Плитка с двумя величинами. Кегль меньше, слэш уже: иначе строка вида
+   «130,49 тыс / 574,75 млн» не помещается по ширине и обрезается. */
+.tile__value--pair { font-size: 25px; letter-spacing: -0.025em; }
+.tile__value--pair .tile__slash { margin: 0 5px; }
+@media (max-width: 1180px) { .tile__value--pair { font-size: 22px; } }

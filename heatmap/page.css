@@ -215,13 +215,22 @@ body[data-mode="heatmap"] .shell {
 .daily__line { fill: none; stroke: #27c46b; stroke-width: 2; vector-effect: non-scaling-stroke; }
 .daily__zero { stroke: rgba(255, 255, 255, 0.22); stroke-width: 1; vector-effect: non-scaling-stroke; }
 
+/* Ось дат. Подписи стоят каждая по координате своей точки, поэтому строка
+   позиционируется, а не раскладывается флексом. */
 .daily__axis {
-  display: flex;
-  justify-content: space-between;
+  position: relative;
+  height: 16px;
   margin: 6px 0 0 44px;
   color: var(--muted);
   font-size: 11px;
   font-feature-settings: "tnum" 0, "pnum" 1;
+}
+
+.daily__day {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  white-space: nowrap;
 }
 
 .daily__facts { margin: 10px 0 0; color: var(--muted); font-size: 12.5px; }
