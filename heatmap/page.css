@@ -151,3 +151,85 @@ body[data-mode="heatmap"] .shell {
   .summary { gap: 6px; margin-bottom: 12px; }
   .summary__item { padding: 7px 11px; font-size: 12px; }
 }
+
+/* ---- Дневной график по клику на плитку ----------------------------------- */
+/* Плитка показывает недели своего месяца — в начале месяца это одна точка.
+   Листы-источники при этом лежат по дням, поэтому клик раскрывает честную
+   дневную историю за полгода, а не досчитанную из недель. */
+
+.tile--clickable { cursor: pointer; }
+.tile--clickable:hover { filter: brightness(1.06); }
+.tile--clickable:active { transform: scale(0.985); }
+.tile--open { outline: 2px solid rgba(255, 255, 255, 0.75); outline-offset: 2px; }
+
+.daily {
+  grid-column: 1 / -1;
+  margin-top: 4px;
+  padding: 18px 20px 14px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(12, 18, 27, 0.86);
+}
+
+.daily__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.daily__title { margin: 0; font-size: 19px; font-weight: 800; }
+.daily__sub { margin: 3px 0 0; color: var(--muted); font-size: 13px; }
+
+.daily__close {
+  flex: 0 0 auto;
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel-soft);
+  color: var(--text);
+  font: 650 13px var(--ui);
+  cursor: pointer;
+}
+.daily__close:hover { border-color: var(--line-strong); }
+
+/* Шкала — отдельной колонкой слева: подписи внутри растянутого SVG
+   раздавило бы по горизонтали вместе с графиком. */
+.daily__plot { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; }
+
+.daily__scale {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 2px 0 26px;
+  color: var(--muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.daily__svg { display: block; width: 100%; height: 260px; }
+.daily__area { fill: rgba(39, 196, 107, 0.16); stroke: none; }
+/* Линию не масштабируем вместе с холстом, иначе она размажется по толщине. */
+.daily__line { fill: none; stroke: #27c46b; stroke-width: 2; vector-effect: non-scaling-stroke; }
+.daily__zero { stroke: rgba(255, 255, 255, 0.22); stroke-width: 1; vector-effect: non-scaling-stroke; }
+
+.daily__axis {
+  display: flex;
+  justify-content: space-between;
+  margin: 6px 0 0 44px;
+  color: var(--muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.daily__facts { margin: 10px 0 0; color: var(--muted); font-size: 12.5px; }
+
+@media (max-width: 760px) {
+  .daily { padding: 14px 13px 12px; }
+  .daily__title { font-size: 16px; }
+  .daily__svg { height: 190px; }
+  .daily__head { flex-direction: column; gap: 10px; }
+  .daily__facts { font-size: 11.5px; line-height: 1.5; }
+}

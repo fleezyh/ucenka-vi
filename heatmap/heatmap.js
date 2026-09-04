@@ -224,12 +224,164 @@
     foot.textContent = tile.meta_txt || "";
 
     cell.append(head, value, chart, foot);
+
+    // Клик раскрывает дневную историю. Ряд есть не у всех: коэффициенты и доли
+    // считаются из двух показателей сразу, и по дням такое число только шумит.
+    const daily = payload.ряды?.[tile.metric_key];
+    if (daily?.точки?.length) {
+      cell.classList.add("tile--clickable");
+      cell.tabIndex = 0;
+      cell.setAttribute("role", "button");
+      cell.addEventListener("click", () => openDaily(tile.metric_key, cell));
+      cell.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          openDaily(tile.metric_key, cell);
+        }
+      });
+    }
     // Подсказка собирает то, что не поместилось: цель, отклонение и всю динамику.
     const hint = [tile.metric, tile.meta_txt,
                   list.map((p) => `${p.period}: ${p.label}`).join(" · ")]
       .filter(Boolean).join(" — ");
     if (hint) cell.title = hint;
     return cell;
+  }
+
+  // --- Дневной график по клику ----------------------------------------------
+  // Плитка живёт неделями, а листы-источники лежат по дням. Скрипт кладёт
+  // дневной ряд рядом с плитками, здесь он только рисуется.
+
+  let openMetric = null;
+
+  function niceNumber(value) {
+    const abs = Math.abs(value);
+    const digits = abs >= 100 ? 0 : abs >= 10 ? 1 : 2;
+    return value.toLocaleString("ru-RU", {
+      minimumFractionDigits: digits, maximumFractionDigits: digits,
+    });
+  }
+
+  function dayLabel(iso) {
+    const [, month, day] = iso.split("-");
+    return `${day}.${month}`;
+  }
+
+  function renderDailyChart(list) {
+    const width = 1000;
+    const height = 260;
+    const padTop = 14;
+    const padBottom = 26;
+
+    const values = list.map((p) => p.значение);
+    let low = Math.min(...values, 0);
+    let high = Math.max(...values, 0);
+    if (high === low) { high = low + 1; }
+    const span = high - low;
+
+    const x = (i) => (list.length === 1 ? width / 2 : (i / (list.length - 1)) * width);
+    const y = (v) => padTop + (1 - (v - low) / span) * (height - padTop - padBottom);
+
+    const svg = document.createElementNS(SVG_NS, "svg");
+    svg.setAttribute("class", "daily__svg");
+    svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+    svg.setAttribute("preserveAspectRatio", "none");
+
+    // Нулевая линия рисуется, только если ряд её пересекает: у большинства
+    // метрик ноль — это дно шкалы, и лишняя черта по низу только мусорит.
+    if (low < 0 && high > 0) {
+      const zero = document.createElementNS(SVG_NS, "line");
+      zero.setAttribute("class", "daily__zero");
+      zero.setAttribute("x1", 0); zero.setAttribute("x2", width);
+      zero.setAttribute("y1", y(0)); zero.setAttribute("y2", y(0));
+      svg.appendChild(zero);
+    }
+
+    const path = list.map((p, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(p.значение).toFixed(1)}`).join(" ");
+
+    const area = document.createElementNS(SVG_NS, "path");
+    area.setAttribute("class", "daily__area");
+    area.setAttribute("d", `${path} L${x(list.length - 1).toFixed(1)},${y(low)} L${x(0).toFixed(1)},${y(low)} Z`);
+    svg.appendChild(area);
+
+    const line = document.createElementNS(SVG_NS, "path");
+    line.setAttribute("class", "daily__line");
+    line.setAttribute("d", path);
+    svg.appendChild(line);
+
+    return { svg, low, high };
+  }
+
+  function closeDaily() {
+    openMetric = null;
+    document.querySelectorAll(".tile--open").forEach((el) => el.classList.remove("tile--open"));
+    document.getElementById("daily")?.remove();
+  }
+
+  function openDaily(metricKey, cell) {
+    // Повторный клик по той же плитке закрывает — иначе панель некуда деть.
+    if (openMetric === metricKey) { closeDaily(); return; }
+    closeDaily();
+    openMetric = metricKey;
+    cell.classList.add("tile--open");
+
+    const entry = payload.ряды[metricKey];
+    const list = entry.точки;
+
+    const box = document.createElement("section");
+    box.className = "daily";
+    box.id = "daily";
+
+    const head = document.createElement("header");
+    head.className = "daily__head";
+    const title = document.createElement("h3");
+    title.className = "daily__title";
+    title.textContent = entry.metric;
+    const sub = document.createElement("p");
+    sub.className = "daily__sub";
+    sub.textContent = `по дням · ${dayLabel(list[0].день)} — ${dayLabel(list[list.length - 1].день)}`;
+    const close = document.createElement("button");
+    close.className = "daily__close";
+    close.type = "button";
+    close.textContent = "Закрыть";
+    close.addEventListener("click", closeDaily);
+    const heading = document.createElement("div");
+    heading.append(title, sub);
+    head.append(heading, close);
+
+    const chart = renderDailyChart(list);
+    const { low, high } = chart;
+    const plot = document.createElement("div");
+    plot.className = "daily__plot";
+    const scale = document.createElement("div");
+    scale.className = "daily__scale";
+    const top = document.createElement("span");
+    top.textContent = niceNumber(high);
+    const bottom = document.createElement("span");
+    bottom.textContent = niceNumber(low);
+    scale.append(top, bottom);
+    plot.append(scale, chart.svg);
+
+    const axis = document.createElement("div");
+    axis.className = "daily__axis";
+    // Пять подписей по всей длине: по одной на каждый день их не прочесть.
+    for (let i = 0; i < 5; i += 1) {
+      const at = Math.round((list.length - 1) * (i / 4));
+      const mark = document.createElement("span");
+      mark.textContent = dayLabel(list[at].день);
+      axis.appendChild(mark);
+    }
+
+    const sum = list.reduce((acc, p) => acc + p.значение, 0);
+    const last = list[list.length - 1];
+    const facts = document.createElement("p");
+    facts.className = "daily__facts";
+    facts.textContent = `дней: ${list.length} · среднее за день ${niceNumber(sum / list.length)}`
+      + ` · максимум ${niceNumber(high)} · последний день (${dayLabel(last.день)}) ${niceNumber(last.значение)}`;
+
+    box.append(head, plot, axis, facts);
+    tiles.appendChild(box);
+    box.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
 
   /** Сколько метрик в норме, а сколько отстаёт — по цвету плитки.
@@ -277,6 +429,7 @@
       const byBlock = BLOCKS.indexOf(blockOf(a)) - BLOCKS.indexOf(blockOf(b));
       return byBlock || (a.block_ord - b.block_ord) || (a.ord - b.ord);
     });
+    openMetric = null;
     for (const tile of sorted) box.appendChild(renderTile(tile));
     tiles.replaceChildren(renderSummary(sorted), box);
 

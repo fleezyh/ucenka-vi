@@ -737,3 +737,23 @@ body[data-mode="pallets"] .readyPill i { background: var(--amber); }
   .navGroup__label { display: none; }
   .navLink, .navAdmin { padding: 8px 12px; font-size: 14px; }
 }
+
+/* Телефон. Без этого шапка ломалась на две строки, группы висели по краям
+   разной ширины, а логотип оставался сбоку от них — вид разъезжался.
+   Здесь: логотип на своей строке, ссылки одной ровной лентой под ним. */
+@media (max-width: 640px) {
+  .topbar { display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 26px; }
+  .siteNav {
+    gap: 6px;
+    /* Лента прокручивается вбок: разделов станет больше, а переносить их
+       на вторую строку — снова получить кривую шапку. */
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+  }
+  .siteNav::-webkit-scrollbar { display: none; }
+  .navGroup { flex: 0 0 auto; padding: 4px; border-radius: 13px; }
+  .navLink, .navAdmin { padding: 8px 13px; font-size: 14.5px; }
+  .navAdmin { flex: 0 0 auto; }
+}
