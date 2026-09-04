@@ -80,7 +80,7 @@ $shellCss = @'
 $shellHtml = @'
 <!-- SITE-SHELL-START -->
 <nav class="site-nav" aria-label="Навигация сайта">
-  <a class="site-nav__brand" href="../"><img src="../assets/brand/vi-mark.svg" alt=""><span>Ви Уценка</span></a>
+  <a class="site-nav__brand" href="../"><img src="../assets/brand/vi-mark.svg" alt=""><span>Уценка</span></a>
   <div class="site-nav__actions">
     <span class="navGroup">
       <span class="navGroup__label">Уценка</span>
@@ -140,7 +140,7 @@ if ($content -notmatch "Антигенерация брака" -or $content -not
 $content = [regex]::Replace(
   $content,
   "(?is)<title>.*?</title>",
-  '<title>Ви Уценка · Антигенерация</title>',
+  '<title>Уценка · Антигенерация</title>',
   1
 )
 
@@ -188,7 +188,7 @@ else {
   $before = $content
 
   $content = [regex]::Replace($content, "(?is)<title>.*?</title>",
-    '<title>Ви Уценка · Антигенерация</title>', 1)
+    '<title>Уценка · Антигенерация</title>', 1)
 
   if ($content -match "(?s)<!-- SITE-SHELL-START -->.*?<!-- SITE-SHELL-END -->") {
     $content = [regex]::Replace(
