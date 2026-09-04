@@ -4,15 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0a1018">
-  <title>Уценка · Хитмап</title>
+  <title>Уценка · Воронка отгрузок</title>
   <link rel="icon" type="image/svg+xml" href="../assets/brand/vi-mark.svg">
   <link rel="preload" href="../assets/fonts/VI_Sans_Regular.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="../style.css?v=20260904-5">
-  <link rel="stylesheet" href="tiles.css?v=20260904-14">
-  <link rel="stylesheet" href="page.css?v=20260904-14">
-  <script src="heatmap.js?v=20260904-14" defer></script>
+  <link rel="stylesheet" href="../style.css?v=20260904-14">
+  <link rel="stylesheet" href="funnel.css?v=20260904-1">
+  <script src="funnel.js?v=20260904-1" defer></script>
 </head>
-<body data-mode="heatmap">
+<body data-mode="funnel">
   <main class="shell">
     <header class="topbar">
       <a class="brand" href="../" aria-label="Уценка — главная">
@@ -23,8 +22,8 @@
         <span class="navGroup">
           <span class="navGroup__label">Уценка</span>
           <a class="navLink" href="../dashboard/">Антигенерация</a>
-          <a class="navLink" href="../heatmap/" aria-current="page">Хитмап</a>
-          <a class="navLink" href="../funnel/">Воронка</a>
+          <a class="navLink" href="../heatmap/">Хитмап</a>
+          <a class="navLink" href="../funnel/" aria-current="page">Воронка</a>
         </span>
         <span class="navGroup">
           <span class="navGroup__label">Инструменты</span>
@@ -34,29 +33,23 @@
       </nav>
     </header>
 
-    <section class="hero heroHeatmap">
+    <section class="heroFunnel">
       <div>
-        <p class="eyebrow">Основные показатели</p>
-        <h1>Хитмап уценки</h1>
-        <p class="lead" id="lead">
-          Факт против цели по всем контурам: деньги, затраты, операционка и резерв.
-        </p>
+        <p class="eyebrow">Продажи уценки</p>
+        <h1>Воронка отгрузок</h1>
+        <p class="lead" id="lead">Лоты по ступеням сделки: сколько паллет, на какие деньги и какая окупаемость.</p>
       </div>
       <div class="periodBox">
-        <label class="fieldLabel" for="period">Период</label>
-        <select id="period"></select>
+        <label class="periodLabel" for="month">Месяц</label>
+        <select id="month" aria-label="Месяц"></select>
         <p class="stamp" id="stamp"></p>
       </div>
     </section>
 
-    <p class="message" id="message">Загружаю показатели…</p>
+    <p class="message" id="message">Загружаю воронку…</p>
 
-    <div id="tiles"></div>
-
-    <p class="scannerNote">
-      Наведите на плитку — покажу цель, отклонение и из чего сложилось число.
-      Данные считаются вместе с утренней выгрузкой уценки.
-    </p>
+    <section class="funnelWrap" id="funnel" aria-live="polite"></section>
   </main>
+  <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token":"85a2c48f22834923b7c34b931c8c514e"}'></script>
 </body>
 </html>

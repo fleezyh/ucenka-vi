@@ -1,0 +1,114 @@
+/* Воронка отгрузок. Ступени центрированы: ширина показывает, сколько паллет
+   дошло до этапа, а по бокам — деньги. Раскладка та же, что в чарте 2870,
+   но набрана VI Sans и без стеклянных эффектов, как остальной сайт. */
+
+.heroFunnel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 22px;
+  margin-bottom: 26px;
+}
+
+.heroFunnel h1 {
+  margin: 6px 0 8px;
+  font-size: clamp(40px, 6vw, 66px);
+  line-height: 0.98;
+  letter-spacing: -0.03em;
+}
+
+.heroFunnel .lead { margin: 0; max-width: 60ch; color: var(--muted); font-size: 15px; }
+
+.periodBox { display: grid; gap: 6px; justify-items: end; }
+.periodLabel { color: var(--muted); font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; }
+
+.periodBox select {
+  min-width: 190px;
+  padding: 10px 13px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--panel-soft);
+  color: var(--text);
+  font: 650 15px var(--ui);
+}
+
+.stamp { margin: 0; color: var(--muted); font-size: 12px; }
+
+.funnelWrap {
+  padding: 20px 22px 24px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.funnelHead { display: flex; align-items: baseline; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
+.funnelHead b { font-size: 20px; font-weight: 800; }
+.funnelHead span { color: var(--muted); font-size: 14px; }
+
+/* Строка ступени: деньги слева, полоса по центру, себестоимость справа.
+   Боковые колонки фиксированной ширины, иначе полосы разъезжаются по центру. */
+.stage {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr) 190px;
+  align-items: center;
+  gap: 16px;
+  margin: 4px 0;
+}
+
+.stage__side { display: grid; gap: 1px; font-feature-settings: "tnum" 0, "pnum" 1; }
+.stage__side b { font-size: 16px; font-weight: 800; }
+.stage__side span { color: var(--muted); font-size: 11px; }
+.stage__side--left { text-align: right; }
+
+.stage__okup {
+  justify-self: start;
+  margin-top: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 750;
+}
+
+/* Классы окупаемости приходят из запроса — там же, где считается порог. */
+.stage__okup.ok, .stage__okup.good { color: #9af2ba; background: rgba(39, 196, 107, 0.16); }
+.stage__okup.bad, .stage__okup.low { color: #ffc0ca; background: rgba(240, 93, 114, 0.16); }
+
+.stage__bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-self: center;
+  min-height: 46px;
+  padding: 0 18px;
+  border-radius: 12px;
+  background: #2f5fb0;
+  color: #fff;
+  transition: width 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.stage__value { font-size: 21px; font-weight: 800; font-feature-settings: "tnum" 0, "pnum" 1; }
+.stage__name { font-size: 13px; font-weight: 700; letter-spacing: 0.02em; text-transform: uppercase; opacity: 0.92; }
+
+/* Подпись перехода между ступенями. */
+.stage__link {
+  margin: 2px 0;
+  color: var(--muted);
+  font-size: 11.5px;
+  text-align: center;
+  font-feature-settings: "tnum" 0, "pnum" 1;
+}
+
+@media (max-width: 900px) {
+  .heroFunnel { grid-template-columns: 1fr; align-items: start; gap: 14px; }
+  .periodBox { justify-items: start; }
+  .stage { grid-template-columns: 1fr; gap: 4px; margin: 10px 0; }
+  .stage__bar { width: 100% !important; justify-self: stretch; }
+  .stage__side { display: flex; align-items: baseline; gap: 6px; text-align: left !important; }
+  .stage__side--left::before { content: "продажи"; color: var(--muted); font-size: 11px; }
+  .stage__side span { display: none; }
+  .stage__okup { margin: 0 0 0 auto; }
+  .funnelWrap { padding: 14px 13px 18px; }
+}
