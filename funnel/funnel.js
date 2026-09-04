@@ -20,6 +20,11 @@
     message.style.display = text ? "block" : "none";
   }
 
+  /** Запрос отдаёт «0.37 млн» с точкой — в русском тексте это выглядит чужеродно. */
+  function decimal(text) {
+    return String(text ?? "").replace(/(\d)\.(\d)/g, "$1,$2");
+  }
+
   function number(value) {
     const n = Number(String(value ?? "").replace(",", "."));
     return Number.isFinite(n) ? n.toLocaleString("ru-RU") : String(value ?? "");
@@ -40,7 +45,7 @@
 
     const left = document.createElement("div");
     left.className = "stage__side stage__side--left";
-    left.innerHTML = `<b>${stage.sale_txt || "—"}</b><span>в ценах продаж</span>`;
+    left.innerHTML = `<b>${decimal(stage.sale_txt) || "—"}</b><span>в ценах продаж</span>`;
 
     const bar = document.createElement("div");
     bar.className = "stage__bar";
@@ -60,8 +65,8 @@
     right.className = "stage__side stage__side--right";
     const okup = document.createElement("i");
     okup.className = `stage__okup ${stage.okup_cls || ""}`.trim();
-    okup.textContent = stage.okup_txt || "";
-    right.innerHTML = `<b>${stage.cost_txt || "—"}</b><span>себестоимость</span>`;
+    okup.textContent = decimal(stage.okup_txt) || "";
+    right.innerHTML = `<b>${decimal(stage.cost_txt) || "—"}</b><span>себестоимость</span>`;
     right.appendChild(okup);
 
     row.append(left, bar, right);
@@ -70,7 +75,7 @@
     if (index > 0 && stage.conv_txt) {
       const link = document.createElement("p");
       link.className = "stage__link";
-      link.textContent = stage.conv_txt;
+      link.textContent = decimal(stage.conv_txt);
       box.appendChild(link);
     }
     return row;
@@ -91,7 +96,7 @@
     head.innerHTML =
       `<b>${month}</b>` +
       `<span>${number(list[0].total_pallets ?? "")} паллет · ${lots} лотов` +
-      `${list[0].total_okup_txt ? ` · окупаемость ${list[0].total_okup_txt}` : ""}</span>`;
+      `${list[0].total_okup_txt ? ` · окупаемость ${decimal(list[0].total_okup_txt)}` : ""}</span>`;
     box.appendChild(head);
 
     list.forEach((stage, index) => box.appendChild(renderStage(stage, list, index)));

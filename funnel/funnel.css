@@ -81,16 +81,28 @@
   align-items: center;
   gap: 12px;
   justify-self: center;
-  min-height: 46px;
-  padding: 0 18px;
+  min-height: 48px;
+  padding: 0 20px;
   border-radius: 12px;
   background: #2f5fb0;
   color: #fff;
+  /* Полоса не уже собственной подписи: на узких ступенях («34 паллеты»)
+     название вылезало за края плашки и ломалось посреди слова. Пропорции
+     на них чуть завышены — зато читается. */
+  min-width: fit-content;
+  white-space: nowrap;
   transition: width 260ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.stage__value { font-size: 21px; font-weight: 800; font-feature-settings: "tnum" 0, "pnum" 1; }
-.stage__name { font-size: 13px; font-weight: 700; letter-spacing: 0.02em; text-transform: uppercase; opacity: 0.92; }
+.stage__value { font-size: 22px; font-weight: 800; font-feature-settings: "tnum" 0, "pnum" 1; }
+.stage__name {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  opacity: 0.92;
+  white-space: nowrap;
+}
 
 /* Подпись перехода между ступенями. */
 .stage__link {
