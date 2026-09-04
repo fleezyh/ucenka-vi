@@ -140,7 +140,7 @@ if ($content -notmatch "Антигенерация брака" -or $content -not
 $content = [regex]::Replace(
   $content,
   "(?is)<title>.*?</title>",
-  '<title>Дашборд · Антигенерация брака</title>',
+  '<title>Ви Уценка · Антигенерация</title>',
   1
 )
 
@@ -186,6 +186,9 @@ else {
   # новой выгрузкой дашборда, то есть практически никогда.
   $content = [System.IO.File]::ReadAllText($dashboardFile)
   $before = $content
+
+  $content = [regex]::Replace($content, "(?is)<title>.*?</title>",
+    '<title>Ви Уценка · Антигенерация</title>', 1)
 
   if ($content -match "(?s)<!-- SITE-SHELL-START -->.*?<!-- SITE-SHELL-END -->") {
     $content = [regex]::Replace(
