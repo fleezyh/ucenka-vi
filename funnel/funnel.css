@@ -124,3 +124,43 @@
   .stage__okup { margin: 0 0 0 auto; }
   .funnelWrap { padding: 14px 13px 18px; }
 }
+
+/* ---- Итоги месяца против плана и цели ------------------------------------ */
+
+.totals {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 22px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+
+.total {
+  padding: 14px 16px 13px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: var(--panel-soft);
+}
+
+.total__title { margin: 0; color: var(--muted); font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; }
+.total__value { display: block; margin: 5px 0 12px; font-size: 27px; font-weight: 800; letter-spacing: -0.02em; font-feature-settings: "tnum" 0, "pnum" 1; }
+
+.total__row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-top: 9px; }
+.total__label { color: var(--muted); font-size: 12px; }
+.total__pct { font-size: 13px; font-weight: 800; font-style: normal; font-feature-settings: "tnum" 0, "pnum" 1; }
+
+.total__track { height: 5px; margin-top: 5px; border-radius: 999px; background: rgba(255, 255, 255, 0.09); overflow: hidden; }
+.total__track i { display: block; height: 100%; border-radius: 999px; background: var(--blue, #4d8df7); }
+
+/* Классы цвета приходят из запроса — те же, что красят борд в Superset. */
+.total__pct.bad, .total__track i.bad { color: #ffc0ca; background: #f05d72; }
+.total__pct.bad { background: none; }
+.total__pct.good, .total__pct.ok, .total__pct.ok-grn { color: #9af2ba; }
+.total__track i.good, .total__track i.ok, .total__track i.ok-grn { background: #27c46b; }
+
+.stage__okup.ok-grn { color: #9af2ba; background: rgba(39, 196, 107, 0.16); }
+.stage__okup.bad-red { color: #ffc0ca; background: rgba(240, 93, 114, 0.16); }
+
+@media (max-width: 1100px) { .totals { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .totals { grid-template-columns: 1fr; } }

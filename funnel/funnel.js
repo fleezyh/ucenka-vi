@@ -100,9 +100,88 @@
     box.appendChild(head);
 
     list.forEach((stage, index) => box.appendChild(renderStage(stage, list, index)));
+    box.appendChild(renderTotals(list[0]));
 
     stamp.textContent = `обновлено ${payload.обновлено}`;
     say("");
+  }
+
+
+  /** Итоги месяца против плана и годовой цели.
+   *
+   * Все числа считает тот же запрос — здесь только раскладка. Полоса показывает
+   * выполнение: план и цель идут отдельными строками, потому что расходятся
+   * (цель учитывает накопленное отставание).
+   */
+  function renderTotals(first) {
+    const cards = [
+      { title: "Паллет", value: number(first.total_pallets),
+        planText: `план ${number(first.plan_pallets)}`, planPct: first.plan_pal_pct,
+        planWidth: first.plan_pal_w, planClass: first.plan_pal_cls,
+        goalText: "цель с отставанием", goalPct: first.goal_pal_pct,
+        goalWidth: first.goal_pal_w, goalClass: first.goal_pal_cls },
+      { title: "В ценах продаж", value: decimal(first.total_sale_txt),
+        planText: `план ${decimal(first.plan_sale_txt)}`, planPct: first.plan_sale_pct,
+        planWidth: first.plan_sale_w, planClass: first.plan_sale_cls,
+        goalText: "цель с отставанием", goalPct: first.goal_sale_pct,
+        goalWidth: first.goal_sale_w, goalClass: first.goal_sale_cls },
+      { title: "По себестоимости", value: decimal(first.total_cost_txt),
+        planText: `план ${decimal(first.plan_cost_txt)}`, planPct: first.plan_cost_pct,
+        planWidth: first.plan_cost_w, planClass: first.plan_cost_cls,
+        goalText: "цель с отставанием", goalPct: first.goal_cost_pct,
+        goalWidth: first.goal_cost_w, goalClass: first.goal_cost_cls },
+      { title: "Окупаемость", value: decimal(first.total_okup_txt),
+        planText: `план ${decimal(first.plan_okup_txt)}`, planPct: decimal(first.okup_delta_txt),
+        planWidth: null, planClass: first.okup_plan_cls },
+    ];
+
+    const wrap = document.createElement("div");
+    wrap.className = "totals";
+
+    for (const card of cards) {
+      if (!card.value) continue;
+      const item = document.createElement("article");
+      item.className = "total";
+
+      const head = document.createElement("p");
+      head.className = "total__title";
+      head.textContent = card.title;
+      const value = document.createElement("b");
+      value.className = "total__value";
+      value.textContent = card.value;
+      item.append(head, value);
+
+      for (const kind of ["plan", "goal"]) {
+        const text = card[`${kind}Text`];
+        const pct = card[`${kind}Pct`];
+        if (!text || !pct) continue;
+
+        const row = document.createElement("div");
+        row.className = "total__row";
+        const label = document.createElement("span");
+        label.className = "total__label";
+        label.textContent = text;
+        const share = document.createElement("i");
+        share.className = `total__pct ${card[`${kind}Class`] || ""}`.trim();
+        share.textContent = pct;
+        row.append(label, share);
+        item.appendChild(row);
+
+        const width = card[`${kind}Width`];
+        if (width !== null && width !== undefined && width !== "") {
+          const track = document.createElement("div");
+          track.className = "total__track";
+          const fill = document.createElement("i");
+          // Больше ста процентов полоса не рисует — иначе вылезет за дорожку.
+          fill.style.width = `${Math.min(100, Number(width) || 0)}%`;
+          if (card[`${kind}Class`]) fill.className = card[`${kind}Class`];
+          track.appendChild(fill);
+          item.appendChild(track);
+        }
+      }
+      wrap.appendChild(item);
+    }
+    return wrap;
   }
 
   function fillMonths(current) {
