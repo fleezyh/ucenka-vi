@@ -253,6 +253,8 @@
   // дневной ряд рядом с плитками, здесь он только рисуется.
 
   let openMetric = null;
+  // Тридцать дней по умолчанию: на этой длине точка каждого дня ещё читается.
+  let dailyDepth = 30;
 
   function niceNumber(value) {
     const abs = Math.abs(value);
@@ -309,7 +311,7 @@
     line.setAttribute("d", path);
     svg.appendChild(line);
 
-    return { svg, low, high };
+    return { svg, low, high, x, y, width, height };
   }
 
   function closeDaily() {
@@ -326,7 +328,8 @@
     cell.classList.add("tile--open");
 
     const entry = payload.ряды[metricKey];
-    const list = entry.точки;
+    const all = entry.точки;
+    const list = dailyDepth ? all.slice(-dailyDepth) : all;
 
     const box = document.createElement("section");
     box.className = "daily";
@@ -345,12 +348,54 @@
     close.type = "button";
     close.textContent = "Закрыть";
     close.addEventListener("click", closeDaily);
+
+    const ranges = document.createElement("div");
+    ranges.className = "daily__ranges";
+    for (const [days, label] of [[30, "30 дней"], [90, "3 месяца"], [0, "всё"]]) {
+      if (days && all.length <= days) continue;
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "daily__range" + (dailyDepth === days ? " is-on" : "");
+      button.textContent = label;
+      button.addEventListener("click", (event) => {
+        event.stopPropagation();
+        dailyDepth = days;
+        openMetric = null;          // иначе повторный вызов сочтёт это закрытием
+        openDaily(metricKey, cell);
+      });
+      ranges.appendChild(button);
+    }
+
+    const tools = document.createElement("div");
+    tools.className = "daily__tools";
+    tools.append(ranges, close);
     const heading = document.createElement("div");
     heading.append(title, sub);
-    head.append(heading, close);
+    head.append(heading, tools);
 
     const chart = renderDailyChart(list);
     const { low, high } = chart;
+
+    // Точка на каждый день: без них линия читается как накопление, хотя каждый
+    // день здесь сам по себе. Кружки — обычные элементы поверх холста: внутри
+    // SVG, растянутого по ширине, круг стал бы эллипсом.
+    const dots = document.createElement("div");
+    dots.className = "daily__dots";
+    for (const point of list) {
+      const dot = document.createElement("i");
+      const left = list.length === 1 ? 50 : (list.indexOf(point) / (list.length - 1)) * 100;
+      const top = ((chart.y(point.значение) - 0) / chart.height) * 100;
+      dot.style.left = `${left}%`;
+      dot.style.top = `${top}%`;
+      dot.title = `${dayLabel(point.день)} — ${niceNumber(point.значение)}`;
+      dots.appendChild(dot);
+    }
+    if (list.length > 70) dots.classList.add("daily__dots--dense");
+
+    const canvas = document.createElement("div");
+    canvas.className = "daily__canvas";
+    canvas.append(chart.svg, dots);
+
     const plot = document.createElement("div");
     plot.className = "daily__plot";
     const scale = document.createElement("div");
@@ -360,7 +405,7 @@
     const bottom = document.createElement("span");
     bottom.textContent = niceNumber(low);
     scale.append(top, bottom);
-    plot.append(scale, chart.svg);
+    plot.append(scale, canvas);
 
     const axis = document.createElement("div");
     axis.className = "daily__axis";
