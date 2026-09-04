@@ -29,8 +29,10 @@
 
 .stockGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(178px, 1fr));
-  gap: 12px;
+  /* Восемь колонок: семь регионов и «Итого». На большей ширине карточки
+     переносились, и итог уезжал на вторую строку один. */
+  grid-template-columns: repeat(auto-fit, minmax(158px, 1fr));
+  gap: 10px;
 }
 
 .stockCard {
