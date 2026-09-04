@@ -272,7 +272,8 @@
   function renderDailyChart(list) {
     const width = 1000;
     const height = 260;
-    const padTop = 14;
+    // Сверху нужен запас: над самой высокой точкой встаёт её подпись.
+    const padTop = 34;
     const padBottom = 26;
 
     const values = list.map((p) => p.значение);
@@ -381,15 +382,29 @@
     // SVG, растянутого по ширине, круг стал бы эллипсом.
     const dots = document.createElement("div");
     dots.className = "daily__dots";
-    for (const point of list) {
+    // Подписи над точками помещаются примерно до сорока дней. Дальше они
+    // наезжают друг на друга, поэтому показываем каждую вторую или пятую —
+    // точки при этом остаются все.
+    const step = list.length <= 40 ? 1 : list.length <= 100 ? 2 : 5;
+
+    list.forEach((point, index) => {
+      const left = list.length === 1 ? 50 : (index / (list.length - 1)) * 100;
+      const top = (chart.y(point.значение) / chart.height) * 100;
+
       const dot = document.createElement("i");
-      const left = list.length === 1 ? 50 : (list.indexOf(point) / (list.length - 1)) * 100;
-      const top = ((chart.y(point.значение) - 0) / chart.height) * 100;
       dot.style.left = `${left}%`;
       dot.style.top = `${top}%`;
       dot.title = `${dayLabel(point.день)} — ${niceNumber(point.значение)}`;
       dots.appendChild(dot);
-    }
+
+      if (index % step) return;
+      const label = document.createElement("b");
+      label.className = "daily__pin";
+      label.textContent = niceNumber(point.значение);
+      label.style.left = `${left}%`;
+      label.style.top = `${top}%`;
+      dots.appendChild(label);
+    });
     if (list.length > 70) dots.classList.add("daily__dots--dense");
 
     const canvas = document.createElement("div");
