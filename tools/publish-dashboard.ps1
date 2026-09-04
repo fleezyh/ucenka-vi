@@ -66,6 +66,7 @@ $shellCss = @'
 .site-nav__brand img { width: 27px !important; height: 27px !important; }
 .site-usage__row .data-button { margin-left: 12px; }
 @media (max-width: 760px) { .navGroup__label { display: none; } .navLink, .navAdmin { padding: 8px 12px; font-size: 14px; } .site-usage__row .data-button { margin-left: 0; } }
+}
 .site-usage { max-width: 1280px; margin: 10px auto 0; padding: 0 24px; font-family: "VI Sans", system-ui, sans-serif; }
 .site-usage[hidden] { display: none; }
 .site-usage__row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 16px; padding: 9px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--muted); font-size: 12px; }
@@ -75,6 +76,24 @@ $shellCss = @'
 .site-usage__spark i { width: 3px; min-height: 1px; border-radius: 1px; background: var(--accent); opacity: 0.65; }
 .site-usage__stamp { color: var(--muted); font-size: 11px; }
 @media (max-width: 720px) { .site-nav { padding-inline: 14px; } .site-nav__back { display: none; } .import-panel { padding-inline: 14px; } .import-card { grid-template-columns: 1fr; } .import-actions { justify-content: flex-start; } .site-usage { padding-inline: 14px; } .site-usage__spark { margin-left: 0; } }
+/* Телефон. Шапка не помещалась в ширину экрана: группы ссылок не переносятся,
+   и «Админка» уезжала за правый край, а страница получала горизонтальную
+   прокрутку. Логотип встаёт своей строкой, ссылки — лентой с прокруткой. */
+@media (max-width: 640px) {
+.site-nav { flex-direction: column; align-items: stretch; gap: 10px; padding-inline: 12px; }
+.site-nav__brand { justify-content: flex-start; }
+.site-nav__actions { gap: 6px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.site-nav__actions::-webkit-scrollbar { display: none; }
+.navGroup { flex: 0 0 auto; padding: 4px; }
+.navAdmin { flex: 0 0 auto; }
+.site-usage { padding-inline: 12px; }
+.site-usage__row { gap: 6px 12px; }
+.site-usage__row .data-button { width: 100%; margin-top: 4px; }
+.import-panel { padding-inline: 12px; }
+/* Ширину задаёт экран, а не содержимое: иначе одна широкая таблица тянет
+   вправо всю страницу. */
+.wrap, .head-in { max-width: 100%; padding-inline: 12px; }
+body { overflow-x: hidden; }
 '@
 
 $shellHtml = @'
