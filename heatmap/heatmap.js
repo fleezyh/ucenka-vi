@@ -523,20 +523,50 @@
   const MONTHS = ["январь", "февраль", "март", "апрель", "май", "июнь",
                   "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь"];
 
+  const ROMAN = ["I", "II", "III", "IV"];
+
+  /** Подпись периода. Ключ говорит сам за себя: 2026-09, 2026-Q3, 2026-H1, 2026. */
   function periodLabel(key) {
-    const [year, month] = key.split("-").map(Number);
-    return `${MONTHS[month - 1]} ${year}`;
+    if (/^\d{4}$/.test(key)) return `${key} год`;
+    const [year, tail] = key.split("-");
+    if (/^H[12]$/.test(tail)) return `${tail[1]} полугодие ${year}`;
+    if (/^Q[1-4]$/.test(tail)) return `${ROMAN[Number(tail[1]) - 1]} квартал ${year}`;
+    return `${MONTHS[Number(tail) - 1]} ${year}`;
+  }
+
+  function periodKind(key) {
+    if (/^\d{4}$/.test(key)) return "год";
+    if (/-H[12]$/.test(key)) return "полугодие";
+    if (/-Q[1-4]$/.test(key)) return "квартал";
+    return "месяц";
   }
 
   /** В списке только те месяцы, которые реально посчитаны и лежат в файле. */
   function fillPeriods(current) {
-    const periods = payload.периоды?.length ? [...payload.периоды].reverse() : [current];
+    const periods = payload.периоды?.length ? [...payload.периоды] : [current];
     periodSelect.replaceChildren();
-    for (const key of periods) {
-      const option = document.createElement("option");
-      option.value = key;
-      option.textContent = periodLabel(key);
-      periodSelect.appendChild(option);
+
+    // Группами, иначе месяцы, кварталы и годы идут вперемешку и список не
+    // читается. Внутри группы — свежее сверху.
+    const groups = [
+      ["месяц", "Месяцы"],
+      ["квартал", "Кварталы"],
+      ["полугодие", "Полугодия"],
+      ["год", "Годы"],
+    ];
+
+    for (const [kind, title] of groups) {
+      const keys = periods.filter((key) => periodKind(key) === kind).sort().reverse();
+      if (!keys.length) continue;
+      const group = document.createElement("optgroup");
+      group.label = title;
+      for (const key of keys) {
+        const option = document.createElement("option");
+        option.value = key;
+        option.textContent = periodLabel(key);
+        group.appendChild(option);
+      }
+      periodSelect.appendChild(group);
     }
     periodSelect.value = current;
   }
