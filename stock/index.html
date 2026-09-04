@@ -4,14 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0a1018">
-  <title>Уценка · Воронка отгрузок</title>
+  <title>Уценка · Остатки паллет</title>
   <link rel="icon" type="image/svg+xml" href="../assets/brand/vi-mark.svg">
   <link rel="preload" href="../assets/fonts/VI_Sans_Regular.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="../style.css?v=20260904-14">
-  <link rel="stylesheet" href="funnel.css?v=20260904-3">
-  <script src="funnel.js?v=20260904-3" defer></script>
+  <link rel="stylesheet" href="stock.css?v=20260905-1">
+  <script src="stock.js?v=20260905-1" defer></script>
 </head>
-<body data-mode="funnel">
+<body data-mode="stock">
   <main class="shell">
     <header class="topbar">
       <a class="brand" href="../" aria-label="Уценка — главная">
@@ -23,8 +23,8 @@
           <span class="navGroup__label">Уценка</span>
           <a class="navLink" href="../dashboard/">Антигенерация</a>
           <a class="navLink" href="../heatmap/">Хитмап</a>
-          <a class="navLink" href="../funnel/" aria-current="page">Воронка</a>
-          <a class="navLink" href="../stock/">Остатки</a>
+          <a class="navLink" href="../funnel/">Воронка</a>
+          <a class="navLink" href="../stock/" aria-current="page">Остатки</a>
         </span>
         <span class="navGroup">
           <span class="navGroup__label">Инструменты</span>
@@ -34,22 +34,28 @@
       </nav>
     </header>
 
-    <section class="heroFunnel">
+    <section class="heroStock">
       <div>
-        <p class="eyebrow">Продажи уценки</p>
-        <h1>Воронка отгрузок</h1>
-        <p class="lead" id="lead">Лоты по ступеням сделки: сколько паллет, на какие деньги и какая окупаемость.</p>
+        <p class="eyebrow">Склад уценки</p>
+        <h1>Остатки паллет</h1>
+        <p class="lead">Сколько паллет лежит по регионам и что из них уже зарезервировано под отгрузку.</p>
       </div>
-      <div class="periodBox">
-        <label class="periodLabel" for="month">Месяц</label>
-        <select id="month" aria-label="Месяц"></select>
+      <div class="stockLegend">
+        <span class="legendItem legendItem--res"><i></i>зарезервировано</span>
+        <span class="legendItem legendItem--free"><i></i>свободно</span>
         <p class="stamp" id="stamp"></p>
       </div>
     </section>
 
-    <p class="message" id="message">Загружаю воронку…</p>
+    <p class="message" id="message">Загружаю остатки…</p>
 
-    <section class="funnelWrap" id="funnel" aria-live="polite"></section>
+    <section class="stockWrap" id="stock" aria-live="polite"></section>
+
+    <p class="stockNote">
+      Себестоимость считается по последней цене поставки без НДС. На борде в Superset
+      та же метрика берётся из контура ценообразования, поэтому суммы там ниже — это
+      разные цены, а не ошибка счёта.
+    </p>
   </main>
   <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token":"85a2c48f22834923b7c34b931c8c514e"}'></script>
 </body>

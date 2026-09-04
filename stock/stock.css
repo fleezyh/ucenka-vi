@@ -1,0 +1,123 @@
+/* Остатки паллет по регионам. Столбик показывает состав: красное сверху —
+   зарезервировано под отгрузку, зелёное снизу — свободно к продаже.
+   Раскладка как в чарте 2719, но набрана VI Sans и в тёмной теме сайта. */
+
+.heroStock {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 22px;
+  margin-bottom: 26px;
+}
+
+.heroStock h1 {
+  margin: 6px 0 8px;
+  font-size: clamp(40px, 6vw, 66px);
+  line-height: 0.98;
+  letter-spacing: -0.03em;
+}
+
+.heroStock .lead { margin: 0; max-width: 60ch; color: var(--muted); font-size: 15px; }
+
+.stockLegend { display: grid; gap: 7px; justify-items: end; }
+.legendItem { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); font-size: 13px; }
+.legendItem i { width: 11px; height: 11px; border-radius: 3px; }
+.legendItem--res i { background: #e0433f; }
+.legendItem--free i { background: #22b573; }
+
+.stockWrap { min-height: 60px; }
+
+.stockGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.stockCard {
+  display: grid;
+  /* Строки заданы жёстко: столбик, название, разбивка, деньги — иначе карточки
+     с длинным названием региона разъезжаются по высоте. */
+  grid-template-rows: 210px auto auto auto;
+  gap: 9px;
+  padding: 14px 14px 13px;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.stockCard--total { border-color: var(--line-strong); background: var(--panel-soft); }
+
+.stockBar {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  overflow: hidden;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.stockPart {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 22px;
+  color: #fff;
+  font-size: 17px;
+  font-weight: 800;
+  font-feature-settings: "tnum" 0, "pnum" 1;
+}
+
+.stockPart--res { background: linear-gradient(180deg, #e8514c, #c8322f); }
+.stockPart--free { background: linear-gradient(180deg, #2bc47f, #159a5f); }
+
+.stockName {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.stockPill {
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(240, 93, 114, 0.16);
+  color: #ffc0ca;
+  font-size: 11.5px;
+  font-weight: 750;
+  font-feature-settings: "tnum" 0, "pnum" 1;
+}
+
+.stockSplit {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+  font-style: normal;
+  font-feature-settings: "tnum" 0, "pnum" 1;
+}
+
+.stockSplit i { font-style: normal; }
+.stockSplit .res { color: #ff9a9a; }
+.stockSplit .free { color: #7ee3b3; }
+.stockSplit span { margin-left: auto; color: var(--muted); font-size: 11.5px; font-weight: 600; }
+
+.stockCost { display: grid; gap: 3px; margin: 0; padding-top: 8px; border-top: 1px solid var(--line); }
+.stockCost div { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.stockCost dt { color: var(--muted); font-size: 11.5px; }
+.stockCost dd { margin: 0; font-size: 13.5px; font-weight: 750; font-feature-settings: "tnum" 0, "pnum" 1; }
+
+.stockNote { margin: 18px 2px 0; color: var(--muted); font-size: 12.5px; line-height: 1.55; max-width: 90ch; }
+
+@media (max-width: 900px) {
+  .heroStock { grid-template-columns: 1fr; align-items: start; gap: 14px; }
+  .stockLegend { justify-items: start; }
+  .stockGrid { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 9px; }
+  .stockCard { grid-template-rows: 150px auto auto auto; padding: 12px 11px 11px; }
+  .stockPart { font-size: 15px; }
+}

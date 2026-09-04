@@ -66,7 +66,6 @@ $shellCss = @'
 .site-nav__brand img { width: 27px !important; height: 27px !important; }
 .site-usage__row .data-button { margin-left: 12px; }
 @media (max-width: 760px) { .navGroup__label { display: none; } .navLink, .navAdmin { padding: 8px 12px; font-size: 14px; } .site-usage__row .data-button { margin-left: 0; } }
-}
 .site-usage { max-width: 1280px; margin: 10px auto 0; padding: 0 24px; font-family: "VI Sans", system-ui, sans-serif; }
 .site-usage[hidden] { display: none; }
 .site-usage__row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 16px; padding: 9px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--muted); font-size: 12px; }
@@ -94,6 +93,7 @@ $shellCss = @'
    вправо всю страницу. */
 .wrap, .head-in { max-width: 100%; padding-inline: 12px; }
 body { overflow-x: hidden; }
+}
 '@
 
 $shellHtml = @'
@@ -106,6 +106,7 @@ $shellHtml = @'
       <a class="navLink" href="./" aria-current="page">Антигенерация</a>
       <a class="navLink" href="../heatmap/">Хитмап</a>
       <a class="navLink" href="../funnel/">Воронка</a>
+      <a class="navLink" href="../stock/">Остатки</a>
     </span>
     <span class="navGroup">
       <span class="navGroup__label">Инструменты</span>
