@@ -15,6 +15,7 @@
   const secondary = $("secondary");
   const productName = $("productName");
   const productCode = $("productCode");
+  const siteLink = $("siteLink");
   const details = $("details");
   const detailsBody = $("detailsBody");
   const nameResults = $("nameResults");
@@ -97,8 +98,11 @@
   let manifest = null;
   let manifestPromise = null;
   let emptyShards = new Set();
+  let aliasEmptyShards = new Set();
   const shardCache = new Map();
   const pendingShards = new Map();
+  const aliasCache = new Map();
+  const pendingAliases = new Map();
   const wordCache = new Map();
   const pendingWords = new Map();
 
@@ -199,6 +203,7 @@
     }
     manifest = await manifestPromise;
     emptyShards = new Set(manifest.emptyShards || []);
+    aliasEmptyShards = new Set(manifest.aliasEmptyShards || []);
     return manifest;
   }
 
@@ -259,6 +264,71 @@
     }
   }
 
+  // --- Внутренняя этикетка склада -------------------------------------------
+  // Склад печатает свою наклейку «002 <код товара с сайта>» (002 26794532).
+  // Такого штрихкода нет ни в одном справочнике: настоящие ШК приходят от
+  // поставщика, а эту этикетку склад делает сам, поэтому раньше пикалка на неё
+  // молчала. Ищем по ней только после того, как обычный поиск не дал результата:
+  // в базе есть полтора десятка настоящих одиннадцатизначных ШК на 002, и
+  // перехватывать их нельзя.
+
+  function internalProductCode(barcode) {
+    const prefix = manifest?.aliasPrefix || "002";
+    if (!manifest?.aliasPath || !barcode.startsWith(prefix)) return "";
+    const tail = barcode.slice(prefix.length).replace(/^0+/, "");
+    return /^[0-9]{1,8}$/.test(tail) ? tail : "";
+  }
+
+  function aliasKey(productCode) {
+    const digits = manifest.aliasDigits;
+    return productCode.slice(-digits).padStart(digits, "0");
+  }
+
+  async function loadAliasShard(key) {
+    if (aliasCache.has(key)) return aliasCache.get(key);
+    if (aliasEmptyShards.has(key)) return [];
+    if (pendingAliases.has(key)) return pendingAliases.get(key);
+
+    const url = manifest.aliasPath
+      .replace("{prefix}", key.slice(0, 2))
+      .replace("{key}", key);
+
+    const task = (async () => {
+      const response = await fetch(url, { cache: "force-cache" });
+      if (response.status === 404) return [];
+      const buffer = await readMaybeGzip(response);
+      const rows = parseCsv(utf8.decode(new Uint8Array(buffer)));
+      aliasCache.set(key, rows);
+      while (aliasCache.size > MAX_CACHED_SHARDS) {
+        aliasCache.delete(aliasCache.keys().next().value);
+      }
+      return rows;
+    })();
+
+    pendingAliases.set(key, task);
+    try {
+      return await task;
+    } finally {
+      pendingAliases.delete(key);
+    }
+  }
+
+  /** Отдаёт настоящий штрихкод товара по внутренней этикетке, либо пустую строку. */
+  async function resolveInternalLabel(barcode) {
+    const productCode = internalProductCode(barcode);
+    if (!productCode) return "";
+    const rows = await loadAliasShard(aliasKey(productCode));
+    const hit = rows.find((row) => row[0] === productCode);
+    return hit ? hit[1] : "";
+  }
+
+  function siteUrl(productCode) {
+    // Прямой /product/<id>/ отдаёт 404 — карточке нужен slug, а хранить его
+    // на каждую из шести миллионов строк дороже, чем оно того стоит. Поиск по
+    // коду открывает ту же карточку.
+    return `https://www.vseinstrumenti.ru/search/?what=${encodeURIComponent(productCode)}`;
+  }
+
   /** Разбирает шард целиком: строк в нём сотни, экономить на этом больше незачем. */
   function parseCsv(text) {
     const rows = [];
@@ -315,7 +385,7 @@
     };
   }
 
-  function showHit(row) {
+  function showHit(row, scannedCode = "") {
     const fields = recordFields(row);
     const code = field(row, "Штрихкод");
     primaryLabel.textContent = MODES[mode].primary;
@@ -332,7 +402,11 @@
     secondary.style.display = "inline-block";
 
     productName.textContent = fields.name || "—";
-    productCode.textContent = code;
+    // Сканировали внутреннюю этикетку — показываем обе: человек видит на руках
+    // одну, а в базе товар лежит под другой.
+    const viaLabel = scannedCode && scannedCode !== code;
+    productCode.textContent = viaLabel ? `${scannedCode} → ${code}` : code;
+    showSiteLink(field(row, "Код сайта"));
     answer.style.display = "flex";
 
     detailsBody.replaceChildren();
@@ -349,7 +423,19 @@
     });
     details.style.display = "block";
     nameResults.style.display = "none";
-    say(`Найдено: ${code}`, "ok");
+    say(viaLabel ? `Найдено по внутренней этикетке: ${code}` : `Найдено: ${code}`, "ok");
+  }
+
+  function showSiteLink(productCode) {
+    if (!siteLink) return;
+    const code = (productCode || "").trim();
+    if (!code || code === "0") {
+      siteLink.hidden = true;
+      return;
+    }
+    siteLink.href = siteUrl(code);
+    siteLink.textContent = `Открыть на сайте · ${code}`;
+    siteLink.hidden = false;
   }
 
   function showNotFound(code) {
@@ -359,6 +445,7 @@
     secondary.style.display = "none";
     productName.textContent = "Штрихкод не найден в справочнике";
     productCode.textContent = code;
+    if (siteLink) siteLink.hidden = true;
     answer.style.display = "flex";
     details.style.display = "none";
     nameResults.style.display = "none";
@@ -391,8 +478,20 @@
     try {
       const rows = await loadShard(shardKey(code));
       if (operationVersion !== version) return;
-      const hit = rows.find((row) => field(row, "Штрихкод") === code);
-      if (hit) showHit(hit);
+      let hit = rows.find((row) => field(row, "Штрихкод") === code);
+
+      if (!hit) {
+        // Не настоящий ШК — возможно, внутренняя этикетка склада.
+        const real = await resolveInternalLabel(code);
+        if (operationVersion !== version) return;
+        if (real) {
+          const realRows = await loadShard(shardKey(real));
+          if (operationVersion !== version) return;
+          hit = realRows.find((row) => field(row, "Штрихкод") === real);
+        }
+      }
+
+      if (hit) showHit(hit, code);
       else showNotFound(code);
     } catch (error) {
       if (operationVersion !== version) return;

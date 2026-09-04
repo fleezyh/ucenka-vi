@@ -1,4 +1,4 @@
-param(
+﻿param(
   [Parameter(Position = 0)]
   [string]$SourceHtml,
 
@@ -23,6 +23,111 @@ if (-not $SourceHtml -and -not (Test-Path -LiteralPath $dashboardFile)) {
 
   $SourceHtml = $latest.FullName
 }
+
+# Шапка и её стили определены до ветвления: они нужны обеим ветках —
+# и при замене исходника, и при обновлении шапки на месте.
+$shellCss = @'
+/* SITE-SHELL-STYLES */
+/* Тема фиксированно тёмная. В самой выгрузке дашборда светлая палитра стоит
+   по умолчанию, а тёмная включается только при тёмной теме Windows — из-за
+   этого у одних сотрудников сайт открывался белым, у других чёрным, причём
+   остальные разделы светлого режима не знали вовсе. Блок идёт последним
+   в <style>, поэтому перебивает и :root выгрузки, и её медиазапрос. */
+:root { color-scheme: dark only; --bg: #12151A; --surface: #1C2126; --surface-2: #232830; --ink: #F5F5F5; --ink-2: #C9CDD3; --muted: #8B8B8B; --line: #2C333B; --line-2: #3A424C; --accent: #FF4438; --accent-soft: #3A1512; --steel: #4BA3F5; --plum: #C2E4FF; --teal: #6FB4F2; --critical: #FF4438; --good: #4BA3F5; --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.7); }
+.site-nav { max-width: 1280px; margin: 0 auto; padding: 12px 24px 0; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.site-nav__brand, .site-nav__back { color: var(--ink-2); text-decoration: none; font-family: "VI Sans", system-ui, sans-serif; font-size: 13px; }
+.site-nav__brand { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; }
+.site-nav__brand img { width: 22px; height: 22px; border-radius: 6px; display: block; }
+.site-nav__back { padding: 6px 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface-2); }
+.site-nav__back:hover { color: var(--ink); border-color: var(--line-2); }
+.site-nav__actions { display: flex; align-items: center; gap: 8px; }
+.data-button { border: 1px solid var(--line); border-radius: 7px; background: var(--surface-2); color: var(--ink); padding: 7px 11px; font: 700 12px "VI Sans", system-ui, sans-serif; cursor: pointer; }
+.data-button:hover { border-color: var(--accent); }
+.data-button.primary { color: #fff; background: var(--accent); border-color: var(--accent); }
+.data-button.danger { color: var(--critical); }
+.import-panel { max-width: 1280px; margin: 10px auto 0; padding: 0 24px; font-family: "VI Sans", system-ui, sans-serif; }
+.import-panel[hidden] { display: none; }
+.import-card { display: grid; grid-template-columns: 1fr auto; gap: 10px 18px; align-items: center; padding: 14px 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); box-shadow: var(--shadow); }
+.import-title { margin: 0 0 3px; color: var(--ink); font-size: 15px; }
+.import-hint, .import-status { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
+.import-status { grid-column: 1 / -1; padding-top: 8px; border-top: 1px solid var(--line); }
+.import-status.ok { color: var(--good); }
+.import-status.error { color: var(--critical); }
+.import-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.site-nav__links { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.navGroup { display: flex; align-items: center; gap: 4px; padding: 5px 5px 5px 14px; border: 1px solid var(--line); border-radius: 15px; background: var(--surface-2); }
+.navGroup__label { margin-right: 7px; color: var(--faint); font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; white-space: nowrap; }
+.navLink { padding: 9px 15px; border-radius: 11px; color: var(--ink); font: 650 15px "VI Sans", system-ui, sans-serif; text-decoration: none; white-space: nowrap; }
+.navLink:hover { background: rgba(255,255,255,.07); }
+.navLink[aria-current="page"] { background: rgba(255,255,255,.12); color: #fff; }
+.navAdmin { padding: 9px 15px; border: 1px solid rgba(240,93,114,.42); border-radius: 13px; color: #ffc0ca; background: rgba(240,93,114,.1); font: 650 15px "VI Sans", system-ui, sans-serif; text-decoration: none; white-space: nowrap; }
+.navAdmin:hover { border-color: rgba(240,93,114,.75); background: rgba(240,93,114,.2); }
+.site-nav__brand { font-size: 19px !important; }
+.site-nav__brand img { width: 27px !important; height: 27px !important; }
+.site-usage__row .data-button { margin-left: 12px; }
+@media (max-width: 760px) { .navGroup__label { display: none; } .navLink, .navAdmin { padding: 8px 12px; font-size: 14px; } .site-usage__row .data-button { margin-left: 0; } }
+.site-usage { max-width: 1280px; margin: 10px auto 0; padding: 0 24px; font-family: "VI Sans", system-ui, sans-serif; }
+.site-usage[hidden] { display: none; }
+.site-usage__row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 16px; padding: 9px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--muted); font-size: 12px; }
+.site-usage__title { color: var(--ink-2); font-weight: 700; }
+.site-usage__item b { color: var(--ink); font-size: 14px; font-variant-numeric: tabular-nums; }
+.site-usage__spark { display: inline-flex; align-items: flex-end; gap: 2px; height: 18px; margin-left: auto; }
+.site-usage__spark i { width: 3px; min-height: 1px; border-radius: 1px; background: var(--accent); opacity: 0.65; }
+.site-usage__stamp { color: var(--muted); font-size: 11px; }
+@media (max-width: 720px) { .site-nav { padding-inline: 14px; } .site-nav__back { display: none; } .import-panel { padding-inline: 14px; } .import-card { grid-template-columns: 1fr; } .import-actions { justify-content: flex-start; } .site-usage { padding-inline: 14px; } .site-usage__spark { margin-left: 0; } }
+'@
+
+$shellHtml = @'
+<!-- SITE-SHELL-START -->
+<nav class="site-nav" aria-label="Навигация сайта">
+  <a class="site-nav__brand" href="../"><img src="../assets/brand/vi-mark.svg" alt=""><span>Ви Уценка</span></a>
+  <div class="site-nav__actions">
+    <span class="navGroup">
+      <span class="navGroup__label">Уценка</span>
+      <a class="navLink" href="./" aria-current="page">Антигенерация</a>
+      <a class="navLink" href="../heatmap/">Хитмап</a>
+    </span>
+    <span class="navGroup">
+      <span class="navGroup__label">Инструменты</span>
+      <a class="navLink" href="../">Пикалка</a>
+    </span>
+    <a class="navAdmin" href="https://fleezy.tailb770fe.ts.net" target="_blank" rel="noopener">Админка</a>
+  </div>
+</nav>
+<section class="import-panel" id="import-panel" hidden aria-label="Обновление данных">
+  <div class="import-card">
+    <div>
+      <h2 class="import-title">Загрузить свежие выгрузки</h2>
+      <p class="import-hint">CSV или Excel, один файл либо сразу несколько. Тип отчёта определяется автоматически; повторная загрузка заменяет его старые данные без дублей.</p>
+    </div>
+    <div class="import-actions">
+      <input id="import-files" type="file" accept=".csv,.xlsx,.xls" multiple hidden>
+      <button class="data-button primary" id="import-choose" type="button">Выбрать файлы</button>
+      <button class="data-button danger" id="import-reset" type="button">Вернуть исходные</button>
+      <button class="data-button" id="import-close" type="button">Закрыть</button>
+    </div>
+    <p class="import-status" id="import-status">Обновления сохраняются только в этом браузере. Исходные файлы никуда не отправляются.</p>
+  </div>
+</section>
+<section class="site-usage" id="site-usage" hidden aria-label="Посещаемость">
+  <div class="site-usage__row">
+    <span class="site-usage__title">Заходили на сайт</span>
+    <span class="site-usage__item"><b id="usage-day">—</b> за сутки</span>
+    <span class="site-usage__item"><b id="usage-week">—</b> за неделю</span>
+    <span class="site-usage__item"><b id="usage-month">—</b> за месяц</span>
+    <span class="site-usage__spark" id="usage-spark" aria-hidden="true"></span>
+    <span class="site-usage__stamp" id="usage-stamp"></span>
+    <!-- Обновление данных — действие этой страницы, а не раздел сайта. В шапке
+         оно стояло вперемешку с навигацией, поэтому переехало сюда. -->
+    <button class="data-button primary" id="import-open" type="button">Обновить данные</button>
+  </div>
+</section>
+<script src="usage.js?v=20260902-1" defer></script>
+<!-- Аналитика вставляется здесь, а не в исходной выгрузке: иначе она пропадала
+     при каждой перепубликации дашборда. Идентификатор публичный. -->
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token":"85a2c48f22834923b7c34b931c8c514e"}'></script>
+<!-- SITE-SHELL-END -->
+'@
 
 if ($SourceHtml) {
 $SourceHtml = (Resolve-Path -LiteralPath $SourceHtml).Path
@@ -53,45 +158,6 @@ $content = [regex]::Replace(
   1
 )
 
-$shellCss = @'
-/* SITE-SHELL-STYLES */
-.site-nav { max-width: 1280px; margin: 0 auto; padding: 12px 24px 0; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-.site-nav__brand, .site-nav__back { color: var(--ink-2); text-decoration: none; font-family: "VI Sans", system-ui, sans-serif; font-size: 13px; }
-.site-nav__brand { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; }
-.site-nav__brand img { width: 22px; height: 22px; border-radius: 6px; display: block; }
-.site-nav__back { padding: 6px 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface-2); }
-.site-nav__back:hover { color: var(--ink); border-color: var(--line-2); }
-.site-nav__actions { display: flex; align-items: center; gap: 8px; }
-.data-button { border: 1px solid var(--line); border-radius: 7px; background: var(--surface-2); color: var(--ink); padding: 7px 11px; font: 700 12px "VI Sans", system-ui, sans-serif; cursor: pointer; }
-.data-button:hover { border-color: var(--accent); }
-.data-button.primary { color: #fff; background: var(--accent); border-color: var(--accent); }
-.data-button.danger { color: var(--critical); }
-.import-panel { max-width: 1280px; margin: 10px auto 0; padding: 0 24px; font-family: "VI Sans", system-ui, sans-serif; }
-.import-panel[hidden] { display: none; }
-.import-card { display: grid; grid-template-columns: 1fr auto; gap: 10px 18px; align-items: center; padding: 14px 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); box-shadow: var(--shadow); }
-.import-title { margin: 0 0 3px; color: var(--ink); font-size: 15px; }
-.import-hint, .import-status { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
-.import-status { grid-column: 1 / -1; padding-top: 8px; border-top: 1px solid var(--line); }
-.import-status.ok { color: var(--good); }
-.import-status.error { color: var(--critical); }
-.import-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
-.site-nav__links { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.navGroup { display: flex; align-items: center; gap: 3px; padding: 3px 3px 3px 10px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface-2); }
-.navGroup__label { margin-right: 4px; color: var(--faint); font-size: 9.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; white-space: nowrap; }
-.navLink { padding: 5px 10px; border-radius: 8px; color: var(--ink); font: 600 12.5px "VI Sans", system-ui, sans-serif; text-decoration: none; white-space: nowrap; }
-.navLink:hover { background: rgba(255,255,255,.07); }
-.navLink[aria-current="page"] { background: rgba(255,255,255,.12); color: #fff; }
-@media (max-width: 760px) { .navGroup__label { display: none; } }
-.site-usage { max-width: 1280px; margin: 10px auto 0; padding: 0 24px; font-family: "VI Sans", system-ui, sans-serif; }
-.site-usage[hidden] { display: none; }
-.site-usage__row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 16px; padding: 9px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--muted); font-size: 12px; }
-.site-usage__title { color: var(--ink-2); font-weight: 700; }
-.site-usage__item b { color: var(--ink); font-size: 14px; font-variant-numeric: tabular-nums; }
-.site-usage__spark { display: inline-flex; align-items: flex-end; gap: 2px; height: 18px; margin-left: auto; }
-.site-usage__spark i { width: 3px; min-height: 1px; border-radius: 1px; background: var(--accent); opacity: 0.65; }
-.site-usage__stamp { color: var(--muted); font-size: 11px; }
-@media (max-width: 720px) { .site-nav { padding-inline: 14px; } .site-nav__back { display: none; } .import-panel { padding-inline: 14px; } .import-card { grid-template-columns: 1fr; } .import-actions { justify-content: flex-start; } .site-usage { padding-inline: 14px; } .site-usage__spark { margin-left: 0; } }
-'@
 
 $content = [regex]::Replace(
   $content,
@@ -105,54 +171,6 @@ $content = $content.Replace(
   '<b>Данные работают локально.</b> Свежие CSV и Excel можно загрузить кнопкой сверху; файлы никуда не отправляются.'
 )
 
-$shellHtml = @'
-<!-- SITE-SHELL-START -->
-<nav class="site-nav" aria-label="Навигация сайта">
-  <a class="site-nav__brand" href="../"><img src="../assets/brand/vi-mark.svg" alt=""><span>Пикалка</span></a>
-  <div class="site-nav__actions">
-    <button class="data-button primary" id="import-open" type="button">Обновить данные</button>
-    <span class="navGroup">
-      <span class="navGroup__label">Уценка</span>
-      <a class="navLink" href="./" aria-current="page">Антигенерация</a>
-      <a class="navLink" href="../heatmap/">Хитмап</a>
-    </span>
-    <span class="navGroup">
-      <span class="navGroup__label">Инструменты</span>
-      <a class="navLink" href="../">Пикалка</a>
-    </span>
-  </div>
-</nav>
-<section class="import-panel" id="import-panel" hidden aria-label="Обновление данных">
-  <div class="import-card">
-    <div>
-      <h2 class="import-title">Загрузить свежие выгрузки</h2>
-      <p class="import-hint">CSV или Excel, один файл либо сразу несколько. Тип отчёта определяется автоматически; повторная загрузка заменяет его старые данные без дублей.</p>
-    </div>
-    <div class="import-actions">
-      <input id="import-files" type="file" accept=".csv,.xlsx,.xls" multiple hidden>
-      <button class="data-button primary" id="import-choose" type="button">Выбрать файлы</button>
-      <button class="data-button danger" id="import-reset" type="button">Вернуть исходные</button>
-      <button class="data-button" id="import-close" type="button">Закрыть</button>
-    </div>
-    <p class="import-status" id="import-status">Обновления сохраняются только в этом браузере. Исходные файлы никуда не отправляются.</p>
-  </div>
-</section>
-<section class="site-usage" id="site-usage" hidden aria-label="Посещаемость">
-  <div class="site-usage__row">
-    <span class="site-usage__title">Заходили на сайт</span>
-    <span class="site-usage__item"><b id="usage-day">—</b> за сутки</span>
-    <span class="site-usage__item"><b id="usage-week">—</b> за неделю</span>
-    <span class="site-usage__item"><b id="usage-month">—</b> за месяц</span>
-    <span class="site-usage__spark" id="usage-spark" aria-hidden="true"></span>
-    <span class="site-usage__stamp" id="usage-stamp"></span>
-  </div>
-</section>
-<script src="usage.js?v=20260902-1" defer></script>
-<!-- Аналитика вставляется здесь, а не в исходной выгрузке: иначе она пропадала
-     при каждой перепубликации дашборда. Идентификатор публичный. -->
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token":"85a2c48f22834923b7c34b931c8c514e"}'></script>
-<!-- SITE-SHELL-END -->
-'@
 
 $bodyPattern = [regex]::new("(?i)<body([^>]*)>")
 $content = $bodyPattern.Replace($content, { param($match) $match.Value + "`r`n" + $shellHtml }, 1)
@@ -163,7 +181,37 @@ New-Item -ItemType Directory -Force -Path $dashboardDir | Out-Null
 Write-Host "Дашборд обновлён из: $SourceHtml"
 }
 else {
-  Write-Host "Используется текущая версия dashboard/index.html; передайте путь к HTML первым аргументом только для явной замены."
+  # Исходник не передали — но шапку и её стили всё равно обновляем на месте.
+  # Иначе правки навигации в этом скрипте доезжали бы до сайта только вместе с
+  # новой выгрузкой дашборда, то есть практически никогда.
+  $content = [System.IO.File]::ReadAllText($dashboardFile)
+  $before = $content
+
+  if ($content -match "(?s)<!-- SITE-SHELL-START -->.*?<!-- SITE-SHELL-END -->") {
+    $content = [regex]::Replace(
+      $content,
+      "(?s)<!-- SITE-SHELL-START -->.*?<!-- SITE-SHELL-END -->",
+      { param($m) $shellHtml.Trim() },
+      1
+    )
+  }
+
+  if ($content -match "(?s)/\* SITE-SHELL-STYLES \*/.*?</style>") {
+    $content = [regex]::Replace(
+      $content,
+      "(?s)/\* SITE-SHELL-STYLES \*/.*?</style>",
+      { param($m) $shellCss.Trim() + "`r`n</style>" },
+      1
+    )
+  }
+
+  if ($content -ne $before) {
+    [System.IO.File]::WriteAllText($dashboardFile, $content, [System.Text.UTF8Encoding]::new($false))
+    Write-Host "Шапка и стили обновлены в dashboard/index.html."
+  }
+  else {
+    Write-Host "Используется текущая версия dashboard/index.html без изменений."
+  }
 }
 
 if ($NoPublish) {

@@ -47,8 +47,9 @@ SHARD_DIGITS = 4
 SHARD_COUNT = 10 ** SHARD_DIGITS
 
 # Порядок полей в шарде. Штрихкод идёт первым: поиск сравнивает его побайтно,
-# не разбирая строку целиком.
-FIELDS = ["Штрихкод", "Наименование", "Рубрика", "Себес", "Кластер"]
+# не разбирая строку целиком. «Код сайта» — последним, чтобы старые позиции
+# полей не поехали; из него сайт собирает ссылку на карточку товара.
+FIELDS = ["Штрихкод", "Наименование", "Рубрика", "Себес", "Кластер", "Код сайта"]
 
 # Рубрики, которые сейчас приходят из витрины 9901_Name. Переименование под
 # каталог сайта живёт на сайте (RUBRIC_ALIASES в script.js) — данные храним
@@ -362,6 +363,13 @@ def compress(rows_total: int, rows_skipped: int, words_stats: dict) -> dict:
     }
 
     MANIFEST_PATH.parent.mkdir(parents=True, exist_ok=True)
+    # Манифест общий: в нём живут и ключи индекса алиасов (build_aliases.py).
+    # Раньше пересборка базы затирала файл целиком, и поиск по внутренней
+    # этикетке молча отваливался — сами шарды алиасов при этом лежали на месте.
+    if MANIFEST_PATH.exists():
+        previous = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+        foreign = {key: value for key, value in previous.items() if key.startswith("alias")}
+        manifest = {**foreign, **manifest}
     MANIFEST_PATH.write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8"
     )

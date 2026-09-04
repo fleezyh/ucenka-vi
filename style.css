@@ -31,7 +31,8 @@
 }
 
 :root {
-  color-scheme: dark;
+  /* «only» — чтобы браузер не пытался подмешать светлый режим системы. */
+  color-scheme: dark only;
   --bg: #080d14;
   --panel: rgba(18, 26, 37, 0.92);
   --panel-soft: rgba(22, 32, 45, 0.74);
@@ -76,9 +77,9 @@ button, input { font: inherit; }
 button { border: 0; }
 
 .shell {
-  width: min(1120px, 100%);
+  width: min(1440px, 100%);
   margin: 0 auto;
-  padding: 30px 22px 72px;
+  padding: 30px 28px 72px;
 }
 
 .topbar {
@@ -92,9 +93,9 @@ button { border: 0; }
 .brand {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 11px;
   color: var(--text);
-  font-size: 15px;
+  font-size: 19px;
   font-weight: 800;
   letter-spacing: -0.01em;
   text-decoration: none;
@@ -102,8 +103,8 @@ button { border: 0; }
 
 .brand__mark {
   display: block;
-  width: 22px;
-  height: 22px;
+  width: 27px;
+  height: 27px;
   flex: 0 0 auto;
   border-radius: 6px;
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 5px 16px rgba(214, 0, 0, 0.22);
@@ -149,7 +150,7 @@ button { border: 0; }
 .overline {
   margin: 0;
   color: #72e6a2;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 850;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -354,8 +355,8 @@ body[data-mode="presort"] .connection.ready .connection__icon { color: var(--blu
 .connection.error .connection__icon { color: var(--red); }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.connection strong { display: block; font-size: 13px; }
-.connection p { margin: 5px 0 0; color: var(--muted); font-size: 11px; line-height: 1.45; }
+.connection strong { display: block; font-size: 16px; }
+.connection p { margin: 6px 0 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
 
 .progress {
   height: 5px;
@@ -395,17 +396,21 @@ body[data-mode="presort"] .progress i { background: linear-gradient(90deg, var(-
 
 .stats dt {
   color: var(--muted);
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 800;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
+/* Цифры набираем тем же VI Sans, а не «Cascadia Mono»: у моноширинного другой
+   рисунок, и «6 122 122» выбивалось из страницы чужим шрифтом. Ровные колонки
+   даёт tabular-nums — но только цифрам, у VI Sans на буквах он разъезжается. */
 .stats dd {
   margin: 0;
-  font-family: var(--mono);
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 17px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
 }
 
 .databaseNote,
@@ -413,7 +418,7 @@ body[data-mode="presort"] .progress i { background: linear-gradient(90deg, var(-
 .scannerNote {
   margin: 14px 2px 0;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.55;
 }
 
@@ -431,9 +436,9 @@ body[data-mode="presort"] .progress i { background: linear-gradient(90deg, var(-
 
 .fieldLabel {
   display: block;
-  margin: 0 0 8px;
+  margin: 0 0 9px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.13em;
   text-transform: uppercase;
@@ -455,8 +460,8 @@ body[data-mode="presort"] .progress i { background: linear-gradient(90deg, var(-
   transition: border-color 0.16s, box-shadow 0.16s;
 }
 
-#scan { font-family: var(--mono); font-size: 22px; letter-spacing: 0.06em; }
-#nameSearch { font-size: 16px; }
+#scan { font-family: var(--mono); font-size: 25px; letter-spacing: 0.06em; }
+#nameSearch { font-size: 18px; }
 .searchRow input::placeholder { color: #667487; font-family: var(--ui); letter-spacing: 0; }
 .searchRow input:focus { border-color: var(--green); box-shadow: 0 0 0 4px rgba(39, 196, 107, 0.13); }
 body[data-mode="presort"] .searchRow input:focus { border-color: var(--blue); box-shadow: 0 0 0 4px rgba(77, 141, 247, 0.14); }
@@ -479,10 +484,10 @@ body[data-mode="presort"] .action--secondary { background: #2a384a; }
 .action:disabled { opacity: 0.38; cursor: wait; }
 
 .message {
-  min-height: 20px;
-  margin: 15px 2px 0;
+  min-height: 22px;
+  margin: 16px 2px 0;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 14px;
 }
 .message.ok { color: var(--green); }
 body[data-mode="presort"] .message.ok { color: #8db9ff; }
@@ -512,16 +517,20 @@ body[data-mode="presort"] .message.ok { color: #8db9ff; }
 
 .primary.category { text-align: center; background: linear-gradient(145deg, #69a1ff, var(--blue-deep)); }
 .primary.none { background: linear-gradient(145deg, #f37688, #bd3047); }
-.primary span { display: block; opacity: 0.82; font-size: 9px; font-weight: 850; letter-spacing: 0.14em; text-transform: uppercase; }
+.primary span { display: block; opacity: 0.82; font-size: 11px; font-weight: 850; letter-spacing: 0.14em; text-transform: uppercase; }
 .primary strong { display: block; margin-top: 6px; font-size: 34px; line-height: 1.05; white-space: nowrap; }
 .primary.category strong { font-size: 56px; }
 
 .answer__info { min-width: 0; }
-.answer__label { color: var(--muted); font-size: 9px; font-weight: 800; letter-spacing: 0.13em; text-transform: uppercase; }
-.answer h3 { margin: 5px 0 10px; font-size: 18px; line-height: 1.4; word-break: break-word; }
-.secondary { display: inline-block; padding: 6px 10px; border: 1px solid rgba(77, 141, 247, 0.34); border-radius: 9px; background: rgba(77, 141, 247, 0.1); font-size: 13px; font-weight: 750; }
+.answer__label { color: var(--muted); font-size: 11px; font-weight: 800; letter-spacing: 0.13em; text-transform: uppercase; }
+.answer h3 { margin: 6px 0 11px; font-size: 21px; line-height: 1.4; word-break: break-word; }
+.secondary { display: inline-block; padding: 7px 12px; border: 1px solid rgba(77, 141, 247, 0.34); border-radius: 9px; background: rgba(77, 141, 247, 0.1); font-size: 15px; font-weight: 750; }
 .secondary.check { color: #ffc0ca; border-color: rgba(240, 93, 114, 0.4); background: rgba(240, 93, 114, 0.11); }
-.code { margin: 10px 0 0; color: var(--muted); font-family: var(--mono); font-size: 11px; word-break: break-all; }
+.code { margin: 11px 0 0; color: var(--muted); font-family: var(--mono); font-size: 13px; word-break: break-all; }
+.siteLink { display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; padding: 7px 12px; border: 1px solid rgba(46, 178, 106, 0.42); border-radius: 9px; background: rgba(46, 178, 106, 0.12); color: #a8f0c6; font-size: 12.5px; font-weight: 750; text-decoration: none; }
+.siteLink::after { content: "↗"; font-size: 11px; opacity: .75; }
+.siteLink:hover { border-color: rgba(46, 178, 106, 0.7); background: rgba(46, 178, 106, 0.2); color: #d6ffe7; }
+.siteLink[hidden] { display: none; }
 
 .results,
 .details {
@@ -581,25 +590,11 @@ kbd {
   .nameNote { margin-top: 10px; }
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color-scheme: light;
-    --bg: #edf2f7;
-    --panel: rgba(255, 255, 255, 0.95);
-    --panel-soft: rgba(245, 248, 252, 0.9);
-    --line: #d5dee9;
-    --line-strong: #b9c6d5;
-    --text: #101823;
-    --muted: #657286;
-    --shadow: 0 24px 60px rgba(36, 50, 68, 0.12);
-  }
-  body, body[data-mode="presort"] { background: var(--bg); }
-  .tabs { background: rgba(255, 255, 255, 0.8); }
-  .card { background: rgba(255, 255, 255, 0.94); }
-  .searchRow input { background: #fff; }
-  .connection__icon { background: rgba(255, 255, 255, 0.72); }
-  th { background: #f1f5f9; }
-}
+/* Светлой темы здесь больше нет. Она включалась сама, по настройке Windows, и
+   у половины склада сайт открывался белым — причём перекрашено было не всё:
+   шапка, вкладки и градиенты оставались тёмными, получалась каша. Остальные
+   страницы (хитмап, антигенерация) светлого режима не знали вовсе, так что
+   разделы выглядели по-разному. Держим один вид для всех. */
 
 /* ---- Раздел «Паллеты» ---------------------------------------------------- */
 /* Карточки товара и паллет занимают одно место: показываем ту, что выбрана. */
@@ -683,17 +678,17 @@ body[data-mode="pallets"] .readyPill i { background: var(--amber); }
 .navGroup {
   display: flex;
   align-items: center;
-  gap: 3px;
-  padding: 4px 4px 4px 11px;
+  gap: 4px;
+  padding: 5px 5px 5px 14px;
   border: 1px solid var(--line);
-  border-radius: 13px;
+  border-radius: 15px;
   background: rgba(8, 13, 20, 0.6);
 }
 
 .navGroup__label {
-  margin-right: 5px;
+  margin-right: 7px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -701,11 +696,11 @@ body[data-mode="pallets"] .readyPill i { background: var(--amber); }
 }
 
 .navLink {
-  padding: 6px 11px;
-  border-radius: 9px;
+  padding: 9px 15px;
+  border-radius: 11px;
   color: var(--text);
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 650;
   text-decoration: none;
   white-space: nowrap;
   transition: background 140ms ease, color 140ms ease;
@@ -719,9 +714,26 @@ body[data-mode="pallets"] .readyPill i { background: var(--amber); }
   color: #fff;
 }
 
+/* Админка стоит особняком: это не раздел сайта, а вход в служебную панель,
+   и попадать в неё надо с любой страницы, а не только из антигенерации. */
+.navAdmin {
+  padding: 9px 15px;
+  border: 1px solid rgba(240, 93, 114, 0.42);
+  border-radius: 13px;
+  color: #ffc0ca;
+  background: rgba(240, 93, 114, 0.1);
+  font-size: 15px;
+  font-weight: 650;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: border-color 140ms ease, background 140ms ease;
+}
+
+.navAdmin:hover { border-color: rgba(240, 93, 114, 0.75); background: rgba(240, 93, 114, 0.2); }
+
 @media (max-width: 900px) {
-  .siteNav { gap: 7px; }
-  .navGroup { padding-left: 9px; }
+  .siteNav { gap: 8px; }
+  .navGroup { padding-left: 11px; }
   .navGroup__label { display: none; }
-  .navLink { padding: 6px 9px; font-size: 12.5px; }
+  .navLink, .navAdmin { padding: 8px 12px; font-size: 14px; }
 }
