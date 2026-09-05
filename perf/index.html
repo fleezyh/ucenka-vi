@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0a1018">
+  <title>Уценка · Производительность</title>
+  <link rel="icon" type="image/svg+xml" href="../assets/brand/vi-mark.svg">
+  <link rel="preload" href="../assets/fonts/VI_Sans_Regular.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="../style.css?v=20260905-7">
+  <link rel="stylesheet" href="perf.css?v=20260905-1">
+  <script src="perf.js?v=20260905-1" defer></script>
+</head>
+<body data-mode="perf">
+  <main class="shell">
+    <header class="topbar">
+      <a class="brand" href="../" aria-label="Уценка — главная">
+        <img class="brand__mark" src="../assets/brand/vi-mark.svg" alt="" width="27" height="27">
+        <span>Уценка</span>
+      </a>
+      <nav class="siteNav" aria-label="Разделы сайта">
+        <span class="navGroup">
+          <span class="navGroup__label">Уценка</span>
+          <a class="navLink" href="../dashboard/">Антигенерация</a>
+          <a class="navLink" href="../heatmap/">Хитмап</a>
+          <a class="navLink" href="../sales/">Продажи</a>
+          <a class="navLink" href="../perf/" aria-current="page">Производительность</a>
+        </span>
+        <span class="navGroup">
+          <span class="navGroup__label">Инструменты</span>
+          <a class="navLink" href="../">Пикалка</a>
+        </span>
+        <a class="navAdmin" href="https://fleezy.tailb770fe.ts.net" target="_blank" rel="noopener">Админка</a>
+      </nav>
+    </header>
+
+    <section class="heroPerf">
+      <div>
+        <p class="eyebrow">Выход со столов</p>
+        <h1>Производительность</h1>
+        <p class="lead">Сколько штук проходит через стол за смену — по дням, месяцам и людям.</p>
+      </div>
+      <div class="perfTools">
+        <div class="tabs" role="tablist" aria-label="Контур">
+          <button class="tab" type="button" role="tab" data-contour="presort" aria-selected="true">Предсорт</button>
+          <button class="tab" type="button" role="tab" data-contour="ucenka" aria-selected="false">Уценка</button>
+        </div>
+        <p class="stamp" id="stamp"></p>
+      </div>
+    </section>
+
+    <p class="message" id="message">Загружаю показатели…</p>
+
+    <section id="perf" aria-live="polite"></section>
+
+    <p class="stockNote">
+      Производительность — штук за человеко-день: сумма выхода делится на число смен.
+      Считать средним из дневных средних нельзя, иначе день с одним человеком весит
+      столько же, сколько день с двадцатью. Смены меньше десяти штук в расчёт не идут:
+      их треть по количеству, но полтора процента по объёму, и они занижали среднюю на 40%.
+    </p>
+  </main>
+  <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token":"85a2c48f22834923b7c34b931c8c514e"}'></script>
+</body>
+</html>
