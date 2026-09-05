@@ -30,4 +30,16 @@
   });
 
   show(localStorage.getItem("home-view") || "analytics", false);
+
+  fetch("data/analytics.json", { cache: "no-store" })
+    .then((response) => {
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return response.json();
+    })
+    .then((data) => {
+      const periods = data["запериод"] || {};
+      document.querySelector("#homeViewsToday").textContent = (periods["сутки"]?.["просмотры"] ?? 0).toLocaleString("ru-RU");
+      document.querySelector("#homeViewsWeek").textContent = (periods["неделя"]?.["просмотры"] ?? 0).toLocaleString("ru-RU");
+    })
+    .catch(() => document.querySelector(".homeViews")?.remove());
 })();

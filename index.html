@@ -9,8 +9,8 @@
   <link rel="icon" type="image/svg+xml" href="assets/brand/vi-mark.svg?v=20260903-3">
   <link rel="preload" href="assets/fonts/VI_Sans_Regular.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="assets/fonts/VI_Sans_ExtraBold.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="home.css?v=20260906-1">
-  <script src="home.js?v=20260906-1" defer></script>
+  <link rel="stylesheet" href="home.css?v=20260906-2">
+  <script src="home.js?v=20260906-2" defer></script>
 </head>
 <body>
   <main class="homeShell">
@@ -19,7 +19,12 @@
         <img src="assets/brand/vi-mark.svg?v=20260903-3" alt="" width="32" height="32">
         <span>Уценка</span>
       </a>
-      <span class="homeTop__label">Рабочий центр</span>
+      <span class="homeViews" aria-label="Просмотры сайта">
+        <span class="homeViews__eye" aria-hidden="true">◉</span>
+        <strong id="homeViewsToday">—</strong>
+        <span>сегодня</span>
+        <span class="homeViews__week"><b id="homeViewsWeek">—</b> за 7 дней</span>
+      </span>
     </header>
 
     <section class="homeHero">

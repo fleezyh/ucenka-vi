@@ -39,6 +39,7 @@ class SiteRegressions(unittest.TestCase):
         self.assertIn('data-panel="analytics"', home)
         self.assertIn('data-panel="tools"', home)
         self.assertIn('href="picker/"', home)
+        self.assertIn('id="homeViewsToday"', home)
         self.assertIn('<base href="../">', picker)
         self.assertIn('nav.js?v=', picker)
 
