@@ -25,6 +25,48 @@
 
   const count = (value) => Number(value || 0).toLocaleString("ru-RU");
 
+  // --- Подсказка при наведении ------------------------------------------------
+  // В Superset у этих графиков был тултип, и он тут нужен: на плитке помещается
+  // не всё, а разбираться в цифрах приходится на ходу.
+
+  let tip = null;
+
+  function showTip(html, event) {
+    if (!tip) {
+      tip = document.createElement("div");
+      tip.className = "tip";
+      document.body.appendChild(tip);
+    }
+    tip.innerHTML = html;
+    tip.hidden = false;
+    moveTip(event);
+  }
+
+  function moveTip(event) {
+    if (!tip) return;
+    const pad = 14;
+    const box = tip.getBoundingClientRect();
+    // Не даём подсказке уехать за край окна.
+    let x = event.clientX + pad;
+    let y = event.clientY + pad;
+    if (x + box.width > window.innerWidth - 8) x = event.clientX - box.width - pad;
+    if (y + box.height > window.innerHeight - 8) y = event.clientY - box.height - pad;
+    tip.style.left = `${Math.max(8, x)}px`;
+    tip.style.top = `${Math.max(8, y)}px`;
+  }
+
+  function hideTip() {
+    if (tip) tip.hidden = true;
+  }
+
+  function bindTip(element, html) {
+    element.addEventListener("mouseenter", (event) => showTip(html, event));
+    element.addEventListener("mousemove", moveTip);
+    element.addEventListener("mouseleave", hideTip);
+  }
+
+  const rub = (value) => `${Number(value || 0).toLocaleString("ru-RU", { maximumFractionDigits: 0 })} ₽`;
+
   /** Запрос отдаёт «0.37 млн» с точкой — в русском тексте она выглядит чужеродно. */
   const decimal = (text) => String(text ?? "").replace(/(\d)\.(\d)/g, "$1,$2");
 
@@ -62,6 +104,11 @@
       const label = document.createElement("b");
       label.textContent = count(value);
       part.appendChild(label);
+
+      const cost = kind === "res" ? item.себестоимость_зарезервированных : item.себестоимость_свободных;
+      bindTip(part, `<b>${item.регион} — ${kind === "res" ? "зарезервировано" : "свободно"}</b>` +
+        `<span>${count(value)} паллет · ${share.toFixed(0)}% региона</span>` +
+        `<span>себестоимость ${rub(cost)}</span>`);
       bar.appendChild(part);
     }
 
@@ -88,7 +135,85 @@
       `<div><dt>Штук</dt><dd>${count(item.штук)}</dd></div>`;
 
     card.append(bar, name, split, cost);
+
+    bindTip(card, `<b>${item.регион}</b>` +
+      `<span>всего ${count(item.всего)} паллет: ${count(item.зарезервировано)} зарезервировано, ` +
+      `${count(item.свободно)} свободно</span>` +
+      `<span>${count(item.штук)} штук · себестоимость ${rub(item.себестоимость)}</span>` +
+      (isTotal ? "" : `<span class="tip__hint">нажмите — покажу паллеты региона</span>`));
+
+    // Клик раскрывает список паллет: детализация уже лежит в тех же данных,
+    // отдельного запроса не нужно.
+    if (!isTotal) {
+      card.classList.add("stockCard--clickable");
+      card.tabIndex = 0;
+      card.setAttribute("role", "button");
+      const open = () => openRegion(item.регион, card);
+      card.addEventListener("click", open);
+      card.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === " ") { event.preventDefault(); open(); }
+      });
+    }
     return card;
+  }
+
+  // --- Список паллет региона --------------------------------------------------
+
+  let openRegionName = null;
+
+  function closeRegion() {
+    openRegionName = null;
+    document.querySelectorAll(".stockCard--open").forEach((el) => el.classList.remove("stockCard--open"));
+    document.getElementById("regionList")?.remove();
+  }
+
+  function openRegion(region, card) {
+    if (openRegionName === region) { closeRegion(); return; }
+    closeRegion();
+    openRegionName = region;
+    card.classList.add("stockCard--open");
+
+    const rows = (stockData?.паллеты || []).filter((p) => p.регион_кратко === region);
+
+    const box = document.createElement("section");
+    box.className = "regionList";
+    box.id = "regionList";
+
+    const head = document.createElement("header");
+    head.className = "regionList__head";
+    const title = document.createElement("h3");
+    title.textContent = `${region} — ${count(rows.length)} паллет`;
+    const close = document.createElement("button");
+    close.className = "action action--secondary";
+    close.type = "button";
+    close.textContent = "Закрыть";
+    close.addEventListener("click", (event) => { event.stopPropagation(); closeRegion(); });
+    head.append(title, close);
+
+    const table = document.createElement("table");
+    table.innerHTML =
+      "<thead><tr><th>Паллета</th><th>Ячейка</th><th>Тип</th>" +
+      "<th class=\"num\">SKU</th><th class=\"num\">Штук</th><th class=\"num\">Себестоимость</th></tr></thead>";
+    const body = document.createElement("tbody");
+    for (const row of rows) {
+      const tr = document.createElement("tr");
+      tr.innerHTML =
+        `<td>${row.паллета}</td><td>${row.ячейка}</td>` +
+        `<td class="${row.тип === "Зарезервированные" ? "isRes" : "isFree"}">` +
+        `${row.тип === "Зарезервированные" ? "зарезервирована" : "свободна"}</td>` +
+        `<td class="num">${count(row.sku)}</td><td class="num">${count(row.штук)}</td>` +
+        `<td class="num">${rub(row.себестоимость)}</td>`;
+      body.appendChild(tr);
+    }
+    table.appendChild(body);
+
+    const scroll = document.createElement("div");
+    scroll.className = "regionList__scroll";
+    scroll.appendChild(table);
+
+    box.append(head, scroll);
+    stockBox.appendChild(box);
+    box.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
 
   // --- Воронка отгрузок ------------------------------------------------------
@@ -127,6 +252,18 @@
     okup.textContent = decimal(stage.okup_txt) || "";
     right.innerHTML = `<b>${decimal(stage.cost_txt) || "—"}</b><span>себестоимость</span>`;
     right.appendChild(okup);
+
+    // Подсказка на ступени: на полосе помещается только число паллет,
+    // а деньги и конверсия читаются по бокам мелким шрифтом.
+    const share = all[0] && Number(all[0].total_pallets)
+      ? ` · ${((Number(stage.pallets_txt) || 0) / Number(all[0].total_pallets) * 100).toFixed(0)}% месяца`
+      : "";
+    bindTip(bar, `<b>${stage.stage}</b>` +
+      `<span>${number(stage.pallets_txt)} паллет${share}</span>` +
+      `<span>лотов ${number(stage.lots)}</span>` +
+      `<span>в ценах продаж ${decimal(stage.sale_txt)} · себестоимость ${decimal(stage.cost_txt)}</span>` +
+      `<span>окупаемость ${decimal(stage.okup_txt)}</span>` +
+      (stage.conv_txt ? `<span class="tip__hint">к предыдущей ступени ${decimal(stage.conv_txt)}</span>` : ""));
 
     row.append(left, bar, right);
 
@@ -205,6 +342,11 @@
           track.appendChild(fill);
           item.appendChild(track);
         }
+      }
+      if (card.planText && card.planPct) {
+        bindTip(item, `<b>${card.title}</b><span>факт ${card.value}</span>` +
+          `<span>${card.planText} — ${card.planPct}</span>` +
+          (card.goalPct ? `<span>цель с отставанием — ${card.goalPct}</span>` : ""));
       }
       wrap.appendChild(item);
     }

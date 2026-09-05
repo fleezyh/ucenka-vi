@@ -52,3 +52,59 @@
 @media (max-width: 760px) {
   .stockTools { justify-content: space-between; width: 100%; }
 }
+
+/* ---- Подсказка при наведении --------------------------------------------- */
+/* В Superset у этих графиков был тултип. Здесь он такой же по смыслу: то, что
+   не поместилось на плитке, читается наведением, а не поиском по таблице. */
+
+.tip {
+  position: fixed;
+  z-index: 50;
+  max-width: 320px;
+  padding: 10px 13px;
+  border: 1px solid var(--line-strong);
+  border-radius: 11px;
+  background: rgba(10, 15, 23, 0.97);
+  box-shadow: 0 18px 40px -18px rgba(0, 0, 0, 0.9);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.45;
+  pointer-events: none;
+  backdrop-filter: blur(6px);
+}
+
+.tip[hidden] { display: none; }
+.tip b { display: block; margin-bottom: 4px; font-size: 14px; font-weight: 800; }
+.tip span { display: block; color: var(--muted); font-feature-settings: "tnum" 0, "pnum" 1; }
+.tip__hint { margin-top: 5px; color: #7ee3b3 !important; font-size: 12px; }
+
+/* ---- Список паллет региона ------------------------------------------------ */
+
+.stockCard--clickable { cursor: pointer; transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1); }
+.stockCard--clickable:hover { transform: translateY(-2px); border-color: var(--line-strong); }
+.stockCard--clickable:active { transform: scale(0.99); }
+.stockCard--open { outline: 2px solid rgba(255, 255, 255, 0.5); outline-offset: 2px; }
+
+.regionList {
+  grid-column: 1 / -1;
+  margin-top: 12px;
+  padding: 14px 16px 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel-soft);
+}
+
+.regionList__head { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 10px; }
+.regionList__head h3 { margin: 0; font-size: 17px; font-weight: 800; }
+
+/* Список длинный — прокручиваем его, а не страницу. */
+.regionList__scroll { max-height: 340px; overflow: auto; border-radius: 9px; }
+.regionList table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.regionList th, .regionList td { padding: 7px 10px; text-align: left; border-bottom: 1px solid var(--line); }
+.regionList th { position: sticky; top: 0; background: var(--panel); color: var(--muted); font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+.regionList td.num, .regionList th.num { text-align: right; font-feature-settings: "tnum" 0, "pnum" 1; }
+.regionList td.isRes { color: #ff9a9a; }
+.regionList td.isFree { color: #7ee3b3; }
+.regionList tbody tr:hover { background: rgba(255, 255, 255, 0.04); }
+
+.stage__bar { cursor: default; }
