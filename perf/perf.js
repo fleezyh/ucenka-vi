@@ -288,7 +288,7 @@
 
   // --- Таблица сотрудников ----------------------------------------------------
 
-  /** Мини-график по месяцам в строке сотрудника: видно, растёт человек или нет. */
+  /** Мини-график по месяцам в строке: видно, растёт человек или падает. */
   function sparkline(months) {
     const solid = months.filter((m) => m.смен >= 1);
     if (solid.length < 2) return document.createTextNode("");
@@ -303,76 +303,113 @@
 
     const svg = document.createElementNS(SVG, "svg");
     svg.setAttribute("class", "spark");
-    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    svg.setAttribute("viewBox", "0 0 " + W + " " + H);
     svg.setAttribute("width", W);
     svg.setAttribute("height", H);
 
-    const path = values.map((v, i) => (i ? "L" : "M") + x(i).toFixed(1) + "," + y(v).toFixed(1)).join(" ");
     const line = document.createElementNS(SVG, "path");
     line.setAttribute("class", "spark__line");
-    line.setAttribute("d", path);
+    line.setAttribute("d", values
+      .map((v, i) => (i ? "L" : "M") + x(i).toFixed(1) + "," + y(v).toFixed(1)).join(" "));
     svg.appendChild(line);
 
-    // Последняя точка выделена: она и есть «сейчас».
     const dot = document.createElementNS(SVG, "circle");
     dot.setAttribute("class", "spark__dot");
     dot.setAttribute("cx", x(values.length - 1));
     dot.setAttribute("cy", y(values[values.length - 1]));
     dot.setAttribute("r", 2.4);
     svg.appendChild(dot);
-
     return svg;
   }
 
+  /** Люди на общей шкале: медиана — точка отсчёта, цвет — отношение к ней.
+   *
+   * Плоский список из полусотни строк ничего не объяснял: непонятно, 150 это
+   * хорошо или обычно. Здесь видно и расстановку, и насколько человек
+   * отклонился от того, как работает большинство.
+   */
   function renderStaff(list) {
     const shown = showAllStaff ? list : list.filter((s) => !s.мало_смен);
-    const max = Math.max(...shown.map((s) => s.на_смену), 1);
+    if (!shown.length) return document.createTextNode("");
 
-    const table = document.createElement("table");
-    table.className = "staff";
-    table.innerHTML =
-      "<thead><tr><th>Сотрудник</th><th>Тип</th><th class='num'>Штук за смену</th>" +
-      "<th>Помесячно</th><th class='num'>Тренд</th>" +
-      "<th class='num'>Смен</th><th class='num'>Штук всего</th></tr></thead>";
-    const body = document.createElement("tbody");
+    const values = shown.map((s) => s.на_смену).sort((a, b) => a - b);
+    const median = quantile(values, 0.5);
+    const max = Math.max(...values, 1);
+    const above = shown.filter((s) => s.на_смену >= median).length;
 
-    for (const person of shown) {
-      const tr = document.createElement("tr");
-      if (person.мало_смен) tr.className = "isThin";
+    const wrap = document.createElement("div");
+    wrap.className = "staffChart";
 
-      const trend = person.тренд;
-      const trendHtml = trend === null || trend === undefined
-        ? "<span class='muted'>—</span>"
-        : `<em class="trend ${trend >= 0 ? "isUp" : "isDown"}">${trend > 0 ? "+" : ""}${Math.round(trend)}%</em>`;
+    // Сводка: где проходит норма и сколько людей по обе стороны от неё.
+    const head = document.createElement("div");
+    head.className = "staffChart__head";
+    head.innerHTML =
+      "<span class=\"staffChart__median\">медиана <b>" + one(median) + "</b> штук за смену</span>" +
+      "<span class=\"staffChart__split\"><i class=\"isUp\"></i>выше нормы " + above +
+      "<i class=\"isDown\"></i>ниже " + (shown.length - above) + "</span>";
+    wrap.appendChild(head);
 
-      tr.innerHTML =
-        `<td>${person.сотрудник}</td>` +
-        `<td class="muted">${person.тип || "—"}</td>` +
-        `<td class="num"><i class="staffBar" style="width:${(person.на_смену / max * 100).toFixed(1)}%"></i>` +
-        `<b>${one(person.на_смену)}</b></td>` +
-        `<td class="sparkCell"></td>` +
-        `<td class="num">${trendHtml}</td>` +
-        `<td class="num">${count(person.смен)}</td>` +
-        `<td class="num">${count(person.штук)}</td>`;
+    const rows = document.createElement("div");
+    rows.className = "staffRows";
+    // Отметка медианы — общая для всех строк, чтобы глаз цеплялся за одну линию.
+    const rule = document.createElement("i");
+    rule.className = "staffRows__median";
+    rule.style.left = (median / max * 100).toFixed(1) + "%";
+    rows.appendChild(rule);
 
-      const months = person.поМесяцам || [];
-      if (months.length) {
-        tr.querySelector(".sparkCell").appendChild(sparkline(months));
-        const rows = months
-          .map((m) => `<span>${monthLabel(m.месяц)} — ${one(m.на_смену)} шт/смену, ${count(m.смен)} смен</span>`)
-          .join("");
-        bindTip(tr, `<b>${person.сотрудник}</b>` +
-          `<span>всего ${one(person.на_смену)} шт/смену за ${count(person.смен)} смен</span>` + rows);
-      }
+    shown.forEach((person, index) => {
+      const row = document.createElement("div");
+      row.className = "staffRow" + (person.мало_смен ? " isThin" : "");
 
-      body.appendChild(tr);
-    }
-    table.appendChild(body);
+      const name = document.createElement("span");
+      name.className = "staffRow__name";
+      name.textContent = person.сотрудник;
 
-    const scroll = document.createElement("div");
-    scroll.className = "staffScroll";
-    scroll.appendChild(table);
-    return scroll;
+      const track = document.createElement("span");
+      track.className = "staffRow__track";
+      const bar = document.createElement("i");
+      bar.className = "staffRow__bar " + (person.на_смену >= median ? "isUp" : "isDown");
+      bar.style.setProperty("--w", (person.на_смену / max * 100).toFixed(1) + "%");
+      bar.style.animationDelay = Math.min(index * 18, 500) + "ms";
+      track.appendChild(bar);
+
+      const value = document.createElement("b");
+      value.className = "staffRow__value";
+      value.textContent = one(person.на_смену);
+
+      const spark = document.createElement("span");
+      spark.className = "staffRow__spark";
+      if (person.поМесяцам?.length) spark.appendChild(sparkline(person.поМесяцам));
+
+      const trend = document.createElement("em");
+      const t = person.тренд;
+      trend.className = "staffRow__trend" +
+        (t === null || t === undefined ? " isNone" : t >= 0 ? " isUp" : " isDown");
+      trend.textContent = t === null || t === undefined
+        ? "—" : (t > 0 ? "+" : "") + Math.round(t) + "%";
+
+      const shifts = document.createElement("span");
+      shifts.className = "staffRow__shifts";
+      shifts.textContent = count(person.смен) + " смен";
+
+      row.append(name, track, value, spark, trend, shifts);
+
+      const diff = median ? Math.round((person.на_смену - median) / median * 100) : 0;
+      const months = (person.поМесяцам || [])
+        .map((m) => "<span>" + monthLabel(m.месяц) + " — " + one(m.на_смену) +
+                    " шт/смену, " + count(m.смен) + " смен</span>").join("");
+      bindTip(row,
+        "<b>" + person.сотрудник + "</b>" +
+        "<span>" + one(person.на_смену) + " штук за смену — " +
+        (diff >= 0 ? "на " + diff + "% выше" : "на " + Math.abs(diff) + "% ниже") + " медианы</span>" +
+        "<span>" + count(person.смен) + " смен · " + count(person.штук) + " штук всего</span>" +
+        months);
+
+      rows.appendChild(row);
+    });
+
+    wrap.appendChild(rows);
+    return wrap;
   }
 
   // --- Сборка -----------------------------------------------------------------
