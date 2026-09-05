@@ -66,68 +66,162 @@
 .perfHead h2 { margin: 0; font-size: 21px; font-weight: 800; letter-spacing: -0.015em; }
 .perfLead { margin: 4px 0 0; color: var(--muted); font-size: 13.5px; }
 
-/* ---- Столбики -------------------------------------------------------------- */
+/* ---- График по дням -------------------------------------------------------- */
+/* Линия дня плюс скользящее среднее за неделю. Шкала обрезана по перцентилю:
+   один день на 312 штук иначе прижимает рабочий диапазон ко дну. */
 
-.bars {
-  display: flex;
-  align-items: flex-end;
-  gap: 6px;
-  height: 240px;
-  padding: 26px 4px 34px;
+.chart {
+  padding: 14px 16px 12px;
   border: 1px solid var(--line);
   border-radius: 15px;
   background: var(--panel);
 }
 
-/* Дневной график плотнее: столбиков втрое больше, зазор меньше. */
-.bars--dense { gap: 2px; padding-inline: 6px; }
-
-.bar {
-  position: relative;
-  flex: 1 1 0;
-  min-width: 3px;
-  height: 100%;
+.chart__legend {
   display: flex;
-  align-items: flex-end;
-  cursor: default;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 12px;
+  color: var(--muted);
+  font-size: 12px;
+  flex-wrap: wrap;
 }
 
-.bar i {
+.chart__legend .k { width: 14px; height: 3px; border-radius: 2px; margin-left: 10px; }
+.chart__legend .k:first-child { margin-left: 0; }
+.chart__legend .k--line { background: #4d8df7; }
+.chart__legend .k--trend { background: #27c46b; height: 4px; }
+.chart__legend .k--median { background: rgba(255, 255, 255, 0.4); }
+.chart__legend .k--over { width: 8px; height: 8px; border-radius: 50%; background: #f05d72; }
+
+.chart__plot { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; }
+
+.chart__scale {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 2px 0 22px;
+  color: var(--muted);
+  font-size: 11px;
+  text-align: right;
+  font-feature-settings: "tnum" 0, "pnum" 1;
+}
+
+.chart__canvas { position: relative; }
+.chart__svg { display: block; width: 100%; height: 260px; }
+
+.chart__area { fill: url(#none); fill: rgba(77, 141, 247, 0.16); stroke: none; }
+/* Линии не масштабируем вместе с холстом — иначе размажет по толщине. */
+.chart__line { fill: none; stroke: #4d8df7; stroke-width: 1.6; vector-effect: non-scaling-stroke; opacity: 0.85; }
+.chart__trend { fill: none; stroke: #27c46b; stroke-width: 2.6; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+.chart__median { stroke: rgba(255, 255, 255, 0.28); stroke-width: 1; stroke-dasharray: 5 5; vector-effect: non-scaling-stroke; }
+
+.chart__dots { position: absolute; inset: 0; }
+.chart__dots i {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  margin: -2.5px 0 0 -2.5px;
+  border-radius: 50%;
+  background: #cfe0ff;
+  opacity: 0;
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+/* Точки проявляются под курсором: постоянно они превращают линию в колбасу. */
+.chart:hover .chart__dots i { opacity: 0.5; }
+.chart__dots i:hover { opacity: 1; transform: scale(1.9); box-shadow: 0 0 0 3px rgba(77, 141, 247, 0.35); }
+/* Выброс виден всегда — он и есть повод посмотреть. */
+.chart__dots i.isOver { opacity: 1; width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; background: #f05d72; box-shadow: 0 0 0 3px rgba(240, 93, 114, 0.25); }
+
+.chart__axis { position: relative; height: 16px; margin-left: 34px; color: var(--muted); font-size: 11px; }
+.chart__axis span { position: absolute; transform: translateX(-50%); white-space: nowrap; font-feature-settings: "tnum" 0, "pnum" 1; }
+
+/* ---- Месяцы ---------------------------------------------------------------- */
+
+.months {
+  position: relative;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  align-items: end;
+  gap: 10px;
+  height: 260px;
+  padding: 28px 16px 12px;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: var(--panel);
+}
+
+/* Линия средней за период: сразу видно, какие месяцы ниже нормы. */
+.months__avg {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  height: 0;
+  border-top: 1px dashed rgba(255, 255, 255, 0.3);
+  pointer-events: none;
+}
+
+.months__avg::after {
+  content: attr(data-label);
+  position: absolute;
+  right: 0;
+  top: -16px;
+  color: var(--muted);
+  font-size: 11px;
+  font-feature-settings: "tnum" 0, "pnum" 1;
+}
+
+.month { position: relative; display: flex; flex-direction: column; justify-content: flex-end; height: 100%; cursor: default; }
+
+.month__fill {
   display: block;
   width: 100%;
-  border-radius: 4px 4px 2px 2px;
-  background: linear-gradient(180deg, #4d8df7, #2f5fb0);
-  transition: filter 130ms ease, transform 130ms cubic-bezier(0.22, 1, 0.36, 1);
+  height: var(--h);
+  border-radius: 9px 9px 4px 4px;
+  animation: grow 520ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  transition: filter 140ms ease, transform 140ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.bar:hover i { filter: brightness(1.25); }
-.bar:active i { transform: scaleY(0.97); }
+/* Цвет по отношению к средней: выше — зелёный, ниже — приглушённый синий. */
+.month__fill.isGood { background: linear-gradient(180deg, #2fd68a, #159a5f); }
+.month__fill.isLow { background: linear-gradient(180deg, #5b7fb8, #3a5480); }
 
-/* Подпись значения над столбиком и дата под ним — своими строками, чтобы
-   ничего не налезало на сам столбик. */
-.bar__value {
+.month:hover .month__fill { filter: brightness(1.15); }
+.month:active .month__fill { transform: scaleY(0.98); }
+
+@keyframes grow { from { height: 0; } to { height: var(--h); } }
+
+.month__value {
   position: absolute;
   left: 50%;
-  bottom: 100%;
-  transform: translate(-50%, -3px);
-  color: var(--text);
-  font-size: 10.5px;
-  font-weight: 700;
-  white-space: nowrap;
+  transform: translateX(-50%);
+  top: -22px;
+  font-size: 15px;
+  font-weight: 800;
   font-feature-settings: "tnum" 0, "pnum" 1;
-  pointer-events: none;
 }
 
-.bar__label {
+.month__label { margin-top: 7px; color: var(--muted); font-size: 12px; text-align: center; }
+
+.month__delta {
   position: absolute;
   left: 50%;
-  top: 100%;
-  transform: translate(-50%, 5px);
-  color: var(--muted);
+  transform: translateX(-50%);
+  top: -4px;
+  padding: 1px 6px;
+  border-radius: 999px;
   font-size: 10.5px;
-  white-space: nowrap;
+  font-style: normal;
+  font-weight: 750;
   font-feature-settings: "tnum" 0, "pnum" 1;
-  pointer-events: none;
+}
+
+.month__delta.isUp { color: #9af2ba; background: rgba(39, 196, 107, 0.18); }
+.month__delta.isDown { color: #ffc0ca; background: rgba(240, 93, 114, 0.18); }
+
+@media (prefers-reduced-motion: reduce) {
+  .month__fill { animation: none; }
 }
 
 /* ---- Таблица сотрудников --------------------------------------------------- */

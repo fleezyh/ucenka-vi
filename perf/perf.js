@@ -77,42 +77,196 @@
     element.addEventListener("touchend", () => setTimeout(hideTip, 2200), { passive: true });
   }
 
-  // --- Столбиковый график -----------------------------------------------------
+  // --- Графики ----------------------------------------------------------------
+  // В Superset здесь был ряд столбиков, и один выброс сплющивал год. Тут иначе:
+  // линия дня, поверх неё скользящее среднее за неделю, шкала обрезана по
+  // перцентилю, а выбросы помечены, а не давят всё остальное.
 
-  /** Столбики по дням или месяцам: высота — производительность за период. */
-  function renderBars(list, keyName, labelFn, options = {}) {
+  const SVG = "http://www.w3.org/2000/svg";
+
+  function quantile(sorted, q) {
+    if (!sorted.length) return 0;
+    const pos = (sorted.length - 1) * q;
+    const low = Math.floor(pos);
+    const rest = pos - low;
+    return sorted[low + 1] !== undefined
+      ? sorted[low] + rest * (sorted[low + 1] - sorted[low])
+      : sorted[low];
+  }
+
+  /** Скользящее среднее: тренд там, где дневной ряд рвано скачет. */
+  function rolling(values, window) {
+    return values.map((_, index) => {
+      const from = Math.max(0, index - window + 1);
+      const slice = values.slice(from, index + 1);
+      return slice.reduce((sum, value) => sum + value, 0) / slice.length;
+    });
+  }
+
+  function renderDaily(list) {
     const wrap = document.createElement("div");
-    wrap.className = `bars${options.dense ? " bars--dense" : ""}`;
+    wrap.className = "chart";
 
-    const max = Math.max(...list.map((r) => r.на_смену), 1);
-    // Подписи на каждом столбике читаются примерно до сорока значений.
-    const step = list.length <= 40 ? 1 : Math.ceil(list.length / 26);
+    const values = list.map((row) => row.на_смену);
+    const sorted = [...values].sort((a, b) => a - b);
+    // Потолок шкалы — 95-й перцентиль: единственный день на 312 штук иначе
+    // прижимает рабочие 60-90 ко дну, и график перестаёт что-либо показывать.
+    const cap = Math.max(quantile(sorted, 0.95) * 1.15, 10);
+    const median = quantile(sorted, 0.5);
+    const avg7 = rolling(values, 7);
+
+    const W = 1000;
+    const H = 260;
+    const padTop = 16;
+    const padBottom = 24;
+    const x = (i) => (list.length === 1 ? W / 2 : (i / (list.length - 1)) * W);
+    const y = (v) => padTop + (1 - Math.min(v, cap) / cap) * (H - padTop - padBottom);
+
+    const svg = document.createElementNS(SVG, "svg");
+    svg.setAttribute("class", "chart__svg");
+    svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+    svg.setAttribute("preserveAspectRatio", "none");
+
+    const med = document.createElementNS(SVG, "line");
+    med.setAttribute("class", "chart__median");
+    med.setAttribute("x1", 0);
+    med.setAttribute("x2", W);
+    med.setAttribute("y1", y(median));
+    med.setAttribute("y2", y(median));
+    svg.appendChild(med);
+
+    const path = values
+      .map((v, i) => (i ? "L" : "M") + x(i).toFixed(1) + "," + y(v).toFixed(1))
+      .join(" ");
+
+    const area = document.createElementNS(SVG, "path");
+    area.setAttribute("class", "chart__area");
+    area.setAttribute("d", path + " L" + x(values.length - 1) + "," + (H - padBottom) +
+                      " L" + x(0) + "," + (H - padBottom) + " Z");
+    svg.appendChild(area);
+
+    const line = document.createElementNS(SVG, "path");
+    line.setAttribute("class", "chart__line");
+    line.setAttribute("d", path);
+    svg.appendChild(line);
+
+    const trend = document.createElementNS(SVG, "path");
+    trend.setAttribute("class", "chart__trend");
+    trend.setAttribute("d", avg7
+      .map((v, i) => (i ? "L" : "M") + x(i).toFixed(1) + "," + y(v).toFixed(1))
+      .join(" "));
+    svg.appendChild(trend);
+
+    const canvas = document.createElement("div");
+    canvas.className = "chart__canvas";
+    canvas.appendChild(svg);
+
+    // Точки поверх холста обычными элементами: внутри растянутого по ширине
+    // SVG круг превратился бы в эллипс.
+    const dots = document.createElement("div");
+    dots.className = "chart__dots";
+    list.forEach((row, index) => {
+      const dot = document.createElement("i");
+      const over = row.на_смену > cap;
+      if (over) dot.className = "isOver";
+      dot.style.left = (x(index) / W * 100).toFixed(2) + "%";
+      dot.style.top = (y(row.на_смену) / H * 100).toFixed(2) + "%";
+      bindTip(dot,
+        "<b>" + dayLabel(row.день) + "</b>" +
+        "<span>" + one(row.на_смену) + " штук за смену" + (over ? " — выброс" : "") + "</span>" +
+        "<span>" + count(row.штук) + " штук · " + count(row.смен) + " смен · " +
+        count(row.человек) + " человек</span>" +
+        "<span>среднее за неделю " + one(avg7[index]) + "</span>");
+      dots.appendChild(dot);
+    });
+    canvas.appendChild(dots);
+
+    const scale = document.createElement("div");
+    scale.className = "chart__scale";
+    scale.innerHTML = "<span>" + Math.round(cap) + "</span><span>" +
+      Math.round(cap / 2) + "</span><span>0</span>";
+
+    const axis = document.createElement("div");
+    axis.className = "chart__axis";
+    const step = Math.max(1, Math.ceil(list.length / 10));
+    list.forEach((row, index) => {
+      if (index % step) return;
+      const mark = document.createElement("span");
+      mark.textContent = dayLabel(row.день);
+      mark.style.left = (x(index) / W * 100).toFixed(2) + "%";
+      axis.appendChild(mark);
+    });
+
+    const legend = document.createElement("div");
+    legend.className = "chart__legend";
+    legend.innerHTML =
+      "<span class=\"k k--line\"></span>день" +
+      "<span class=\"k k--trend\"></span>среднее за неделю" +
+      "<span class=\"k k--median\"></span>медиана " + one(median) +
+      "<span class=\"k k--over\"></span>выше " + Math.round(cap);
+
+    const plot = document.createElement("div");
+    plot.className = "chart__plot";
+    plot.append(scale, canvas);
+
+    wrap.append(legend, plot, axis);
+    return wrap;
+  }
+
+  /** Месяцы: столбики с линией средней за период и отклонением к прошлому. */
+  function renderMonths(list) {
+    const wrap = document.createElement("div");
+    wrap.className = "months";
+
+    const values = list.map((row) => row.на_смену);
+    const max = Math.max(...values, 1);
+    const avg = values.reduce((sum, value) => sum + value, 0) / (values.length || 1);
+    const scale = 0.78;
+
+    const rule = document.createElement("i");
+    rule.className = "months__avg";
+    rule.style.bottom = "calc(34px + " + (avg / max * 100 * scale).toFixed(1) + "%)";
+    rule.dataset.label = "среднее " + one(avg);
+    wrap.appendChild(rule);
 
     list.forEach((row, index) => {
       const item = document.createElement("div");
-      item.className = "bar";
+      item.className = "month";
+
+      const prev = index > 0 ? list[index - 1].на_смену : null;
+      const delta = prev ? ((row.на_смену - prev) / prev) * 100 : null;
+      const height = Math.max(3, (row.на_смену / max) * 100 * scale);
 
       const fill = document.createElement("i");
-      fill.style.height = `${Math.max(2, (row.на_смену / max) * 100).toFixed(1)}%`;
-      item.appendChild(fill);
+      fill.className = "month__fill " + (row.на_смену >= avg ? "isGood" : "isLow");
+      fill.style.setProperty("--h", height.toFixed(1) + "%");
+      fill.style.animationDelay = (index * 45) + "ms";
 
-      if (index % step === 0 || list.length <= 40) {
-        const value = document.createElement("b");
-        value.className = "bar__value";
-        value.textContent = Math.round(row.на_смену);
-        item.appendChild(value);
+      const value = document.createElement("b");
+      value.className = "month__value";
+      value.textContent = Math.round(row.на_смену);
 
-        const label = document.createElement("span");
-        label.className = "bar__label";
-        label.textContent = labelFn(row[keyName]);
-        item.appendChild(label);
+      const label = document.createElement("span");
+      label.className = "month__label";
+      label.textContent = monthLabel(row.месяц);
+
+      item.append(value, fill, label);
+
+      if (delta !== null) {
+        const badge = document.createElement("em");
+        badge.className = "month__delta " + (delta >= 0 ? "isUp" : "isDown");
+        badge.textContent = (delta > 0 ? "+" : "") + Math.round(delta) + "%";
+        item.appendChild(badge);
       }
 
       bindTip(item,
-        `<b>${labelFn(row[keyName])}</b>` +
-        `<span>${one(row.на_смену)} штук за смену</span>` +
-        `<span>${count(row.штук)} штук · ${count(row.смен)} смен</span>` +
-        (row.человек ? `<span>людей: ${count(row.человек)}</span>` : ""));
+        "<b>" + monthLabel(row.месяц) + "</b>" +
+        "<span>" + one(row.на_смену) + " штук за смену</span>" +
+        "<span>" + count(row.штук) + " штук · " + count(row.смен) + " смен · " +
+        count(row.человек) + " человек</span>" +
+        (delta !== null
+          ? "<span>к прошлому месяцу " + (delta > 0 ? "+" : "") + one(delta) + "%</span>"
+          : ""));
 
       wrap.appendChild(item);
     });
@@ -203,10 +357,10 @@
     parts.push(top);
 
     parts.push(block("По месяцам", "Производительность за календарный месяц",
-                     renderBars(data.поМесяцам, "месяц", monthLabel)));
+                     renderMonths(data.поМесяцам)));
 
     parts.push(block("По дням", `Последние ${data.поДням.length} дней`,
-                     renderBars(data.поДням, "день", dayLabel, { dense: true })));
+                     renderDaily(data.поДням)));
 
     // Переключатель «показать всех» — рядом с заголовком таблицы.
     const thin = data.сотрудники.filter((s) => s.мало_смен).length;
