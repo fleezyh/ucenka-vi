@@ -217,7 +217,7 @@
       showReady();
       setControls(true);
       say("Готово. Сканируйте штрихкод.", "ok");
-      scan.focus();
+      if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) scan.focus();
     } catch (error) {
       setControls(false);
       showConnectionError(error);
@@ -765,6 +765,9 @@
     }
   });
   document.addEventListener("click", (event) => {
+    // Touch scrolling and navigation must not summon the scanner keyboard.
+    if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
+    if (event.target.closest("a, button, select, textarea, input, summary")) return;
     // В разделе паллет курсор должен оставаться в поле списка, а не убегать
     // обратно в сканер.
     if (MODES[mode].external) return;

@@ -11,6 +11,7 @@
 }
 
 .heroPerf h1 {
+  overflow-wrap: anywhere;
   margin: 6px 0 8px;
   font-size: clamp(38px, 5.5vw, 62px);
   line-height: 0.98;
@@ -20,6 +21,8 @@
 .heroPerf .lead { margin: 0; max-width: 60ch; color: var(--muted); font-size: 15px; }
 
 .perfTools { display: grid; gap: 8px; justify-items: end; }
+.perfTools .tabs { flex-wrap: wrap; max-width: 100%; }
+.perfTools .tab { min-width: 0; }
 .perfTools .stamp { margin: 0; color: var(--muted); font-size: 12px; }
 
 /* ---- Сводка ---------------------------------------------------------------- */
@@ -325,6 +328,18 @@
 }
 
 /* ---- Подсказка ------------------------------------------------------------- */
+@media (max-width: 600px) {
+  .heroPerf h1 { font-size: clamp(28px, 7.6vw, 38px); line-height: 1.08; }
+  .perfTools { justify-items: stretch; }
+  .perfTools .tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .perfTools .tab { font-size: 14px; padding: 10px 6px; }
+  .months { overflow-x: auto; grid-auto-columns: minmax(48px, 1fr); }
+  .staffChart { padding-inline: 12px; }
+  .staffRows .staffRow { grid-template-columns: minmax(0, 1fr) 64px 52px; gap: 8px; padding-block: 10px; }
+  .staffRow .staffRow__name { grid-column: 1 / -1; white-space: normal; font-size: 14px; line-height: 1.4; }
+  .staffRows__median { display: none; }
+  .chart__axis span:nth-child(even) { display: none; }
+}
 
 .tip {
   position: fixed;

@@ -66,6 +66,12 @@ body::before {
 }
 
 .site-nav__brand { gap: 10px; }
+.site-nav__brand { flex-shrink: 0; }
+.site-nav__actions { min-width: 0; max-width: 100%; overflow-x: auto; }
+.navGroup, .navAdmin { flex-shrink: 0; }
+.navLink, .navAdmin, .data-button { min-height: 44px; }
+.navLink, .navAdmin { display: inline-flex; align-items: center; }
+:where(a, button, select):focus-visible { outline: 2px solid #9bcaff; outline-offset: 3px; }
 .site-nav__brand img { box-shadow: 0 7px 20px rgba(255,69,58,.24); }
 .site-nav__brand span { letter-spacing: -.01em; }
 
@@ -431,4 +437,17 @@ footer { border-top-color: var(--line); color: var(--muted); }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+@media (max-width: 1200px) {
+  .site-nav { position: static; flex-direction: column; align-items: stretch; gap: 10px; }
+  .site-nav__actions { scrollbar-width: thin; padding-bottom: 5px; }
+  .site-nav__actions::-webkit-scrollbar { display: block; height: 3px; }
+  .tabs { top: 8px; }
+}
+@media (max-width: 600px) {
+  .head-in h1 { font-size: clamp(28px, 8vw, 38px); overflow-wrap: anywhere; line-height: 1.08; }
+  .head-in .sub { font-size: 14px; }
+  select, input, textarea { font-size: 16px; }
+  .site-usage__row { font-size: 13px; }
+  .site-usage__stamp { font-size: 12px; }
 }

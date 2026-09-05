@@ -33,6 +33,9 @@ body[data-mode="heatmap"]::before {
 }
 
 body[data-mode="heatmap"] .eyebrow { color: #c3a6ff; }
+@media (hover: none) {
+  body[data-mode="heatmap"]::before { animation: none; will-change: auto; }
+}
 
 /* Хитмап занимает всю ширину экрана: поля по бокам съедали место, которое
    нужнее плиткам. Отступ оставляем только чтобы содержимое не липло к краю. */
@@ -104,6 +107,7 @@ body[data-mode="heatmap"] .shell {
   .tile__name { font: 700 12.5px/16px var(--ui); -webkit-line-clamp: 2; }
   .tile__block { display: none; }
   .tile__value { font-size: 21px; }
+  .tile__value--pair { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px; white-space: normal; }
   .tile__slash { margin: 0 4px; }
   /* График убран: на 160 пикселях он всё равно нечитаем, а место съедает. */
   .tile__chart { display: none; }

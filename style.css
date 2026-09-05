@@ -74,6 +74,9 @@ body[data-mode="presort"] {
 }
 
 button, input { font: inherit; }
+select, textarea { font: inherit; }
+button, a, input, select, textarea { touch-action: manipulation; }
+:where(a, button, select, textarea):focus-visible { outline: 2px solid #9bcaff; outline-offset: 3px; }
 button { border: 0; }
 
 .shell {
@@ -86,6 +89,7 @@ button { border: 0; }
 }
 
 .topbar {
+  min-width: 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -673,6 +677,8 @@ body[data-mode="pallets"] .readyPill i { background: var(--amber); }
    и было не понять, что к чему относится. */
 
 .siteNav {
+  min-width: 0;
+  max-width: 100%;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -763,6 +769,36 @@ body[data-mode="pallets"] .readyPill i { background: var(--amber); }
 }
 
 /* ---- Отдача на нажатие (общая для всего сайта) ----------------------------- */
+/* Keep intrinsic text widths inside their grid tracks. */
+.hero > *, .heroPerf > *, .heroSales > *, .heroStock > *, .perfTools { min-width: 0; }
+.brand { flex-shrink: 0; }
+.action, .retry, .tab, .navLink, .navAdmin { min-height: 44px; }
+.navLink, .navAdmin { display: inline-flex; align-items: center; }
+.searchRow--pallets { flex-wrap: wrap; }
+.results, .details { overscroll-behavior-inline: contain; }
+@media (min-width: 641px) and (max-width: 1200px) {
+  .topbar { flex-wrap: wrap; }
+  .siteNav { width: 100%; }
+}
+@media (max-width: 640px) {
+  .topbar, .siteNav { width: 100%; }
+  .siteNav { scrollbar-width: thin; padding-bottom: 5px; }
+  .siteNav::-webkit-scrollbar { display: block; height: 3px; }
+  .siteNav::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 3px; }
+  .lead, .nameNote, .scannerNote, .connection p { font-size: 14px; line-height: 1.55; }
+  .tab { padding-inline: 10px; }
+  .cardHeading { gap: 8px; flex-wrap: wrap; }
+  .searchRow { gap: 8px; }
+  .searchRow input { padding-inline: 11px; }
+  #scan, #nameSearch, #palletInput { font-size: 16px; }
+  .primary strong { font-size: clamp(25px, 7vw, 34px); white-space: normal; overflow-wrap: anywhere; }
+  .details th { width: 105px; }
+  table { font-size: 14px; }
+  th { font-size: 12px; }
+}
+@media (hover: none) {
+  .card::before { animation: none; }
+}
 /* Кнопки и вкладки отзываются на само касание, а не на отпускание. Короткая
    длительность — на длинной это читается как подтормаживание. */
 

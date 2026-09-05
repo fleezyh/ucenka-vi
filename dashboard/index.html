@@ -206,7 +206,7 @@
 body { overflow-x: hidden; }
 }
 </style>
-<link rel="stylesheet" href="dashboard-redesign.css?v=20260902-3">
+<link rel="stylesheet" href="dashboard-redesign.css?v=20260905-8">
 </head>
 <body>
 <!-- SITE-SHELL-START -->
@@ -244,10 +244,10 @@ body { overflow-x: hidden; }
 </section>
 <section class="site-usage" id="site-usage" hidden aria-label="Посещаемость">
   <div class="site-usage__row">
-    <span class="site-usage__title">Заходили на сайт</span>
-    <span class="site-usage__item"><b id="usage-day">—</b> за сутки</span>
-    <span class="site-usage__item"><b id="usage-week">—</b> за неделю</span>
-    <span class="site-usage__item"><b id="usage-month">—</b> за месяц</span>
+    <span class="site-usage__title">Просмотры страниц</span>
+    <span class="site-usage__item"><b id="usage-day">—</b> сегодня</span>
+    <span class="site-usage__item"><b id="usage-week">—</b> за 7 дней</span>
+    <span class="site-usage__item"><b id="usage-month">—</b> за 30 дней</span>
     <span class="site-usage__spark" id="usage-spark" aria-hidden="true"></span>
     <span class="site-usage__stamp" id="usage-stamp"></span>
     <!-- Обновление данных — действие этой страницы, а не раздел сайта. В шапке
@@ -255,10 +255,10 @@ body { overflow-x: hidden; }
     <button class="data-button primary" id="import-open" type="button">Обновить данные</button>
   </div>
 </section>
-<script src="usage.js?v=20260902-1" defer></script>
+<script src="usage.js?v=20260905-8" defer></script>
 <!-- Аналитика вставляется здесь, а не в исходной выгрузке: иначе она пропадала
      при каждой перепубликации дашборда. Идентификатор публичный. -->
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token":"85a2c48f22834923b7c34b931c8c514e"}'></script>
+  <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token":"907d91d4e2e044f682da0d451e684f83"}'></script>
 <!-- SITE-SHELL-END -->
 
 

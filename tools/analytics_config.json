@@ -1,5 +1,5 @@
 {
-  "_комментарий": "Идентификаторы Cloudflare. Не секреты: accountTag виден в адресной строке панели, siteTag — в теге аналитики на главной странице. Токен сюда класть нельзя, он живёт в Credential Manager.",
+  "_комментарий": "accountTag и siteTag — публичные ID из URL панели Cloudflare. siteTag НЕ равен beacon token из Install JS Snippet. Секретный API-токен хранится только в Credential Manager.",
   "accountTag": "af951bfa6fe0acc9ec01a40fd0e11555",
   "siteTag": "85a2c48f22834923b7c34b931c8c514e"
 }

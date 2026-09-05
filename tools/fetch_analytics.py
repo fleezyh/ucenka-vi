@@ -20,10 +20,9 @@ from __future__ import annotations
 import ctypes
 import ctypes.wintypes as wt
 import json
-import re
 import sys
 import time
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 import requests
@@ -103,8 +102,8 @@ def find_account_and_site() -> tuple[str, str]:
 
     Спрашивать их у Cloudflare нельзя: аналитический токен не имеет права
     листать аккаунты, а GraphQL требует accountTag явным фильтром. Поэтому
-    аккаунт лежит в конфиге рядом, а сайт читается из beacon на главной —
-    он и так виден в исходниках страницы.
+    accountTag и siteTag лежат в конфиге рядом. Beacon token предназначен
+    для отправки событий, а siteTag — для чтения статистики: это разные ID.
     """
     if not CONFIG_PATH.exists():
         raise RuntimeError(
@@ -116,17 +115,10 @@ def find_account_and_site() -> tuple[str, str]:
     if not account:
         raise RuntimeError(f"в {CONFIG_PATH.name} пустой accountTag")
 
-    site = (config.get("siteTag") or "").strip() or site_tag_from_beacon()
+    site = (config.get("siteTag") or "").strip()
+    if not site:
+        raise RuntimeError("В analytics_config.json нужен siteTag из URL панели Cloudflare, не beacon token")
     return account, site
-
-
-def site_tag_from_beacon() -> str:
-    """Достаёт идентификатор сайта из тега Cloudflare на главной странице."""
-    index = REPO_ROOT / "index.html"
-    match = re.search(r'data-cf-beacon=\'{"token":\s*"([0-9a-f]+)"', index.read_text(encoding="utf-8"))
-    if not match:
-        raise RuntimeError("на главной странице не найден тег Cloudflare Web Analytics")
-    return match.group(1)
 
 
 TOTALS_QUERY = """
@@ -182,14 +174,14 @@ query Pages($accountTag: String!, $siteTag: String!, $since: Date!, $until: Date
 """
 
 
-def totals_from(days: list[dict], last: int) -> dict:
-    """Складывает последние дни разбивки.
+def totals_from(days: list[dict], last: int, today: date | None = None) -> dict:
+    """Сумма по календарному окну UTC. Пустые дни не возвращаются API.
 
-    Отдельные запросы за период отдавали несходящиеся числа: на длинном
-    интервале Cloudflare оценивает по выборке, и месяц выходил меньше недели.
-    Дневная разбивка точная, поэтому периоды считаем по ней.
+    Adaptive-метрики могут быть оценочными; суммирование не делает их точными.
     """
-    tail = days[-last:] if last else days
+    today = today or datetime.now(timezone.utc).date()
+    since = today - timedelta(days=last - 1) if last else date.min
+    tail = [day for day in days if since <= date.fromisoformat(day["дата"]) <= today]
     return {
         "просмотры": sum(day["просмотры"] for day in tail),
         "посетители": sum(day["посетители"] for day in tail),
@@ -200,8 +192,8 @@ def collect(token: str) -> dict:
     account, site = find_account_and_site()
     log(f"аккаунт {account[:8]}…, сайт {site[:8]}…")
 
-    since = date.today() - timedelta(days=HISTORY_DAYS - 1)
-    until = date.today()
+    until = datetime.now(timezone.utc).date()
+    since = until - timedelta(days=HISTORY_DAYS - 1)
     variables = {
         "accountTag": account,
         "siteTag": site,
@@ -223,6 +215,8 @@ def collect(token: str) -> dict:
 
     return {
         "обновлено": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "периоды": "Календарные дни UTC, включая текущий неполный день; не скользящие 24 часа",
+        "метрикаПосетителей": "Визиты Cloudflare, не уникальные люди",
         "запериод": {
             "сутки": totals_from(by_day, 1),
             "неделя": totals_from(by_day, 7),
