@@ -761,3 +761,37 @@ body[data-mode="pallets"] .readyPill i { background: var(--amber); }
   .navLink, .navAdmin { padding: 8px 13px; font-size: 14.5px; }
   .navAdmin { flex: 0 0 auto; }
 }
+
+/* ---- Отдача на нажатие (общая для всего сайта) ----------------------------- */
+/* Кнопки и вкладки отзываются на само касание, а не на отпускание. Короткая
+   длительность — на длинной это читается как подтормаживание. */
+
+.action, .tab, .navLink, .navAdmin, .retry, .dashboardLink {
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 120ms cubic-bezier(0.22, 1, 0.36, 1),
+              background 140ms ease, border-color 140ms ease, color 140ms ease;
+}
+
+.action:active, .retry:active, .dashboardLink:active { transform: scale(0.96); transition-duration: 60ms; }
+.tab:active { transform: scale(0.97); transition-duration: 60ms; }
+.navLink:active, .navAdmin:active { transform: scale(0.94); transition-duration: 60ms; }
+
+/* Карточка найденного товара тоже слегка подаётся — сканирование идёт потоком,
+   и подтверждение отклика помогает не терять место. */
+.answer { transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1); }
+.answer:active { transform: scale(0.995); }
+
+/* Строки таблиц: подсветка под курсором и лёгкое нажатие. */
+.results tbody tr { transition: background 120ms ease, transform 120ms ease; }
+.results tbody tr:hover { background: rgba(255, 255, 255, 0.045); }
+.results tbody tr:active { transform: scale(0.998); background: rgba(255, 255, 255, 0.07); }
+
+@media (prefers-reduced-motion: reduce) {
+  .action, .tab, .navLink, .navAdmin, .retry, .dashboardLink, .answer, .results tbody tr {
+    transition: none;
+  }
+  .action:active, .tab:active, .navLink:active, .navAdmin:active,
+  .retry:active, .dashboardLink:active, .answer:active, .results tbody tr:active {
+    transform: none;
+  }
+}

@@ -108,3 +108,50 @@
 .regionList tbody tr:hover { background: rgba(255, 255, 255, 0.04); }
 
 .stage__bar { cursor: default; }
+
+/* ---- Отдача на нажатие ----------------------------------------------------- */
+/* Реакция на само касание, а не на отпускание: палец ещё на экране, а плитка
+   уже отозвалась. Длительность короткая — иначе ощущается как задержка. */
+
+.stockCard--clickable:active {
+  transform: scale(0.965);
+  transition-duration: 70ms;
+  filter: brightness(1.07);
+}
+
+/* Столбик внутри карточки дожимается сильнее — по нему и целятся. */
+.stockCard--clickable:active .stockBar { transform: scale(0.985); }
+.stockBar { transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1); }
+
+/* Доли столбика подсвечиваются под курсором: видно, что элемент живой. */
+.stockPart { transition: filter 140ms ease; }
+.stockCard--clickable:hover .stockPart:hover { filter: brightness(1.12); }
+
+.stockCard--clickable:focus-visible {
+  outline: 2px solid rgba(126, 227, 179, 0.8);
+  outline-offset: 3px;
+}
+
+/* Ступени воронки: наводится и нажимается так же, хотя и не раскрывают список. */
+.stage__bar { cursor: pointer; transition: width 260ms cubic-bezier(0.22, 1, 0.36, 1), transform 140ms cubic-bezier(0.22, 1, 0.36, 1), filter 140ms ease; }
+.stage__bar:hover { filter: brightness(1.1); }
+.stage__bar:active { transform: scale(0.98); transition-duration: 70ms; }
+
+/* Итоговые карточки — та же логика отклика. */
+.total { transition: transform 150ms cubic-bezier(0.22, 1, 0.36, 1), border-color 150ms ease; }
+.total:hover { border-color: var(--line-strong); transform: translateY(-1px); }
+.total:active { transform: scale(0.985); transition-duration: 70ms; }
+
+/* Кнопки тоже отзываются, а не просто меняют цвет. */
+.stockTools .action, .regionList .action { transition: transform 120ms cubic-bezier(0.22, 1, 0.36, 1), border-color 140ms ease, background 140ms ease; }
+.stockTools .action:active, .regionList .action:active { transform: scale(0.96); transition-duration: 60ms; }
+
+/* Строки списка паллет подсвечиваются и слегка подаются при нажатии. */
+.regionList tbody tr { transition: background 120ms ease, transform 120ms ease; }
+.regionList tbody tr:active { transform: scale(0.998); background: rgba(255, 255, 255, 0.07); }
+
+@media (prefers-reduced-motion: reduce) {
+  .stockCard--clickable:active, .stage__bar:active, .total:active,
+  .stockTools .action:active, .regionList tbody tr:active { transform: none; }
+  .stockBar, .stage__bar, .total { transition: none; }
+}

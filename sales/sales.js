@@ -63,6 +63,19 @@
     element.addEventListener("mouseenter", (event) => showTip(html, event));
     element.addEventListener("mousemove", moveTip);
     element.addEventListener("mouseleave", hideTip);
+    // На телефоне подсказка вылезает по касанию и уходит сама: там нет курсора,
+    // а цифры под пальцем нужны те же.
+    element.addEventListener("touchstart", (event) => {
+      const touch = event.touches[0];
+      if (touch) showTip(html, { clientX: touch.clientX, clientY: touch.clientY });
+      buzz();
+    }, { passive: true });
+    element.addEventListener("touchend", () => setTimeout(hideTip, 2200), { passive: true });
+  }
+
+  /** Короткая вибрация на телефоне — отклик на касание там, где нет курсора. */
+  function buzz(ms = 8) {
+    try { navigator.vibrate?.(ms); } catch { /* не поддерживается — и ладно */ }
   }
 
   const rub = (value) => `${Number(value || 0).toLocaleString("ru-RU", { maximumFractionDigits: 0 })} ₽`;
@@ -148,7 +161,7 @@
       card.classList.add("stockCard--clickable");
       card.tabIndex = 0;
       card.setAttribute("role", "button");
-      const open = () => openRegion(item.регион, card);
+      const open = () => { buzz(12); openRegion(item.регион, card); };
       card.addEventListener("click", open);
       card.addEventListener("keydown", (event) => {
         if (event.key === "Enter" || event.key === " ") { event.preventDefault(); open(); }
@@ -456,7 +469,7 @@
     }
   }
 
-  exportButton?.addEventListener("click", exportStock);
+  exportButton?.addEventListener("click", () => { buzz(10); exportStock(); });
 
   Promise.allSettled([load(STOCK_URL), load(FUNNEL_URL)]).then(([stock, funnel]) => {
     const problems = [];
