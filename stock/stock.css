@@ -31,7 +31,7 @@
   display: grid;
   /* Восемь колонок: семь регионов и «Итого». На большей ширине карточки
      переносились, и итог уезжал на вторую строку один. */
-  grid-template-columns: repeat(auto-fit, minmax(158px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(185px, 1fr));
   gap: 10px;
 }
 
@@ -66,7 +66,7 @@
   justify-content: center;
   min-height: 22px;
   color: #fff;
-  font-size: 17px;
+  font-size: 19px;
   font-weight: 800;
   font-feature-settings: "tnum" 0, "pnum" 1;
 }
@@ -80,7 +80,7 @@
   justify-content: space-between;
   gap: 8px;
   margin: 0;
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 800;
   /* «ДМД - ЧШК» ломался на две строки, и карточка становилась выше соседних. */
   white-space: nowrap;
@@ -91,7 +91,7 @@
   border-radius: 999px;
   background: rgba(240, 93, 114, 0.16);
   color: #ffc0ca;
-  font-size: 11.5px;
+  font-size: 12.5px;
   font-weight: 750;
   font-feature-settings: "tnum" 0, "pnum" 1;
 }
@@ -102,7 +102,7 @@
   align-items: baseline;
   gap: 5px;
   margin: 0;
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 800;
   font-style: normal;
   font-feature-settings: "tnum" 0, "pnum" 1;
@@ -111,15 +111,15 @@
 .stockSplit i { font-style: normal; }
 .stockSplit .res { color: #ff9a9a; }
 .stockSplit .free { color: #7ee3b3; }
-.stockSplit span { margin-left: auto; color: var(--muted); font-size: 11px; font-weight: 600; white-space: nowrap; }
+.stockSplit span { margin-left: auto; color: var(--muted); font-size: 12px; font-weight: 600; white-space: nowrap; }
 
 .stockCost { display: grid; gap: 3px; margin: 0; padding-top: 8px; border-top: 1px solid var(--line); }
 .stockCost div { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 /* Подписи не переносим, но и наружу не выпускаем: «Себестоимость 18,9 млн ₽»
    раньше разваливалось на три строки, а потом вылезало за правый край. */
 .stockCost div { min-width: 0; }
-.stockCost dt { flex: 0 1 auto; min-width: 0; color: var(--muted); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.stockCost dd { flex: 0 0 auto; margin: 0; font-size: 13px; font-weight: 750; white-space: nowrap; font-feature-settings: "tnum" 0, "pnum" 1; }
+.stockCost dt { flex: 0 1 auto; min-width: 0; color: var(--muted); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stockCost dd { flex: 0 0 auto; margin: 0; font-size: 14.5px; font-weight: 750; white-space: nowrap; font-feature-settings: "tnum" 0, "pnum" 1; }
 
 .stockNote { margin: 18px 2px 0; color: var(--muted); font-size: 12.5px; line-height: 1.55; max-width: 90ch; }
 

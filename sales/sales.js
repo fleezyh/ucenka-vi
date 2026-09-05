@@ -13,6 +13,7 @@
   const funnelBox = $("funnel");
   const monthSelect = $("month");
   const stamp = $("stamp");
+  const exportButton = $("stockExport");
 
   let funnelData = null;
 
@@ -248,6 +249,73 @@
     return r.json();
   });
 
+  // --- Выгрузка остатков в Excel ---------------------------------------------
+  // Библиотека тянется только по нажатию: она весит почти мегабайт, и грузить
+  // её всем ради кнопки, которой пользуются раз в неделю, незачем.
+  const XLSX_URL = "../dashboard/vendor/xlsx.full.min.js";
+  let stockData = null;
+
+  function loadXlsx() {
+    if (window.XLSX) return Promise.resolve(window.XLSX);
+    return new Promise((resolve, reject) => {
+      const tag = document.createElement("script");
+      tag.src = XLSX_URL;
+      tag.onload = () => (window.XLSX ? resolve(window.XLSX) : reject(new Error("библиотека не загрузилась")));
+      tag.onerror = () => reject(new Error("не удалось загрузить библиотеку"));
+      document.head.appendChild(tag);
+    });
+  }
+
+  async function exportStock() {
+    if (!stockData) return;
+    const was = exportButton.textContent;
+    exportButton.disabled = true;
+    exportButton.textContent = "Собираю…";
+    try {
+      const XLSX = await loadXlsx();
+
+      const detail = (stockData.паллеты || []).map((p) => ({
+        "Тип остатков": p.тип,
+        "Паллета": p.паллета,
+        "Ячейка": p.ячейка,
+        "Регион": p.регион,
+        "Регион кратко": p.регион_кратко,
+        "SKU": p.sku,
+        "Штук": p.штук,
+        "Себестоимость": p.себестоимость,
+      }));
+
+      const summary = [...(stockData.регионы || []), stockData.итого]
+        .filter(Boolean)
+        .map((r) => ({
+          "Регион": r.регион,
+          "Зарезервировано": r.зарезервировано,
+          "Свободно": r.свободно,
+          "Всего паллет": r.всего,
+          "Штук": r.штук,
+          "Себестоимость": r.себестоимость,
+          "Себестоимость свободных": r.себестоимость_свободных,
+          "Себестоимость зарезервированных": r.себестоимость_зарезервированных,
+        }));
+
+      const book = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(book, XLSX.utils.json_to_sheet(summary), "По регионам");
+      if (detail.length) {
+        XLSX.utils.book_append_sheet(book, XLSX.utils.json_to_sheet(detail), "Паллеты");
+      }
+
+      const stampText = String(stockData.обновлено || "").replace(/[^0-9]/g, "").slice(0, 8);
+      XLSX.writeFile(book, `Остатки паллет ${stampText}.xlsx`);
+    } catch (error) {
+      say(`Не удалось собрать файл: ${error?.message || error}`, "error");
+    } finally {
+      exportButton.textContent = was;
+      exportButton.disabled = false;
+    }
+  }
+
+  exportButton?.addEventListener("click", exportStock);
+
   Promise.allSettled([load(STOCK_URL), load(FUNNEL_URL)]).then(([stock, funnel]) => {
     const problems = [];
 
@@ -259,6 +327,8 @@
       if (stock.value.итого) grid.appendChild(renderRegion(stock.value.итого, true));
       stockBox.replaceChildren(grid);
       stamp.textContent = `обновлено ${stock.value.обновлено}`;
+      stockData = stock.value;
+      if (exportButton) exportButton.disabled = false;
     } else {
       problems.push("остатки");
     }

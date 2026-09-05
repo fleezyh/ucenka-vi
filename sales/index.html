@@ -7,12 +7,12 @@
   <title>Уценка · Продажи</title>
   <link rel="icon" type="image/svg+xml" href="../assets/brand/vi-mark.svg">
   <link rel="preload" href="../assets/fonts/VI_Sans_Regular.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="../style.css?v=20260905-4">
+  <link rel="stylesheet" href="../style.css?v=20260905-5">
   <!-- Стили обоих блоков: классы не пересекаются, дублировать их незачем. -->
-  <link rel="stylesheet" href="../funnel/funnel.css?v=20260905-4">
-  <link rel="stylesheet" href="../stock/stock.css?v=20260905-4">
-  <link rel="stylesheet" href="sales.css?v=20260905-4">
-  <script src="sales.js?v=20260905-4" defer></script>
+  <link rel="stylesheet" href="../funnel/funnel.css?v=20260905-5">
+  <link rel="stylesheet" href="../stock/stock.css?v=20260905-5">
+  <link rel="stylesheet" href="sales.css?v=20260905-5">
+  <script src="sales.js?v=20260905-5" defer></script>
 </head>
 <body data-mode="sales">
   <main class="shell">
@@ -53,9 +53,12 @@
           <h2 id="stockTitle">Остатки паллет</h2>
           <p class="salesLead">Сколько паллет лежит по регионам и что из них уже зарезервировано под отгрузку.</p>
         </div>
-        <div class="stockLegend">
-          <span class="legendItem legendItem--res"><i></i>зарезервировано</span>
-          <span class="legendItem legendItem--free"><i></i>свободно</span>
+        <div class="stockTools">
+          <div class="stockLegend">
+            <span class="legendItem legendItem--res"><i></i>зарезервировано</span>
+            <span class="legendItem legendItem--free"><i></i>свободно</span>
+          </div>
+          <button class="action action--secondary" id="stockExport" type="button" disabled>Скачать Excel</button>
         </div>
       </div>
       <div class="stockWrap" id="stock" aria-live="polite"></div>

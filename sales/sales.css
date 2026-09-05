@@ -44,3 +44,11 @@
   .salesHead .stockLegend, .salesHead .periodBox { justify-items: start; }
   .salesHead h2 { font-size: 19px; }
 }
+
+/* Легенда и кнопка выгрузки — одной группой в шапке блока. */
+.stockTools { display: flex; align-items: center; gap: 14px; flex: 0 0 auto; }
+.stockTools .stockLegend { gap: 4px; }
+.stockTools .action { flex: 0 0 auto; }
+@media (max-width: 760px) {
+  .stockTools { justify-content: space-between; width: 100%; }
+}
