@@ -288,6 +288,42 @@
 
   // --- Таблица сотрудников ----------------------------------------------------
 
+  /** Мини-график по месяцам в строке сотрудника: видно, растёт человек или нет. */
+  function sparkline(months) {
+    const solid = months.filter((m) => m.смен >= 1);
+    if (solid.length < 2) return document.createTextNode("");
+
+    const values = solid.map((m) => m.на_смену);
+    const min = Math.min(...values);
+    const max = Math.max(...values, min + 1);
+    const W = 84;
+    const H = 22;
+    const x = (i) => (i / (solid.length - 1)) * W;
+    const y = (v) => H - 2 - ((v - min) / (max - min)) * (H - 5);
+
+    const svg = document.createElementNS(SVG, "svg");
+    svg.setAttribute("class", "spark");
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    svg.setAttribute("width", W);
+    svg.setAttribute("height", H);
+
+    const path = values.map((v, i) => (i ? "L" : "M") + x(i).toFixed(1) + "," + y(v).toFixed(1)).join(" ");
+    const line = document.createElementNS(SVG, "path");
+    line.setAttribute("class", "spark__line");
+    line.setAttribute("d", path);
+    svg.appendChild(line);
+
+    // Последняя точка выделена: она и есть «сейчас».
+    const dot = document.createElementNS(SVG, "circle");
+    dot.setAttribute("class", "spark__dot");
+    dot.setAttribute("cx", x(values.length - 1));
+    dot.setAttribute("cy", y(values[values.length - 1]));
+    dot.setAttribute("r", 2.4);
+    svg.appendChild(dot);
+
+    return svg;
+  }
+
   function renderStaff(list) {
     const shown = showAllStaff ? list : list.filter((s) => !s.мало_смен);
     const max = Math.max(...shown.map((s) => s.на_смену), 1);
@@ -296,19 +332,39 @@
     table.className = "staff";
     table.innerHTML =
       "<thead><tr><th>Сотрудник</th><th>Тип</th><th class='num'>Штук за смену</th>" +
+      "<th>Помесячно</th><th class='num'>Тренд</th>" +
       "<th class='num'>Смен</th><th class='num'>Штук всего</th></tr></thead>";
     const body = document.createElement("tbody");
 
     for (const person of shown) {
       const tr = document.createElement("tr");
       if (person.мало_смен) tr.className = "isThin";
+
+      const trend = person.тренд;
+      const trendHtml = trend === null || trend === undefined
+        ? "<span class='muted'>—</span>"
+        : `<em class="trend ${trend >= 0 ? "isUp" : "isDown"}">${trend > 0 ? "+" : ""}${Math.round(trend)}%</em>`;
+
       tr.innerHTML =
         `<td>${person.сотрудник}</td>` +
         `<td class="muted">${person.тип || "—"}</td>` +
         `<td class="num"><i class="staffBar" style="width:${(person.на_смену / max * 100).toFixed(1)}%"></i>` +
         `<b>${one(person.на_смену)}</b></td>` +
+        `<td class="sparkCell"></td>` +
+        `<td class="num">${trendHtml}</td>` +
         `<td class="num">${count(person.смен)}</td>` +
         `<td class="num">${count(person.штук)}</td>`;
+
+      const months = person.поМесяцам || [];
+      if (months.length) {
+        tr.querySelector(".sparkCell").appendChild(sparkline(months));
+        const rows = months
+          .map((m) => `<span>${monthLabel(m.месяц)} — ${one(m.на_смену)} шт/смену, ${count(m.смен)} смен</span>`)
+          .join("");
+        bindTip(tr, `<b>${person.сотрудник}</b>` +
+          `<span>всего ${one(person.на_смену)} шт/смену за ${count(person.смен)} смен</span>` + rows);
+      }
+
       body.appendChild(tr);
     }
     table.appendChild(body);
