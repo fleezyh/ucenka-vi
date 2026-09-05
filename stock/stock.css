@@ -37,6 +37,7 @@
 
 .stockCard {
   display: grid;
+  min-width: 0;
   /* Строки заданы жёстко: столбик, название, разбивка, деньги — иначе карточки
      с длинным названием региона разъезжаются по высоте. */
   grid-template-rows: 210px auto auto auto;
@@ -97,6 +98,7 @@
 
 .stockSplit {
   display: flex;
+  min-width: 0;
   align-items: baseline;
   gap: 5px;
   margin: 0;
@@ -113,9 +115,11 @@
 
 .stockCost { display: grid; gap: 3px; margin: 0; padding-top: 8px; border-top: 1px solid var(--line); }
 .stockCost div { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
-/* Подписи не переносим: «Себестоимость 18,9 млн ₽» разваливалось на три строки. */
-.stockCost dt { color: var(--muted); font-size: 11px; white-space: nowrap; }
-.stockCost dd { margin: 0; font-size: 13px; font-weight: 750; white-space: nowrap; font-feature-settings: "tnum" 0, "pnum" 1; }
+/* Подписи не переносим, но и наружу не выпускаем: «Себестоимость 18,9 млн ₽»
+   раньше разваливалось на три строки, а потом вылезало за правый край. */
+.stockCost div { min-width: 0; }
+.stockCost dt { flex: 0 1 auto; min-width: 0; color: var(--muted); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stockCost dd { flex: 0 0 auto; margin: 0; font-size: 13px; font-weight: 750; white-space: nowrap; font-feature-settings: "tnum" 0, "pnum" 1; }
 
 .stockNote { margin: 18px 2px 0; color: var(--muted); font-size: 12.5px; line-height: 1.55; max-width: 90ch; }
 

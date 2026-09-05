@@ -77,9 +77,12 @@ button, input { font: inherit; }
 button { border: 0; }
 
 .shell {
-  width: min(1440px, 100%);
+  /* Во всю ширину экрана с полями по краям: жёсткий потолок оставлял пустые
+     поля на широких мониторах, а плиткам и карточкам места не хватало. */
+  width: 100%;
+  max-width: 2100px;
   margin: 0 auto;
-  padding: 30px 28px 72px;
+  padding: 30px clamp(16px, 2.2vw, 44px) 72px;
 }
 
 .topbar {

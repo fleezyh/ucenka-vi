@@ -72,7 +72,7 @@
     const cost = document.createElement("dl");
     cost.className = "stockCost";
     cost.innerHTML =
-      `<div><dt>Себестоимость</dt><dd>${money(item.себестоимость)} ₽</dd></div>` +
+      `<div><dt>Себес</dt><dd>${money(item.себестоимость)} ₽</dd></div>` +
       `<div><dt>Штук</dt><dd>${count(item.штук)}</dd></div>`;
 
     card.append(bar, name, split, cost);
