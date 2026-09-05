@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="colors" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ffd42f"/>
+      <stop offset=".12" stop-color="#ff87b6"/>
+      <stop offset=".28" stop-color="#445dff"/>
+      <stop offset=".46" stop-color="#071126"/>
+      <stop offset=".62" stop-color="#274bda"/>
+      <stop offset=".78" stop-color="#fa79ba"/>
+      <stop offset="1" stop-color="#ffc72c"/>
+      <animateTransform attributeName="gradientTransform" type="translate" values="-.16 0;.12 0;-.16 0" dur="9s" repeatCount="indefinite"/>
+    </linearGradient>
+    <linearGradient id="reed" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="white" stop-opacity=".10"/>
+      <stop offset=".18" stop-color="white" stop-opacity=".96"/>
+      <stop offset=".42" stop-color="white" stop-opacity=".22"/>
+      <stop offset=".68" stop-color="black"/>
+      <stop offset=".9" stop-color="white" stop-opacity=".48"/>
+      <stop offset="1" stop-color="white" stop-opacity=".08"/>
+    </linearGradient>
+    <pattern id="reeds" width="42" height="1000" patternUnits="userSpaceOnUse">
+      <rect width="42" height="1000" fill="url(#reed)"/>
+    </pattern>
+    <mask id="reedMask">
+      <rect width="1600" height="1000" fill="url(#reeds)"/>
+    </mask>
+    <filter id="wave" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency=".0015 .0045" numOctaves="2" seed="8" result="noise">
+        <animate attributeName="baseFrequency" values=".0015 .0045;.005 .012;.002 .006;.0015 .0045" keyTimes="0;.38;.72;1" dur="8s" repeatCount="indefinite"/>
+      </feTurbulence>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="58" xChannelSelector="R" yChannelSelector="B">
+        <animate attributeName="scale" values="48;145;82;48" keyTimes="0;.38;.72;1" dur="8s" repeatCount="indefinite"/>
+      </feDisplacementMap>
+      <feGaussianBlur stdDeviation="1.4 .45"/>
+    </filter>
+    <radialGradient id="shade" cx="50%" cy="44%" r="75%">
+      <stop offset="0" stop-color="#02040a" stop-opacity="0"/>
+      <stop offset=".66" stop-color="#02040a" stop-opacity=".26"/>
+      <stop offset="1" stop-color="#02040a" stop-opacity=".84"/>
+    </radialGradient>
+  </defs>
+  <rect width="1600" height="1000" fill="#030710"/>
+  <g filter="url(#wave)">
+    <rect x="-120" y="-80" width="1840" height="1160" fill="url(#colors)" mask="url(#reedMask)"/>
+    <rect x="-120" y="-80" width="1840" height="1160" fill="url(#colors)" opacity=".28"/>
+  </g>
+  <rect width="1600" height="1000" fill="url(#shade)"/>
+</svg>
