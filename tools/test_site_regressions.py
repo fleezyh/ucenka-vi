@@ -7,7 +7,7 @@ from fetch_analytics import totals_from
 
 ROOT = Path(__file__).resolve().parent.parent
 PAGES = ["index.html"] + [f"{name}/index.html" for name in
-    ("dashboard", "heatmap", "perf", "sales", "stock", "funnel")]
+    ("picker", "dashboard", "heatmap", "perf", "sales", "stock", "funnel")]
 BEACON = "907d91d4e2e044f682da0d451e684f83"
 
 class SiteRegressions(unittest.TestCase):
@@ -31,6 +31,16 @@ class SiteRegressions(unittest.TestCase):
         days = [{"дата": d, "просмотры": 1, "посетители": 1} for d in
                 ("2026-08-29", "2026-08-30", "2026-09-05", "2026-09-06")]
         self.assertEqual(totals_from(days, 7, date(2026, 9, 5))["просмотры"], 2)
+
+    def test_home_is_a_switchboard_and_picker_has_its_own_route(self):
+        home = (ROOT / "index.html").read_text(encoding="utf-8")
+        picker = (ROOT / "picker/index.html").read_text(encoding="utf-8")
+        self.assertIn('role="tablist"', home)
+        self.assertIn('data-panel="analytics"', home)
+        self.assertIn('data-panel="tools"', home)
+        self.assertIn('href="picker/"', home)
+        self.assertIn('<base href="../">', picker)
+        self.assertIn('nav.js?v=', picker)
 
 if __name__ == "__main__":
     unittest.main()

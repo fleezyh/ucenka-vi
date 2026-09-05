@@ -451,3 +451,34 @@ footer { border-top-color: var(--line); color: var(--muted); }
   .site-usage__row { font-size: 13px; }
   .site-usage__stamp { font-size: 12px; }
 }
+
+/* The dashboard has its own header markup; use the same compact mobile menu. */
+.navMenuButton { display: none; }
+@media (max-width: 640px) {
+  .site-nav { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; }
+  .navMenuButton {
+    display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px;
+    border: 1px solid rgba(255,255,255,.16); border-radius: 15px; color: var(--text);
+    background: linear-gradient(145deg,rgba(255,255,255,.11),rgba(255,255,255,.035)),rgba(13,21,31,.75);
+    box-shadow: inset 0 1px rgba(255,255,255,.16),0 12px 30px rgba(0,0,0,.22);
+    backdrop-filter: blur(18px) saturate(160%); -webkit-backdrop-filter: blur(18px) saturate(160%);
+    font: 750 14px "VI Sans",system-ui,sans-serif;
+  }
+  .navMenuButton > span { display:grid; gap:4px; width:16px; }
+  .navMenuButton i { display:block; width:16px; height:2px; border-radius:2px; background:currentColor; transition:transform .2s ease; }
+  .navMenuButton[aria-expanded="true"] i:first-child { transform:translateY(3px) rotate(45deg); }
+  .navMenuButton[aria-expanded="true"] i:last-child { transform:translateY(-3px) rotate(-45deg); }
+  body.nav-enhanced .site-nav__actions:not(.is-open) { display:none; }
+  .site-nav__actions.is-open {
+    grid-column:1 / -1; display:grid; grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:7px; width:100%; overflow:visible; padding:9px; border:1px solid rgba(255,255,255,.13);
+    border-radius:20px; background:rgba(12,20,30,.88); box-shadow:inset 0 1px rgba(255,255,255,.12),0 20px 45px rgba(0,0,0,.28);
+  }
+  .site-nav__actions.is-open .navGroup {
+    grid-column:1 / -1; display:grid; grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:5px; width:100%; padding:5px; border:0; background:rgba(255,255,255,.025);
+  }
+  .site-nav__actions.is-open .navGroup__label { display:block; grid-column:1 / -1; padding:4px 7px 1px; }
+  .site-nav__actions.is-open .navLink { justify-content:center; min-width:0; white-space:normal; text-align:center; }
+  .site-nav__actions.is-open .navAdmin { grid-column:1 / -1; justify-content:center; }
+}
