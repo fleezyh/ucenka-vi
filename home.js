@@ -39,7 +39,6 @@
     .then((data) => {
       const periods = data["запериод"] || {};
       document.querySelector("#homeViewsToday").textContent = (periods["сутки"]?.["просмотры"] ?? 0).toLocaleString("ru-RU");
-      document.querySelector("#homeViewsWeek").textContent = (periods["неделя"]?.["просмотры"] ?? 0).toLocaleString("ru-RU");
     })
     .catch(() => document.querySelector(".homeViews")?.remove());
 })();

@@ -122,16 +122,24 @@ def find_account_and_site() -> tuple[str, str]:
 
 
 TOTALS_QUERY = """
-query Totals($accountTag: String!, $siteTag: String!, $since: Time!, $until: Time!) {
+query Totals(
+  $accountTag: String!, $siteTag: String!, $day: Time!,
+  $week: Time!, $month: Time!, $until: Time!
+) {
   viewer {
     accounts(filter: {accountTag: $accountTag}) {
-      total: rumPageloadEventsAdaptiveGroups(
-        filter: {siteTag: $siteTag, datetime_geq: $since, datetime_leq: $until}
+      day: rumPageloadEventsAdaptiveGroups(
+        filter: {siteTag: $siteTag, datetime_geq: $day, datetime_leq: $until}
         limit: 1
-      ) {
-        count
-        sum { visits }
-      }
+      ) { count sum { visits } }
+      week: rumPageloadEventsAdaptiveGroups(
+        filter: {siteTag: $siteTag, datetime_geq: $week, datetime_leq: $until}
+        limit: 1
+      ) { count sum { visits } }
+      month: rumPageloadEventsAdaptiveGroups(
+        filter: {siteTag: $siteTag, datetime_geq: $month, datetime_leq: $until}
+        limit: 1
+      ) { count sum { visits } }
     }
   }
 }
@@ -192,7 +200,8 @@ def collect(token: str) -> dict:
     account, site = find_account_and_site()
     log(f"аккаунт {account[:8]}…, сайт {site[:8]}…")
 
-    until = datetime.now(timezone.utc).date()
+    now = datetime.now(timezone.utc)
+    until = now.date()
     since = until - timedelta(days=HISTORY_DAYS - 1)
     variables = {
         "accountTag": account,
@@ -203,6 +212,20 @@ def collect(token: str) -> dict:
 
     daily = query(token, DAILY_QUERY, variables)["viewer"]["accounts"][0]["days"]
     pages = query(token, PAGES_QUERY, variables)["viewer"]["accounts"][0]["pages"]
+    midnight = datetime.combine(until, datetime.min.time(), tzinfo=timezone.utc)
+    period_variables = {
+        "accountTag": account,
+        "siteTag": site,
+        "day": midnight.isoformat(),
+        "week": (midnight - timedelta(days=6)).isoformat(),
+        "month": (midnight - timedelta(days=29)).isoformat(),
+        "until": now.isoformat(),
+    }
+    period_rows = query(token, TOTALS_QUERY, period_variables)["viewer"]["accounts"][0]
+
+    def period(name: str) -> dict:
+        row = period_rows[name][0] if period_rows[name] else {"count": 0, "sum": {"visits": 0}}
+        return {"просмотры": row["count"], "посетители": row["sum"]["visits"]}
 
     by_day = [
         {
@@ -218,9 +241,9 @@ def collect(token: str) -> dict:
         "периоды": "Календарные дни UTC, включая текущий неполный день; не скользящие 24 часа",
         "метрикаПосетителей": "Визиты Cloudflare, не уникальные люди",
         "запериод": {
-            "сутки": totals_from(by_day, 1),
-            "неделя": totals_from(by_day, 7),
-            "месяц": totals_from(by_day, 30),
+            "сутки": period("day"),
+            "неделя": period("week"),
+            "месяц": period("month"),
         },
         "поДням": by_day,
         "поСтраницам": [
