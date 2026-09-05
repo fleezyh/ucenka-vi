@@ -105,8 +105,7 @@ $shellHtml = @'
       <span class="navGroup__label">Уценка</span>
       <a class="navLink" href="./" aria-current="page">Антигенерация</a>
       <a class="navLink" href="../heatmap/">Хитмап</a>
-      <a class="navLink" href="../funnel/">Воронка</a>
-      <a class="navLink" href="../stock/">Остатки</a>
+      <a class="navLink" href="../sales/">Продажи</a>
     </span>
     <span class="navGroup">
       <span class="navGroup__label">Инструменты</span>

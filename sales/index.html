@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0a1018">
+  <title>Уценка · Продажи</title>
+  <link rel="icon" type="image/svg+xml" href="../assets/brand/vi-mark.svg">
+  <link rel="preload" href="../assets/fonts/VI_Sans_Regular.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="../style.css?v=20260904-14">
+  <!-- Стили обоих блоков: классы не пересекаются, дублировать их незачем. -->
+  <link rel="stylesheet" href="../funnel/funnel.css?v=20260905-3">
+  <link rel="stylesheet" href="../stock/stock.css?v=20260905-3">
+  <link rel="stylesheet" href="sales.css?v=20260905-1">
+  <script src="sales.js?v=20260905-1" defer></script>
+</head>
+<body data-mode="sales">
+  <main class="shell">
+    <header class="topbar">
+      <a class="brand" href="../" aria-label="Уценка — главная">
+        <img class="brand__mark" src="../assets/brand/vi-mark.svg" alt="" width="27" height="27">
+        <span>Уценка</span>
+      </a>
+      <nav class="siteNav" aria-label="Разделы сайта">
+        <span class="navGroup">
+          <span class="navGroup__label">Уценка</span>
+          <a class="navLink" href="../dashboard/">Антигенерация</a>
+          <a class="navLink" href="../heatmap/">Хитмап</a>
+          <a class="navLink" href="../sales/" aria-current="page">Продажи</a>
+        </span>
+        <span class="navGroup">
+          <span class="navGroup__label">Инструменты</span>
+          <a class="navLink" href="../">Пикалка</a>
+        </span>
+        <a class="navAdmin" href="https://fleezy.tailb770fe.ts.net" target="_blank" rel="noopener">Админка</a>
+      </nav>
+    </header>
+
+    <section class="heroSales">
+      <div>
+        <p class="eyebrow">Продажи уценки</p>
+        <h1>Продажи</h1>
+        <p class="lead">Что лежит на складе и как оно проходит путь до отгрузки.</p>
+      </div>
+      <p class="stamp" id="stamp"></p>
+    </section>
+
+    <p class="message" id="message">Загружаю данные…</p>
+
+    <section class="salesBlock" aria-labelledby="stockTitle">
+      <div class="salesHead">
+        <div>
+          <h2 id="stockTitle">Остатки паллет</h2>
+          <p class="salesLead">Сколько паллет лежит по регионам и что из них уже зарезервировано под отгрузку.</p>
+        </div>
+        <div class="stockLegend">
+          <span class="legendItem legendItem--res"><i></i>зарезервировано</span>
+          <span class="legendItem legendItem--free"><i></i>свободно</span>
+        </div>
+      </div>
+      <div class="stockWrap" id="stock" aria-live="polite"></div>
+    </section>
+
+    <section class="salesBlock" aria-labelledby="funnelTitle">
+      <div class="salesHead">
+        <div>
+          <h2 id="funnelTitle">Воронка отгрузок</h2>
+          <p class="salesLead">Лоты по ступеням сделки: сколько паллет, на какие деньги и какая окупаемость.</p>
+        </div>
+        <div class="periodBox">
+          <label class="periodLabel" for="month">Месяц</label>
+          <select id="month" aria-label="Месяц"></select>
+        </div>
+      </div>
+      <div class="funnelWrap" id="funnel" aria-live="polite"></div>
+    </section>
+
+    <p class="stockNote">
+      Себестоимость остатков считается по последней цене поставки без НДС. На борде в Superset
+      та же метрика берётся из контура ценообразования, поэтому суммы там ниже — это разные
+      цены, а не ошибка счёта.
+    </p>
+  </main>
+  <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token":"85a2c48f22834923b7c34b931c8c514e"}'></script>
+</body>
+</html>
