@@ -1,17 +1,28 @@
 @font-face{font-family:"VI Sans";src:url("assets/fonts/VI_Sans_Regular.woff2") format("woff2");font-weight:400;font-display:swap}
 @font-face{font-family:"VI Sans";src:url("assets/fonts/VI_Sans_DemiBold.woff2") format("woff2");font-weight:600;font-display:swap}
 @font-face{font-family:"VI Sans";src:url("assets/fonts/VI_Sans_ExtraBold.woff2") format("woff2");font-weight:800;font-display:swap}
-:root{color-scheme:dark only;--bg:#070c13;--text:#f4f7fb;--muted:#9ba7b7;--line:rgba(255,255,255,.13);--glass:rgba(19,28,40,.62);--green:#2bd179;--blue:#4c96ff;--red:#ff5147;--amber:#ffb547;--violet:#a985ff;--ui:"VI Sans","Segoe UI",system-ui,sans-serif}
+:root{color-scheme:dark only;--bg:#09090d;--text:#f4f7fb;--muted:#a7a7b0;--line:rgba(255,255,255,.13);--glass:rgba(18,18,25,.66);--green:#2bd179;--blue:#4c96ff;--red:#d95656;--amber:#ffb547;--violet:#a985ff;--ui:"VI Sans","Segoe UI",system-ui,sans-serif}
 *{box-sizing:border-box}
 html{min-width:320px;min-height:100%;background:var(--bg)}
-body{position:relative;isolation:isolate;min-height:100vh;margin:0;overflow-x:hidden;color:var(--text);font-family:var(--ui);background:linear-gradient(145deg,#071019,#080b13 58%,#0c0a18)}
+body{position:relative;isolation:isolate;min-height:100vh;margin:0;overflow-x:hidden;color:var(--text);font-family:var(--ui);background:#09090d}
 body::before,body::after{content:"";position:fixed;z-index:-1;inset:-18%;pointer-events:none}
 body::before{display:none}
-body::after{inset:-5%;background:linear-gradient(180deg,rgba(3,7,17,.05),rgba(3,7,17,.14) 68%,rgba(3,7,17,.58));opacity:.48}
+body::after{inset:0;background:linear-gradient(180deg,rgba(7,7,11,.06),rgba(7,7,11,.18) 68%,rgba(7,7,11,.66));opacity:.72}
+.spotlightField{--pointer-x:0;--pointer-y:0;position:fixed;z-index:-2;inset:0;overflow:hidden;pointer-events:none;background:linear-gradient(135deg,#130f18 0%,#09090e 48%,#100c12 100%)}
+.spotlight{position:absolute;top:-42vh;width:72vw;height:142vh;border-radius:50%;filter:blur(70px);mix-blend-mode:screen;will-change:transform,opacity;opacity:.52}
+.spotlight--left{left:-29vw;background:radial-gradient(ellipse at 50% 18%,rgba(188,75,88,.76) 0 15%,rgba(118,34,47,.42) 35%,rgba(60,18,28,.10) 60%,transparent 74%);transform:translate3d(calc(var(--pointer-x)*-22px),calc(var(--pointer-y)*-12px),0) rotate(-17deg);animation:spotlightLeft 18s ease-in-out infinite alternate}
+.spotlight--center{left:18vw;width:66vw;background:radial-gradient(ellipse at 50% 15%,rgba(158,56,69,.50),rgba(100,29,42,.28) 38%,transparent 72%);transform:translate3d(calc(var(--pointer-x)*12px),calc(var(--pointer-y)*8px),0) rotate(7deg);animation:spotlightCenter 23s ease-in-out infinite alternate}
+.spotlight--right{right:-34vw;background:radial-gradient(ellipse at 50% 20%,rgba(201,73,83,.62),rgba(107,29,40,.27) 40%,transparent 72%);transform:translate3d(calc(var(--pointer-x)*24px),calc(var(--pointer-y)*-10px),0) rotate(19deg);animation:spotlightRight 20s ease-in-out infinite alternate}
+.spotlightGlow{position:absolute;left:50%;top:-36vh;width:min(980px,82vw);height:118vh;border-radius:50%;background:radial-gradient(ellipse,rgba(224,107,111,.16),rgba(120,37,49,.065) 44%,transparent 72%);filter:blur(50px);transform:translateX(-50%);animation:spotlightBreathe 10s ease-in-out infinite alternate}
+.spotlightGrain{position:absolute;inset:0;opacity:.035;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.7'/%3E%3C/svg%3E");mix-blend-mode:soft-light}
+@keyframes spotlightLeft{to{translate:8vw 3vh;scale:1.08;opacity:.64}}
+@keyframes spotlightCenter{to{translate:-5vw 6vh;scale:.94;opacity:.40}}
+@keyframes spotlightRight{to{translate:-8vw 2vh;scale:1.1;opacity:.72}}
+@keyframes spotlightBreathe{to{scale:1.08;opacity:.72}}
 button,a{font:inherit;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 a{text-decoration:none;color:inherit}
 .homeShell{width:min(1050px,calc(100% - 32px));margin:0 auto;padding:24px 0 38px}
-.glass{position:relative;border:1px solid var(--line);background:linear-gradient(145deg,rgba(255,255,255,.09),rgba(255,255,255,.025)),var(--glass);box-shadow:inset 0 1px rgba(255,255,255,.13),0 24px 70px rgba(0,0,0,.27);backdrop-filter:blur(26px) saturate(165%);-webkit-backdrop-filter:blur(26px) saturate(165%)}
+.glass{position:relative;border:1px solid var(--line);background:linear-gradient(145deg,rgba(255,255,255,.085),rgba(255,255,255,.018)),var(--glass);box-shadow:inset 0 1px rgba(255,255,255,.13),0 24px 70px rgba(0,0,0,.32);backdrop-filter:blur(26px) saturate(145%);-webkit-backdrop-filter:blur(26px) saturate(145%)}
 .glass::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:linear-gradient(118deg,rgba(255,255,255,.18),transparent 24%,transparent 72%,rgba(118,177,255,.08));opacity:.55}
 .homeTop{display:flex;align-items:center;justify-content:space-between;min-height:64px;padding:11px 15px;border-radius:22px}
 .homeBrand{position:relative;z-index:1;display:inline-flex;align-items:center;gap:11px;font-size:19px;font-weight:800}
@@ -37,7 +48,7 @@ a{text-decoration:none;color:inherit}
 .homeCard{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:17px;min-height:142px;padding:22px;border-radius:25px;overflow:hidden;transition:transform .2s cubic-bezier(.22,1,.36,1),border-color .2s ease,background .2s ease}
 .homeCard:hover{transform:translateY(-3px);border-color:rgba(255,255,255,.25);background:linear-gradient(145deg,rgba(255,255,255,.13),rgba(255,255,255,.035)),var(--glass)}
 .homeCard:active{transform:scale(.985)}
-.homeCard--primary{border-color:rgba(255,81,71,.28)}
+.homeCard--primary{border-color:rgba(217,86,86,.34)}
 .homeCard--picker{border-color:rgba(43,209,121,.35)}
 .homeCard__icon{position:relative;z-index:1;display:grid;place-items:center;width:54px;height:54px;border-radius:17px;color:#fff;background:linear-gradient(145deg,#ff655c,#d92820);box-shadow:inset 0 1px rgba(255,255,255,.25),0 10px 28px rgba(255,69,58,.17);font-size:18px;font-weight:800}
 .homeCard__icon--violet{background:linear-gradient(145deg,#b49aff,#7951d8)}
@@ -71,7 +82,7 @@ footer{display:flex;align-items:center;justify-content:center;gap:9px;margin-top
   .homeCard{gap:12px;padding:15px}
   .homeCard__arrow{width:32px;height:32px}
 }
-@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}body::before{background-image:radial-gradient(circle at 28% 35%,rgba(255,91,168,.2),transparent 38%),radial-gradient(circle at 72% 45%,rgba(53,111,255,.24),transparent 44%)}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}.spotlight{transform:none!important}}
 @media(prefers-reduced-transparency:reduce){.glass,.homeSwitch__lens{backdrop-filter:none;-webkit-backdrop-filter:none;background:#131c28}}
 
 /* Длинный анонс и карточки не должны расширять мобильный viewport. */
@@ -80,10 +91,29 @@ footer{display:flex;align-items:center;justify-content:center;gap:9px;margin-top
 @media(max-width:520px){
   .homeShell{width:calc(100% - 20px)}
   .homeTop{padding-inline:12px}
+  .homeBrand{font-size:17px}
+  .homeViews{padding:6px 8px;font-size:11px}
   .homeViews span:last-child{display:none}
-  .homeHero{padding-top:42px}
-  .homeHero h1{font-size:clamp(48px,16vw,66px)}
+  .homeHero{padding:40px 4px 22px}
+  .homeHero h1{font-size:clamp(42px,13.5vw,56px);letter-spacing:-.06em}
   .homeHero>p:last-child{font-size:15px;line-height:1.48}
+  .homeSwitch{padding:5px}
+  .homeSwitch__lens{inset:5px auto 5px 5px;width:calc(50% - 5px)}
+  .homeSwitch button{min-width:0;min-height:52px;padding-inline:6px;font-size:14px}
   .homeCard{grid-template-columns:auto minmax(0,1fr) 32px}
-  .homeCard__copy strong{overflow-wrap:anywhere}
+  .homeCard__copy strong{font-size:18px;overflow-wrap:anywhere}
+  .homeCard__copy small{font-size:13px;line-height:1.38;overflow-wrap:anywhere}
+}
+@media(max-width:360px){
+  .homeViews{display:none}
+  .homeHero h1{font-size:43px}
+  .homeCard{gap:10px;padding:14px}
+  .homeCard__icon{width:44px;height:44px}
+}
+@media(max-width:700px){
+  .spotlight{top:-28vh;width:105vw;height:115vh;filter:blur(52px);opacity:.46}
+  .spotlight--left{left:-62vw}
+  .spotlight--center{left:1vw;width:98vw;opacity:.35}
+  .spotlight--right{right:-66vw}
+  .spotlightGlow{top:-22vh;width:120vw;height:92vh;opacity:.56}
 }
