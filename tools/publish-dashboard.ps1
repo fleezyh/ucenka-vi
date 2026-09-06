@@ -66,6 +66,9 @@ $shellCss = @'
 .site-nav__brand img { width: 27px !important; height: 27px !important; }
 .site-usage__row .data-button { margin-left: 12px; }
 @media (max-width: 760px) { .navGroup__label { display: none; } .navLink, .navAdmin { padding: 8px 12px; font-size: 14px; } .site-usage__row .data-button { margin-left: 0; } }
+.dashboard-tools { width: min(var(--dash-max, 1280px), calc(100% - 48px)); margin: 0 auto; display: flex; align-items: center; justify-content: flex-end; gap: 10px; font-family: "VI Sans", system-ui, sans-serif; }
+.dashboard-tools .site-usage { width: auto; max-width: min(620px, 70vw); margin: 0; padding: 7px 10px; }
+.dashboard-tools .data-button { flex: 0 0 auto; min-height: 42px; white-space: nowrap; }
 .site-usage { max-width: 1280px; margin: 10px auto 0; padding: 0 24px; font-family: "VI Sans", system-ui, sans-serif; }
 .site-usage[hidden] { display: none; }
 .site-usage__row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 16px; padding: 9px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--muted); font-size: 12px; }
@@ -88,6 +91,9 @@ $shellCss = @'
 .site-usage { padding-inline: 12px; }
 .site-usage__row { gap: 6px 12px; }
 .site-usage__row .data-button { width: 100%; margin-top: 4px; }
+.dashboard-tools { width: calc(100% - 24px); align-items: stretch; flex-direction: column; }
+.dashboard-tools .site-usage { width: 100%; max-width: 100%; }
+.dashboard-tools > .data-button { width: 100%; }
 .import-panel { padding-inline: 12px; }
 /* Ширину задаёт экран, а не содержимое: иначе одна широкая таблица тянет
    вправо всю страницу. */
@@ -98,34 +104,39 @@ body { overflow-x: hidden; }
 
 $shellHtml = @'
 <!-- SITE-SHELL-START -->
-<nav class="site-nav" aria-label="Навигация сайта">
-  <div class="site-nav__identity">
-    <a class="site-nav__brand" href="../"><img src="../assets/brand/vi-mark.svg" alt=""><span>Уценка</span></a>
-    <section class="site-usage" id="site-usage" hidden aria-label="Посещаемость">
-      <span class="site-usage__title">Просмотры</span>
-      <span class="site-usage__item"><b id="usage-day">—</b> сегодня</span>
-      <span class="site-usage__item"><b id="usage-week">—</b> 7 дней</span>
-      <span class="site-usage__item"><b id="usage-month">—</b> 30 дней</span>
-      <span class="site-usage__spark" id="usage-spark" aria-hidden="true"></span>
-      <span class="site-usage__stamp" id="usage-stamp"></span>
-    </section>
-  </div>
-  <div class="site-nav__actions">
-    <span class="navGroup">
-      <span class="navGroup__label">Уценка</span>
-      <a class="navLink" href="./" aria-current="page">Антигенерация</a>
-      <a class="navLink" href="../heatmap/">Хитмап</a>
-      <a class="navLink" href="../sales/">Продажи</a>
-      <a class="navLink" href="../perf/">Производительность</a>
-    </span>
-    <span class="navGroup">
-      <span class="navGroup__label">Инструменты</span>
-      <a class="navLink" href="../">Пикалка</a>
-    </span>
-    <a class="navAdmin" href="https://fleezy.tailb770fe.ts.net" target="_blank" rel="noopener">Админка</a>
-    <button class="data-button primary nav-data-button" id="import-open" type="button">Обновить данные</button>
-  </div>
-</nav>
+<div class="siteHeaderShell">
+  <header class="topbar">
+    <a class="brand" href="../" aria-label="Уценка — главная">
+      <img class="brand__mark" src="../assets/brand/vi-mark.svg" alt="" width="27" height="27">
+      <span>Уценка</span>
+    </a>
+    <nav class="siteNav" aria-label="Разделы сайта">
+      <span class="navGroup">
+        <span class="navGroup__label">Уценка</span>
+        <a class="navLink" href="./" aria-current="page">Антигенерация</a>
+        <a class="navLink" href="../heatmap/">Хитмап</a>
+        <a class="navLink" href="../sales/">Продажи</a>
+        <a class="navLink" href="../perf/">Производительность</a>
+      </span>
+      <span class="navGroup">
+        <span class="navGroup__label">Инструменты</span>
+        <a class="navLink" href="../picker/">Пикалка</a>
+      </span>
+      <a class="navAdmin" href="https://fleezy.tailb770fe.ts.net" target="_blank" rel="noopener">Админка</a>
+    </nav>
+  </header>
+</div>
+<section class="dashboard-tools" aria-label="Данные дашборда">
+  <section class="site-usage" id="site-usage" hidden aria-label="Посещаемость">
+    <span class="site-usage__title">Просмотры</span>
+    <span class="site-usage__item"><b id="usage-day">—</b> сегодня</span>
+    <span class="site-usage__item"><b id="usage-week">—</b> 7 дней</span>
+    <span class="site-usage__item"><b id="usage-month">—</b> 30 дней</span>
+    <span class="site-usage__spark" id="usage-spark" aria-hidden="true"></span>
+    <span class="site-usage__stamp" id="usage-stamp"></span>
+  </section>
+  <button class="data-button primary" id="import-open" type="button">Обновить данные</button>
+</section>
 <section class="import-panel" id="import-panel" hidden aria-label="Обновление данных">
   <div class="import-card">
     <div>
@@ -142,11 +153,23 @@ $shellHtml = @'
   </div>
 </section>
 <script src="usage.js?v=20260906-1" defer></script>
+<script src="../nav.js?v=20260906-1" defer></script>
 <!-- Аналитика вставляется здесь, а не в исходной выгрузке: иначе она пропадала
      при каждой перепубликации дашборда. Идентификатор публичный. -->
 <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token":"907d91d4e2e044f682da0d451e684f83"}'></script>
 <!-- SITE-SHELL-END -->
 '@
+
+function Set-SiteStyleLinks([string]$Html) {
+  $Html = [regex]::Replace(
+    $Html,
+    '(?im)^[ \t]*<link rel="stylesheet" href="\.\./(?:reeded-bg|site-header)\.css\?v=[^"]+">[ \t]*\r?\n?',
+    ''
+  )
+  $links = '<link rel="stylesheet" href="../reeded-bg.css?v=20260906-1">' + "`r`n" +
+    '<link rel="stylesheet" href="../site-header.css?v=20260906-1">'
+  return [regex]::Replace($Html, '(?i)</head>', "$links`r`n</head>")
+}
 
 if ($SourceHtml) {
 $SourceHtml = (Resolve-Path -LiteralPath $SourceHtml).Path
@@ -168,6 +191,7 @@ $headAddon = @'
 <link rel="icon" type="image/svg+xml" href="../assets/brand/vi-mark.svg">
 <script src="vendor/xlsx.full.min.js"></script>
 <script src="dashboard-import.js" defer></script>
+<script src="../reeded-bg.js?v=20260906-7" defer></script>
 '@
 
 $content = [regex]::Replace(
@@ -193,6 +217,7 @@ $content = $content.Replace(
 
 $bodyPattern = [regex]::new("(?i)<body([^>]*)>")
 $content = $bodyPattern.Replace($content, { param($match) $match.Value + "`r`n" + $shellHtml }, 1)
+$content = Set-SiteStyleLinks $content
 
 New-Item -ItemType Directory -Force -Path $dashboardDir | Out-Null
 [System.IO.File]::WriteAllText($dashboardFile, $content, [System.Text.UTF8Encoding]::new($false))
@@ -226,6 +251,8 @@ else {
       1
     )
   }
+
+  $content = Set-SiteStyleLinks $content
 
   if ($content -ne $before) {
     [System.IO.File]::WriteAllText($dashboardFile, $content, [System.Text.UTF8Encoding]::new($false))

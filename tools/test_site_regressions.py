@@ -32,9 +32,32 @@ class SiteRegressions(unittest.TestCase):
                 ("2026-08-29", "2026-08-30", "2026-09-05", "2026-09-06")]
         self.assertEqual(totals_from(days, 7, date(2026, 9, 5))["просмотры"], 2)
 
+    def test_every_page_uses_the_home_background(self):
+        for page in PAGES:
+            with self.subTest(page=page):
+                html = (ROOT / page).read_text(encoding="utf-8")
+                self.assertEqual(html.count("reeded-bg.css?v="), 1)
+                self.assertEqual(html.count("reeded-bg.js?v="), 1)
+
+    def test_every_page_uses_the_shared_header(self):
+        for page in PAGES:
+            with self.subTest(page=page):
+                html = (ROOT / page).read_text(encoding="utf-8")
+                self.assertEqual(html.count("site-header.css?v="), 1)
+                self.assertEqual(html.count("nav.js?v="), 1)
+                self.assertEqual(html.count('<header class="topbar">'), 1)
+                self.assertEqual(html.count('class="brand"'), 1)
+                self.assertEqual(html.count('class="siteNav"'), 1)
+                header = html.split('<header class="topbar">', 1)[1].split("</header>", 1)[0]
+                self.assertNotIn("homeViews", header)
+                self.assertNotIn("site-usage", header)
+                self.assertNotIn("import-open", header)
+
     def test_home_is_a_switchboard_and_picker_has_its_own_route(self):
         home = (ROOT / "index.html").read_text(encoding="utf-8")
         picker = (ROOT / "picker/index.html").read_text(encoding="utf-8")
+        self.assertIn('<h1>Навигация</h1>', home)
+        self.assertNotIn("Куда идём?", home)
         self.assertIn('role="tablist"', home)
         self.assertIn('data-panel="analytics"', home)
         self.assertIn('data-panel="tools"', home)
