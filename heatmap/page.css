@@ -98,21 +98,22 @@ body[data-mode="heatmap"] .shell {
 
   .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   .tile {
-    min-height: 0;
+    height: 128px;
+    min-height: 128px;
     gap: 2px;
     padding: 11px 12px 10px;
     border-radius: 13px;
-    grid-template-rows: auto auto auto;
+    grid-template-rows: 32px 46px 20px;
   }
   .tile__name { font: 700 12.5px/16px var(--ui); -webkit-line-clamp: 2; }
   .tile__block { display: none; }
   .tile__value { font-size: 21px; }
-  .tile__value--pair { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px; white-space: normal; }
+  .tile__value--pair { display: flex; flex-wrap: wrap; align-content: flex-start; align-items: baseline; gap: 0 2px; max-height: 46px; overflow: hidden; white-space: normal; }
   .tile__slash { margin: 0 4px; }
   /* График убран: на 160 пикселях он всё равно нечитаем, а место съедает. */
   .tile__chart { display: none; }
   .tile__foot { margin-top: 5px; padding-top: 5px; font-size: 11px; }
-  .tile__foot--empty { display: none; }
+  .tile__foot--empty { visibility: hidden; }
 }
 
 @media (max-width: 330px) {

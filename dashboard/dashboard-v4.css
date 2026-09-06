@@ -1,5 +1,4 @@
-/* Финальный слой темы: настоящие веса VI Sans, общий прожекторный фон и
-   компактная посещаемость в шапке. */
+/* Финальный слой темы: настоящие веса VI Sans и общий прожекторный фон. */
 @font-face { font-family: "VI Sans"; src: url("../assets/fonts/VI_Sans_Regular.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
 @font-face { font-family: "VI Sans"; src: url("../assets/fonts/VI_Sans_Medium.woff2") format("woff2"); font-weight: 500; font-style: normal; font-display: swap; }
 @font-face { font-family: "VI Sans"; src: url("../assets/fonts/VI_Sans_DemiBold.woff2") format("woff2"); font-weight: 600; font-style: normal; font-display: swap; }
@@ -15,6 +14,7 @@
 }
 
 body, button, select, input, textarea, svg text { font-synthesis: none; }
+.head-in h1, .eyebrow { font-family: "VI Sans", system-ui, -apple-system, "Segoe UI", sans-serif; font-weight: 800; }
 body {
   background: #08080b;
 }
@@ -48,29 +48,6 @@ body::after {
 .navLink, .navAdmin { font-weight: 600; }
 .nav-data-button { flex: 0 0 auto; min-height: 42px; white-space: nowrap; }
 
-.site-usage {
-  display: flex;
-  align-items: center;
-  width: auto;
-  max-width: min(540px, 35vw);
-  margin: 0;
-  padding: 7px 10px;
-  gap: 8px 12px;
-  overflow: hidden;
-  border: 1px solid rgba(255,255,255,.075);
-  border-radius: 12px;
-  color: var(--muted);
-  background: rgba(255,255,255,.025);
-  font-size: 10px;
-  white-space: nowrap;
-}
-.site-usage[hidden] { display: none; }
-.site-usage__title { color: #bdaeb2; font-weight: 600; }
-.site-usage__item b { margin-right: 3px; color: #f2edef; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
-.site-usage__spark { display: inline-flex; align-items: end; gap: 2px; height: 16px; margin-left: 2px; }
-.site-usage__spark i { width: 2px; min-height: 2px; border-radius: 2px; background: #da585d; opacity: .85; }
-.site-usage__stamp { overflow: hidden; color: #786f73; font-size: 9px; text-overflow: ellipsis; }
-
 /* Селектор не должен перекрывать начало нового раздела после переключения. */
 .contour-switcher { position: relative !important; top: auto !important; }
 .contour-switcher__head span, .tab__number { font-weight: 800; }
@@ -86,22 +63,14 @@ body::after {
 .val-lbl, .series-end { font-weight: 600; }
 .chart-hit { cursor: crosshair; }
 
-@media (max-width: 1500px) {
-  .site-usage__stamp, .site-usage__spark { display: none; }
-}
 @media (max-width: 1380px) {
   .site-nav { align-items: flex-start; flex-direction: column; }
   .site-nav__identity { width: 100%; justify-content: space-between; }
-  .site-usage { max-width: none; }
   .site-nav__actions { width: 100%; }
 }
 @media (max-width: 640px) {
   body::before { inset: -12vh -70vw; filter: blur(34px) saturate(115%) contrast(116%); }
   .site-nav__identity { gap: 10px; }
-  .site-usage { margin-left: auto; padding: 6px 9px; }
-  .site-usage__title, .site-usage__item:not(:nth-of-type(2)), .site-usage__stamp, .site-usage__spark { display: none; }
-  .site-usage__item { font-size: 9px; }
-  .site-usage__item b { font-size: 12px; }
   .nav-data-button { min-height: 40px; }
 }
 @media (prefers-reduced-motion: reduce) {

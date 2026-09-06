@@ -21,9 +21,11 @@
   display: grid;
   /* Пропорции как в исходном чарте: плитка широкая и низкая, а не квадратная.
      Название в одну строку — на четырёх колонках оно помещается. */
-  grid-template-rows: auto auto 1fr auto;
+  grid-template-rows: 40px 33px minmax(0, 1fr) 22px;
   gap: 3px;
+  height: 190px;
   min-height: 190px;
+  box-sizing: border-box;
   padding: 12px 16px 9px;
   border-radius: 16px;
   color: #fff;
@@ -265,7 +267,7 @@
    нулевую высоту, и график в такой плитке съезжал ниже, чем у соседей с целью:
    у одних он стоял над линией, у других уходил к самому краю. Неразрывный
    пробел держит ту же высоту строки, что и текст цели. */
-.tile__foot--empty { border-top-color: rgba(255, 255, 255, 0.1); }
+.tile__foot--empty { visibility: hidden; border-top-color: transparent; }
 .tile__foot--empty::before { content: " "; }
 
 @media (prefers-reduced-motion: reduce) {

@@ -41,19 +41,6 @@ $shellCss = @'
 .site-nav__back { padding: 6px 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface-2); }
 .site-nav__back:hover { color: var(--ink); border-color: var(--line-2); }
 .site-nav__actions { display: flex; align-items: center; gap: 8px; }
-.data-button { border: 1px solid var(--line); border-radius: 7px; background: var(--surface-2); color: var(--ink); padding: 7px 11px; font: 700 12px "VI Sans", system-ui, sans-serif; cursor: pointer; }
-.data-button:hover { border-color: var(--accent); }
-.data-button.primary { color: #fff; background: var(--accent); border-color: var(--accent); }
-.data-button.danger { color: var(--critical); }
-.import-panel { max-width: 1280px; margin: 10px auto 0; padding: 0 24px; font-family: "VI Sans", system-ui, sans-serif; }
-.import-panel[hidden] { display: none; }
-.import-card { display: grid; grid-template-columns: 1fr auto; gap: 10px 18px; align-items: center; padding: 14px 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); box-shadow: var(--shadow); }
-.import-title { margin: 0 0 3px; color: var(--ink); font-size: 15px; }
-.import-hint, .import-status { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
-.import-status { grid-column: 1 / -1; padding-top: 8px; border-top: 1px solid var(--line); }
-.import-status.ok { color: var(--good); }
-.import-status.error { color: var(--critical); }
-.import-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
 .site-nav__links { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .navGroup { display: flex; align-items: center; gap: 4px; padding: 5px 5px 5px 14px; border: 1px solid var(--line); border-radius: 15px; background: var(--surface-2); }
 .navGroup__label { margin-right: 7px; color: var(--faint); font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; white-space: nowrap; }
@@ -64,20 +51,8 @@ $shellCss = @'
 .navAdmin:hover { border-color: rgba(240,93,114,.75); background: rgba(240,93,114,.2); }
 .site-nav__brand { font-size: 19px !important; }
 .site-nav__brand img { width: 27px !important; height: 27px !important; }
-.site-usage__row .data-button { margin-left: 12px; }
-@media (max-width: 760px) { .navGroup__label { display: none; } .navLink, .navAdmin { padding: 8px 12px; font-size: 14px; } .site-usage__row .data-button { margin-left: 0; } }
-.dashboard-tools { width: min(var(--dash-max, 1280px), calc(100% - 48px)); margin: 0 auto; display: flex; align-items: center; justify-content: flex-end; gap: 10px; font-family: "VI Sans", system-ui, sans-serif; }
-.dashboard-tools .site-usage { width: auto; max-width: min(620px, 70vw); margin: 0; padding: 7px 10px; }
-.dashboard-tools .data-button { flex: 0 0 auto; min-height: 42px; white-space: nowrap; }
-.site-usage { max-width: 1280px; margin: 10px auto 0; padding: 0 24px; font-family: "VI Sans", system-ui, sans-serif; }
-.site-usage[hidden] { display: none; }
-.site-usage__row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 16px; padding: 9px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--muted); font-size: 12px; }
-.site-usage__title { color: var(--ink-2); font-weight: 700; }
-.site-usage__item b { color: var(--ink); font-size: 14px; font-variant-numeric: tabular-nums; }
-.site-usage__spark { display: inline-flex; align-items: flex-end; gap: 2px; height: 18px; margin-left: auto; }
-.site-usage__spark i { width: 3px; min-height: 1px; border-radius: 1px; background: var(--accent); opacity: 0.65; }
-.site-usage__stamp { color: var(--muted); font-size: 11px; }
-@media (max-width: 720px) { .site-nav { padding-inline: 14px; } .site-nav__back { display: none; } .import-panel { padding-inline: 14px; } .import-card { grid-template-columns: 1fr; } .import-actions { justify-content: flex-start; } .site-usage { padding-inline: 14px; } .site-usage__spark { margin-left: 0; } }
+@media (max-width: 760px) { .navGroup__label { display: none; } .navLink, .navAdmin { padding: 8px 12px; font-size: 14px; } }
+@media (max-width: 720px) { .site-nav { padding-inline: 14px; } .site-nav__back { display: none; } }
 /* Телефон. Шапка не помещалась в ширину экрана: группы ссылок не переносятся,
    и «Админка» уезжала за правый край, а страница получала горизонтальную
    прокрутку. Логотип встаёт своей строкой, ссылки — лентой с прокруткой. */
@@ -88,13 +63,6 @@ $shellCss = @'
 .site-nav__actions::-webkit-scrollbar { display: none; }
 .navGroup { flex: 0 0 auto; padding: 4px; }
 .navAdmin { flex: 0 0 auto; }
-.site-usage { padding-inline: 12px; }
-.site-usage__row { gap: 6px 12px; }
-.site-usage__row .data-button { width: 100%; margin-top: 4px; }
-.dashboard-tools { width: calc(100% - 24px); align-items: stretch; flex-direction: column; }
-.dashboard-tools .site-usage { width: 100%; max-width: 100%; }
-.dashboard-tools > .data-button { width: 100%; }
-.import-panel { padding-inline: 12px; }
 /* Ширину задаёт экран, а не содержимое: иначе одна широкая таблица тянет
    вправо всю страницу. */
 .wrap, .head-in { max-width: 100%; padding-inline: 12px; }
@@ -126,33 +94,6 @@ $shellHtml = @'
     </nav>
   </header>
 </div>
-<section class="dashboard-tools" aria-label="Данные дашборда">
-  <section class="site-usage" id="site-usage" hidden aria-label="Посещаемость">
-    <span class="site-usage__title">Просмотры</span>
-    <span class="site-usage__item"><b id="usage-day">—</b> сегодня</span>
-    <span class="site-usage__item"><b id="usage-week">—</b> 7 дней</span>
-    <span class="site-usage__item"><b id="usage-month">—</b> 30 дней</span>
-    <span class="site-usage__spark" id="usage-spark" aria-hidden="true"></span>
-    <span class="site-usage__stamp" id="usage-stamp"></span>
-  </section>
-  <button class="data-button primary" id="import-open" type="button">Обновить данные</button>
-</section>
-<section class="import-panel" id="import-panel" hidden aria-label="Обновление данных">
-  <div class="import-card">
-    <div>
-      <h2 class="import-title">Загрузить свежие выгрузки</h2>
-      <p class="import-hint">CSV или Excel, один файл либо сразу несколько. Тип отчёта определяется автоматически; повторная загрузка заменяет его старые данные без дублей.</p>
-    </div>
-    <div class="import-actions">
-      <input id="import-files" type="file" accept=".csv,.xlsx,.xls" multiple hidden>
-      <button class="data-button primary" id="import-choose" type="button">Выбрать файлы</button>
-      <button class="data-button danger" id="import-reset" type="button">Вернуть исходные</button>
-      <button class="data-button" id="import-close" type="button">Закрыть</button>
-    </div>
-    <p class="import-status" id="import-status">Обновления сохраняются только в этом браузере. Исходные файлы никуда не отправляются.</p>
-  </div>
-</section>
-<script src="usage.js?v=20260906-1" defer></script>
 <script src="../nav.js?v=20260906-1" defer></script>
 <!-- Аналитика вставляется здесь, а не в исходной выгрузке: иначе она пропадала
      при каждой перепубликации дашборда. Идентификатор публичный. -->
@@ -189,8 +130,6 @@ $content = [regex]::Replace(
 $headAddon = @'
 <!-- SITE-SHELL-HEAD -->
 <link rel="icon" type="image/svg+xml" href="../assets/brand/vi-mark.svg">
-<script src="vendor/xlsx.full.min.js"></script>
-<script src="dashboard-import.js" defer></script>
 <script src="../reeded-bg.js?v=20260906-7" defer></script>
 '@
 
@@ -211,7 +150,7 @@ $content = [regex]::Replace(
 
 $content = $content.Replace(
   '<b>Черновик для обсуждения.</b> Страница статична: данные внутри, к базе не обращается.',
-  '<b>Данные работают локально.</b> Свежие CSV и Excel можно загрузить кнопкой сверху; файлы никуда не отправляются.'
+  '<b>Данные обновляются автоматически.</b> Страница использует опубликованную выгрузку и к базе из браузера не обращается.'
 )
 
 

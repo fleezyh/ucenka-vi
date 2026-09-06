@@ -48,7 +48,7 @@
     left.innerHTML = `<b>${decimal(stage.sale_txt) || "—"}</b><span>в ценах продаж</span>`;
 
     const bar = document.createElement("div");
-    bar.className = "stage__bar";
+    bar.className = `stage__bar ${stage.ink_cls || "light"}`.trim();
     bar.style.width = `${widthOf(stage, all).toFixed(1)}%`;
     // Оттенок задаёт запрос — он же красит ступени в самом Superset.
     if (stage.seg_color) bar.style.background = stage.seg_color;

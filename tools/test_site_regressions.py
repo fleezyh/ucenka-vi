@@ -66,5 +66,69 @@ class SiteRegressions(unittest.TestCase):
         self.assertIn('<base href="../">', picker)
         self.assertIn('nav.js?v=', picker)
 
+    def test_dashboard_has_no_manual_import_or_usage_counter(self):
+        dashboard = (ROOT / "dashboard/index.html").read_text(encoding="utf-8")
+        publisher = (ROOT / "tools/publish-dashboard.ps1").read_text(encoding="utf-8")
+        removed = (
+            "dashboard-tools", "site-usage", "import-open", "usage.js",
+            "dashboard-import.js", "xlsx.full.min.js",
+        )
+        for token in removed:
+            with self.subTest(token=token):
+                self.assertNotIn(token, dashboard)
+                self.assertNotIn(token, publisher)
+
+        theme = (ROOT / "dashboard/dashboard-v4.css").read_text(encoding="utf-8")
+        self.assertIn(".head-in h1, .eyebrow", theme)
+        self.assertIn("font-weight: 800", theme)
+
+    def test_heatmap_tiles_keep_fixed_geometry(self):
+        desktop = (ROOT / "heatmap/tiles.css").read_text(encoding="utf-8")
+        mobile = (ROOT / "heatmap/page.css").read_text(encoding="utf-8")
+        self.assertIn("height: 190px", desktop)
+        self.assertIn("min-height: 190px", desktop)
+        self.assertIn("grid-template-rows: 40px 33px minmax(0, 1fr) 22px", desktop)
+        self.assertIn(".tile__foot--empty { visibility: hidden", desktop)
+        self.assertIn("height: 128px", mobile)
+        self.assertIn("min-height: 128px", mobile)
+        self.assertIn("grid-template-rows: 32px 46px 20px", mobile)
+        self.assertNotIn(".tile__foot--empty { display: none", mobile)
+
+    def test_stock_stays_one_interactive_comparison_row(self):
+        style = (ROOT / "stock/stock.css").read_text(encoding="utf-8")
+        sales = (ROOT / "sales/sales.js").read_text(encoding="utf-8")
+        self.assertIn(".stockGrid::before", style)
+        self.assertIn("background: transparent", style)
+        self.assertIn("width: max-content", style)
+        self.assertIn("grid-template-columns: repeat(8, 126px)", style)
+        for token in ("stockCard--clickable", "openRegion(", "bindTip(", "exportStock("):
+            with self.subTest(token=token):
+                self.assertIn(token, sales)
+
+    def test_funnel_uses_contrast_classes_and_palette(self):
+        renderer = '`stage__bar ${stage.ink_cls || "light"}`'
+        for script in ("funnel/funnel.js", "sales/sales.js"):
+            with self.subTest(script=script):
+                self.assertIn(renderer, (ROOT / script).read_text(encoding="utf-8"))
+
+        style = (ROOT / "funnel/funnel.css").read_text(encoding="utf-8")
+        self.assertIn("min-height: 56px", style)
+        self.assertIn(".stage__bar.light { color: #fff; }", style)
+        self.assertIn(".stage__bar.dark { color: #07131f; }", style)
+
+        payload = json.loads((ROOT / "data/funnel.json").read_text(encoding="utf-8"))
+        expected = {
+            1: ("#0b4f6c", "light"),
+            2: ("#155e75", "light"),
+            3: ("#0f766e", "light"),
+            4: ("#2dd4bf", "dark"),
+            5: ("#a3e635", "dark"),
+        }
+        for stage in payload["ступени"]:
+            self.assertEqual(
+                (stage["seg_color"], stage["ink_cls"]),
+                expected[stage["stage_ord"]],
+            )
+
 if __name__ == "__main__":
     unittest.main()
