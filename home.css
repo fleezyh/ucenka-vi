@@ -9,6 +9,7 @@ body::before,body::after{content:"";position:fixed;z-index:-1;inset:-18%;pointer
 body::before{display:none}
 .spotlightField{--pointer-x:0;--pointer-y:0;position:fixed;z-index:-2;inset:0;overflow:hidden;pointer-events:none;background:linear-gradient(135deg,#1a0c13 0%,#09090e 46%,#170b12 100%)}
 .spotlightField::before{content:"";position:absolute;inset:-45%;background:conic-gradient(from 215deg at 50% 45%,transparent 0 17%,rgba(238,71,92,.22) 25%,rgba(255,135,142,.36) 31%,rgba(166,31,55,.16) 38%,transparent 48% 69%,rgba(222,58,80,.20) 78%,transparent 88%);filter:blur(82px);mix-blend-mode:screen;animation:spotlightSweep 14s ease-in-out infinite alternate;will-change:transform,opacity}
+.spotlightFlow{position:absolute;left:0;top:-20vh;width:68vw;height:132vh;border-radius:50%;background:radial-gradient(ellipse,rgba(255,211,194,.94) 0 6%,rgba(255,101,112,.86) 21%,rgba(205,39,67,.48) 43%,transparent 71%);filter:blur(30px) saturate(132%);mix-blend-mode:screen;will-change:transform,opacity}
 .spotlight{position:absolute;top:-42vh;width:72vw;height:142vh;border-radius:50%;filter:blur(58px);mix-blend-mode:screen;will-change:transform,opacity;opacity:.72}
 .spotlight--left{left:-29vw;background:radial-gradient(ellipse at 50% 18%,rgba(242,92,106,.94) 0 14%,rgba(179,44,66,.60) 34%,rgba(96,22,40,.18) 60%,transparent 74%);transform:translate3d(calc(var(--pointer-x)*-38px),calc(var(--pointer-y)*-20px),0) rotate(-17deg);animation:spotlightLeft 11s ease-in-out infinite alternate}
 .spotlight--center{left:18vw;width:66vw;background:radial-gradient(ellipse at 50% 15%,rgba(225,77,94,.75),rgba(155,35,56,.44) 38%,transparent 72%);transform:translate3d(calc(var(--pointer-x)*22px),calc(var(--pointer-y)*15px),0) rotate(7deg);animation:spotlightCenter 15s ease-in-out infinite alternate}
@@ -83,7 +84,7 @@ footer{display:flex;align-items:center;justify-content:center;gap:9px;margin-top
   .homeCard{gap:12px;padding:15px}
   .homeCard__arrow{width:32px;height:32px}
 }
-@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}.spotlight{transform:none!important}}
+@media(prefers-reduced-motion:reduce){*:not(.spotlightField):not(.spotlight),*::before,*::after{transition:none!important}.spotlightField::before{animation-duration:32s}.spotlight{animation-duration:30s}.spotlightGlow{animation-duration:22s}}
 @media(prefers-reduced-transparency:reduce){.glass,.homeSwitch__lens{backdrop-filter:none;-webkit-backdrop-filter:none;background:#131c28}}
 
 /* Длинный анонс и карточки не должны расширять мобильный viewport. */
@@ -112,6 +113,7 @@ footer{display:flex;align-items:center;justify-content:center;gap:9px;margin-top
   .homeCard__icon{width:44px;height:44px}
 }
 @media(max-width:700px){
+  .spotlightFlow{width:115vw;height:105vh;top:-10vh;filter:blur(34px)}
   .spotlight{top:-28vh;width:105vw;height:115vh;filter:blur(52px);opacity:.46}
   .spotlight--left{left:-62vw}
   .spotlight--center{left:1vw;width:98vw;opacity:.35}
