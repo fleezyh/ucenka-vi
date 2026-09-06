@@ -6,7 +6,7 @@
 html{min-width:320px;min-height:100%;background:var(--bg)}
 body{position:relative;isolation:isolate;min-height:100vh;margin:0;overflow-x:hidden;color:var(--text);font-family:var(--ui);background:linear-gradient(145deg,#071019,#080b13 58%,#0c0a18)}
 body::before,body::after{content:"";position:fixed;z-index:-1;inset:-18%;pointer-events:none}
-body::before{inset:-3%;background:url("assets/reeded-flow.svg?v=20260906-5") center/cover no-repeat;filter:saturate(118%);opacity:.58;transform:scale(1.04)}
+body::before{display:none}
 body::after{inset:-5%;background:linear-gradient(180deg,rgba(3,7,17,.05),rgba(3,7,17,.14) 68%,rgba(3,7,17,.58));opacity:.48}
 button,a{font:inherit;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 a{text-decoration:none;color:inherit}
