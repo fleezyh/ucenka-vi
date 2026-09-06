@@ -208,6 +208,7 @@ body { overflow-x: hidden; }
 </style>
 <link rel="stylesheet" href="dashboard-redesign.css?v=20260906-2">
 <link rel="stylesheet" href="dashboard-v2.css?v=20260906-2">
+<link rel="stylesheet" href="dashboard-v3.css?v=20260906-1">
 </head>
 <body>
 <!-- SITE-SHELL-START -->
@@ -276,18 +277,24 @@ body { overflow-x: hidden; }
 </header>
 
 <div class="wrap">
-  <div class="tabs" role="tablist" id="tabs"></div>
+  <div class="contour-switcher">
+    <div class="contour-switcher__head">
+      <div><span>4 витрины · одна цепочка</span><h2>Выберите вопрос к данным</h2></div>
+      <p>От официального факта — к месту, операции и ответственной стороне. Каждый раздел использует только свою выгрузку.</p>
+    </div>
+    <div class="tabs" role="tablist" id="tabs"></div>
+  </div>
 
   <!-- ============ ДВИЖЕНИЕ ============ -->
   <section class="panel" id="p-dmd" hidden>
-    <div class="intro">
+    <div class="intro contour-hero">
       <p><strong>Запасы и поток ДМД — где физически находится проблемный товар.</strong> Здесь видно, сколько товара поступает в брак-ячейки и какой остаток лежит в них на последнюю дату.</p>
       <p><span class="warn">Поток и остаток не складываются:</span> вход показывает движение за неделю, остаток — одномоментный снимок. Рубли здесь — закупочная цена с НДС и напрямую не сопоставляются с другими разделами.</p>
     </div>
     <div class="fbar"><label for="f-dmd">Неделя</label><select id="f-dmd"></select><div class="toggle" id="m-dmd" style="margin-left:6px"><button data-u="rub" aria-pressed="true">₽</button><button data-u="sht" aria-pressed="false">штуки</button></div><span class="hint">остаток всегда на последнюю дату — это снимок</span></div>
     <div class="kpis" id="dmd-kpis"></div>
     <div class="grid">
-      <div class="card c7">
+      <div class="card c12 chart-card chart-card--hero">
         <div class="card-head"><div><h3>Как меняется входящий поток</h3><div class="cap">поступление товара в брак-ячейки ДМД по неделям</div></div></div>
         <div class="chart-insight" id="dmd-line-insight"></div>
         <div id="dmd-line"></div>
@@ -308,7 +315,7 @@ body { overflow-x: hidden; }
         <div class="card-head"><div><h3>Какие категории формируют поток</h3><div class="cap">товарные направления во входящем браке</div></div></div>
         <div id="dmd-cat"></div>
       </div>
-      <div class="card c6">
+      <div class="card c12">
         <div class="card-head"><div><h3>Как товар учитывается</h3><div class="cap">модель учёта только для входящего потока</div></div></div>
         <div id="dmd-mu"></div>
       </div>
@@ -321,14 +328,14 @@ body { overflow-x: hidden; }
 
   <!-- ============ 2. ЗАДАНИЯ ============ -->
   <section class="panel" id="p-gen" hidden>
-    <div class="intro">
+    <div class="intro contour-hero">
       <p><strong>Брак на операциях — где проблема впервые проявилась в складском процессе.</strong> Задания возникают при отборе, комплектации, размещении и других операциях.</p>
       <p><span class="warn">Стоимость товара в задании — не убыток:</span> товар могли найти или вернуть в процесс. Этот контур показывает место возникновения сигнала, а не окончательный объём брака.</p>
     </div>
     <div class="fbar"><label for="f-gen">Месяц</label><select id="f-gen"></select><div class="toggle" id="m-gen" style="margin-left:6px"><button data-u="rub" aria-pressed="true">₽</button><button data-u="sht" aria-pressed="false">штуки</button></div><span class="hint">99% брака — отбор и комплектация, площадки ДМД и Чашниково</span></div>
     <div class="kpis" id="gen-kpis"></div>
     <div class="grid">
-      <div class="card c7">
+      <div class="card c12 chart-card chart-card--hero">
         <div class="card-head"><div><h3>Как меняется объём сигналов</h3><div class="cap">задания с признаком брака по месяцам</div></div></div>
         <div class="chart-insight" id="gen-line-insight"></div>
         <div id="gen-line"></div>
@@ -349,7 +356,7 @@ body { overflow-x: hidden; }
         <div class="card-head"><div><h3>Как завершилось задание</h3><div class="cap">итоговое решение по сигналу</div></div></div>
         <div id="gen-resh"></div>
       </div>
-      <div class="card c6">
+      <div class="card c12">
         <div class="card-head"><div><h3>Кто обрабатывал задания</h3><div class="cap">топ-12 из <span id="gen-nisp"></span> операторов · это нагрузка, а не вина</div></div></div>
         <div id="gen-isp"></div>
       </div>
@@ -358,19 +365,19 @@ body { overflow-x: hidden; }
 
   <!-- ============ 3. АКТЫ ============ -->
   <section class="panel" id="p-akty" hidden>
-    <div class="intro">
+    <div class="intro contour-hero">
       <p><strong>Ответственность при передаче — откуда приехал повреждённый товар и кого система связала с расхождением.</strong> Акт оформляет принимающая сторона.</p>
       <p>Связь с забраковкой соединяет факт обнаружения с причиной: <strong>«где нашли → откуда пришло → кто отвечает»</strong>. Чем выше доля связи, тем полнее прослеживается происхождение брака.</p>
     </div>
     <div class="fbar"><label for="f-akty">Месяц</label><select id="f-akty"></select><div class="toggle" id="m-akty" style="margin-left:6px"><button data-u="rub" aria-pressed="true">₽</button><button data-u="sht" aria-pressed="false">штуки</button></div><span class="hint">себестоимость без НДС</span></div>
     <div class="kpis" id="akty-kpis"></div>
     <div class="grid">
-      <div class="card c7">
+      <div class="card c12 chart-card chart-card--hero">
         <div class="card-head"><div><h3>Как меняется объём расхождений</h3><div class="cap">товары в актах по месяцам</div></div></div>
         <div class="chart-insight" id="akty-line-insight"></div>
         <div id="akty-line"></div>
       </div>
-      <div class="card c5">
+      <div class="card c12">
         <div class="card-head"><div><h3>Кого система связывает с причиной</h3><div class="cap">тип ответственной стороны</div></div></div>
         <div id="akty-vin"></div>
       </div>
@@ -461,11 +468,11 @@ body { overflow-x: hidden; }
     </div>
     <div class="kpis" id="zabr-kpis" hidden></div>
     <div class="grid diagnostic-grid">
-      <div class="card c7">
+      <div class="card c12 chart-card chart-card--hero">
         <div class="card-head"><div><h3>Стоимость официального брака</h3><div class="cap">полные месяцы 2026 года · переключается в количество актов</div></div></div>
         <div class="chart-insight" id="zabr-line-insight"></div><div id="zabr-line"></div>
       </div>
-      <div class="card c5"><div class="card-head"><div><h3>Внутри последнего месяца</h3><div class="cap">недельный темп выбранного периода</div></div></div><div id="zabr-week"></div></div>
+      <div class="card c12 chart-card chart-card--secondary"><div class="card-head"><div><h3>Внутри последнего месяца</h3><div class="cap">недельный темп выбранного периода — наведите на столбец для точного значения</div></div></div><div id="zabr-week"></div></div>
       <div class="card c6"><div class="card-head"><div><h3>Из каких точек состоит результат</h3><div class="cap">структура по месту обнаружения · доля и объём</div></div></div><div id="zabr-vid"></div></div>
       <div class="card c6"><div class="card-head"><div><h3>Какие причины дают основной объём</h3><div class="cap">Парето дефектов · доля и накопленный вклад</div></div></div><div id="zabr-def"></div></div>
       <div class="card c6"><div class="card-head"><div><h3>Категории риска</h3><div class="cap">товарные направления с наибольшим вкладом</div></div></div><div id="zabr-napr"></div></div>
@@ -716,25 +723,40 @@ const kpi = (m, items) => document.getElementById(m).innerHTML = items.map(i =>
 
 /* ---------- вкладки ---------- */
 const TABS = [
-  ['p-zabr', 'Официальный брак', true],
-  ['p-dmd', 'Запас в ДМД'],
-  ['p-gen', 'Сигналы операций'],
-  ['p-akty', 'Акты передачи']
+  { id: 'p-zabr', number: '01', name: 'Факт брака', question: 'Сколько официально зафиксировано', source: '2656', primary: true },
+  { id: 'p-dmd', number: '02', name: 'Запас и поток', question: 'Где товар лежит и как движется', source: '2669' },
+  { id: 'p-gen', number: '03', name: 'Брак на операциях', question: 'На каком процессе возникает сигнал', source: '2654' },
+  { id: 'p-akty', number: '04', name: 'Ответственность', question: 'Откуда пришло и с кем связано', source: '2671' }
 ];
 const tabsBox = document.getElementById('tabs');
-TABS.forEach(([id, name, primary], i) => {
+TABS.forEach((tab, i) => {
   const b = document.createElement('button');
-  b.className = 'tab' + (primary ? ' tab--primary' : ''); b.textContent = name; b.setAttribute('role', 'tab');
-  if (primary) b.dataset.badge = 'основной';
+  b.className = 'tab' + (tab.primary ? ' tab--primary' : '');
+  b.innerHTML = `<span class="tab__number">${tab.number}</span><span class="tab__copy"><strong>${tab.name}</strong><small>${tab.question}</small></span><span class="tab__source">#${tab.source}</span>`;
+  b.setAttribute('role', 'tab');
+  b.setAttribute('aria-controls', tab.id);
+  if (tab.primary) b.dataset.badge = 'основной';
   b.setAttribute('aria-selected', i === 0 ? 'true' : 'false');
   b.onclick = () => {
-    TABS.forEach(([pid], j) => {
-      document.getElementById(pid).hidden = pid !== id;
-      tabsBox.children[j].setAttribute('aria-selected', String(pid === id));
+    TABS.forEach((item, j) => {
+      document.getElementById(item.id).hidden = item.id !== tab.id;
+      tabsBox.children[j].setAttribute('aria-selected', String(item.id === tab.id));
     });
-    renderAll(); scrollTo({ top: 0, behavior: 'smooth' });
+    history.replaceState(null, '', '#' + tab.id.slice(2));
+    renderAll();
+    scrollTo({ top: tabsBox.getBoundingClientRect().top + scrollY - 94, behavior: 'smooth' });
   };
   tabsBox.appendChild(b);
+});
+const requestedTab = TABS.findIndex(tab => location.hash === '#' + tab.id.slice(2));
+tabsBox.addEventListener('keydown', e => {
+  if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) return;
+  e.preventDefault();
+  const active = [...tabsBox.children].findIndex(node => node.getAttribute('aria-selected') === 'true');
+  const direction = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : -1;
+  const next = (active + direction + TABS.length) % TABS.length;
+  tabsBox.children[next].focus();
+  tabsBox.children[next].click();
 });
 
 const F = { dmd: '_all', gen: '_all', akty: '_all', zabr: '_all' };
@@ -857,7 +879,7 @@ function renderControl() {
     { name: 'факт', v: C.plan_fact.slice(planStart, planEnd), color: 'var(--accent)', area: true },
     { name: 'Точка Б', v: C.plan_point_b.slice(planStart, planEnd), color: 'var(--amber)', dash: '7 6' },
     { name: 'цель −30% ГкГ', v: C.plan_goal.slice(planStart, planEnd), color: 'var(--green)', dash: '4 5' }
-  ], { h: 255, fmt: fmtK, unit: ' шт', lab: moShort, aria: 'План-факт актов приёмки, Точка Б и годовая цель' });
+  ], { h: 340, fmt: fmtK, unit: ' шт', lab: moShort, aria: 'План-факт актов приёмки, Точка Б и годовая цель' });
 
   const currentMonth = Number(C.latest_month.slice(5));
   const monthsToYearEnd = Math.max(1, 12 - currentMonth);
@@ -882,7 +904,7 @@ function renderControl() {
   lineChart('backlog-chart', backlogLabels, [
     { name: 'факт', v: backlogActual, color: 'var(--amber)', area: true },
     { name: 'траектория к нулю', v: backlogTarget, color: 'var(--green)', dash: '6 5' }
-  ], { h: 255, fmt: fmtK, unit: ' шт', lab: moShort, aria: 'Фактический бэклог предсорта и траектория снижения к нулю' });
+  ], { h: 320, fmt: fmtK, unit: ' шт', lab: moShort, aria: 'Фактический бэклог предсорта и траектория снижения к нулю' });
 
   const gapPct = Number.isFinite(pointB) ? gapB / pointB * 100 : 0;
   document.getElementById('attention-grid').innerHTML = `
@@ -910,7 +932,7 @@ function renderAll() {
       n: 'остаток к недельному входу', t: 'c' }
   ]);
   colBars('dmd-line', D.weeks, rub ? D.vhod_rub : D.vhod_sht,
-    { lab: wkLab, h: 235, hl: F.dmd, fmt: uFmt(t), unit: uUnit(t), color: rub ? 'var(--accent)' : 'var(--steel)' });
+    { lab: wkLab, h: 340, hl: F.dmd, fmt: uFmt(t), unit: uUnit(t), color: rub ? 'var(--accent)' : 'var(--steel)' });
   barH('dmd-tip', mv(pick(D.tip, F.dmd), t), { padL: 150, fmt: uFmt(t), unit: uUnit(t) });
   barH('dmd-zona', mv(pick(D.zona, F.dmd), t).slice(0, 10), { padL: 210, fmt: uFmt(t), unit: uUnit(t) });
   barH('dmd-cell', mv(D.cell_ost, t).slice(0, 10), { padL: 210, color: 'var(--steel)', fmt: uFmt(t), unit: uUnit(t) });
@@ -937,7 +959,7 @@ function renderAll() {
   ]);
   document.getElementById('gen-nisp').textContent = G.n_isp;
   lineChart('gen-line', G.months, [{ name: gRub ? 'млн ₽' : 'штук', v: gRub ? G.rub_month : G.by_month, color: 'var(--accent)', area: true }],
-    { h: 270, fmt: uFmt(tg), unit: gRub ? ' млн ₽' : ' шт', lab: moShort, aria: 'Динамика сигналов брака на операциях' });
+    { h: 360, fmt: uFmt(tg), unit: gRub ? ' млн ₽' : ' шт', lab: moShort, aria: 'Динамика сигналов брака на операциях' });
   barH('gen-proc', mv(pp(pick(G.process, F.gen)), tg).slice(0, 8), { padL: 190, fmt: uFmt(tg), unit: uUnit(tg) });
   barH('gen-plosh', mv(pick(G.ploshadka, F.gen), tg).slice(0, 8), { padL: 150, color: 'var(--steel)', fmt: uFmt(tg), unit: uUnit(tg) });
   barH('gen-zona', mv(pick(G.zona, F.gen), tg).slice(0, 9), { padL: 230, color: 'var(--teal)', fmt: uFmt(tg), unit: uUnit(tg) });
@@ -963,7 +985,7 @@ function renderAll() {
       n: aPrev ? 'по штукам' : 'выберите месяц для сравнения', t: aPrev && A.sht[ai] >= aPrev ? 'c' : 'g' }
   ]);
   lineChart('akty-line', A.months, [{ name: aRub ? 'млн ₽' : 'штук', v: aRub ? A.rub : A.sht, color: 'var(--accent)', area: true }],
-    { h: 270, fmt: uFmt(ta), unit: aRub ? ' млн ₽' : ' шт', lab: moShort, aria: 'Динамика актов расхождений' });
+    { h: 360, fmt: uFmt(ta), unit: aRub ? ' млн ₽' : ' шт', lab: moShort, aria: 'Динамика актов расхождений' });
   barH('akty-vin', mv(pick(A.vinovnyj, F.akty), ta).slice(0, 8), { padL: 165, fmt: uFmt(ta), unit: uUnit(ta) });
   routesList('akty-routes', mv(pick(A.route, F.akty), ta).slice(0, 10), uFmt(ta), uUnit(ta));
   barH('akty-ish', mv(pick(A.ish, F.akty), ta).slice(0, 9), { padL: 230, color: 'var(--steel)', fmt: uFmt(ta), unit: uUnit(ta) });
@@ -971,7 +993,7 @@ function renderAll() {
   barH('akty-chel', mv(pick(A.chelovek, F.akty), ta).slice(0, 10), { padL: 230, color: 'var(--plum)', fmt: uFmt(ta), unit: uUnit(ta) });
   barH('akty-zavel', mv(pick(A.zavel, F.akty), ta).slice(0, 10), { padL: 230, color: 'var(--teal)', fmt: uFmt(ta), unit: uUnit(ta) });
   lineChart('akty-svyaz', A.months, [{ name: '% со связью', v: A.svyaz_pct, color: 'var(--steel)', area: true }],
-    { h: 200, fmt: v => v.toFixed(0), unit: '%', lab: moShort });
+    { h: 280, fmt: v => v.toFixed(0), unit: '%', lab: moShort });
   const aktyTrend = seriesSummary(aRub ? A.rub : A.sht, A.months, uFmt(ta), uUnit(ta));
   if (aktyTrend) setInsight('akty-line-insight', 'Последний месяц', aktyTrend.value, `${pct(aktyTrend.delta)} к предыдущему · прослеживаемость ${A.svyaz_pct[A.svyaz_pct.length - 1].toFixed(0)}%`, aktyTrend.delta > 10 ? 'is-risk' : '');
 
@@ -989,10 +1011,10 @@ function renderAll() {
     { l: 'Доля выявления в Центре-ДМД', v: Math.round(vid[0].v / vid.reduce((a, b) => a + b.v, 0) * 100) + '%', n: 'часть брака, которую фиксирует центральный склад', t: '' }
   ]);
   lineChart('zabr-line', Z.months, [{ name: zRub ? 'млн ₽' : 'актов', v: zRub ? Z.rrc : Z.strok, color: 'var(--accent)', area: true }],
-    { h: 270, fmt: uFmt(tz), unit: zRub ? ' млн ₽' : ' актов', lab: moShort, aria: 'История официально зафиксированного брака' });
+    { h: 370, fmt: uFmt(tz), unit: zRub ? ' млн ₽' : ' актов', lab: moShort, aria: 'История официально зафиксированного брака' });
   const wks = F.zabr === '_all' ? Z.weeks_by_month[Z.months[Z.months.length - 1]] : Z.weeks_by_month[F.zabr];
   colBars('zabr-week', wks, wks.map(w => zRub ? Z.week_rrc[w] : Z.week_strok[w]),
-    { lab: wkLab, h: 235, fmt: uFmt(tz), unit: zRub ? ' млн ₽' : ' актов', color: 'var(--steel)' });
+    { lab: wkLab, h: 300, fmt: uFmt(tz), unit: zRub ? ' млн ₽' : ' актов', color: 'var(--steel)' });
   shareStrip('zabr-vid', mv(vid, tz).slice(0, 8), { fmt: uFmt(tz), unit: zRub ? ' млн ₽' : ' актов' });
   paretoList('zabr-def', mv(pick(Z.defekt, F.zabr), tz).slice(0, 8), { fmt: uFmt(tz), unit: zRub ? ' млн ₽' : ' актов' });
   barH('zabr-napr', mv(pick(Z.cat, F.zabr), tz).slice(0, 9), { padL: 210, color: 'var(--teal)', fmt: uFmt(tz), unit: zRub ? ' млн ₽' : ' актов' });
@@ -1007,6 +1029,7 @@ function renderAll() {
 }
 
 renderAll();
+if (requestedTab > 0) tabsBox.children[requestedTab].click();
 let rt; addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(renderAll, 160); });
 </script>
 <script src="dashboard-v2.js?v=20260906-2"></script>

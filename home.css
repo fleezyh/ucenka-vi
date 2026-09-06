@@ -7,20 +7,8 @@ html{min-width:320px;min-height:100%;background:var(--bg)}
 body{position:relative;isolation:isolate;min-height:100vh;margin:0;overflow-x:hidden;color:var(--text);font-family:var(--ui);background:#09090d}
 body::before,body::after{content:"";position:fixed;z-index:-1;inset:-18%;pointer-events:none}
 body::before{display:none}
-.spotlightField{--pointer-x:0;--pointer-y:0;position:fixed;z-index:-2;inset:0;overflow:hidden;pointer-events:none;background:linear-gradient(135deg,#1a0c13 0%,#09090e 46%,#170b12 100%)}
-.spotlightField::before{content:"";position:absolute;inset:-45%;background:conic-gradient(from 215deg at 50% 45%,transparent 0 17%,rgba(238,71,92,.22) 25%,rgba(255,135,142,.36) 31%,rgba(166,31,55,.16) 38%,transparent 48% 69%,rgba(222,58,80,.20) 78%,transparent 88%);filter:blur(82px);mix-blend-mode:screen;animation:spotlightSweep 14s ease-in-out infinite alternate;will-change:transform,opacity}
-.spotlightFlow{position:absolute;left:0;top:-20vh;width:68vw;height:132vh;border-radius:50%;background:radial-gradient(ellipse,rgba(255,211,194,.94) 0 6%,rgba(255,101,112,.86) 21%,rgba(205,39,67,.48) 43%,transparent 71%);filter:blur(30px) saturate(132%);mix-blend-mode:screen;will-change:transform,opacity}
-.spotlight{position:absolute;top:-42vh;width:72vw;height:142vh;border-radius:50%;filter:blur(58px);mix-blend-mode:screen;will-change:transform,opacity;opacity:.72}
-.spotlight--left{left:-29vw;background:radial-gradient(ellipse at 50% 18%,rgba(242,92,106,.94) 0 14%,rgba(179,44,66,.60) 34%,rgba(96,22,40,.18) 60%,transparent 74%);transform:translate3d(calc(var(--pointer-x)*-38px),calc(var(--pointer-y)*-20px),0) rotate(-17deg);animation:spotlightLeft 11s ease-in-out infinite alternate}
-.spotlight--center{left:18vw;width:66vw;background:radial-gradient(ellipse at 50% 15%,rgba(225,77,94,.75),rgba(155,35,56,.44) 38%,transparent 72%);transform:translate3d(calc(var(--pointer-x)*22px),calc(var(--pointer-y)*15px),0) rotate(7deg);animation:spotlightCenter 15s ease-in-out infinite alternate}
-.spotlight--right{right:-34vw;background:radial-gradient(ellipse at 50% 20%,rgba(255,105,116,.88),rgba(170,39,59,.48) 40%,transparent 72%);transform:translate3d(calc(var(--pointer-x)*40px),calc(var(--pointer-y)*-18px),0) rotate(19deg);animation:spotlightRight 12s ease-in-out infinite alternate}
-.spotlightGlow{position:absolute;left:50%;top:-36vh;width:min(1080px,90vw);height:125vh;border-radius:50%;background:radial-gradient(ellipse,rgba(255,154,156,.34),rgba(189,50,69,.16) 44%,transparent 72%);filter:blur(42px);transform:translateX(-50%);animation:spotlightBreathe 7s ease-in-out infinite alternate}
-.spotlightGrain{position:absolute;inset:0;opacity:.035;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.7'/%3E%3C/svg%3E");mix-blend-mode:soft-light}
-@keyframes spotlightSweep{0%{transform:translate3d(-9vw,-3vh,0) rotate(-5deg);opacity:.56}100%{transform:translate3d(11vw,5vh,0) rotate(8deg);opacity:1}}
-@keyframes spotlightLeft{to{translate:15vw 7vh;scale:1.14;opacity:.92}}
-@keyframes spotlightCenter{to{translate:-10vw 10vh;scale:.88;opacity:.48}}
-@keyframes spotlightRight{to{translate:-16vw 6vh;scale:1.16;opacity:1}}
-@keyframes spotlightBreathe{to{translate:4vw 5vh;scale:1.16;opacity:.58}}
+body::after{inset:0;background:linear-gradient(180deg,rgba(18,4,10,.08),rgba(8,6,11,.20) 62%,rgba(5,5,8,.52));z-index:-1}
+.flowCanvas{position:fixed;z-index:-2;inset:0;width:100%;height:100%;pointer-events:none;background:radial-gradient(circle at 42% 34%,#873b48,#251019 52%,#08080c 100%)}
 button,a{font:inherit;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 a{text-decoration:none;color:inherit}
 .homeShell{width:min(1050px,calc(100% - 32px));margin:0 auto;padding:24px 0 38px}
@@ -84,7 +72,7 @@ footer{display:flex;align-items:center;justify-content:center;gap:9px;margin-top
   .homeCard{gap:12px;padding:15px}
   .homeCard__arrow{width:32px;height:32px}
 }
-@media(prefers-reduced-motion:reduce){*:not(.spotlightField):not(.spotlight),*::before,*::after{transition:none!important}.spotlightField::before{animation-duration:32s}.spotlight{animation-duration:30s}.spotlightGlow{animation-duration:22s}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important}}
 @media(prefers-reduced-transparency:reduce){.glass,.homeSwitch__lens{backdrop-filter:none;-webkit-backdrop-filter:none;background:#131c28}}
 
 /* Длинный анонс и карточки не должны расширять мобильный viewport. */
@@ -111,12 +99,4 @@ footer{display:flex;align-items:center;justify-content:center;gap:9px;margin-top
   .homeHero h1{font-size:43px}
   .homeCard{gap:10px;padding:14px}
   .homeCard__icon{width:44px;height:44px}
-}
-@media(max-width:700px){
-  .spotlightFlow{width:115vw;height:105vh;top:-10vh;filter:blur(34px)}
-  .spotlight{top:-28vh;width:105vw;height:115vh;filter:blur(52px);opacity:.46}
-  .spotlight--left{left:-62vw}
-  .spotlight--center{left:1vw;width:98vw;opacity:.35}
-  .spotlight--right{right:-66vw}
-  .spotlightGlow{top:-22vh;width:120vw;height:92vh;opacity:.56}
 }
