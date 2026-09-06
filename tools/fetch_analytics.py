@@ -20,6 +20,8 @@ from __future__ import annotations
 import ctypes
 import ctypes.wintypes as wt
 import json
+import os
+import subprocess
 import sys
 import time
 from datetime import date, datetime, timedelta, timezone
@@ -71,6 +73,38 @@ def api_token() -> str:
 
 def log(message: str) -> None:
     print(f"[{time.strftime('%H:%M:%S')}] {message}", flush=True)
+
+
+def run_git(*args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
+    env = os.environ.copy()
+    env["GIT_TERMINAL_PROMPT"] = "0"
+    result = subprocess.run(
+        ["git", "-C", str(REPO_ROOT), *args],
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        capture_output=True,
+        env=env,
+    )
+    if check and result.returncode:
+        raise RuntimeError(f"git {' '.join(args)}: {(result.stderr or result.stdout).strip()[:500]}")
+    return result
+
+
+def publish() -> bool:
+    """Публикует только агрегат посещаемости, не затрагивая другие файлы."""
+    relative = str(OUT_PATH.relative_to(REPO_ROOT))
+    run_git("add", "--", relative)
+    if run_git("diff", "--cached", "--quiet", check=False).returncode == 0:
+        log("посещаемость не изменилась")
+        return False
+    run_git("config", "user.name", "fleezyh")
+    run_git("config", "user.email", "147500284+fleezyh@users.noreply.github.com")
+    run_git("commit", "-m", f"Обновить посещаемость {datetime.now():%Y-%m-%d %H:%M}")
+    run_git("pull", "--rebase", "origin", "main")
+    run_git("push", "origin", "main")
+    log("посещаемость опубликована на сайте")
+    return True
 
 
 def query(token: str, document: str, variables: dict, tries: int = 3) -> dict:
@@ -276,6 +310,11 @@ def main() -> int:
     log(f"записано {OUT_PATH}")
     log(f"сутки: {период['сутки']['просмотры']} просмотров, "
         f"неделя: {период['неделя']['просмотры']}, месяц: {период['месяц']['просмотры']}")
+    try:
+        publish()
+    except Exception as error:
+        print(f"агрегат собран, но публикация не удалась: {error}", file=sys.stderr)
+        return 1
     return 0
 
 

@@ -57,10 +57,10 @@ $shellCss = @'
 .site-nav__links { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .navGroup { display: flex; align-items: center; gap: 4px; padding: 5px 5px 5px 14px; border: 1px solid var(--line); border-radius: 15px; background: var(--surface-2); }
 .navGroup__label { margin-right: 7px; color: var(--faint); font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; white-space: nowrap; }
-.navLink { padding: 9px 15px; border-radius: 11px; color: var(--ink); font: 650 15px "VI Sans", system-ui, sans-serif; text-decoration: none; white-space: nowrap; }
+.navLink { padding: 9px 15px; border-radius: 11px; color: var(--ink); font: 600 15px "VI Sans", system-ui, sans-serif; text-decoration: none; white-space: nowrap; }
 .navLink:hover { background: rgba(255,255,255,.07); }
 .navLink[aria-current="page"] { background: rgba(255,255,255,.12); color: #fff; }
-.navAdmin { padding: 9px 15px; border: 1px solid rgba(240,93,114,.42); border-radius: 13px; color: #ffc0ca; background: rgba(240,93,114,.1); font: 650 15px "VI Sans", system-ui, sans-serif; text-decoration: none; white-space: nowrap; }
+.navAdmin { padding: 9px 15px; border: 1px solid rgba(240,93,114,.42); border-radius: 13px; color: #ffc0ca; background: rgba(240,93,114,.1); font: 600 15px "VI Sans", system-ui, sans-serif; text-decoration: none; white-space: nowrap; }
 .navAdmin:hover { border-color: rgba(240,93,114,.75); background: rgba(240,93,114,.2); }
 .site-nav__brand { font-size: 19px !important; }
 .site-nav__brand img { width: 27px !important; height: 27px !important; }
@@ -99,7 +99,17 @@ body { overflow-x: hidden; }
 $shellHtml = @'
 <!-- SITE-SHELL-START -->
 <nav class="site-nav" aria-label="Навигация сайта">
-  <a class="site-nav__brand" href="../"><img src="../assets/brand/vi-mark.svg" alt=""><span>Уценка</span></a>
+  <div class="site-nav__identity">
+    <a class="site-nav__brand" href="../"><img src="../assets/brand/vi-mark.svg" alt=""><span>Уценка</span></a>
+    <section class="site-usage" id="site-usage" hidden aria-label="Посещаемость">
+      <span class="site-usage__title">Просмотры</span>
+      <span class="site-usage__item"><b id="usage-day">—</b> сегодня</span>
+      <span class="site-usage__item"><b id="usage-week">—</b> 7 дней</span>
+      <span class="site-usage__item"><b id="usage-month">—</b> 30 дней</span>
+      <span class="site-usage__spark" id="usage-spark" aria-hidden="true"></span>
+      <span class="site-usage__stamp" id="usage-stamp"></span>
+    </section>
+  </div>
   <div class="site-nav__actions">
     <span class="navGroup">
       <span class="navGroup__label">Уценка</span>
@@ -113,6 +123,7 @@ $shellHtml = @'
       <a class="navLink" href="../">Пикалка</a>
     </span>
     <a class="navAdmin" href="https://fleezy.tailb770fe.ts.net" target="_blank" rel="noopener">Админка</a>
+    <button class="data-button primary nav-data-button" id="import-open" type="button">Обновить данные</button>
   </div>
 </nav>
 <section class="import-panel" id="import-panel" hidden aria-label="Обновление данных">
@@ -130,23 +141,10 @@ $shellHtml = @'
     <p class="import-status" id="import-status">Обновления сохраняются только в этом браузере. Исходные файлы никуда не отправляются.</p>
   </div>
 </section>
-<section class="site-usage" id="site-usage" hidden aria-label="Посещаемость">
-  <div class="site-usage__row">
-    <span class="site-usage__title">Заходили на сайт</span>
-    <span class="site-usage__item"><b id="usage-day">—</b> за сутки</span>
-    <span class="site-usage__item"><b id="usage-week">—</b> за неделю</span>
-    <span class="site-usage__item"><b id="usage-month">—</b> за месяц</span>
-    <span class="site-usage__spark" id="usage-spark" aria-hidden="true"></span>
-    <span class="site-usage__stamp" id="usage-stamp"></span>
-    <!-- Обновление данных — действие этой страницы, а не раздел сайта. В шапке
-         оно стояло вперемешку с навигацией, поэтому переехало сюда. -->
-    <button class="data-button primary" id="import-open" type="button">Обновить данные</button>
-  </div>
-</section>
-<script src="usage.js?v=20260902-1" defer></script>
+<script src="usage.js?v=20260906-1" defer></script>
 <!-- Аналитика вставляется здесь, а не в исходной выгрузке: иначе она пропадала
      при каждой перепубликации дашборда. Идентификатор публичный. -->
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token":"85a2c48f22834923b7c34b931c8c514e"}'></script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token":"907d91d4e2e044f682da0d451e684f83"}'></script>
 <!-- SITE-SHELL-END -->
 '@
 

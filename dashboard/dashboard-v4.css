@@ -1,0 +1,109 @@
+/* Финальный слой темы: настоящие веса VI Sans, общий прожекторный фон и
+   компактная посещаемость в шапке. */
+@font-face { font-family: "VI Sans"; src: url("../assets/fonts/VI_Sans_Regular.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "VI Sans"; src: url("../assets/fonts/VI_Sans_Medium.woff2") format("woff2"); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: "VI Sans"; src: url("../assets/fonts/VI_Sans_DemiBold.woff2") format("woff2"); font-weight: 600; font-style: normal; font-display: swap; }
+@font-face { font-family: "VI Sans"; src: url("../assets/fonts/VI_Sans_ExtraBold.woff2") format("woff2"); font-weight: 800; font-style: normal; font-display: swap; }
+
+:root {
+  --text: #f1ecee;
+  --ink: #f1ecee;
+  --ink-2: #d4c9cc;
+  --muted: #9d9297;
+  --line: rgba(245, 173, 181, .14);
+  --line-strong: rgba(248, 183, 191, .25);
+}
+
+body, button, select, input, textarea, svg text { font-synthesis: none; }
+body {
+  background: #08080b;
+}
+body::before {
+  inset: -18vh -12vw;
+  opacity: 1;
+  background:
+    radial-gradient(ellipse 44vw 80vh at 12% 2%, rgba(118, 12, 34, .48) 0%, rgba(78, 7, 25, .22) 38%, transparent 70%),
+    radial-gradient(ellipse 36vw 72vh at 78% 0%, rgba(164, 49, 55, .34) 0%, rgba(92, 21, 33, .18) 40%, transparent 72%),
+    radial-gradient(ellipse 28vw 56vh at 103% 42%, rgba(96, 22, 54, .22) 0%, transparent 72%),
+    linear-gradient(180deg, #0b090d 0%, #08090d 48%, #07080b 100%);
+  filter: blur(42px) saturate(118%) contrast(112%);
+  animation: dashboardLights 22s ease-in-out infinite alternate;
+}
+body::after {
+  opacity: .075;
+  background-image:
+    linear-gradient(rgba(255,255,255,.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.02) 1px, transparent 1px);
+  background-size: 68px 68px;
+}
+@keyframes dashboardLights {
+  0% { transform: translate3d(-1.5vw, -1vh, 0) scale(1.02); }
+  55% { transform: translate3d(2vw, 2.5vh, 0) scale(1.07); }
+  100% { transform: translate3d(-.5vw, 5vh, 0) scale(1.04); }
+}
+
+.site-nav { font-weight: 500; }
+.site-nav__identity { display: flex; align-items: center; gap: 18px; min-width: 0; }
+.site-nav__brand { font-weight: 600; }
+.navLink, .navAdmin { font-weight: 600; }
+.nav-data-button { flex: 0 0 auto; min-height: 42px; white-space: nowrap; }
+
+.site-usage {
+  display: flex;
+  align-items: center;
+  width: auto;
+  max-width: min(540px, 35vw);
+  margin: 0;
+  padding: 7px 10px;
+  gap: 8px 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.075);
+  border-radius: 12px;
+  color: var(--muted);
+  background: rgba(255,255,255,.025);
+  font-size: 10px;
+  white-space: nowrap;
+}
+.site-usage[hidden] { display: none; }
+.site-usage__title { color: #bdaeb2; font-weight: 600; }
+.site-usage__item b { margin-right: 3px; color: #f2edef; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.site-usage__spark { display: inline-flex; align-items: end; gap: 2px; height: 16px; margin-left: 2px; }
+.site-usage__spark i { width: 2px; min-height: 2px; border-radius: 2px; background: #da585d; opacity: .85; }
+.site-usage__stamp { overflow: hidden; color: #786f73; font-size: 9px; text-overflow: ellipsis; }
+
+/* Селектор не должен перекрывать начало нового раздела после переключения. */
+.contour-switcher { position: relative !important; top: auto !important; }
+.contour-switcher__head span, .tab__number { font-weight: 800; }
+.tab__source { font-weight: 600; }
+.tab__copy strong { font-weight: 600; }
+.card, .kpi, .contour-hero, .contour-switcher, .fbar, .result-overview, .story-chart, .signal-panel, .backlog-panel {
+  background-color: rgba(10, 12, 17, .76);
+  backdrop-filter: blur(24px) saturate(115%);
+  -webkit-backdrop-filter: blur(24px) saturate(115%);
+}
+.grid-line { stroke: rgba(234, 205, 211, .13); }
+.ax { fill: #aca0a5; }
+.val-lbl, .series-end { font-weight: 600; }
+.chart-hit { cursor: crosshair; }
+
+@media (max-width: 1500px) {
+  .site-usage__stamp, .site-usage__spark { display: none; }
+}
+@media (max-width: 1180px) {
+  .site-nav { align-items: flex-start; flex-direction: column; }
+  .site-nav__identity { width: 100%; justify-content: space-between; }
+  .site-usage { max-width: none; }
+  .site-nav__actions { width: 100%; }
+}
+@media (max-width: 640px) {
+  body::before { inset: -12vh -70vw; filter: blur(34px) saturate(115%) contrast(116%); }
+  .site-nav__identity { gap: 10px; }
+  .site-usage { margin-left: auto; padding: 6px 9px; }
+  .site-usage__title, .site-usage__item:not(:nth-of-type(2)), .site-usage__stamp, .site-usage__spark { display: none; }
+  .site-usage__item { font-size: 9px; }
+  .site-usage__item b { font-size: 12px; }
+  .nav-data-button { min-height: 40px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  body::before { animation: none; }
+}

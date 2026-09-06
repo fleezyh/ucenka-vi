@@ -75,22 +75,22 @@
       vec3 blackCherry = vec3(0.030, 0.014, 0.026);
       vec3 burgundy = vec3(0.28, 0.040, 0.080);
       vec3 mutedRed = vec3(0.66, 0.12, 0.18);
-      vec3 coral = vec3(0.94, 0.38, 0.34);
-      vec3 roseLight = vec3(1.00, 0.68, 0.58);
+      vec3 coral = vec3(0.72, 0.20, 0.22);
+      vec3 roseLight = vec3(0.82, 0.34, 0.32);
       vec3 dustyViolet = vec3(0.20, 0.095, 0.34);
       vec3 warmAmber = vec3(0.78, 0.43, 0.17);
 
       vec3 color = mix(blackCherry, dustyViolet, smoothstep(0.22, 0.82, q.y) * 0.88);
       color = mix(color, burgundy, smoothstep(0.24, 0.74, flow) * 0.82);
       color = mix(color, mutedRed, redBlob * (0.54 + 0.40 * flow));
-      color = mix(color, coral, coralBlob * smoothstep(0.22, 0.82, folds) * 0.86);
+      color = mix(color, coral, coralBlob * smoothstep(0.22, 0.82, folds) * 0.72);
       float amberField = smoothstep(0.56, 0.90, q.x * 0.72 + folds * 0.46) * (1.0 - coralBlob * 0.55);
-      color = mix(color, warmAmber, amberField * 0.42);
+      color = mix(color, warmAmber, amberField * 0.24);
       float highlight = smoothstep(0.64, 0.91, flow * 0.62 + folds * 0.48 + coralBlob * 0.34);
-      color = mix(color, roseLight, highlight * 0.48);
+      color = mix(color, roseLight, highlight * 0.27);
 
       float vignette = smoothstep(1.15, 0.20, length(p * vec2(0.72, 0.90)));
-      color *= mix(0.48, 1.06, vignette);
+      color *= mix(0.40, 0.94, vignette);
       float grain = hash(gl_FragCoord.xy + fract(u_time) * 813.7) - 0.5;
       color += grain * 0.045;
       color = pow(max(color, 0.0), vec3(0.94));

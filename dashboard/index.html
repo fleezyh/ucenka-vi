@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="ru">
 <head>
+<script>if ('scrollRestoration' in history) history.scrollRestoration = 'manual';</script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Уценка · Антигенерация</title>
@@ -209,11 +210,22 @@ body { overflow-x: hidden; }
 <link rel="stylesheet" href="dashboard-redesign.css?v=20260906-2">
 <link rel="stylesheet" href="dashboard-v2.css?v=20260906-2">
 <link rel="stylesheet" href="dashboard-v3.css?v=20260906-1">
+<link rel="stylesheet" href="dashboard-v4.css?v=20260906-2">
 </head>
 <body>
 <!-- SITE-SHELL-START -->
 <nav class="site-nav" aria-label="Навигация сайта">
-  <a class="site-nav__brand" href="../"><img src="../assets/brand/vi-mark.svg" alt=""><span>Уценка</span></a>
+  <div class="site-nav__identity">
+    <a class="site-nav__brand" href="../"><img src="../assets/brand/vi-mark.svg" alt=""><span>Уценка</span></a>
+    <section class="site-usage" id="site-usage" hidden aria-label="Посещаемость">
+      <span class="site-usage__title">Просмотры</span>
+      <span class="site-usage__item"><b id="usage-day">—</b> сегодня</span>
+      <span class="site-usage__item"><b id="usage-week">—</b> 7 дней</span>
+      <span class="site-usage__item"><b id="usage-month">—</b> 30 дней</span>
+      <span class="site-usage__spark" id="usage-spark" aria-hidden="true"></span>
+      <span class="site-usage__stamp" id="usage-stamp"></span>
+    </section>
+  </div>
   <div class="site-nav__actions">
     <span class="navGroup">
       <span class="navGroup__label">Уценка</span>
@@ -227,6 +239,7 @@ body { overflow-x: hidden; }
       <a class="navLink" href="../picker/">Пикалка</a>
     </span>
     <a class="navAdmin" href="https://fleezy.tailb770fe.ts.net" target="_blank" rel="noopener">Админка</a>
+    <button class="data-button primary nav-data-button" id="import-open" type="button">Обновить данные</button>
   </div>
 </nav>
 <section class="import-panel" id="import-panel" hidden aria-label="Обновление данных">
@@ -244,20 +257,7 @@ body { overflow-x: hidden; }
     <p class="import-status" id="import-status">Обновления сохраняются только в этом браузере. Исходные файлы никуда не отправляются.</p>
   </div>
 </section>
-<section class="site-usage" id="site-usage" hidden aria-label="Посещаемость">
-  <div class="site-usage__row">
-    <span class="site-usage__title">Просмотры страниц</span>
-    <span class="site-usage__item"><b id="usage-day">—</b> сегодня</span>
-    <span class="site-usage__item"><b id="usage-week">—</b> за 7 дней</span>
-    <span class="site-usage__item"><b id="usage-month">—</b> за 30 дней</span>
-    <span class="site-usage__spark" id="usage-spark" aria-hidden="true"></span>
-    <span class="site-usage__stamp" id="usage-stamp"></span>
-    <!-- Обновление данных — действие этой страницы, а не раздел сайта. В шапке
-         оно стояло вперемешку с навигацией, поэтому переехало сюда. -->
-    <button class="data-button primary" id="import-open" type="button">Обновить данные</button>
-  </div>
-</section>
-<script src="usage.js?v=20260905-8" defer></script>
+<script src="usage.js?v=20260906-1" defer></script>
 <script src="../nav.js?v=20260906-1" defer></script>
 <!-- Аналитика вставляется здесь, а не в исходной выгрузке: иначе она пропадала
      при каждой перепубликации дашборда. Идентификатор публичный. -->
@@ -744,7 +744,8 @@ TABS.forEach((tab, i) => {
     });
     history.replaceState(null, '', '#' + tab.id.slice(2));
     renderAll();
-    scrollTo({ top: tabsBox.getBoundingClientRect().top + scrollY - 94, behavior: 'smooth' });
+    // Переключение данных не должно само прокручивать страницу: на открытии
+    // вкладки это визуально задвигало заголовок панели под селектор.
   };
   tabsBox.appendChild(b);
 });
@@ -931,8 +932,8 @@ function renderAll() {
     { l: 'Запас в неделях', v: (D.ostatok_rub / (dk.rub / nW)).toFixed(1) + ' нед.',
       n: 'остаток к недельному входу', t: 'c' }
   ]);
-  colBars('dmd-line', D.weeks, rub ? D.vhod_rub : D.vhod_sht,
-    { lab: wkLab, h: 340, hl: F.dmd, fmt: uFmt(t), unit: uUnit(t), color: rub ? 'var(--accent)' : 'var(--steel)' });
+  lineChart('dmd-line', D.weeks, [{ name: rub ? 'вход, млн ₽' : 'вход, шт', v: rub ? D.vhod_rub : D.vhod_sht, color: rub ? 'var(--accent)' : 'var(--steel)', area: true }],
+    { lab: wkLab, h: 360, fmt: uFmt(t), unit: uUnit(t), aria: 'Динамика входящего потока в брак-ячейки ДМД' });
   barH('dmd-tip', mv(pick(D.tip, F.dmd), t), { padL: 150, fmt: uFmt(t), unit: uUnit(t) });
   barH('dmd-zona', mv(pick(D.zona, F.dmd), t).slice(0, 10), { padL: 210, fmt: uFmt(t), unit: uUnit(t) });
   barH('dmd-cell', mv(D.cell_ost, t).slice(0, 10), { padL: 210, color: 'var(--steel)', fmt: uFmt(t), unit: uUnit(t) });
@@ -1030,6 +1031,9 @@ function renderAll() {
 
 renderAll();
 if (requestedTab > 0) tabsBox.children[requestedTab].click();
+const resetInitialScroll = () => scrollTo({ top: 0, left: 0, behavior: 'auto' });
+requestAnimationFrame(resetInitialScroll);
+setTimeout(resetInitialScroll, 80);
 let rt; addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(renderAll, 160); });
 </script>
 <script src="dashboard-v2.js?v=20260906-2"></script>
