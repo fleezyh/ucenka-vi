@@ -206,7 +206,8 @@
 body { overflow-x: hidden; }
 }
 </style>
-<link rel="stylesheet" href="dashboard-redesign.css?v=20260906-1">
+<link rel="stylesheet" href="dashboard-redesign.css?v=20260906-2">
+<link rel="stylesheet" href="dashboard-v2.css?v=20260906-1">
 </head>
 <body>
 <!-- SITE-SHELL-START -->
@@ -288,6 +289,7 @@ body { overflow-x: hidden; }
     <div class="grid">
       <div class="card c7">
         <div class="card-head"><div><h3>Как меняется входящий поток</h3><div class="cap">поступление товара в брак-ячейки ДМД по неделям</div></div></div>
+        <div class="chart-insight" id="dmd-line-insight"></div>
         <div id="dmd-line"></div>
       </div>
       <div class="card c5">
@@ -328,6 +330,7 @@ body { overflow-x: hidden; }
     <div class="grid">
       <div class="card c7">
         <div class="card-head"><div><h3>Как меняется объём сигналов</h3><div class="cap">задания с признаком брака по месяцам</div></div></div>
+        <div class="chart-insight" id="gen-line-insight"></div>
         <div id="gen-line"></div>
       </div>
       <div class="card c5">
@@ -364,6 +367,7 @@ body { overflow-x: hidden; }
     <div class="grid">
       <div class="card c7">
         <div class="card-head"><div><h3>Как меняется объём расхождений</h3><div class="cap">товары в актах по месяцам</div></div></div>
+        <div class="chart-insight" id="akty-line-insight"></div>
         <div id="akty-line"></div>
       </div>
       <div class="card c5">
@@ -444,11 +448,13 @@ body { overflow-x: hidden; }
     <div class="decision-grid">
       <article class="decision-card">
         <div class="card-head"><div><h3>План-факт актов приёмки</h3><div class="cap">факт, Точка Б и годовая цель по месяцам</div></div></div>
+        <div class="chart-insight" id="point-plan-insight"></div>
         <div id="point-plan-chart"></div>
       </article>
       <article class="decision-card">
         <div class="card-head"><div><h3>Бэклог предсорта</h3><div class="cap">остаток неоформленных актов и требуемый темп снижения</div></div></div>
         <div class="backlog-summary" id="backlog-summary"></div>
+        <div class="chart-insight" id="backlog-insight"></div>
         <div id="backlog-chart"></div>
       </article>
     </div>
@@ -458,6 +464,7 @@ body { overflow-x: hidden; }
       <div class="card c7">
         <div class="card-head"><div><h3>История официального брака</h3><div class="cap">сформированные акты по полным месяцам 2026 года</div></div>
         </div>
+        <div class="chart-insight" id="zabr-line-insight"></div>
         <div id="zabr-line"></div>
       </div>
       <div class="card c5">
@@ -559,7 +566,7 @@ function lineChart(mount, labels, series, o = {}) {
   const fmt = o.fmt || fmtM, unit = o.unit || ' млн ₽';
   const W = Math.max(340, box.clientWidth || 640), H = o.h || 230;
   const padL = 54, padR = 16, padT = 12, padB = 30;
-  const svg = el('svg', { width: W, height: H, viewBox: `0 0 ${W} ${H}` });
+  const svg = el('svg', { width: W, height: H, viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': o.aria || 'График динамики' });
   const finiteValues = series.flatMap(s => s.v).filter(Number.isFinite);
   const max = (finiteValues.length ? Math.max(...finiteValues) : 1) * 1.12 || 1;
   const x = i => padL + i * (W - padL - padR) / Math.max(1, labels.length - 1);
@@ -575,7 +582,7 @@ function lineChart(mount, labels, series, o = {}) {
     const t = el('text', { x: x(i), y: H - 9, 'text-anchor': 'middle', class: 'ax' });
     t.textContent = o.lab ? o.lab(l) : l.slice(2); svg.appendChild(t);
   });
-  series.forEach(s => {
+  series.forEach((s, seriesIndex) => {
     const segments = [];
     let segment = [];
     s.v.forEach((v, i) => {
@@ -597,7 +604,30 @@ function lineChart(mount, labels, series, o = {}) {
       c.addEventListener('mouseleave', hideTip);
       svg.appendChild(c);
     });
+    const last = [...s.v].map((v, i) => [v, i]).reverse().find(([v]) => Number.isFinite(v));
+    if (last) {
+      const [v, i] = last;
+      const label = el('text', { x: Math.min(W - padR - 3, x(i) + 8), y: Math.max(padT + 10, y(v) - 9 + seriesIndex * 13), class: 'series-end', fill: s.color });
+      label.textContent = fmt(v);
+      svg.appendChild(label);
+    }
   });
+  const cross = el('line', { x1: 0, x2: 0, y1: padT, y2: H - padB, class: 'chart-crosshair' });
+  cross.style.display = 'none';
+  svg.appendChild(cross);
+  const hit = el('rect', { x: padL, y: padT, width: W - padL - padR, height: H - padT - padB, fill: 'transparent', class: 'chart-hit' });
+  const inspect = e => {
+    const r = svg.getBoundingClientRect();
+    const localX = (e.clientX - r.left) * W / r.width;
+    const i = Math.max(0, Math.min(labels.length - 1, Math.round((localX - padL) / Math.max(1, W - padL - padR) * Math.max(1, labels.length - 1))));
+    cross.setAttribute('x1', x(i)); cross.setAttribute('x2', x(i)); cross.style.display = '';
+    const rows = series.filter(s => Number.isFinite(s.v[i])).map(s => `<span class="tip-row"><span class="tip-series"><i style="background:${s.color}"></i>${s.name}</span><b>${fmt(s.v[i])}${unit}</b></span>`).join('');
+    showTip(e, `<strong>${o.lab ? o.lab(labels[i]) : labels[i]}</strong>${rows}`);
+  };
+  hit.addEventListener('pointermove', inspect);
+  hit.addEventListener('pointerdown', inspect);
+  hit.addEventListener('pointerleave', () => { cross.style.display = 'none'; hideTip(); });
+  svg.appendChild(hit);
   box.appendChild(svg);
   if (series.length > 1) {
     const lg = document.createElement('div');
@@ -735,6 +765,19 @@ fillSelect('f-zabr', Z.months, moLab, 'все ' + Z.months.length + ' месяц
 
 const pct = (v, digits = 1) => (v > 0 ? '+' : '') + v.toFixed(digits).replace('.', ',') + '%';
 const ratioPct = v => Number(v).toFixed(3).replace('.', ',') + '%';
+const setInsight = (id, label, value, note, tone = '') => {
+  const box = document.getElementById(id); if (!box) return;
+  box.className = 'chart-insight ' + tone;
+  box.innerHTML = `<span>${label}</span><strong>${value}</strong><small>${note}</small>`;
+};
+const seriesSummary = (values, labels, formatter, unit) => {
+  const valid = values.map((v, i) => ({ v, i })).filter(d => Number.isFinite(d.v));
+  if (!valid.length) return null;
+  const last = valid[valid.length - 1], previous = valid[valid.length - 2] || last;
+  const peak = valid.reduce((a, b) => b.v > a.v ? b : a);
+  const delta = previous.v ? (last.v / previous.v - 1) * 100 : 0;
+  return { last, previous, peak, delta, value: `${formatter(last.v)}${unit}`, peakLabel: labels[peak.i] };
+};
 const sourceNames = {
   dmd: 'Запасы и поток ДМД', gen: 'Брак на операциях', akty: 'Ответственность при передаче',
   zabr: 'Факт брака', control_metrics: 'Контрольные метрики', control_plan: 'План-факт'
@@ -805,7 +848,7 @@ function renderControl() {
     { name: 'факт', v: C.plan_fact.slice(planStart, planEnd), color: 'var(--accent)', area: true },
     { name: 'Точка Б', v: C.plan_point_b.slice(planStart, planEnd), color: 'var(--amber)', dash: '7 6' },
     { name: 'цель −30% ГкГ', v: C.plan_goal.slice(planStart, planEnd), color: 'var(--green)', dash: '4 5' }
-  ], { h: 195, fmt: fmtK, unit: ' шт', lab: moShort });
+  ], { h: 255, fmt: fmtK, unit: ' шт', lab: moShort, aria: 'План-факт актов приёмки, Точка Б и годовая цель' });
 
   const currentMonth = Number(C.latest_month.slice(5));
   const monthsToYearEnd = Math.max(1, 12 - currentMonth);
@@ -830,13 +873,15 @@ function renderControl() {
   lineChart('backlog-chart', backlogLabels, [
     { name: 'факт', v: backlogActual, color: 'var(--amber)', area: true },
     { name: 'траектория к нулю', v: backlogTarget, color: 'var(--green)', dash: '6 5' }
-  ], { h: 195, fmt: fmtK, unit: ' шт', lab: moShort });
+  ], { h: 255, fmt: fmtK, unit: ' шт', lab: moShort, aria: 'Фактический бэклог предсорта и траектория снижения к нулю' });
 
   const gapPct = Number.isFinite(pointB) ? gapB / pointB * 100 : 0;
   document.getElementById('attention-grid').innerHTML = `
     <article class="attention-item attention-item--critical"><span>Разрыв до Точки Б</span><strong>+${fmtN(gapB)} актов</strong><small>${pct(gapPct)} выше квартальной цели</small></article>
     <article class="attention-item"><span>Бэклог предсорта</span><strong>+${fmtN(backlogDelta)} за месяц</strong><small>${pct(backlogDeltaPct)} · вместо снижения остаток растёт</small></article>
     <article class="attention-item"><span>Брак от проданных штук</span><strong>${ratioPct(C.pct_ot_shtuk[i])}</strong><small>${pct(soldDelta)} к прошлому месяцу</small></article>`;
+  setInsight('point-plan-insight', 'Последний факт', fmtN(actual) + ' актов', `${pct((actual / actualPrev - 1) * 100)} к прошлому месяцу · до Точки Б ${fmtN(Math.max(0, gapB))}`, gapB > 0 ? 'is-risk' : 'is-good');
+  setInsight('backlog-insight', 'Отклонение', (backlogDelta >= 0 ? '+' : '−') + fmtN(Math.abs(backlogDelta)) + ' шт', `${pct(backlogDeltaPct)} за месяц · требуется −${fmtN(monthlyReduction)} ежемесячно`, backlogDelta > 0 ? 'is-risk' : 'is-good');
 }
 
 function renderAll() {
@@ -863,6 +908,8 @@ function renderAll() {
   barH('dmd-cat', mv(pick(D.cat, F.dmd), t).slice(0, 10), { padL: 210, color: 'var(--teal)', fmt: uFmt(t), unit: uUnit(t) });
   barH('dmd-mu', mv(pick(D.mu, F.dmd), t).slice(0, 10), { padL: 150, color: 'var(--teal)', fmt: uFmt(t), unit: uUnit(t) });
   barH('dmd-tovar', mv(pick(D.tovar, F.dmd), t).slice(0, 12), { padL: 300, fmt: uFmt(t), unit: uUnit(t) });
+  const dmdTrend = seriesSummary(rub ? D.vhod_rub : D.vhod_sht, D.weeks, uFmt(t), uUnit(t));
+  if (dmdTrend) setInsight('dmd-line-insight', 'Последняя неделя', dmdTrend.value, `${pct(dmdTrend.delta)} к предыдущей · пик: неделя с ${wkLab(dmdTrend.peakLabel)}`, Math.abs(dmdTrend.delta) >= 20 ? 'is-risk' : '');
 
   /* ---------- ЗАДАНИЯ ---------- */
   const tg = 'gen', gk = G.kpi[F.gen] || G.kpi._all, gRub = isRub(tg);
@@ -881,7 +928,7 @@ function renderAll() {
   ]);
   document.getElementById('gen-nisp').textContent = G.n_isp;
   lineChart('gen-line', G.months, [{ name: gRub ? 'млн ₽' : 'штук', v: gRub ? G.rub_month : G.by_month, color: 'var(--accent)', area: true }],
-    { h: 235, fmt: uFmt(tg), unit: gRub ? ' млн ₽' : ' шт', lab: moShort });
+    { h: 270, fmt: uFmt(tg), unit: gRub ? ' млн ₽' : ' шт', lab: moShort, aria: 'Динамика сигналов брака на операциях' });
   barH('gen-proc', mv(pp(pick(G.process, F.gen)), tg).slice(0, 8), { padL: 190, fmt: uFmt(tg), unit: uUnit(tg) });
   barH('gen-plosh', mv(pick(G.ploshadka, F.gen), tg).slice(0, 8), { padL: 150, color: 'var(--steel)', fmt: uFmt(tg), unit: uUnit(tg) });
   barH('gen-zona', mv(pick(G.zona, F.gen), tg).slice(0, 9), { padL: 230, color: 'var(--teal)', fmt: uFmt(tg), unit: uUnit(tg) });
@@ -889,6 +936,8 @@ function renderAll() {
     c: d.k === 'Брак' ? 'var(--critical)' : ['ТоварНайден', 'ЛожноПотерян', 'Решено'].indexOf(d.k) >= 0 ? 'var(--good)' : 'var(--muted)' })),
     { padL: 150, fmt: uFmt(tg), unit: uUnit(tg) });
   barH('gen-isp', mv(pick(G.ispolnitel, F.gen), tg).slice(0, 12), { padL: 230, color: 'var(--plum)', fmt: uFmt(tg), unit: uUnit(tg) });
+  const genTrend = seriesSummary(gRub ? G.rub_month : G.by_month, G.months, uFmt(tg), uUnit(tg));
+  if (genTrend) setInsight('gen-line-insight', 'Последний месяц', genTrend.value, `${pct(genTrend.delta)} к предыдущему · максимум: ${moLab(genTrend.peakLabel)}`, genTrend.delta > 10 ? 'is-risk' : '');
 
   /* ---------- АКТЫ ---------- */
   const ta = 'akty', ak = A.kpi[F.akty] || A.kpi._all, aRub = isRub(ta);
@@ -905,7 +954,7 @@ function renderAll() {
       n: aPrev ? 'по штукам' : 'выберите месяц для сравнения', t: aPrev && A.sht[ai] >= aPrev ? 'c' : 'g' }
   ]);
   lineChart('akty-line', A.months, [{ name: aRub ? 'млн ₽' : 'штук', v: aRub ? A.rub : A.sht, color: 'var(--accent)', area: true }],
-    { h: 235, fmt: uFmt(ta), unit: aRub ? ' млн ₽' : ' шт', lab: moShort });
+    { h: 270, fmt: uFmt(ta), unit: aRub ? ' млн ₽' : ' шт', lab: moShort, aria: 'Динамика актов расхождений' });
   barH('akty-vin', mv(pick(A.vinovnyj, F.akty), ta).slice(0, 8), { padL: 165, fmt: uFmt(ta), unit: uUnit(ta) });
   routesList('akty-routes', mv(pick(A.route, F.akty), ta).slice(0, 10), uFmt(ta), uUnit(ta));
   barH('akty-ish', mv(pick(A.ish, F.akty), ta).slice(0, 9), { padL: 230, color: 'var(--steel)', fmt: uFmt(ta), unit: uUnit(ta) });
@@ -914,6 +963,8 @@ function renderAll() {
   barH('akty-zavel', mv(pick(A.zavel, F.akty), ta).slice(0, 10), { padL: 230, color: 'var(--teal)', fmt: uFmt(ta), unit: uUnit(ta) });
   lineChart('akty-svyaz', A.months, [{ name: '% со связью', v: A.svyaz_pct, color: 'var(--steel)', area: true }],
     { h: 200, fmt: v => v.toFixed(0), unit: '%', lab: moShort });
+  const aktyTrend = seriesSummary(aRub ? A.rub : A.sht, A.months, uFmt(ta), uUnit(ta));
+  if (aktyTrend) setInsight('akty-line-insight', 'Последний месяц', aktyTrend.value, `${pct(aktyTrend.delta)} к предыдущему · прослеживаемость ${A.svyaz_pct[A.svyaz_pct.length - 1].toFixed(0)}%`, aktyTrend.delta > 10 ? 'is-risk' : '');
 
   /* ---------- ЗАБРАКОВКА ---------- */
   const tz = 'zabr', zk = Z.kpi[F.zabr] || Z.kpi._all, zRub = isRub(tz);
@@ -929,7 +980,7 @@ function renderAll() {
     { l: 'Доля выявления в Центре-ДМД', v: Math.round(vid[0].v / vid.reduce((a, b) => a + b.v, 0) * 100) + '%', n: 'часть брака, которую фиксирует центральный склад', t: '' }
   ]);
   lineChart('zabr-line', Z.months, [{ name: zRub ? 'млн ₽' : 'актов', v: zRub ? Z.rrc : Z.strok, color: 'var(--accent)', area: true }],
-    { h: 235, fmt: uFmt(tz), unit: zRub ? ' млн ₽' : ' актов', lab: moShort });
+    { h: 270, fmt: uFmt(tz), unit: zRub ? ' млн ₽' : ' актов', lab: moShort, aria: 'История официально зафиксированного брака' });
   const wks = F.zabr === '_all' ? Z.weeks_by_month[Z.months[Z.months.length - 1]] : Z.weeks_by_month[F.zabr];
   colBars('zabr-week', wks, wks.map(w => zRub ? Z.week_rrc[w] : Z.week_strok[w]),
     { lab: wkLab, h: 235, fmt: uFmt(tz), unit: zRub ? ' млн ₽' : ' актов', color: 'var(--steel)' });
@@ -942,11 +993,14 @@ function renderAll() {
   const hx = vid.slice(0, 6).map(d => d.k), hy = pick(Z.defekt, F.zabr).slice(0, 7).map(d => d.k);
   heatmap('zabr-heat', Z.heat.filter(c => hx.indexOf(c.x) >= 0 && hy.indexOf(c.y) >= 0).map(c => ({ x: c.x, y: c.y, v: zRub ? c.v : c.s })),
     hx, hy, uFmt(tz), zRub ? ' млн ₽' : ' актов');
+  const zabrTrend = seriesSummary(zRub ? Z.rrc : Z.strok, Z.months, uFmt(tz), zRub ? ' млн ₽' : ' актов');
+  if (zabrTrend) setInsight('zabr-line-insight', 'Последний полный месяц', zabrTrend.value, `${pct(zabrTrend.delta)} к предыдущему · максимум: ${moLab(zabrTrend.peakLabel)}`, zabrTrend.delta > 5 ? 'is-risk' : zabrTrend.delta < 0 ? 'is-good' : '');
 }
 
 renderAll();
 let rt; addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(renderAll, 160); });
 </script>
+<script src="dashboard-v2.js?v=20260906-1"></script>
 
 </body>
 </html>

@@ -73,3 +73,17 @@ footer{display:flex;align-items:center;justify-content:center;gap:9px;margin-top
 }
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}body::before{background-image:radial-gradient(circle at 28% 35%,rgba(255,91,168,.2),transparent 38%),radial-gradient(circle at 72% 45%,rgba(53,111,255,.24),transparent 44%)}}
 @media(prefers-reduced-transparency:reduce){.glass,.homeSwitch__lens{backdrop-filter:none;-webkit-backdrop-filter:none;background:#131c28}}
+
+/* Длинный анонс и карточки не должны расширять мобильный viewport. */
+.homeShell > *, .homeCard, .homeCard__copy, .homeHero > p { min-width:0; max-width:100% }
+.homeHero>p:last-child{max-width:720px}
+@media(max-width:520px){
+  .homeShell{width:calc(100% - 20px)}
+  .homeTop{padding-inline:12px}
+  .homeViews span:last-child{display:none}
+  .homeHero{padding-top:42px}
+  .homeHero h1{font-size:clamp(48px,16vw,66px)}
+  .homeHero>p:last-child{font-size:15px;line-height:1.48}
+  .homeCard{grid-template-columns:auto minmax(0,1fr) 32px}
+  .homeCard__copy strong{overflow-wrap:anywhere}
+}
