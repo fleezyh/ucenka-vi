@@ -89,7 +89,7 @@ body::after {
 @media (max-width: 1500px) {
   .site-usage__stamp, .site-usage__spark { display: none; }
 }
-@media (max-width: 1180px) {
+@media (max-width: 1380px) {
   .site-nav { align-items: flex-start; flex-direction: column; }
   .site-nav__identity { width: 100%; justify-content: space-between; }
   .site-usage { max-width: none; }
