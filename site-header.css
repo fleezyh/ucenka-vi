@@ -300,3 +300,81 @@ body[data-mode="dashboard"] > header {
    DemiBold и ExtraBold; браузер по умолчанию рисует <b>, <strong> и заголовки
    весом 700 и попадает в ExtraBold. Держим semibold — DemiBold. */
 b, strong, th, h1, h2, h3, h4, h5, h6 { font-weight: 600; }
+
+/* Базовый вес текста — Medium 500, а не Regular 400: на тёмном фоне светлый
+   тонкий штрих оптически истончается и текст выглядит блёклым. */
+body { font-weight: 500; }
+
+/* ---------------------------------------------------------------------------
+   ЕДИНАЯ ШАПКА РАЗДЕЛА
+
+   Каждый раздел раньше объявлял свой hero со своими размерами: заголовок
+   гулял от 38 до 80 px, отступ под навигацией — от 16 до 38 px. Здесь один
+   canonical-набор на все разделы; файл подключается последним, поэтому
+   перебивает частные правила разделов, ничего в них не удаляя.
+
+   Разметка раздела всегда такая:
+     <section class="hero"> (или heroXxx)
+       <div>
+         <p class="eyebrow">надраздел</p>
+         <h1>Название раздела</h1>
+         <p class="lead">Одно предложение о том, что здесь смотрят.</p>
+       </div>
+       <div>…период, легенда, отметка обновления…</div>
+     </section>
+   --------------------------------------------------------------------------- */
+
+.shell > .topbar,
+.siteHeaderShell > .topbar { margin-bottom: 22px; }
+
+.hero, .heroHeatmap, .heroSales, .heroPerf, .heroStock, .heroFunnel, .agHero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 24px;
+  margin: 0 0 22px;
+}
+.hero > *, .heroHeatmap > *, .heroSales > *, .heroPerf > *,
+.heroStock > *, .heroFunnel > *, .agHero > * { min-width: 0; }
+
+.hero h1, .heroHeatmap h1, .heroSales h1, .heroPerf h1,
+.heroStock h1, .heroFunnel h1, .agHero h1 {
+  margin: 6px 0 0;
+  font-size: clamp(34px, 4.6vw, 56px);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -.035em;
+  overflow-wrap: anywhere;
+}
+.hero .eyebrow, .heroHeatmap .eyebrow, .heroSales .eyebrow, .heroPerf .eyebrow,
+.heroStock .eyebrow, .heroFunnel .eyebrow, .agHero .agKicker {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+.hero .lead, .heroHeatmap .lead, .heroSales .lead, .heroPerf .lead,
+.heroStock .lead, .heroFunnel .lead, .agHero .agLead {
+  margin: 12px 0 0;
+  max-width: 62ch;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.55;
+}
+.hero .stamp, .heroHeatmap .stamp, .heroSales .stamp, .heroPerf .stamp,
+.heroStock .stamp, .heroFunnel .stamp {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+@media (max-width: 860px) {
+  .hero, .heroHeatmap, .heroSales, .heroPerf, .heroStock, .heroFunnel, .agHero {
+    grid-template-columns: 1fr;
+    align-items: start;
+    gap: 14px;
+  }
+  .hero h1, .heroHeatmap h1, .heroSales h1, .heroPerf h1,
+  .heroStock h1, .heroFunnel h1, .agHero h1 { font-size: clamp(28px, 8vw, 40px); }
+}

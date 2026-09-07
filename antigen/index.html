@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0a1018">
+  <title>Уценка · Антигенерация</title>
+  <link rel="icon" type="image/svg+xml" href="../assets/brand/vi-mark.svg">
+  <link rel="preload" href="../assets/fonts/VI_Sans_Regular.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="../style.css?v=20260907-6">
+  <link rel="stylesheet" href="antigen.css?v=20260907-6">
+  <link rel="stylesheet" href="../reeded-bg.css?v=20260907-6">
+  <link rel="stylesheet" href="../site-header.css?v=20260907-6">
+  <script src="../reeded-bg.js?v=20260906-7" defer></script>
+  <script src="antigen.js?v=20260907-6" defer></script>
+  <script src="../nav.js?v=20260906-1" defer></script>
+</head>
+<body data-mode="antigen">
+  <main class="shell">
+    <header class="topbar">
+      <a class="brand" href="../" aria-label="Уценка — главная">
+        <img class="brand__mark" src="../assets/brand/vi-mark.svg" alt="" width="27" height="27">
+        <span>Уценка</span>
+      </a>
+      <nav class="siteNav" aria-label="Разделы сайта">
+        <span class="navGroup">
+          <span class="navGroup__label">Уценка</span>
+          <a class="navLink" href="./" aria-current="page">Антигенерация</a>
+          <a class="navLink" href="../heatmap/">Хитмап</a>
+          <a class="navLink" href="../sales/">Продажи</a>
+          <a class="navLink" href="../perf/">Производительность</a>
+        </span>
+        <span class="navGroup">
+          <span class="navGroup__label">Инструменты</span>
+          <a class="navLink" href="../picker/">Пикалка</a>
+        </span>
+        <a class="navAdmin" href="https://fleezy.tailb770fe.ts.net" target="_blank" rel="noopener">Админка</a>
+      </nav>
+    </header>
+
+    <section class="agHero">
+      <div>
+        <div class="agKicker">операционный контроль качества</div>
+        <h1>Антигенерация брака</h1>
+        <p class="agLead">Один период на все контуры: месяц раскладывается по неделям, квартал и год —
+          по месяцам. Карта показывает, где случилось больше, клик проваливает в этот срез.</p>
+      </div>
+      <div class="agHeroSide">
+        <div class="agStamp" id="agStamp">данные загружаются…</div>
+        <a class="agBtn agBtn--ghost" href="../dashboard/">Старая версия</a>
+      </div>
+    </section>
+
+    <section class="agGoals" id="agGoals" hidden></section>
+
+    <nav class="agContours" id="agContours" aria-label="Контуры"></nav>
+
+    <section class="agPanel agPanel--time">
+      <div class="agPanel__head">
+        <div>
+          <h2 id="agTimeTitle">Динамика</h2>
+          <p class="agHint" id="agTimeHint">клик по точке выбирает её</p>
+        </div>
+        <div class="agTools">
+          <div class="agSeg" id="agPeriod" role="group" aria-label="Период"></div>
+          <div class="agSeg" id="agStep" role="group" aria-label="Шаг"></div>
+          <div class="agSeg" id="agMeasure" role="group" aria-label="Мера"></div>
+        </div>
+      </div>
+      <div class="agChart" id="agChart"></div>
+      <div class="agFacts" id="agFacts"></div>
+    </section>
+
+    <section class="agPanel agPanel--heat">
+      <div class="agPanel__head">
+        <div>
+          <h2>Где случилось больше</h2>
+          <p class="agHint" id="agHeatHint">строка — значение разреза, столбец — период; клик по ячейке проваливается в неё</p>
+        </div>
+        <div class="agSeg" id="agHeatDim" role="group" aria-label="Разрез карты"></div>
+      </div>
+      <div class="agHeat" id="agHeat"></div>
+    </section>
+
+    <section class="agPanel agPanel--drill">
+      <div class="agPanel__head">
+        <div>
+          <h2>Разбор</h2>
+          <p class="agHint">клик по сектору или строке — провалиться, крошки сверху — вернуться</p>
+        </div>
+        <div class="agTools">
+          <button type="button" class="agBtn" id="agExport">Выгрузить срез</button>
+          <a class="agBtn agBtn--ghost" id="agSuperset" target="_blank" rel="noopener">Открыть в Superset</a>
+        </div>
+      </div>
+      <div class="agCrumbs" id="agCrumbs"></div>
+      <div class="agDims" id="agDims" role="tablist" aria-label="Разрезы"></div>
+      <div class="agTable" id="agTable"></div>
+    </section>
+
+    <footer class="agFoot">
+      <p>Прежний дашборд никуда не делся — он открывается кнопкой «Старая версия» вверху справа.
+        Контуры считаются каждый по своей выгрузке и между собой не суммируются: рубли в них означают
+        разное — в забраковке розничная цена, в движении закупочная с НДС, в актах себестоимость без НДС.</p>
+    </footer>
+  </main>
+</body>
+</html>

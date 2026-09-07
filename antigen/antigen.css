@@ -1,0 +1,387 @@
+/* Новая страница антигенерации. Собрана с нуля: одна ось времени, разбор
+   периода и провал по разрезам. Сетка, шапка и переменные — общие с остальным
+   сайтом (style.css, site-header.css), поэтому ширину и поля здесь не трогаем:
+   раздел должен стоять ровно так же, как «Хитмап» и «Продажи». */
+
+body[data-mode="antigen"] .shell {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ------------------------------------------------------------------ шапка */
+
+/* Размеры и раскладка шапки раздела заданы общим site-header.css — здесь
+   только цвет надзаголовка, чтобы разделы отличались друг от друга. */
+.agKicker { color: var(--muted); }
+.agHeroSide { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.agStamp {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #101823;
+  padding: 12px 16px;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.6;
+  text-align: right;
+}
+.agStamp b { color: var(--text); font-weight: 600; }
+
+/* ---------------------------------------------------------------- цели */
+
+.agGoals {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--blue);
+  border-radius: 12px;
+  background: #0e1621;
+  padding: 10px 16px;
+}
+.agGoals__label {
+  font-size: 11.5px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.agGoals__item { display: flex; align-items: baseline; gap: 7px; font-size: 14px; }
+.agGoals__item b { font-size: 18px; font-weight: 600; }
+.agGoals__item span { color: var(--muted); font-size: 12.5px; }
+.agGoals__gap { margin-left: auto; font-size: 14px; color: var(--muted); }
+.agGoals__gap b { color: var(--red); font-weight: 600; }
+.agGoals__track {
+  flex: 1 1 160px;
+  min-width: 120px;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, .07);
+  position: relative;
+}
+.agGoals__track i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--blue), var(--red));
+  width: var(--w, 0%);
+}
+.agGoals__track u {
+  position: absolute;
+  top: -4px;
+  width: 2px;
+  height: 14px;
+  background: var(--green);
+  left: var(--goal, 100%);
+}
+
+/* --------------------------------------------------------------- контуры */
+
+.agContours {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 10px;
+}
+.agContour {
+  appearance: none;
+  text-align: left;
+  cursor: pointer;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #101823;
+  color: var(--text);
+  font: inherit;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  transition: border-color .15s, background .15s;
+}
+.agContour:hover { border-color: var(--line-strong); }
+.agContour[aria-selected="true"] {
+  border-color: var(--blue);
+  background: #16233a;
+}
+.agContour__name { font-weight: 600; font-size: 15.5px; }
+.agContour__note { font-size: 12.5px; color: var(--muted); }
+.agContour__id { font-size: 10.5px; color: var(--muted); opacity: .65; }
+
+/* ---------------------------------------------------------------- панели */
+
+.agPanel {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #0d151f;
+  padding: 16px 18px 18px;
+}
+.agPanel__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.agPanel h2 { margin: 0; font-size: 20px; }
+.agHint { margin: 4px 0 0; font-size: 13px; color: var(--muted); }
+.agTools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+.agSeg {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  background: #0a121b;
+}
+.agSeg button {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13.5px;
+  padding: 7px 14px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.agSeg button[aria-pressed="true"] { background: #1b2940; color: var(--text); font-weight: 600; }
+.agSeg button:hover { color: var(--text); }
+
+.agBtn {
+  appearance: none;
+  cursor: pointer;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: #16233a;
+  color: var(--text);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  padding: 8px 15px;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+.agBtn:hover { border-color: var(--blue); }
+.agBtn--ghost { background: transparent; font-weight: 500; color: var(--muted); }
+.agBtn--ghost:hover { color: var(--text); }
+
+/* ------------------------------------------------------------ ось времени */
+
+.agPeriodPick { display: inline-flex; align-items: center; gap: 8px; }
+.agPeriodPick span { font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.agPeriodPick select {
+  appearance: none;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  background: #0a121b;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 6px 30px 6px 12px;
+  cursor: pointer;
+  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+    linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position: calc(100% - 15px) 53%, calc(100% - 10px) 53%;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+}
+.agPeriodPick select:hover { border-color: var(--line-strong); }
+
+.agChart { width: 100%; }
+/* Размер SVG задаётся при отрисовке в реальных пикселях: масштабировать
+   его css-ом нельзя — вместе с картинкой уезжают и шрифты. */
+.agChart svg { display: block; max-width: 100%; overflow: visible; }
+
+/* ------------------------------------------------------------ карта */
+
+.agHeat { overflow-x: auto; }
+.agHeatGrid { display: grid; gap: 2px; min-width: 620px; }
+.agHeatCell {
+  appearance: none;
+  border: 0;
+  border-radius: 4px;
+  font: inherit;
+  font-size: 12.5px;
+  padding: 10px 6px;
+  text-align: center;
+  color: #0a121b;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.agHeatCell:hover { outline: 2px solid var(--text); outline-offset: -2px; }
+.agHeatCell--empty { background: rgba(255, 255, 255, .04); color: var(--muted); cursor: default; }
+.agHeatCell--empty:hover { outline: 0; }
+.agHeatHead {
+  font-size: 11.5px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 6px 4px;
+  text-align: center;
+  white-space: nowrap;
+}
+.agHeatName {
+  font-size: 13.5px;
+  color: var(--text);
+  padding: 6px 10px 6px 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  font-family: inherit;
+}
+.agHeatName:hover { color: var(--blue); }
+.agHeatLegend { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 12px; color: var(--muted); }
+.agHeatLegend i { width: 90px; height: 8px; border-radius: 4px; background: linear-gradient(90deg, #16324f, #4d8df7, #f5ad32, #f05d72); }
+.agLine { fill: none; stroke: var(--blue); stroke-width: 2; }
+.agArea { fill: url(#agFill); }
+.agTrend { fill: none; stroke: var(--amber); stroke-width: 1.4; stroke-dasharray: 6 5; opacity: .85; }
+.agGrid { stroke: rgba(255, 255, 255, .07); stroke-width: 1; }
+.agAxis { fill: var(--muted); font-size: 12px; }
+.agDot { fill: var(--blue); stroke: #0d151f; stroke-width: 2; cursor: pointer; }
+.agDot--on { fill: var(--red); r: 6; }
+.agPointLabel { fill: var(--text); font-size: 12px; font-weight: 600; text-anchor: middle; }
+.agPointLabel--partial { fill: var(--muted); }
+.agDot--partial { fill: #0d151f; stroke: var(--blue); stroke-width: 2; }
+.agHit { fill: transparent; cursor: pointer; }
+.agHit:hover + .agDot { r: 6; }
+
+.agFacts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+.agFact {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #101823;
+  padding: 10px 13px;
+}
+.agFact span { display: block; font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+.agFact strong { display: block; font-size: 26px; font-weight: 600; margin-top: 3px; }
+.agFact small { display: block; font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+.agFact--up strong { color: var(--red); }
+.agFact--down strong { color: var(--green); }
+
+/* ------------------------------------------------------- что выстрелило */
+
+.agFire { display: flex; flex-direction: column; gap: 6px; }
+.agFireRow {
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr) 110px 92px;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  padding: 7px 10px;
+  background: #101823;
+  cursor: pointer;
+  font: inherit;
+  color: var(--text);
+  text-align: left;
+}
+.agFireRow:hover { border-color: var(--line-strong); }
+.agFireRow__dim { font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.agFireRow__name { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.agFireRow__bar { position: relative; height: 8px; border-radius: 4px; background: rgba(255, 255, 255, .07); }
+.agFireRow__bar i { position: absolute; inset: 0 auto 0 0; width: var(--w, 0%); border-radius: 4px; background: var(--red); }
+.agFireRow--down .agFireRow__bar i { background: var(--green); }
+.agFireRow__delta { text-align: right; font-weight: 600; font-size: 13px; }
+.agFireRow--up .agFireRow__delta { color: var(--red); }
+.agFireRow--down .agFireRow__delta { color: var(--green); }
+
+/* ----------------------------------------------------------------- провал */
+
+.agCrumbs { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.agCrumb {
+  appearance: none;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #101823;
+  color: var(--text);
+  font: inherit;
+  font-size: 13.5px;
+  padding: 6px 12px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.agCrumb b { font-weight: 600; }
+.agCrumb em { font-style: normal; color: var(--muted); }
+.agCrumb:hover { border-color: var(--red); }
+.agCrumb--root { cursor: default; }
+.agCrumb--root:hover { border-color: var(--line); }
+
+.agDims { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+.agDim {
+  appearance: none;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13.5px;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+.agDim[aria-selected="true"] { border-color: var(--blue); color: var(--text); background: #16233a; font-weight: 600; }
+.agDim:hover { color: var(--text); }
+
+.agSplit { display: grid; grid-template-columns: minmax(280px, 380px) minmax(0, 1fr); gap: 20px; align-items: start; }
+.agPie svg { display: block; width: 100%; height: auto; }
+.agPie__center { fill: var(--text); text-anchor: middle; }
+.agPie__center tspan.sub { fill: var(--muted); font-size: 11px; }
+.agSlice { cursor: pointer; transition: opacity .12s; }
+.agSlice:hover { opacity: .78; }
+
+.agTable { display: flex; flex-direction: column; gap: 2px; }
+.agRow {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr) 110px 96px 92px;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: 9px;
+  border: 1px solid transparent;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.agRow:nth-child(odd) { background: rgba(255, 255, 255, .022); }
+.agRow:hover { border-color: var(--line-strong); }
+.agRow__chip { width: 10px; height: 10px; border-radius: 3px; background: var(--line-strong); }
+.agRow__name { font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.agRow__bar { position: relative; height: 7px; border-radius: 4px; background: rgba(255, 255, 255, .06); }
+.agRow__bar i { position: absolute; inset: 0 auto 0 0; width: var(--w, 0%); border-radius: 4px; background: var(--blue); }
+.agRow__val { text-align: right; font-size: 15px; font-weight: 600; }
+.agRow__delta { text-align: right; font-size: 13px; color: var(--muted); }
+.agRow__delta.up { color: var(--red); }
+.agRow__delta.down { color: var(--green); }
+.agRow--head { cursor: default; font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); background: none; }
+.agRow--head:hover { border-color: transparent; }
+.agRow--head .agRow__val, .agRow--head .agRow__delta { font-weight: 500; font-size: 11.5px; }
+
+.agEmpty { color: var(--muted); font-size: 14px; padding: 18px 4px; }
+
+.agFoot { color: var(--muted); font-size: 12px; max-width: 96ch; }
+.agFoot a { color: var(--blue); }
+
+@media (max-width: 1100px) {
+  .agSplit { grid-template-columns: 1fr; }
+  .agPie { max-width: 380px; }
+}
+@media (max-width: 900px) {
+  .agFireRow { grid-template-columns: 104px minmax(0, 1fr) 84px; }
+  .agFireRow__bar { display: none; }
+  .agRow { grid-template-columns: 14px minmax(0, 1fr) 92px 78px; }
+  .agRow__bar { display: none; }
+}
