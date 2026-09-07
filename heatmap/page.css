@@ -151,6 +151,39 @@ body[data-mode="heatmap"] .shell {
 .summary__item--bad b { color: #f4808f; }
 .summary__item--flat b { color: var(--muted); }
 
+/* Переключатель темпа стоит в той же строке, но отделён: это не фильтр, а
+   другой способ читать те же плитки. */
+.summary__pace {
+  margin-left: auto;
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(8, 13, 20, 0.6);
+  color: var(--muted);
+  font: 600 13px var(--ui);
+  cursor: pointer;
+}
+.summary__pace:hover { color: var(--text); border-color: var(--line-strong); }
+.summary__pace.is-on {
+  background: rgba(39, 196, 107, 0.14);
+  border-color: rgba(39, 196, 107, 0.5);
+  color: #a9f0c6;
+}
+
+/* Плитки без темпа — доли, коэффициенты и запасы: их цель на день не делится.
+   Приглушаем, чтобы не казалось, будто они посчитаны по-новому. */
+.tile--noPace { opacity: 0.62; }
+.tile__foot--pace { color: rgba(255, 255, 255, 0.9); }
+
+/* Чип — кнопка-фильтр: оставляет на экране только свой светофор. Включённый
+   подсвечен, иначе непонятно, почему плиток вдруг стало три. */
+.summary__item { cursor: pointer; font-family: var(--ui); }
+.summary__item:hover { border-color: var(--line-strong); }
+.summary__item.is-on {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
 @media (max-width: 760px) {
   .summary { gap: 6px; margin-bottom: 12px; }
   .summary__item { padding: 7px 11px; font-size: 12px; }
@@ -197,6 +230,9 @@ body[data-mode="heatmap"] .shell {
   cursor: pointer;
 }
 .daily__close:hover { border-color: var(--line-strong); }
+/* «CSV» стоит рядом с «Закрыть», но это не выход из панели — приглушаем. */
+.daily__close--ghost { background: transparent; color: var(--muted); }
+.daily__close--ghost:hover { color: var(--text); }
 
 /* Шкала — отдельной колонкой слева: подписи внутри растянутого SVG
    раздавило бы по горизонтали вместе с графиком. */
@@ -218,6 +254,16 @@ body[data-mode="heatmap"] .shell {
 /* Линию не масштабируем вместе с холстом, иначе она размажется по толщине. */
 .daily__line { fill: none; stroke: #27c46b; stroke-width: 2; vector-effect: non-scaling-stroke; }
 .daily__zero { stroke: rgba(255, 255, 255, 0.22); stroke-width: 1; vector-effect: non-scaling-stroke; }
+/* Прошлый период поверх текущего — пунктиром и тускло: это фон для сравнения. */
+.daily__ghost {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.32);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 5;
+  vector-effect: non-scaling-stroke;
+}
+.daily__peak { color: #f5c26b; font-weight: 600; }
+.daily__versus { color: rgba(255, 255, 255, 0.75); }
 
 /* Ось дат. Подписи стоят каждая по координате своей точки, поэтому строка
    позиционируется, а не раскладывается флексом. */

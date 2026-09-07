@@ -8,12 +8,13 @@
   <link rel="icon" type="image/svg+xml" href="../assets/brand/vi-mark.svg">
   <link rel="preload" href="../assets/fonts/VI_Sans_Regular.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="../style.css?v=20260907-6">
-  <link rel="stylesheet" href="tiles.css?v=20260907-6">
-  <link rel="stylesheet" href="page.css?v=20260907-6">
+  <link rel="stylesheet" href="tiles.css?v=20260907-13">
+  <link rel="stylesheet" href="page.css?v=20260907-12">
   <link rel="stylesheet" href="../reeded-bg.css?v=20260907-6">
   <link rel="stylesheet" href="../site-header.css?v=20260907-6">
   <script src="../reeded-bg.js?v=20260906-7" defer></script>
-  <script src="heatmap.js?v=20260905-7" defer></script>
+  <script src="../xlsx.js?v=20260907-13" defer></script>
+  <script src="heatmap.js?v=20260907-14" defer></script>
   <script src="../nav.js?v=20260906-1" defer></script>
 </head>
 <body data-mode="heatmap">
@@ -60,6 +61,13 @@
 
     <p class="scannerNote">
       Наведите на плитку — покажу цель, отклонение и из чего сложилось число.
+      Клик раскрывает историю по дням прямо под рядом, Escape закрывает, «Excel»
+      отдаёт показанный ряд файлом. Счётчики сверху работают как фильтр, а адрес
+      страницы хранит период и раскрытую метрику — такой ссылкой можно делиться.
+      Кнопка справа сравнивает период с прошлым по тому же числу прожитых дней:
+      плитки показывают, сколько было тогда, а на дневном графике прошлый период
+      идёт пунктиром. Доли и коэффициенты по дням считаются накопительно с начала
+      окна, а остатки — беклог и резерв — показаны снимком на день.
       Данные считаются вместе с утренней выгрузкой уценки.
     </p>
   </main>

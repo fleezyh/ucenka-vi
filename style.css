@@ -115,7 +115,7 @@ button { border: 0; }
   height: 27px;
   flex: 0 0 auto;
   border-radius: 6px;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 5px 16px rgba(214, 0, 0, 0.22);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
 .privacy {
@@ -190,7 +190,7 @@ h1 {
   border: 1px solid var(--line);
   border-radius: 16px;
   background: rgba(8, 13, 20, 0.72);
-  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.22);
+  
 }
 
 .tab {
@@ -207,13 +207,13 @@ h1 {
 .tab:hover { color: var(--text); }
 .tab[aria-selected="true"] {
   color: #fff;
-  background: linear-gradient(135deg, var(--green), var(--green-deep));
-  box-shadow: 0 8px 24px rgba(39, 196, 107, 0.22);
+  background: var(--green);
+  
 }
 
 .tab[data-mode="presort"][aria-selected="true"] {
-  background: linear-gradient(135deg, var(--blue), var(--blue-deep));
-  box-shadow: 0 8px 24px rgba(77, 141, 247, 0.24);
+  background: var(--blue);
+  
 }
 
 .tab:disabled { opacity: 0.45; cursor: wait; }
@@ -230,8 +230,8 @@ h1 {
   position: relative;
   border: 1px solid var(--line);
   border-radius: 22px;
-  background: linear-gradient(160deg, rgba(20, 29, 41, 0.96), rgba(12, 19, 28, 0.93));
-  box-shadow: var(--shadow);
+  background: rgba(16, 24, 34, 0.95);
+  
 }
 
 /* Медленный перелив по краю карточки — только подсветка, содержимое не трогает. */
@@ -305,8 +305,8 @@ body::after {
     border: 1px solid rgba(255,255,255,.16);
     border-radius: 15px;
     color: var(--text);
-    background: linear-gradient(145deg,rgba(255,255,255,.11),rgba(255,255,255,.035)),rgba(13,21,31,.68);
-    box-shadow: inset 0 1px rgba(255,255,255,.16),0 12px 30px rgba(0,0,0,.22);
+    background: rgba(16,24,34,.88);
+    
     backdrop-filter: blur(18px) saturate(160%);
     -webkit-backdrop-filter: blur(18px) saturate(160%);
     font-weight: 600;
@@ -326,8 +326,8 @@ body::after {
     padding: 9px;
     border: 1px solid rgba(255,255,255,.13);
     border-radius: 20px;
-    background: linear-gradient(145deg,rgba(255,255,255,.08),rgba(255,255,255,.025)),rgba(12,20,30,.82);
-    box-shadow: inset 0 1px rgba(255,255,255,.12),0 20px 45px rgba(0,0,0,.28);
+    background: rgba(15,23,33,.92);
+    
     backdrop-filter: blur(24px) saturate(160%);
     -webkit-backdrop-filter: blur(24px) saturate(160%);
   }
@@ -456,10 +456,10 @@ body[data-mode="presort"] .connection.ready .connection__icon { color: var(--blu
   width: 0;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, var(--green), #79e6a7);
+  background: var(--green);
   transition: width 0.2s ease;
 }
-body[data-mode="presort"] .progress i { background: linear-gradient(90deg, var(--blue), #9ac0ff); }
+body[data-mode="presort"] .progress i { background: var(--blue); }
 
 .stats {
   display: grid;
@@ -559,12 +559,12 @@ body[data-mode="presort"] .searchRow input:focus { border-color: var(--blue); bo
   padding: 0 18px;
   border-radius: 13px;
   color: #fff;
-  background: linear-gradient(135deg, var(--green), var(--green-deep));
+  background: var(--green);
   font-weight: 600;
   cursor: pointer;
 }
 
-body[data-mode="presort"] .action { background: linear-gradient(135deg, var(--blue), var(--blue-deep)); }
+body[data-mode="presort"] .action { background: var(--blue); }
 .action--secondary { color: var(--text); background: #2a384a; }
 body[data-mode="presort"] .action--secondary { background: #2a384a; }
 .action:disabled { opacity: 0.38; cursor: wait; }
@@ -597,12 +597,12 @@ body[data-mode="presort"] .message.ok { color: #8db9ff; }
   padding: 20px;
   border-radius: 18px;
   color: #fff;
-  background: linear-gradient(145deg, #38d77d, var(--green-deep));
-  box-shadow: 0 13px 34px rgba(0, 0, 0, 0.28);
+  background: #2fc97c;
+  
 }
 
-.primary.category { text-align: center; background: linear-gradient(145deg, #69a1ff, var(--blue-deep)); }
-.primary.none { background: linear-gradient(145deg, #f37688, #bd3047); }
+.primary.category { text-align: center; background: #5b95f2; }
+.primary.none { background: #d9506a; }
 .primary span { display: block; opacity: 0.82; font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; }
 .primary strong { display: block; margin-top: 6px; font-size: 34px; line-height: 1.05; white-space: nowrap; }
 .primary.category strong { font-size: 56px; }
@@ -699,7 +699,7 @@ body[data-mode="pallets"] {
 
 body[data-mode="pallets"] .eyebrow { color: #f7c877; }
 .tab[data-mode="pallets"][aria-selected="true"] {
-  background: linear-gradient(135deg, var(--amber), #b97a12);
+  background: var(--amber);
   box-shadow: 0 8px 24px rgba(245, 173, 50, 0.22);
 }
 body[data-mode="pallets"] .modePill {

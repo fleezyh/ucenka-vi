@@ -8,8 +8,10 @@ body{min-height:100vh;margin:0;overflow-x:hidden;color:var(--text);font-family:v
 button,a{font:inherit;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 a{text-decoration:none;color:inherit}
 .homeShell{width:min(1050px,calc(100% - 32px));margin:0 auto;padding:0 0 38px}
-.glass{position:relative;border:1px solid var(--line);background:linear-gradient(145deg,rgba(255,255,255,.055),rgba(255,255,255,.012)),rgba(13,10,17,.73);box-shadow:inset 0 1px rgba(255,255,255,.10),0 24px 70px rgba(0,0,0,.42);backdrop-filter:blur(26px) saturate(145%);-webkit-backdrop-filter:blur(26px) saturate(145%)}
-.glass::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:linear-gradient(118deg,rgba(255,255,255,.18),transparent 24%,transparent 72%,rgba(118,177,255,.08));opacity:.55}
+/* Карточка плоская: ровный фон и рамка в один пиксель. Стекло с размытием,
+   диагональный блик поверх и тень на семьдесят пикселей изображали слои,
+   которых на странице нет. */
+.glass{position:relative;border:1px solid var(--line);background:rgba(15,14,20,.88)}
 .homeViews{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:12px;white-space:nowrap}
 .homeViews strong{color:var(--text);font-weight:600}.homeViews__eye{color:var(--green);font-size:10px}
 .homeHero{padding:clamp(54px,9vw,92px) 10px 28px;text-align:center}
@@ -17,10 +19,10 @@ a{text-decoration:none;color:inherit}
 .homeHero h1{margin:0;font-size:clamp(49px,9vw,88px);font-weight:600;line-height:.96;letter-spacing:-.055em}
 .homeHero>p:last-child{margin:20px auto 0;color:var(--muted);font-size:17px;line-height:1.55}
 .homeSwitch{isolation:isolate;display:grid;grid-template-columns:1fr 1fr;width:min(560px,100%);margin:0 auto 28px;padding:7px;border-radius:24px;overflow:hidden}
-.homeSwitch__lens{position:absolute;z-index:-1;inset:7px auto 7px 7px;width:calc(50% - 7px);border:1px solid rgba(255,255,255,.24);border-radius:18px;background:linear-gradient(145deg,rgba(255,255,255,.22),rgba(255,255,255,.055));box-shadow:inset 0 1px rgba(255,255,255,.25),inset 0 -10px 25px rgba(44,130,255,.10),0 10px 28px rgba(0,0,0,.26),0 0 38px rgba(76,150,255,.09);backdrop-filter:blur(18px) saturate(190%);-webkit-backdrop-filter:blur(18px) saturate(190%);transition:transform .42s cubic-bezier(.22,1,.36,1),background .3s ease}
-.homeSwitch[data-active="tools"] .homeSwitch__lens{transform:translateX(100%);background:linear-gradient(145deg,rgba(80,227,151,.22),rgba(255,255,255,.055))}
+.homeSwitch__lens{position:absolute;z-index:-1;inset:7px auto 7px 7px;width:calc(50% - 7px);border:1px solid rgba(255,255,255,.24);border-radius:18px;background:rgba(255,255,255,.13);transition:transform .42s cubic-bezier(.22,1,.36,1),background .3s ease}
+.homeSwitch[data-active="tools"] .homeSwitch__lens{transform:translateX(100%);background:rgba(80,227,151,.18)}
 .homeSwitch button{position:relative;z-index:1;min-height:62px;border:0;border-radius:17px;color:var(--muted);background:transparent;font-size:17px;font-weight:600;cursor:pointer;transition:color .22s ease,transform .12s ease}
-.homeSwitch button[aria-selected="true"]{color:#fff;text-shadow:0 1px 12px rgba(255,255,255,.22)}
+.homeSwitch button[aria-selected="true"]{color:#fff}
 .homeSwitch button:active{transform:scale(.97)}
 .homePanel[hidden]{display:none}
 .homePanel.is-entering{animation:panelIn .42s cubic-bezier(.22,1,.36,1)}
@@ -28,22 +30,22 @@ a{text-decoration:none;color:inherit}
 .homeGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
 .homeGrid--tools{grid-template-columns:1.35fr .85fr}
 .homeCard{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:17px;min-height:142px;padding:22px;border-radius:25px;overflow:hidden;transition:transform .2s cubic-bezier(.22,1,.36,1),border-color .2s ease,background .2s ease}
-.homeCard:hover{transform:translateY(-3px);border-color:rgba(255,255,255,.25);background:linear-gradient(145deg,rgba(255,255,255,.13),rgba(255,255,255,.035)),var(--glass)}
+.homeCard:hover{border-color:rgba(255,255,255,.42);background:rgba(28,26,36,.92)}
 .homeCard:active{transform:scale(.985)}
 .homeCard--primary{border-color:rgba(217,86,86,.34)}
 .homeCard--picker{border-color:rgba(43,209,121,.35)}
-.homeCard__icon{position:relative;z-index:1;display:grid;place-items:center;width:54px;height:54px;border-radius:17px;color:#fff;background:linear-gradient(145deg,#ff655c,#d92820);box-shadow:inset 0 1px rgba(255,255,255,.25),0 10px 28px rgba(255,69,58,.17);font-size:18px;font-weight:600}
-.homeCard__icon--violet{background:linear-gradient(145deg,#b49aff,#7951d8)}
-.homeCard__icon--amber{background:linear-gradient(145deg,#ffc561,#cb7c11)}
-.homeCard__icon--green{background:linear-gradient(145deg,#3cdd8b,#128b50)}
-.homeCard__icon--red{font-size:15px;background:linear-gradient(145deg,#ff655c,#b51d17)}
+.homeCard__icon{position:relative;z-index:1;display:grid;place-items:center;width:54px;height:54px;border-radius:17px;color:#fff;background:#e23b30;font-size:18px;font-weight:600}
+.homeCard__icon--violet{background:#9370e8}
+.homeCard__icon--amber{background:#e0a03a}
+.homeCard__icon--green{background:#27c46b}
+.homeCard__icon--red{font-size:15px;background:#d4362c}
 .homeCard__copy{position:relative;z-index:1;min-width:0}
 .homeCard__copy strong{display:block;font-size:22px;line-height:1.15;letter-spacing:-.025em}
 .homeCard__copy small{display:block;margin-top:8px;color:var(--muted);font-size:14px;line-height:1.45}
 .homeCard__arrow{position:relative;z-index:1;display:grid;place-items:center;width:36px;height:36px;border:1px solid rgba(255,255,255,.1);border-radius:50%;color:#d9e4f2;background:rgba(4,9,15,.28);font-size:17px}
 footer{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:26px;color:var(--muted);font-size:13px}
 .homeFooterItem{display:inline-flex;align-items:center;gap:9px}.homeFooterSep{width:1px;height:14px;background:rgba(255,255,255,.16)}
-.homePulse{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 16px rgba(43,209,121,.7)}
+.homePulse{width:7px;height:7px;border-radius:50%;background:var(--green);}
 :where(a,button):focus-visible{outline:2px solid #a8d1ff;outline-offset:4px}
 @media(max-width:1200px){body.homePage .siteHeaderShell .siteNav{width:auto}}
 @media(max-width:700px){

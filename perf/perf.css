@@ -34,12 +34,13 @@
   margin-bottom: 26px;
 }
 
+/* Карточка плоская: рамка и ровный фон. Тень под ней изображала слой, которого
+   в интерфейсе нет — всё лежит на одной плоскости. */
 .perfCard {
   padding: 16px 18px 15px;
   border: 1px solid var(--line);
-  border-radius: 15px;
+  border-radius: 14px;
   background: var(--panel);
-  box-shadow: var(--shadow);
 }
 
 /* Главная карточка выделена — это та самая цифра, ради которой открывают. */
@@ -65,6 +66,118 @@
   padding-bottom: 11px;
   border-bottom: 1px solid var(--line);
 }
+
+/* Переключатель шага — плоские кнопки в общей рамке, без теней и подъёмов. */
+.stepSwitch {
+  display: inline-flex;
+  flex: none;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--panel);
+}
+
+.stepSwitch__item {
+  padding: 7px 13px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font: 600 13px var(--ui);
+  cursor: pointer;
+}
+
+.stepSwitch__item:hover { color: var(--text); }
+.stepSwitch__item.is-on { background: rgba(255, 255, 255, 0.12); color: #fff; }
+
+/* Незакрытая неделя — штриховкой: её нельзя сравнивать с прошлой напрямую. */
+.month.isPartial .month__fill {
+  background-image: repeating-linear-gradient(135deg,
+    rgba(0, 0, 0, 0.28) 0 4px, rgba(0, 0, 0, 0) 4px 8px);
+}
+
+/* Кнопки в шапке блока — переключатель шага и выгрузка рядом. */
+.perfActions { display: inline-flex; align-items: center; gap: 8px; flex: none; }
+
+/* ---- Ядро и хвост ---------------------------------------------------------- */
+
+.core {
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+}
+
+.core__bar {
+  height: 14px;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  cursor: default;
+}
+
+.core__head { display: block; height: 100%; background: #27c46b; }
+.core__facts { margin: 12px 0 0; color: var(--muted); font-size: 14px; line-height: 1.5; }
+.core__facts b { color: var(--text); font-weight: 600; }
+
+/* ---- Контуры рядом --------------------------------------------------------- */
+
+.contours { display: grid; gap: 8px; }
+
+.contourRow {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr) 64px 200px;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  color: var(--text);
+  font: 600 14px var(--ui);
+  text-align: left;
+  cursor: pointer;
+}
+
+.contourRow:hover { border-color: var(--line-strong); }
+.contourRow.is-on { border-color: rgba(39, 196, 107, 0.55); background: rgba(39, 196, 107, 0.08); }
+.contourRow__track { height: 10px; border-radius: 5px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
+.contourRow__track i { display: block; height: 100%; background: #4d8df7; }
+.contourRow.is-on .contourRow__track i { background: #27c46b; }
+.contourRow__value { text-align: right; font-feature-settings: "tnum" 0, "pnum" 1; }
+.contourRow__note { color: var(--muted); font-weight: 500; font-size: 12.5px; }
+
+@media (max-width: 760px) {
+  .contourRow { grid-template-columns: 1fr auto; }
+  .contourRow__track, .contourRow__note { display: none; }
+}
+
+/* ---- Карточка человека ----------------------------------------------------- */
+
+.staffRow.isClickable { cursor: pointer; }
+.staffRow.isClickable:hover { background: rgba(255, 255, 255, 0.05); }
+.staffRow.is-open { background: rgba(255, 255, 255, 0.08); }
+
+.personCard {
+  margin: 8px 0 12px;
+  padding: 14px 16px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 14px;
+  background: var(--panel);
+}
+
+.personCard__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+
+.personCard__head h3 { margin: 0; font-size: 17px; font-weight: 600; }
+.personCard__head p { margin: 3px 0 0; color: var(--muted); font-size: 13px; }
+.personCard__tools { display: inline-flex; gap: 8px; flex: none; }
 
 .perfHead h2 { margin: 0; font-size: 21px; font-weight: 600; letter-spacing: -0.015em; }
 .perfLead { margin: 4px 0 0; color: var(--muted); font-size: 13.5px; }
@@ -132,7 +245,7 @@
 }
 /* Точки проявляются под курсором: постоянно они превращают линию в колбасу. */
 .chart:hover .chart__dots i { opacity: 0.5; }
-.chart__dots i:hover { opacity: 1; transform: scale(1.9); box-shadow: 0 0 0 3px rgba(77, 141, 247, 0.35); }
+.chart__dots i:hover { opacity: 1; transform: scale(1.9); }
 /* Выброс виден всегда — он и есть повод посмотреть. */
 .chart__dots i.isOver { opacity: 1; width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; background: #f05d72; box-shadow: 0 0 0 3px rgba(240, 93, 114, 0.25); }
 
@@ -187,8 +300,9 @@
 }
 
 /* Цвет по отношению к средней: выше — зелёный, ниже — приглушённый синий. */
-.month__fill.isGood { background: linear-gradient(180deg, #2fd68a, #159a5f); }
-.month__fill.isLow { background: linear-gradient(180deg, #5b7fb8, #3a5480); }
+/* Столбики — ровным цветом: вертикальный градиент делал из них трубки. */
+.month__fill.isGood { background: #27c46b; }
+.month__fill.isLow { background: #4d7fbe; }
 
 .month:hover .month__fill { filter: brightness(1.15); }
 .month:active .month__fill { transform: scaleY(0.98); }
@@ -298,8 +412,8 @@
 }
 
 /* Цвет — не украшение: зелёный значит выше медианы, синий ниже. */
-.staffRow__bar.isUp { background: linear-gradient(90deg, rgba(39, 196, 107, 0.35), #27c46b); }
-.staffRow__bar.isDown { background: linear-gradient(90deg, rgba(77, 141, 247, 0.3), #4d8df7); }
+.staffRow__bar.isUp { background: #27c46b; }
+.staffRow__bar.isDown { background: #4d8df7; }
 
 @keyframes slide { from { width: 0; } to { width: var(--w); } }
 

@@ -14,6 +14,7 @@
   let payload = null;
   let contour = "presort";
   let showAllStaff = false;
+  let barStep = "недели";
 
   function say(text, type = "") {
     message.textContent = text;
@@ -213,7 +214,81 @@
     return wrap;
   }
 
-  /** Месяцы: столбики с линией средней за период и отклонением к прошлому. */
+  // --- Недели -----------------------------------------------------------------
+  // Месяц для операционки слишком крупный: смена графика видна через три недели
+  // после того, как случилась. Дни, наоборот, скачут. Неделя — тот шаг, на
+  // котором говорят «на этой неделе просели». Считаем из дневного ряда:
+  // сумма штук делится на сумму смен, а не усредняются дневные средние.
+
+  /** Понедельник недели, в которую попал день. */
+  function weekStart(iso) {
+    const date = new Date(`${iso}T00:00:00`);
+    const shift = (date.getDay() + 6) % 7;
+    date.setDate(date.getDate() - shift);
+    return date;
+  }
+
+  const isoDay = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`
+    + `-${String(date.getDate()).padStart(2, "0")}`;
+
+  /** Номер ISO-недели — для подписи «W36». */
+  function isoWeekNumber(date) {
+    const thursday = new Date(date);
+    thursday.setDate(thursday.getDate() + 4 - ((date.getDay() + 6) % 7) - 3);
+    const yearStart = new Date(thursday.getFullYear(), 0, 1);
+    return Math.ceil(((thursday - yearStart) / 86400000 + 1) / 7);
+  }
+
+  /** Понедельник ISO-недели вида «2026-W36» — для подписи диапазона дат. */
+  function mondayOfWeek(key) {
+    const [year, week] = String(key).split("-W").map(Number);
+    const fourth = new Date(year, 0, 4);
+    const monday = new Date(fourth);
+    monday.setDate(fourth.getDate() - ((fourth.getDay() + 6) % 7) + (week - 1) * 7);
+    return monday;
+  }
+
+  /** Недельный ряд из данных. Считает его скрипт — здесь только подписи.
+   *
+   * Раньше недели складывались на клиенте из дневного ряда, а он обрезан
+   * последними 180 днями: получалось тринадцать недель вместо всей истории.
+   */
+  function weeksFrom(list, limit = 16) {
+    const last = list.length ? list[list.length - 1] : null;
+    const today = isoDay(new Date());
+    return list.slice(-limit).map((week) => {
+      const monday = mondayOfWeek(week.неделя);
+      const sunday = new Date(monday);
+      sunday.setDate(sunday.getDate() + 6);
+      return {
+        ключ: week.неделя,
+        метка: dayLabel(isoDay(monday)),
+        подпись: `${week.неделя} · ${dayLabel(isoDay(monday))}–${dayLabel(isoDay(sunday))}`,
+        на_смену: week.на_смену,
+        штук: week.штук,
+        смен: week.смен,
+        человек: week.человек,
+        // Текущая неделя ещё идёт — сравнивать её с прошлой напрямую нельзя.
+        неполная: week === last && isoDay(sunday) >= today,
+      };
+    });
+  }
+
+  /** Месяцы в тот же вид, что и недели, — рисует их одна функция. */
+  function monthsAsBars(list) {
+    return list.map((row) => ({
+      ключ: row.месяц,
+      метка: monthLabel(row.месяц),
+      подпись: monthLabel(row.месяц),
+      на_смену: row.на_смену,
+      штук: row.штук,
+      смен: row.смен,
+      человек: row.человек,
+      неполная: false,
+    }));
+  }
+
+  /** Столбики с линией средней за период и отклонением к предыдущему шагу. */
   function renderMonths(list) {
     const wrap = document.createElement("div");
     wrap.className = "months";
@@ -231,7 +306,7 @@
 
     list.forEach((row, index) => {
       const item = document.createElement("div");
-      item.className = "month";
+      item.className = "month" + (row.неполная ? " isPartial" : "");
 
       const prev = index > 0 ? list[index - 1].на_смену : null;
       const delta = prev ? ((row.на_смену - prev) / prev) * 100 : null;
@@ -248,7 +323,7 @@
 
       const label = document.createElement("span");
       label.className = "month__label";
-      label.textContent = monthLabel(row.месяц);
+      label.textContent = row.метка;
 
       item.append(value, fill, label);
 
@@ -260,17 +335,152 @@
       }
 
       bindTip(item,
-        "<b>" + monthLabel(row.месяц) + "</b>" +
+        "<b>" + row.подпись + (row.неполная ? " — неделя не закончилась" : "") + "</b>" +
         "<span>" + one(row.на_смену) + " штук за смену</span>" +
         "<span>" + count(row.штук) + " штук · " + count(row.смен) + " смен · " +
-        count(row.человек) + " человек</span>" +
+        one(row.человек) + " человек в день</span>" +
         (delta !== null
-          ? "<span>к прошлому месяцу " + (delta > 0 ? "+" : "") + one(delta) + "%</span>"
+          ? "<span>к прошлому шагу " + (delta > 0 ? "+" : "") + one(delta) + "%</span>"
           : ""));
 
       wrap.appendChild(item);
     });
     return wrap;
+  }
+
+  // --- Дни недели, выход на норму, ядро и хвост -------------------------------
+
+  const WEEKDAY_SHORT = { понедельник: "пн", вторник: "вт", среда: "ср", четверг: "чт",
+                          пятница: "пт", суббота: "сб", воскресенье: "вс" };
+
+  /** Дни недели в тот же вид, что месяцы и недели, — рисует их одна функция. */
+  function weekdaysAsBars(list) {
+    return (list || []).map((row) => ({
+      ключ: row.день_недели,
+      метка: WEEKDAY_SHORT[row.день_недели] || row.день_недели,
+      подпись: row.день_недели,
+      на_смену: row.на_смену,
+      штук: row.штук,
+      смен: row.смен,
+      человек: row.дней ? row.смен / row.дней : 0,
+      неполная: false,
+    }));
+  }
+
+  /** Кривая выхода новичка на норму: медиана по номеру смены. */
+  function rampAsBars(list) {
+    return (list || []).map((row) => ({
+      ключ: String(row.смена),
+      метка: String(row.смена),
+      подпись: `смена №${row.смена}`,
+      на_смену: row.штук,
+      штук: row.штук,
+      смен: row.человек,
+      человек: row.человек,
+      неполная: false,
+    }));
+  }
+
+  /** Ядро и хвост: сколько людей делают восемьдесят процентов объёма.
+   *
+   * Средняя по контуру ничего не говорит о том, на скольких людях он держится.
+   * Здесь видно: горстка тянет почти всё, а длинный хвост даёт единицы процентов.
+   */
+  function renderCore(list) {
+    const people = [...list].sort((a, b) => b.штук - a.штук);
+    const total = people.reduce((sum, person) => sum + person.штук, 0);
+    if (!total) return document.createTextNode("");
+
+    let running = 0;
+    let core = 0;
+    for (const person of people) {
+      if (running / total >= 0.8) break;
+      running += person.штук;
+      core += 1;
+    }
+    const tail = people.length - core;
+    const tailShare = total ? (total - running) / total : 0;
+    const tailShifts = people.slice(core).reduce((sum, person) => sum + person.смен, 0);
+    const allShifts = people.reduce((sum, person) => sum + person.смен, 0);
+
+    const wrap = document.createElement("div");
+    wrap.className = "core";
+
+    const bar = document.createElement("div");
+    bar.className = "core__bar";
+    const head = document.createElement("i");
+    head.className = "core__head";
+    head.style.width = (core / people.length * 100).toFixed(1) + "%";
+    bar.appendChild(head);
+    bindTip(bar,
+      "<b>Ядро контура</b>" +
+      "<span>" + core + " человек из " + people.length + " дают 80% объёма</span>" +
+      "<span>остальные " + tail + " — " + Math.round(tailShare * 100) + "% объёма</span>" +
+      "<span>на хвост уходит " + count(tailShifts) + " смен из " + count(allShifts) + "</span>");
+
+    const facts = document.createElement("p");
+    facts.className = "core__facts";
+    facts.innerHTML =
+      "<b>" + core + "</b> человек из <b>" + people.length + "</b> дают 80% объёма · " +
+      "остальные <b>" + tail + "</b> — всего " + Math.round(tailShare * 100) + "% объёма, " +
+      "но " + Math.round(tailShifts / (allShifts || 1) * 100) + "% смен";
+
+    wrap.append(bar, facts);
+    return wrap;
+  }
+
+  /** Контуры рядом: одна шкала, чтобы их можно было сравнить глазами. */
+  function renderContours(all) {
+    const rows = Object.entries(all).map(([key, data]) => ({
+      ключ: key,
+      название: data.название,
+      на_смену: data.за_период.на_смену,
+      смен: data.за_период.смен,
+      человек: data.за_период.человек,
+      штук: data.за_период.штук,
+      неделя: data.на_смену,
+      изменение: data.изменение,
+    }));
+    const max = Math.max(...rows.map((row) => row.на_смену), 1);
+
+    const wrap = document.createElement("div");
+    wrap.className = "contours";
+    for (const row of rows) {
+      const item = document.createElement("button");
+      item.type = "button";
+      item.className = "contourRow" + (row.ключ === contour ? " is-on" : "");
+      item.innerHTML =
+        "<span class=\"contourRow__name\">" + row.название + "</span>" +
+        "<span class=\"contourRow__track\"><i style=\"width:" +
+          (row.на_смену / max * 100).toFixed(1) + "%\"></i></span>" +
+        "<b class=\"contourRow__value\">" + one(row.на_смену) + "</b>" +
+        "<span class=\"contourRow__note\">" + count(row.смен) + " смен · " +
+          count(row.человек) + " человек</span>";
+      bindTip(item,
+        "<b>" + row.название + "</b>" +
+        "<span>" + one(row.на_смену) + " штук за смену за период</span>" +
+        "<span>последняя неделя " + one(row.неделя) + "</span>" +
+        "<span>" + count(row.штук) + " штук · " + count(row.смен) + " смен</span>");
+      item.addEventListener("click", () => {
+        contour = row.ключ;
+        for (const tab of tabs) tab.setAttribute("aria-selected", String(tab.dataset.contour === contour));
+        render();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      });
+      wrap.appendChild(item);
+    }
+    return wrap;
+  }
+
+  /** Кнопка выгрузки: те же строки, что на экране, книгой Excel. */
+  function excelButton(rows, name) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "action action--secondary";
+    button.textContent = "Excel";
+    button.title = "Скачать таблицу книгой .xlsx";
+    button.addEventListener("click", () => saveXlsx(rows, name.split(" ")[0], name));
+    return button;
   }
 
   function block(title, subtitle, body, extra) {
@@ -394,6 +604,22 @@
 
       row.append(name, track, value, spark, trend, shifts);
 
+      // Клик раскрывает недели человека прямо под строкой: в таблице видно
+      // только итог, а вопрос всегда следующий — когда именно он просел.
+      if (person.поНеделям?.length) {
+        row.classList.add("isClickable");
+        row.tabIndex = 0;
+        row.setAttribute("role", "button");
+        const open = (event) => {
+          event.preventDefault();
+          togglePerson(person, row);
+        };
+        row.addEventListener("click", open);
+        row.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") open(event);
+        });
+      }
+
       const diff = median ? Math.round((person.на_смену - median) / median * 100) : 0;
       const months = (person.поМесяцам || [])
         .map((m) => "<span>" + monthLabel(m.месяц) + " — " + one(m.на_смену) +
@@ -410,6 +636,80 @@
 
     wrap.appendChild(rows);
     return wrap;
+  }
+
+  // --- Карточка человека ------------------------------------------------------
+
+  let openPerson = null;
+
+  function closePerson() {
+    openPerson = null;
+    document.querySelectorAll(".staffRow.is-open").forEach((el) => el.classList.remove("is-open"));
+    document.getElementById("personCard")?.remove();
+  }
+
+  /** Недели одного человека под его строкой: где он рос и где встал. */
+  function togglePerson(person, row) {
+    if (openPerson === person.сотрудник) { closePerson(); return; }
+    closePerson();
+    openPerson = person.сотрудник;
+    row.classList.add("is-open");
+
+    const card = document.createElement("div");
+    card.className = "personCard";
+    card.id = "personCard";
+
+    const head = document.createElement("div");
+    head.className = "personCard__head";
+    const title = document.createElement("h3");
+    title.textContent = person.сотрудник;
+    const note = document.createElement("p");
+    const spread = person.разброс === null || person.разброс === undefined
+      ? "" : " · разброс дней ×" + one(person.разброс + 1);
+    note.textContent = `${one(person.на_смену)} штук за смену · ${count(person.смен)} смен`
+      + ` · с ${person.первая_смена ? dayLabel(person.первая_смена) : "—"}`
+      + `${person.тип ? " · " + person.тип : ""}${spread}`;
+
+    const tools = document.createElement("div");
+    tools.className = "personCard__tools";
+    const save = document.createElement("button");
+    save.type = "button";
+    save.className = "action action--secondary";
+    save.textContent = "Excel";
+    save.addEventListener("click", (event) => {
+      event.stopPropagation();
+      saveXlsx([["неделя", "штук", "смен", "штук за смену"],
+                ...person.поНеделям.map((w) => [w.неделя, w.штук, w.смен, w.на_смену])],
+               person.сотрудник.split(" ")[0], `${person.сотрудник} по неделям`);
+    });
+    const close = document.createElement("button");
+    close.type = "button";
+    close.className = "action action--secondary";
+    close.textContent = "Закрыть";
+    close.addEventListener("click", (event) => { event.stopPropagation(); closePerson(); });
+    tools.append(save, close);
+
+    const left = document.createElement("div");
+    left.append(title, note);
+    head.append(left, tools);
+
+    const bars = person.поНеделям.slice(-16).map((week) => {
+      const monday = mondayOfWeek(week.неделя);
+      return {
+        ключ: week.неделя,
+        метка: dayLabel(isoDay(monday)),
+        подпись: week.неделя,
+        на_смену: week.на_смену,
+        штук: week.штук,
+        смен: week.смен,
+        человек: week.смен,
+        неполная: false,
+      };
+    });
+
+    card.append(head, renderMonths(bars));
+    row.parentElement.insertBefore(card, row.nextSibling);
+    card.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
 
   // --- Сборка -----------------------------------------------------------------
@@ -449,11 +749,64 @@
         `<span class="perfCard__note">с начала года</span></article>`;
     parts.push(top);
 
-    parts.push(block("По месяцам", "Производительность за календарный месяц",
-                     renderMonths(data.поМесяцам)));
+    // Шаг по умолчанию — неделя: на месяце провал видно спустя три недели после
+    // того, как он случился, а на дне цифра прыгает от состава смены.
+    const steps = document.createElement("div");
+    steps.className = "stepSwitch";
+    for (const [key, label] of [["недели", "Недели"], ["месяцы", "Месяцы"]]) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "stepSwitch__item" + (barStep === key ? " is-on" : "");
+      button.textContent = label;
+      button.addEventListener("click", () => {
+        barStep = key;
+        try { navigator.vibrate?.(8); } catch { /* нет поддержки */ }
+        render();
+      });
+      steps.appendChild(button);
+    }
+
+    const bars = barStep === "недели"
+      ? weeksFrom(data.поНеделям)
+      : monthsAsBars(data.поМесяцам);
+    const barTools = document.createElement("div");
+    barTools.className = "perfActions";
+    barTools.append(
+      excelButton([[barStep === "недели" ? "неделя" : "месяц", "штук", "смен", "штук за смену"],
+                   ...bars.map((row) => [row.ключ, row.штук, row.смен, Number(row.на_смену.toFixed(1))])],
+                  `${data.название} по ${barStep === "недели" ? "неделям" : "месяцам"}`),
+      steps);
+
+    parts.push(block(barStep === "недели" ? "По неделям" : "По месяцам",
+                     barStep === "недели"
+                       ? `Последние ${bars.length} недель, штук за смену`
+                       : "Производительность за календарный месяц",
+                     renderMonths(bars), barTools));
 
     parts.push(block("По дням", `Последние ${data.поДням.length} дней`,
-                     renderDaily(data.поДням)));
+                     renderDaily(data.поДням), excelButton(
+                       [["день", "штук", "смен", "человек", "штук за смену"],
+                        ...data.поДням.map((r) => [r.день, r.штук, r.смен, r.человек, r.на_смену])],
+                       `${data.название} по дням`)));
+
+    if (data.поДнямНедели?.length) {
+      parts.push(block("По дням недели", "Где систематический провал, а не случайный день",
+                       renderMonths(weekdaysAsBars(data.поДнямНедели))));
+    }
+
+    if (data.выходНаНорму?.length) {
+      const ramp = data.выходНаНорму;
+      const norm = data.за_период.на_смену;
+      const reached = ramp.find((row) => row.штук >= norm * 0.9);
+      parts.push(block("Выход на норму",
+                       `Медиана по номеру смены человека. Норма контура ${one(norm)} штук`
+                       + (reached ? `, до 90% от неё доходят к ${reached.смена}-й смене`
+                                  : ", за первые смены её не достигают"),
+                       renderMonths(rampAsBars(ramp))));
+    }
+
+    parts.push(block("Ядро и хвост", "На скольких людях держится контур",
+                     renderCore(data.сотрудники)));
 
     // Переключатель «показать всех» — рядом с заголовком таблицы.
     const thin = data.сотрудники.filter((s) => s.мало_смен).length;
@@ -467,12 +820,27 @@
       render();
     });
 
+    const staffTools = document.createElement("div");
+    staffTools.className = "perfActions";
+    staffTools.append(
+      excelButton([["сотрудник", "тип", "площадка", "штук", "смен", "штук за смену",
+                    "тренд, %", "разброс", "первая смена"],
+                   ...data.сотрудники.map((s) => [s.сотрудник, s.тип, s.площадка, s.штук,
+                                                  s.смен, s.на_смену, s.тренд ?? "",
+                                                  s.разброс ?? "", s.первая_смена || ""])],
+                  `${data.название} сотрудники`),
+      toggle);
+
     parts.push(block("По сотрудникам",
                      showAllStaff
-                       ? "Все, включая тех, у кого меньше пяти смен"
-                       : "Те, у кого пять смен и больше",
-                     renderStaff(data.сотрудники), toggle));
+                       ? "Все, включая тех, у кого меньше пяти смен. Клик — недели человека"
+                       : "Те, у кого пять смен и больше. Клик — недели человека",
+                     renderStaff(data.сотрудники), staffTools));
 
+    parts.push(block("Контуры рядом", "Одна шкала: где узкое место всего направления",
+                     renderContours(payload.контуры)));
+
+    openPerson = null;
     box.replaceChildren(...parts);
     stamp.textContent = `обновлено ${payload.обновлено}`;
     say("");
