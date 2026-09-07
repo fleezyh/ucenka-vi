@@ -732,9 +732,19 @@
     const deltaText = delta === null || delta === undefined ? ""
       : `${delta > 0 ? "+" : ""}${one(delta)}% к неделе назад`;
 
+    // Текущая неделя ещё идёт: без пометки её падение к прошлой читается как
+    // провал, хотя она просто не дожита до конца.
+    const running = data.поНеделям?.length
+      && isoDay(new Date()) <= (() => {
+        const sunday = mondayOfWeek(data.поНеделям[data.поНеделям.length - 1].неделя);
+        sunday.setDate(sunday.getDate() + 6);
+        return isoDay(sunday);
+      })();
+
     top.innerHTML =
       `<article class="perfCard perfCard--main">` +
-        `<p class="perfCard__title">Средняя за неделю ${data.неделя}</p>` +
+        `<p class="perfCard__title">Средняя за неделю ${data.неделя}` +
+          `${running ? " · идёт" : ""}</p>` +
         `<b class="perfCard__value">${one(data.на_смену)}</b>` +
         `<span class="perfCard__delta${deltaClass}">${deltaText}</span>` +
       `</article>` +
