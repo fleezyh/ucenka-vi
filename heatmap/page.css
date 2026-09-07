@@ -37,12 +37,11 @@ body[data-mode="heatmap"] .eyebrow { color: #c3a6ff; }
   body[data-mode="heatmap"]::before { animation: none; will-change: auto; }
 }
 
-/* Хитмап занимает всю ширину экрана: поля по бокам съедали место, которое
-   нужнее плиткам. Отступ оставляем только чтобы содержимое не липло к краю. */
+/* Хитмап использует ту же полноширинную сетку, что и остальные разделы. */
 body[data-mode="heatmap"] .shell {
   width: 100%;
   max-width: none;
-  padding-inline: 22px;
+  padding-inline: var(--site-gutter, clamp(16px, 2.2vw, 44px));
 }
 
 .heroHeatmap { align-items: end; margin-bottom: 24px; }
@@ -91,7 +90,7 @@ body[data-mode="heatmap"] .shell {
    Плитки сжимаются до цвета, числа и отклонения — так весь месяц умещается
    в пару экранов, а не в двадцать четыре карточки подряд. */
 @media (max-width: 760px) {
-  body[data-mode="heatmap"] .shell { padding-inline: 12px; }
+  body[data-mode="heatmap"] .shell { padding-inline: var(--site-gutter, 14px); }
   .heroHeatmap { grid-template-columns: 1fr; gap: 14px; margin-bottom: 16px; }
   .periodBox { min-width: 0; }
   .stamp { font-size: 11px; }

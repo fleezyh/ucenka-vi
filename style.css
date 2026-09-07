@@ -82,12 +82,11 @@ button, a, input, select, textarea { touch-action: manipulation; }
 button { border: 0; }
 
 .shell {
-  /* Во всю ширину экрана с полями по краям: жёсткий потолок оставлял пустые
-     поля на широких мониторах, а плиткам и карточкам места не хватало. */
+  /* Одна полноширинная сетка для всех рабочих разделов. */
   width: 100%;
-  max-width: 2100px;
+  max-width: none;
   margin: 0 auto;
-  padding: 30px clamp(16px, 2.2vw, 44px) 72px;
+  padding: 30px var(--site-gutter, clamp(16px, 2.2vw, 44px)) 72px;
 }
 
 .topbar {

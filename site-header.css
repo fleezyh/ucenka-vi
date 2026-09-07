@@ -1,5 +1,7 @@
-/* Единая шапка всех рабочих разделов. Страницы могут иметь разные темы,
-   но навигация всегда остаётся в одной сетке и с одной типографикой. */
+/* Единая шапка и единая горизонтальная сетка всех рабочих разделов. */
+:root {
+  --site-gutter: clamp(16px, 2.2vw, 44px);
+}
 @font-face {
   font-family: "VI Sans";
   src: url("assets/fonts/VI_Sans_Regular.woff2") format("woff2");
@@ -24,9 +26,9 @@
 
 .siteHeaderShell {
   width: 100%;
-  max-width: 2100px;
+  max-width: none;
   margin: 0 auto;
-  padding: 30px clamp(16px, 2.2vw, 44px) 0;
+  padding: 30px var(--site-gutter) 0;
 }
 
 .siteHeaderShell > .topbar,
@@ -57,11 +59,11 @@
   line-height: normal;
 }
 
-/* Хитмап оставляет контенту более узкие поля, но шапка держит общий контейнер. */
-body[data-mode="heatmap"] .shell > .topbar {
-  --site-header-offset: calc(clamp(16px, 2.2vw, 44px) - 22px);
-  width: calc(100% - var(--site-header-offset) - var(--site-header-offset));
-  margin-left: var(--site-header-offset);
+/* Антигенерация исторически живёт вне .shell. Подтягиваем её к той же сетке. */
+body[data-mode="dashboard"] :is(.head-in, .wrap, .site-usage, .import-panel, footer) {
+  width: calc(100% - var(--site-gutter) * 2);
+  max-width: none;
+  margin-inline: auto;
 }
 
 .siteHeaderShell .brand,
@@ -206,15 +208,9 @@ body[data-mode="heatmap"] .shell > .topbar {
   .shell > .topbar .navAdmin { padding: 8px 12px; font-size: 14px; }
 }
 
-@media (max-width: 760px) {
-  body[data-mode="heatmap"] .shell > .topbar {
-    --site-header-offset: calc(clamp(16px, 2.2vw, 44px) - 12px);
-  }
-}
-
 @media (max-width: 640px) {
-  .siteHeaderShell { padding: 24px 14px 0; }
-  body[data-mode="heatmap"] .shell > .topbar { --site-header-offset: 2px; }
+  :root { --site-gutter: 14px; }
+  .siteHeaderShell { padding: 24px var(--site-gutter) 0; }
   .siteHeaderShell > .topbar,
   .shell > .topbar,
   body.nav-enhanced .siteHeaderShell > .topbar,
