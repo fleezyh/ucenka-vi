@@ -767,29 +767,104 @@
 
   // -------------------------------------------------------------- выгрузка
 
-  function exportCsv(data, contour, points) {
-    const current = state.point ? points.find((p) => p.key === state.point) : null;
-    const scope = new Set(current ? current.weeks : points.flatMap((p) => p.weeks));
-    const lines = [[...data.dims, ...data.measures].join(';')];
-    data.rows.forEach((row) => {
-      const week = data.labels.week[row[data.dimAt.week]];
-      if (!scope.has(week) || !matches(data, row)) return;
-      const cells = data.dims.map((dim) => data.labels[dim][row[data.dimAt[dim]]])
-        .concat(data.measures.map((m) => String(row[data.measureAt[m]]).replace('.', ',')));
-      lines.push(cells.map((cell) => (/[;"\n]/.test(cell) ? `"${cell.replace(/"/g, '""')}"` : cell)).join(';'));
-    });
+  // Библиотека тянется только по нажатию: она весит почти мегабайт, и грузить
+  // её всем ради кнопки, которой пользуются раз в неделю, незачем. Лежит там
+  // же, откуда её берут «Продажи» и «Остатки паллет».
+  const XLSX_URL = '../dashboard/vendor/xlsx.full.min.js';
 
-    const parts = [contour.key, current ? current.key : state.period]
-      .concat(state.filters.map((f) => f.label.replace(/[\\/:*?"<>|]/g, '-').slice(0, 40)));
-    // BOM обязателен: без него Excel открывает кириллицу кракозябрами.
-    const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `антигенерация_${parts.join('_')}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+  function loadXlsx() {
+    if (window.XLSX) return Promise.resolve(window.XLSX);
+    return new Promise((resolve, reject) => {
+      const tag = document.createElement('script');
+      tag.src = XLSX_URL;
+      tag.onload = () => (window.XLSX ? resolve(window.XLSX) : reject(new Error('библиотека не загрузилась')));
+      tag.onerror = () => reject(new Error('не удалось загрузить библиотеку'));
+      document.head.appendChild(tag);
+    });
+  }
+
+  const capitalize = (text) => text.charAt(0).toUpperCase() + text.slice(1);
+
+  function dimTitle(contour, dim) {
+    if (dim === 'week') return 'Неделя';
+    const found = contour.dims.find((d) => d.key === dim);
+    return capitalize(found ? found.label : dim);
+  }
+
+  function measureTitle(contour, key) {
+    const found = contour.measures.find((m) => m.key === key);
+    return capitalize(found ? found.label : key);
+  }
+
+  async function exportXlsx(data, contour, points) {
+    const button = el('agExport');
+    const was = button.textContent;
+    button.disabled = true;
+    button.textContent = 'Собираю…';
+    try {
+      const XLSX = await loadXlsx();
+      const measure = measureOf(contour);
+      const current = state.point ? points.find((p) => p.key === state.point) : null;
+      const scope = new Set(current ? current.weeks : points.flatMap((p) => p.weeks));
+
+      // Лист 1 — строки среза как есть, с человеческими заголовками и числами
+      // числами, чтобы в Excel сразу считались суммы и сводные.
+      const detail = [];
+      data.rows.forEach((row) => {
+        const week = data.labels.week[row[data.dimAt.week]];
+        if (!scope.has(week) || !matches(data, row)) return;
+        const item = {};
+        data.dims.forEach((dim) => { item[dimTitle(contour, dim)] = data.labels[dim][row[data.dimAt[dim]]]; });
+        data.measures.forEach((m) => { item[measureTitle(contour, m)] = row[data.measureAt[m]]; });
+        detail.push(item);
+      });
+
+      // Лист 2 — свод по текущему разрезу: то же, что видно в таблице на экране.
+      const summary = [];
+      if (state.drillDim) {
+        const totals = breakdown(data, current ? current.weeks : points.flatMap((p) => p.weeks),
+          state.drillDim, measure.key);
+        const sum = [...totals.values()].reduce((a, b) => a + b, 0) || 1;
+        [...totals.entries()].sort((a, b) => b[1] - a[1]).forEach(([name, value]) => {
+          summary.push({
+            [dimTitle(contour, state.drillDim)]: name,
+            [measureTitle(contour, measure.key)]: value,
+            'Доля, %': Math.round((value / sum) * 1000) / 10,
+          });
+        });
+      }
+
+      // Лист 3 — та самая карта: разрез в строках, точки периода в столбцах.
+      const map = [];
+      if (state.heatDim) {
+        const perPoint = points.map((point) => breakdown(data, point.weeks, state.heatDim, measure.key));
+        const names = new Map();
+        perPoint.forEach((m) => m.forEach((value, name) => names.set(name, (names.get(name) || 0) + value)));
+        [...names.entries()].sort((a, b) => b[1] - a[1]).forEach(([name, total_]) => {
+          const line = { [dimTitle(contour, state.heatDim)]: name };
+          points.forEach((point, i) => { line[point.title] = perPoint[i].get(name) || 0; });
+          line['Итого'] = total_;
+          map.push(line);
+        });
+      }
+
+      const book = XLSX.utils.book_new();
+      if (summary.length) XLSX.utils.book_append_sheet(book, XLSX.utils.json_to_sheet(summary), 'Свод');
+      if (map.length) XLSX.utils.book_append_sheet(book, XLSX.utils.json_to_sheet(map), 'Карта');
+      XLSX.utils.book_append_sheet(book, XLSX.utils.json_to_sheet(detail), 'Строки');
+
+      const parts = [contour.name, current ? current.title : periodDef().label]
+        .concat(state.filters.map((f) => f.label))
+        .map((piece) => String(piece).replace(/[\\/:*?"<>|\[\]]/g, '-').trim().slice(0, 40));
+      XLSX.writeFile(book, `Антигенерация — ${parts.join(' — ')}.xlsx`);
+    } catch (error) {
+      button.textContent = 'Не собралось';
+      setTimeout(() => { button.textContent = was; }, 2500);
+      return;
+    } finally {
+      button.disabled = false;
+      if (button.textContent === 'Собираю…') button.textContent = was;
+    }
   }
 
   // ---------------------------------------------------------------- сборка
@@ -819,7 +894,7 @@
     el('agStamp').innerHTML = `данные: <b>WMS · DWH</b><br>собрано: <b>${index.built.slice(0, 16).replace('T', ' ')}</b>`
       + `<br>история: <b>${data.weeks.length} ${plural(data.weeks.length, 'неделя', 'недели', 'недель')}</b>`;
     el('agSuperset').href = `${SUPERSET}/explore/?slice_id=${contour.chart}`;
-    el('agExport').onclick = () => exportCsv(data, contour, points);
+    el('agExport').onclick = () => exportXlsx(data, contour, points);
   }
 
   async function start() {
