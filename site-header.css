@@ -66,6 +66,12 @@ body[data-mode="dashboard"] :is(.head-in, .wrap, .site-usage, .import-panel, foo
   margin-inline: auto;
 }
 
+/* У dashboard шапка вынесена в отдельный блок. Не складываем общий отступ
+   навигации с ещё одним верхним отступом заголовка. */
+body[data-mode="dashboard"] > header {
+  padding-top: 0;
+}
+
 .siteHeaderShell .brand,
 .shell > .topbar .brand {
   display: inline-flex;
