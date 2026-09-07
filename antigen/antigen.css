@@ -169,6 +169,8 @@ body[data-mode="antigen"] .shell {
 /* -------------------------------------------------------- дорожная карта */
 
 .agRoadmapPanel { overflow: hidden; }
+.agRoadmapActions { display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end }
+.agRoadmapActions .agBtn { font:inherit;cursor:pointer }
 .agRoadmapSummary { display:flex;gap:8px;flex-wrap:wrap;margin:-2px 0 14px }
 .agRoadmapSummary button { padding:6px 10px;border:1px solid var(--line);border-radius:999px;background:rgba(8,12,18,.4);color:var(--muted);font:12px inherit;cursor:pointer }
 .agRoadmapSummary button.is-on { color:var(--text);border-color:rgba(240,93,114,.42);background:rgba(240,93,114,.11) }

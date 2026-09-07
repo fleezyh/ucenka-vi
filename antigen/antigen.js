@@ -201,6 +201,27 @@
     }
   }
 
+  function setupRoadmapToggle() {
+    const section = el('roadmap');
+    const link = el('roadmap-link');
+    const close = el('roadmap-close');
+    if (!section || !link) return;
+    const setOpen = (open, scroll = true) => {
+      section.hidden = !open;
+      link.setAttribute('aria-expanded', String(open));
+      link.toggleAttribute('aria-current', open);
+      if (open) {
+        history.replaceState(null, '', `${location.pathname}${location.search}#roadmap`);
+        if (scroll) requestAnimationFrame(() => section.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+      } else if (location.hash === '#roadmap') {
+        history.replaceState(null, '', `${location.pathname}${location.search}`);
+      }
+    };
+    link.addEventListener('click', (event) => { event.preventDefault(); setOpen(section.hidden); });
+    close?.addEventListener('click', () => setOpen(false, false));
+    if (location.hash === '#roadmap') setOpen(true, false);
+  }
+
   function weekTitle(week) {
     const start = new Date(week + 'T00:00:00');
     const end = new Date(start.getTime() + 6 * 86400000);
@@ -952,6 +973,7 @@
   }
 
   async function start() {
+    setupRoadmapToggle();
     renderRoadmap();
     try {
       index = await fetch(DATA_DIR + 'index.json', { cache: 'no-cache' }).then((r) => r.json());
