@@ -49,8 +49,18 @@
 .stockTools { display: flex; align-items: center; gap: 14px; flex: 0 0 auto; }
 .stockTools .stockLegend { gap: 4px; }
 .stockTools .action { flex: 0 0 auto; }
+.stockTools .action--manage {
+  border-color: rgba(93, 225, 152, 0.46);
+  background: rgba(35, 160, 98, 0.16);
+  color: #96efbd;
+  font-weight: 650;
+  text-decoration: none;
+}
+.stockTools .action--manage:hover { background: rgba(35, 160, 98, 0.26); color: #c5ffdc; }
 @media (max-width: 760px) {
-  .stockTools { justify-content: space-between; width: 100%; }
+  .stockTools { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
+  .stockTools .stockLegend { grid-column: 1 / -1; }
+  .stockTools .action { width: 100%; text-align: center; }
 }
 
 /* ---- Подсказка при наведении --------------------------------------------- */
