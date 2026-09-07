@@ -20,7 +20,7 @@
   font-family: "VI Sans";
   src: url("assets/fonts/VI_Sans_ExtraBold.woff2") format("woff2");
   font-style: normal;
-  font-weight: 800;
+  font-weight: 600;
   font-display: swap;
 }
 
@@ -84,7 +84,7 @@ body[data-mode="dashboard"] > header {
   background: transparent;
   font-family: inherit;
   font-size: 19px;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: -.01em;
   line-height: 1;
   text-decoration: none;
@@ -137,7 +137,7 @@ body[data-mode="dashboard"] > header {
   color: #8f9cad;
   font-family: inherit;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: .1em;
   line-height: normal;
   text-transform: uppercase;
@@ -295,3 +295,8 @@ body[data-mode="dashboard"] > header {
   .siteHeaderShell *,
   .shell > .topbar * { transition: none !important; }
 }
+
+/* Единый вес жирного на всех страницах. У VI Sans загружены Regular, Medium,
+   DemiBold и ExtraBold; браузер по умолчанию рисует <b>, <strong> и заголовки
+   весом 700 и попадает в ExtraBold. Держим semibold — DemiBold. */
+b, strong, th, h1, h2, h3, h4, h5, h6 { font-weight: 600; }

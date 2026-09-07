@@ -108,7 +108,7 @@
 /* Крупный текст просит отрицательный трекинг, мелкий — наоборот, положительный. */
 .tile__name {
   margin: 0;
-  font: 700 16px/20px var(--ui);
+  font: 600 16px/20px var(--ui);
   letter-spacing: -0.005em;
   overflow-wrap: break-word;
   word-break: normal;
@@ -121,7 +121,7 @@
 
 .tile__block {
   flex: none;
-  font: 700 10px/20px var(--ui);
+  font: 600 10px/20px var(--ui);
   letter-spacing: 0.09em;
   text-transform: uppercase;
   opacity: 0.6;
@@ -130,7 +130,7 @@
 
 .tile__value {
   margin: 0;
-  font: 800 30px/1.05 var(--ui);
+  font: 600 30px/1.05 var(--ui);
   /* Табличные цифры на VI Sans разъезжаются в «-1 , 19%» — не включаем. */
   letter-spacing: -0.02em;
   font-feature-settings: "tnum" 0, "pnum" 1;
@@ -186,15 +186,15 @@
 }
 
 .tile__mark {
-  font: 700 12px/14px var(--ui);
+  font: 600 12px/14px var(--ui);
   letter-spacing: 0.01em;
   opacity: 0.72;
 }
 
-.tile__mark--now { font-weight: 800; opacity: 1; }
+.tile__mark--now { font-weight: 600; opacity: 1; }
 
 .tile__week {
-  font: 700 10.5px/14px var(--ui);
+  font: 600 10.5px/14px var(--ui);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   opacity: 0.45;

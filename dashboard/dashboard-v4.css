@@ -14,7 +14,7 @@
 }
 
 body, button, select, input, textarea, svg text { font-synthesis: none; }
-.head-in h1, .eyebrow { font-family: "VI Sans", system-ui, -apple-system, "Segoe UI", sans-serif; font-weight: 800; }
+.head-in h1, .eyebrow { font-family: "VI Sans", system-ui, -apple-system, "Segoe UI", sans-serif; font-weight: 600; }
 body {
   background: #08080b;
 }
@@ -50,7 +50,7 @@ body::after {
 
 /* Селектор не должен перекрывать начало нового раздела после переключения. */
 .contour-switcher { position: relative !important; top: auto !important; }
-.contour-switcher__head span, .tab__number { font-weight: 800; }
+.contour-switcher__head span, .tab__number { font-weight: 600; }
 .tab__source { font-weight: 600; }
 .tab__copy strong { font-weight: 600; }
 .card, .kpi, .contour-hero, .contour-switcher, .fbar, .result-overview, .story-chart, .signal-panel, .backlog-panel {
