@@ -1,5 +1,6 @@
-/* Остатки паллет по регионам. Один сравнительный ряд вместо набора карточек:
-   общая база держит столбики вместе, а каждый регион остаётся кликабельным. */
+/* Остатки паллет по регионам. Столбик показывает состав: красное сверху —
+   зарезервировано под отгрузку, зелёное снизу — свободно к продаже.
+   Раскладка как в чарте 2719, но набрана VI Sans и в тёмной теме сайта. */
 
 .heroStock {
   display: grid;
@@ -24,65 +25,39 @@
 .legendItem--res i { background: #e0433f; }
 .legendItem--free i { background: #22b573; }
 
-.stockWrap { min-height: 60px; max-width: 100%; }
+.stockWrap { min-height: 60px; }
 
 .stockGrid {
-  position: relative;
-  isolation: isolate;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
-  gap: 0;
-  padding: 20px 0 15px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 42%);
-}
-
-/* Общая световая база связывает столбики, не заключая всю композицию в блок. */
-.stockGrid::before {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  right: 0;
-  bottom: 14px;
-  left: 0;
-  height: 42px;
-  background: linear-gradient(180deg, transparent, rgba(58, 133, 207, 0.055));
-  pointer-events: none;
+  /* Восемь колонок: семь регионов и «Итого». На большей ширине карточки
+     переносились, и итог уезжал на вторую строку один. */
+  grid-template-columns: repeat(auto-fit, minmax(185px, 1fr));
+  gap: 10px;
 }
 
 .stockCard {
   display: grid;
   min-width: 0;
-  grid-template-rows: 220px 28px 27px 78px;
-  gap: 8px;
-  padding: 0 12px;
-  border: 0;
-  border-left: 1px solid rgba(255, 255, 255, 0.055);
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
+  /* Строки заданы жёстко: столбик, название, разбивка, деньги — иначе карточки
+     с длинным названием региона разъезжаются по высоте. */
+  grid-template-rows: 210px auto auto auto;
+  gap: 9px;
+  padding: 14px 14px 13px;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
 }
 
-.stockCard:first-child { border-left-color: transparent; }
-.stockCard--total {
-  margin-left: 8px;
-  padding-left: 19px;
-  border-left: 2px solid rgba(126, 227, 179, 0.5);
-  background: linear-gradient(90deg, rgba(126, 227, 179, 0.055), transparent 72%);
-}
+.stockCard--total { border-color: var(--line-strong); background: var(--panel-soft); }
 
 .stockBar {
   display: flex;
-  width: min(82px, 78%);
-  height: 100%;
-  justify-self: center;
   flex-direction: column;
   justify-content: flex-end;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 13px 13px 5px 5px;
-  background: rgba(255, 255, 255, 0.035);
-  box-shadow: 0 14px 28px -22px rgba(0, 0, 0, 0.95);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .stockPart {
@@ -91,7 +66,7 @@
   justify-content: center;
   min-height: 22px;
   color: #fff;
-  font-size: 18px;
+  font-size: 19px;
   font-weight: 800;
   font-feature-settings: "tnum" 0, "pnum" 1;
 }
@@ -102,25 +77,21 @@
 .stockName {
   display: flex;
   align-items: baseline;
-  justify-content: center;
-  gap: 7px;
-  min-width: 0;
+  justify-content: space-between;
+  gap: 8px;
   margin: 0;
-  overflow: hidden;
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 800;
-  text-align: center;
+  /* «ДМД - ЧШК» ломался на две строки, и карточка становилась выше соседних. */
   white-space: nowrap;
 }
 
-.stockName > span:first-child { overflow: hidden; text-overflow: ellipsis; }
 .stockPill {
-  flex: 0 0 auto;
-  padding: 2px 6px;
+  padding: 3px 8px;
   border-radius: 999px;
   background: rgba(240, 93, 114, 0.16);
   color: #ffc0ca;
-  font-size: 11px;
+  font-size: 12.5px;
   font-weight: 750;
   font-feature-settings: "tnum" 0, "pnum" 1;
 }
@@ -129,39 +100,33 @@
   display: flex;
   min-width: 0;
   align-items: baseline;
-  justify-content: center;
-  gap: 4px;
+  gap: 5px;
   margin: 0;
-  overflow: hidden;
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 800;
   font-style: normal;
   font-feature-settings: "tnum" 0, "pnum" 1;
-  white-space: nowrap;
 }
 
 .stockSplit i { font-style: normal; }
 .stockSplit .res { color: #ff9a9a; }
 .stockSplit .free { color: #7ee3b3; }
-.stockSplit span { color: var(--muted); font-size: 11px; font-weight: 600; }
+.stockSplit span { margin-left: auto; color: var(--muted); font-size: 12px; font-weight: 600; white-space: nowrap; }
 
-.stockCost { display: grid; align-content: start; gap: 3px; min-width: 0; margin: 0; padding-top: 7px; border-top: 1px solid rgba(255, 255, 255, 0.08); }
-.stockCost div { display: flex; min-width: 0; align-items: baseline; justify-content: space-between; gap: 5px; }
-.stockCost dt { flex: 0 1 auto; min-width: 0; overflow: hidden; color: var(--muted); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
-.stockCost dd { flex: 0 0 auto; margin: 0; font-size: 12px; font-weight: 750; white-space: nowrap; font-feature-settings: "tnum" 0, "pnum" 1; }
+.stockCost { display: grid; gap: 3px; margin: 0; padding-top: 8px; border-top: 1px solid var(--line); }
+.stockCost div { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+/* Подписи не переносим, но и наружу не выпускаем: «Себестоимость 18,9 млн ₽»
+   раньше разваливалось на три строки, а потом вылезало за правый край. */
+.stockCost div { min-width: 0; }
+.stockCost dt { flex: 0 1 auto; min-width: 0; color: var(--muted); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stockCost dd { flex: 0 0 auto; margin: 0; font-size: 14.5px; font-weight: 750; white-space: nowrap; font-feature-settings: "tnum" 0, "pnum" 1; }
 
 .stockNote { margin: 18px 2px 0; color: var(--muted); font-size: 12.5px; line-height: 1.55; max-width: 90ch; }
 
 @media (max-width: 900px) {
   .heroStock { grid-template-columns: 1fr; align-items: start; gap: 14px; }
   .stockLegend { justify-items: start; }
-  /* На телефоне сохраняем сравнение: один ряд прокручивается горизонтально. */
-  .stockWrap { overflow-x: auto; overscroll-behavior-inline: contain; scrollbar-color: rgba(255, 255, 255, 0.22) transparent; }
-  .stockGrid { width: max-content; min-width: 100%; grid-template-columns: repeat(8, 126px); }
-  .stockCard { width: 126px; grid-template-rows: 158px 28px 27px 78px; padding-inline: 10px; }
-  .stockCard--total { width: 142px; margin-left: 6px; padding-left: 16px; }
+  .stockGrid { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 9px; }
+  .stockCard { grid-template-rows: 150px auto auto auto; padding: 12px 11px 11px; }
   .stockPart { font-size: 15px; }
-  .stockName { font-size: 14px; }
-  .stockCost dt { font-size: 10.5px; }
-  .stockCost dd { font-size: 11.5px; }
 }

@@ -94,13 +94,16 @@ class SiteRegressions(unittest.TestCase):
         self.assertIn("grid-template-rows: 32px 46px 20px", mobile)
         self.assertNotIn(".tile__foot--empty { display: none", mobile)
 
-    def test_stock_stays_one_interactive_comparison_row(self):
+    def test_stock_keeps_card_layout_and_interactions(self):
         style = (ROOT / "stock/stock.css").read_text(encoding="utf-8")
         sales = (ROOT / "sales/sales.js").read_text(encoding="utf-8")
-        self.assertIn(".stockGrid::before", style)
-        self.assertIn("background: transparent", style)
-        self.assertIn("width: max-content", style)
-        self.assertIn("grid-template-columns: repeat(8, 126px)", style)
+        self.assertIn("grid-template-columns: repeat(auto-fit, minmax(185px, 1fr))", style)
+        self.assertIn("border: 1px solid var(--line)", style)
+        self.assertIn("border-radius: 15px", style)
+        self.assertIn("background: var(--panel)", style)
+        self.assertIn("box-shadow: var(--shadow)", style)
+        self.assertNotIn(".stockGrid::before", style)
+        self.assertNotIn("grid-template-columns: repeat(8, 126px)", style)
         for token in ("stockCard--clickable", "openRegion(", "bindTip(", "exportStock("):
             with self.subTest(token=token):
                 self.assertIn(token, sales)
