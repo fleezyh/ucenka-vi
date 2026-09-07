@@ -166,6 +166,28 @@ body[data-mode="antigen"] .shell {
 .agBtn--ghost { background: transparent; font-weight: 500; color: var(--muted); }
 .agBtn--ghost:hover { color: var(--text); }
 
+/* -------------------------------------------------------- дорожная карта */
+
+.agRoadmapPanel { overflow: hidden; }
+.agRoadmapSummary { display:flex;gap:8px;flex-wrap:wrap;margin:-2px 0 14px }
+.agRoadmapSummary button { padding:6px 10px;border:1px solid var(--line);border-radius:999px;background:rgba(8,12,18,.4);color:var(--muted);font:12px inherit;cursor:pointer }
+.agRoadmapSummary button.is-on { color:var(--text);border-color:rgba(240,93,114,.42);background:rgba(240,93,114,.11) }
+.agRoadmapSummary b { color:var(--text);font-weight:650 }
+.agRoadmap { --road-left:430px;overflow:auto;border:1px solid var(--line);border-radius:16px;background:rgba(6,10,16,.5);scrollbar-width:thin }
+.agRoadHead,.agRoadRow { display:grid;grid-template-columns:var(--road-left) repeat(var(--road-periods),minmax(94px,1fr));min-width:calc(var(--road-left) + var(--road-periods) * 94px) }
+.agRoadHead { position:sticky;top:0;z-index:4;background:#111924;border-bottom:1px solid var(--line) }
+.agRoadHead>div { min-height:48px;padding:8px;border-right:1px solid var(--line);color:var(--muted);font-size:10px;text-align:center }
+.agRoadHead .agRoadIdentity { position:sticky;left:0;z-index:5;display:flex;align-items:center;text-align:left;background:#111924;color:var(--text);font-size:12px }
+.agRoadPeriod b,.agRoadPeriod span { display:block }.agRoadPeriod b{color:var(--text);font-size:11px}.agRoadPeriod span{margin-top:3px}
+.agRoadBlockTitle { position:sticky;left:0;z-index:3;width:var(--road-left);padding:10px 14px;border-right:1px solid var(--line);background:#161722;color:#ff969d;font-size:12px;font-weight:750;letter-spacing:.04em;text-transform:uppercase }
+.agRoadRow { border-top:1px solid rgba(255,255,255,.055) }.agRoadRow:hover{background:rgba(255,255,255,.018)}
+.agRoadInfo { position:sticky;left:0;z-index:2;display:grid;grid-template-columns:34px 1fr auto;gap:10px;align-items:start;min-height:74px;padding:11px 12px;background:#0e151f;border-right:1px solid var(--line) }
+.agRoadNo { color:var(--muted);font:11px ui-monospace,monospace }.agRoadTask strong{display:block;font-size:12px;line-height:1.35}.agRoadTask small{display:block;margin-top:5px;color:var(--muted);font-size:10px;line-height:1.35}.agRoadMeta{text-align:right;color:var(--muted);font-size:10px;white-space:nowrap}
+.agRoadStatus { display:block;margin-bottom:6px;padding:4px 6px;border-radius:7px;background:rgba(255,255,255,.07);font-size:9px;font-weight:700;text-transform:uppercase }.agRoadStatus.done{color:#65dda0}.agRoadStatus.active{color:#8ab7ff}.agRoadStatus.blocked,.agRoadStatus.decision{color:#ff8b92}.agRoadStatus.study{color:#ffd178}.agRoadStatus.next{color:#bda9ff}
+.agRoadCell { position:relative;min-height:74px;border-right:1px solid rgba(255,255,255,.045) }.agRoadMark{position:absolute;inset:9px 4px;padding:7px;border:1px solid rgba(240,93,114,.24);border-radius:9px;background:linear-gradient(145deg,rgba(240,93,114,.21),rgba(240,93,114,.08));color:#ffd4d6;font-size:9px;line-height:1.3;overflow:hidden}.agRoadRow[data-status="done"] .agRoadMark{border-color:rgba(39,196,107,.24);background:rgba(39,196,107,.1);color:#a7eac5}.agRoadRow[data-status="active"] .agRoadMark{border-color:rgba(77,141,247,.3);background:rgba(77,141,247,.12);color:#bdd3ff}
+.agRoadDetail { display:none;padding:10px 14px;background:#0b1119;color:var(--muted);font-size:11px;line-height:1.45 }.agRoadRow:hover+.agRoadDetail{display:block}.agRoadDetail b{color:var(--text)}
+@media(max-width:720px){.agRoadmap{--road-left:290px}.agRoadInfo{grid-template-columns:28px 1fr}.agRoadMeta{grid-column:2;text-align:left;white-space:normal}.agRoadHead,.agRoadRow{min-width:calc(var(--road-left) + var(--road-periods) * 88px);grid-template-columns:var(--road-left) repeat(var(--road-periods),88px)}.agRoadBlockTitle{width:var(--road-left)}}
+
 /* ------------------------------------------------------------ ось времени */
 
 .agPeriodPick { display: inline-flex; align-items: center; gap: 8px; }

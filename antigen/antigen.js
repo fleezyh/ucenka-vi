@@ -147,6 +147,60 @@
   const escape = (text) => String(text).replace(/[&<>"]/g, (ch) =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
 
+  const ROADMAP_STATUS = {done:'Сделано',active:'В работе',blocked:'Блокер',decision:'Требует решения',study:'Требует проработки',next:'Дальше',postponed:'Отложено',removed:'Снято'};
+  let roadmapPayload = null;
+  let roadmapFilter = '';
+
+  function roadmapTable() {
+    const box = el('agRoadmap');
+    const payload = roadmapPayload || { periods: [], blocks: [], items: [] };
+    const periods = payload.periods || [];
+    const items = (payload.items || []).filter((item) => !roadmapFilter || item.status === roadmapFilter);
+    const periodMap = new Map(periods.map((period) => [period.key, period]));
+    const head = `<div class="agRoadHead" style="--road-periods:${periods.length}"><div class="agRoadIdentity">Задача · владелец · статус · срок</div>${periods.map((period) => `<div class="agRoadPeriod"><b>${escape(period.group)}</b><span>${escape(period.label)}</span></div>`).join('')}</div>`;
+    const blocks = (payload.blocks || []).map((block) => {
+      const rows = items.filter((item) => item.block === block.key);
+      if (!rows.length) return '';
+      return `<section class="agRoadBlock"><div class="agRoadBlockTitle">${escape(block.key)} · ${escape(block.name)} · ${rows.length}</div>${rows.map((item) => {
+        const marks = new Map((item.timeline || []).map((mark) => [mark.period, mark.text]));
+        const cells = periods.map((period) => `<div class="agRoadCell">${marks.has(period.key) ? `<div class="agRoadMark" title="${escape(marks.get(period.key))}">${escape(marks.get(period.key))}</div>` : ''}</div>`).join('');
+        const detail = (item.fact || item.next) ? `<div class="agRoadDetail"><b>Сделано:</b> ${escape(item.fact || '—')} &nbsp;·&nbsp; <b>Дальше:</b> ${escape(item.next || '—')}</div>` : '';
+        return `<div class="agRoadRow" data-status="${escape(item.status)}" style="--road-periods:${periods.length}"><div class="agRoadInfo"><span class="agRoadNo">${escape(item.number)}</span><div class="agRoadTask"><strong>${escape(item.title)}</strong><small>${escape(item.owner || 'Владелец не указан')}</small></div><div class="agRoadMeta"><span class="agRoadStatus ${escape(item.status)}">${escape(item.status_label || ROADMAP_STATUS[item.status] || item.status)}</span>${escape(item.due || 'без срока')}</div></div>${cells}</div>${detail}`;
+      }).join('')}</section>`;
+    }).join('');
+    box.style.setProperty('--road-periods', periods.length);
+    box.innerHTML = items.length ? head + blocks : '<div class="agEmpty">По выбранному статусу задач нет.</div>';
+  }
+
+  async function renderRoadmap() {
+    const box = el('agRoadmap');
+    const summary = el('agRoadmapSummary');
+    if (!box || !summary) return;
+    try {
+      const payload = await fetch(`${DATA_DIR}roadmap.json`, { cache: 'no-cache' }).then((response) => {
+        if (!response.ok) throw new Error('roadmap unavailable');
+        return response.json();
+      });
+      roadmapPayload = payload;
+      const items = payload.items || [];
+      const counts = {};
+      items.forEach((item) => { counts[item.status] = (counts[item.status] || 0) + 1; });
+      summary.innerHTML = items.length ? `<button class="is-on" data-road-status="">Все <b>${items.length}</b></button>` + Object.entries(ROADMAP_STATUS).filter(([key]) => counts[key]).map(([key, label]) => `<button data-road-status="${key}">${escape(label)} <b>${counts[key]}</b></button>`).join('') : '';
+      summary.querySelectorAll('button').forEach((button) => button.addEventListener('click', () => {
+        roadmapFilter = button.dataset.roadStatus || '';
+        summary.querySelectorAll('button').forEach((other) => other.classList.toggle('is-on', other === button));
+        roadmapTable();
+      }));
+      if (!items.length) {
+        box.innerHTML = '<div class="agEmpty">Мероприятий пока нет. Добавьте первое через кнопку справа.</div>';
+        return;
+      }
+      roadmapTable();
+    } catch (error) {
+      box.innerHTML = '<div class="agEmpty">Дорожная карта временно не загрузилась.</div>';
+    }
+  }
+
   function weekTitle(week) {
     const start = new Date(week + 'T00:00:00');
     const end = new Date(start.getTime() + 6 * 86400000);
@@ -898,6 +952,7 @@
   }
 
   async function start() {
+    renderRoadmap();
     try {
       index = await fetch(DATA_DIR + 'index.json', { cache: 'no-cache' }).then((r) => r.json());
     } catch (error) {
