@@ -9,46 +9,27 @@
   <link rel="icon" type="image/svg+xml" href="assets/brand/vi-mark.svg?v=20260903-3">
   <link rel="preload" href="assets/fonts/VI_Sans_Regular.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="assets/fonts/VI_Sans_ExtraBold.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="home.css?v=20260907-6">
+  <link rel="stylesheet" href="home.css?v=20260907-8">
   <link rel="stylesheet" href="reeded-bg.css?v=20260907-6">
   <link rel="stylesheet" href="site-header.css?v=20260907-6">
   <script src="reeded-bg.js?v=20260906-7" defer></script>
   <script src="home.js?v=20260906-3" defer></script>
-  <script src="nav.js?v=20260906-1" defer></script>
+  <script src="nav.js?v=20260907-2" defer></script>
 </head>
-<body>
+<body class="homePage">
   <div class="siteHeaderShell">
     <header class="topbar">
       <a class="brand" href="./" aria-label="Уценка — главная">
         <img class="brand__mark" src="assets/brand/vi-mark.svg?v=20260903-3" alt="" width="27" height="27">
         <span>Уценка</span>
       </a>
-      <nav class="siteNav" aria-label="Разделы сайта">
-        <span class="navGroup">
-          <span class="navGroup__label">Уценка</span>
-          <a class="navLink" href="antigen/">Антигенерация</a>
-          <a class="navLink" href="heatmap/">Хитмап</a>
-          <a class="navLink" href="sales/">Продажи</a>
-          <a class="navLink" href="perf/">Производительность</a>
-        </span>
-        <span class="navGroup">
-          <span class="navGroup__label">Инструменты</span>
-          <a class="navLink" href="picker/">Пикалка</a>
-        </span>
+      <nav class="siteNav" aria-label="Разделы сайта" data-static="true">
         <a class="navAdmin" href="https://fleezy.tailb770fe.ts.net" target="_blank" rel="noopener">Админка</a>
       </nav>
     </header>
   </div>
 
   <main class="homeShell">
-    <div class="homeViewsRow">
-      <span class="homeViews" aria-label="Просмотры сайта">
-        <span class="homeViews__eye" aria-hidden="true">◉</span>
-        <strong id="homeViewsToday">—</strong>
-        <span>просмотров сегодня</span>
-      </span>
-    </div>
-
     <section class="homeHero">
       <p class="homeEyebrow">Всё в одном месте</p>
       <h1>Навигация</h1>
@@ -120,8 +101,14 @@
     </section>
 
     <footer>
-      <span class="homePulse" aria-hidden="true"></span>
-      Данные справочников обрабатываются в браузере
+      <span class="homeFooterItem"><span class="homePulse" aria-hidden="true"></span>
+        Данные справочников обрабатываются в браузере</span>
+      <span class="homeFooterSep" aria-hidden="true"></span>
+      <span class="homeViews" aria-label="Просмотры сайта">
+        <span class="homeViews__eye" aria-hidden="true">◉</span>
+        <strong id="homeViewsToday">—</strong>
+        <span>просмотров сегодня</span>
+      </span>
     </footer>
   </main>
   <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token":"907d91d4e2e044f682da0d451e684f83"}'></script>

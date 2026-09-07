@@ -3,6 +3,7 @@
   const host = document.querySelector(".topbar, .site-nav");
   const nav = document.querySelector(".siteNav, .site-nav__actions");
   if (!host || !nav) return;
+  if (nav.dataset.static === "true") return;
 
   document.body.classList.add("nav-enhanced");
   const button = document.createElement("button");
