@@ -123,7 +123,10 @@ body[data-mode="dashboard"] > header {
   align-items: center;
   flex: 0 0 auto;
   gap: 4px;
-  padding: 5px 5px 5px 14px;
+  /* Справа воздух складывается из отступа группы (5) и собственного поля
+     вкладки (15) — до буквы получается 20. Слева поля вкладки нет, метка
+     прижата к краю сама, поэтому те же 20 задаются здесь целиком. */
+  padding: 5px 5px 5px 20px;
   border: 1px solid #263345;
   border-radius: 15px;
   background: rgba(8,13,20,.6);
@@ -132,7 +135,9 @@ body[data-mode="dashboard"] > header {
 .siteHeaderShell .navGroup__label,
 .shell > .topbar .navGroup__label {
   display: inline;
-  margin: 0 7px 0 0;
+  /* Разрядка добавляет пустоту после последней буквы — вычитаем её из поля,
+     иначе метка отходит от вкладок сильнее, чем нарисовано. */
+  margin: 0 6px 0 0;
   padding: 0;
   color: #8f9cad;
   font-family: inherit;
@@ -204,8 +209,10 @@ body[data-mode="dashboard"] > header {
 @media (max-width: 900px) {
   .siteHeaderShell .siteNav,
   .shell > .topbar .siteNav { gap: 8px; }
+  /* Метка скрыта, слева стоит сама вкладка со своим полем — значит и отступ
+     группы должен быть таким же, как справа, иначе ряд уезжает вбок. */
   .siteHeaderShell .navGroup,
-  .shell > .topbar .navGroup { padding-left: 11px; }
+  .shell > .topbar .navGroup { padding-left: 5px; }
   .siteHeaderShell .navGroup__label,
   .shell > .topbar .navGroup__label { display: none; }
   .siteHeaderShell .navLink,
