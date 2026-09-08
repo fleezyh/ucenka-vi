@@ -14,6 +14,78 @@
   let payload = null;
   let contour = "presort";
   let showAllStaff = false;
+
+  /* Окно, за которое считается рейтинг людей.
+
+     Раньше таблица всегда показывала всё время, и наверху висели те, кто
+     отработал пару смен в марте и больше не появлялся: рекорд «4969 штук за
+     смену» — это одна смена одного человека. Теперь по умолчанию смотрим
+     последние четыре недели, а кто в окне не работал — в список не попадает.
+     Порог смен тоже свой на каждое окно: за четыре недели пять смен требовать
+     бессмысленно. */
+  const STAFF_WINDOWS = [
+    { key: "4w", label: "4 недели", weeks: 4, minShifts: 3 },
+    { key: "13w", label: "13 недель", weeks: 13, minShifts: 5 },
+    { key: "all", label: "всё время", weeks: 0, minShifts: 5 },
+  ];
+  let staffWindow = "4w";
+
+  const SHIFT_WORDS = ["смена", "смены", "смен"];
+
+  /** Склонение слова «смена» по числу: 3 смены, 5 смен. */
+  function shiftWord(count) {
+    const n = Math.abs(count) % 100;
+    if (n > 10 && n < 20) return SHIFT_WORDS[2];
+    const last = n % 10;
+    return last === 1 ? SHIFT_WORDS[0] : last >= 2 && last <= 4 ? SHIFT_WORDS[1] : SHIFT_WORDS[2];
+  }
+
+  /** «17 авг — 13 сен» вместо 2026-W34 — 2026-W37: недели ISO мало кто читает. */
+  function weekRange(from, to) {
+    // Свои сокращения, а не toLocaleDateString: тот даёт вперемешку «авг» и
+    // «сент», и подпись выглядит неряшливо.
+    const MONTHS = ["янв", "фев", "мар", "апр", "май", "июн",
+                    "июл", "авг", "сен", "окт", "ноя", "дек"];
+    const short = (date) => `${String(date.getDate()).padStart(2, "0")} ${MONTHS[date.getMonth()]}`;
+    const start = mondayOfWeek(from);
+    const end = mondayOfWeek(to);
+    end.setDate(end.getDate() + 6);
+    return `${short(start)} — ${short(end)}`;
+  }
+
+  /** Люди с показателями, пересчитанными за выбранное окно. */
+  function staffInWindow(data) {
+    const win = STAFF_WINDOWS.find((w) => w.key === staffWindow) || STAFF_WINDOWS[0];
+    const axis = (data.поНеделям || []).map((w) => w.неделя);
+    const keep = win.weeks ? new Set(axis.slice(-win.weeks)) : null;
+
+    const list = [];
+    (data.сотрудники || []).forEach((person) => {
+      if (!keep) {
+        list.push({ ...person, мало_смен: person.смен < win.minShifts });
+        return;
+      }
+      let штук = 0;
+      let смен = 0;
+      (person.поНеделям || []).forEach((week) => {
+        if (!keep.has(week.неделя)) return;
+        штук += week.штук;
+        смен += week.смен;
+      });
+      if (!смен) return;   // в окне не работал — в рейтинге ему не место
+      list.push({
+        ...person,
+        штук,
+        смен,
+        на_смену: Math.round((штук / смен) * 10) / 10,
+        мало_смен: смен < win.minShifts,
+      });
+    });
+
+    list.sort((a, b) => (a.мало_смен - b.мало_смен) || (b.на_смену - a.на_смену));
+    const from = keep ? axis.slice(-win.weeks)[0] : axis[0];
+    return { win, list, from, to: axis[axis.length - 1], скрыто: (data.сотрудники || []).length - list.length };
+  }
   let barStep = "недели";
 
   function say(text, type = "") {
@@ -854,15 +926,40 @@
                        renderMonths(rampAsBars(ramp))));
     }
 
-    parts.push(block("Ядро и хвост", "На скольких людях держится контур",
-                     renderCore(data.сотрудники)));
+    const staff = staffInWindow(data);
+
+    parts.push(block("Ядро и хвост", `На скольких людях держится контур · ${staff.win.label}`,
+                     renderCore(staff.list)));
+
+    // Окно рейтинга: за него считаются и штуки, и смены, и медиана.
+    const windowTabs = document.createElement("div");
+    windowTabs.className = "tabs tabs--inline";
+    windowTabs.setAttribute("role", "tablist");
+    windowTabs.setAttribute("aria-label", "Период рейтинга");
+    STAFF_WINDOWS.forEach((w) => {
+      const tab = document.createElement("button");
+      tab.className = "tab";
+      tab.type = "button";
+      tab.setAttribute("role", "tab");
+      tab.setAttribute("aria-selected", String(w.key === staffWindow));
+      tab.textContent = w.label;
+      tab.addEventListener("click", () => {
+        if (staffWindow === w.key) return;
+        staffWindow = w.key;
+        try { navigator.vibrate?.(10); } catch { /* нет поддержки */ }
+        render();
+      });
+      windowTabs.appendChild(tab);
+    });
 
     // Переключатель «показать всех» — рядом с заголовком таблицы.
-    const thin = data.сотрудники.filter((s) => s.мало_смен).length;
+    const thin = staff.list.filter((s) => s.мало_смен).length;
     const toggle = document.createElement("button");
     toggle.className = "action action--secondary";
     toggle.type = "button";
-    toggle.textContent = showAllStaff ? "Только от 5 смен" : `Показать всех (+${thin})`;
+    toggle.textContent = showAllStaff
+      ? `Только от ${staff.win.minShifts} смен`
+      : `Показать всех (+${thin})`;
     toggle.addEventListener("click", () => {
       showAllStaff = !showAllStaff;
       try { navigator.vibrate?.(10); } catch { /* нет поддержки */ }
@@ -872,19 +969,24 @@
     const staffTools = document.createElement("div");
     staffTools.className = "perfActions";
     staffTools.append(
-      excelButton([["сотрудник", "тип", "площадка", "штук", "смен", "штук за смену",
+      windowTabs,
+      excelButton([["сотрудник", "тип", "площадка", "период", "штук", "смен", "штук за смену",
                     "тренд, %", "разброс", "первая смена"],
-                   ...data.сотрудники.map((s) => [s.сотрудник, s.тип, s.площадка, s.штук,
-                                                  s.смен, s.на_смену, s.тренд ?? "",
-                                                  s.разброс ?? "", s.первая_смена || ""])],
-                  `${data.название} сотрудники`),
+                   ...staff.list.map((s) => [s.сотрудник, s.тип, s.площадка, staff.win.label,
+                                             s.штук, s.смен, s.на_смену, s.тренд ?? "",
+                                             s.разброс ?? "", s.первая_смена || ""])],
+                  `${data.название} сотрудники ${staff.win.label}`),
       toggle);
 
+    const windowNote = staff.win.weeks
+      ? `${weekRange(staff.from, staff.to)}, не работавшие в окне скрыты (${staff.скрыто})`
+      : "вся история контура";
     parts.push(block("По сотрудникам",
-                     showAllStaff
-                       ? "Все, включая тех, у кого меньше пяти смен. Клик — недели человека"
-                       : "Те, у кого пять смен и больше. Клик — недели человека",
-                     renderStaff(data.сотрудники), staffTools));
+                     (showAllStaff
+                       ? `Все, включая тех, у кого меньше ${staff.win.minShifts} ${shiftWord(staff.win.minShifts)}`
+                       : `Те, у кого ${staff.win.minShifts} ${shiftWord(staff.win.minShifts)} и больше`)
+                     + `. ${windowNote}. Клик — недели человека`,
+                     renderStaff(staff.list), staffTools));
 
     parts.push(block("Контуры рядом", "Одна шкала: где узкое место всего направления",
                      renderContours(payload.контуры)));

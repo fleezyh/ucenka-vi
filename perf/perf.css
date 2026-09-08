@@ -502,3 +502,8 @@
   /* На узком экране мини-график и тип уходят — остаётся суть. */
   .staff .sparkCell, .staff th:nth-child(4) { display: none; }
 }
+
+/* Переключатель окна рейтинга стоит в одном ряду с кнопкой выгрузки, поэтому
+   не растягивается на всю ширину, как вкладки контуров наверху. */
+.tabs--inline { width: auto; flex: 0 0 auto; margin: 0; }
+.tabs--inline .tab { padding: 7px 13px; font-size: 13px; }
