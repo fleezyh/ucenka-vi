@@ -26,16 +26,37 @@
       ],
       dims: [
         { key: 'vid', label: 'место обнаружения' },
-        { key: 'napr', label: 'направление' },
-        { key: 'gruppa', label: 'группа товара' },
+        { key: 'poluchatel', label: 'точка' },
+        { key: 'sektor', label: 'сектор-источник' },
         { key: 'defekt', label: 'тип дефекта' },
+        { key: 'gruppa', label: 'группа товара' },
+        { key: 'napr', label: 'направление' },
         { key: 'mu', label: 'модель учёта' },
         { key: 'region', label: 'регион' },
       ],
-      // Номенклатуры в витрине приёмки нет вовсе — она заканчивается на группе
-      // товара. Товар живёт в контуре движения, поэтому из тупика предлагаем
-      // перейти туда, сохранив период и совпадающие фильтры.
-      productBridge: { contour: 'dmd', carry: { napr: 'cat', gruppa: 'cat' } },
+      // Номенклатура в актах есть, но живёт отдельным файлом: с ней таблица
+      // фактов втрое тяжелее, а нужна она только когда действительно дошли до
+      // вопроса «а какой конкретно товар». Поэтому — переход с переносом среза.
+      productBridge: {
+        contour: 'zabrt',
+        carry: { vid: 'vid', poluchatel: 'poluchatel', sektor: 'sektor', defekt: 'defekt' },
+      },
+    },
+    {
+      key: 'zabrt', name: 'Официальный брак · номенклатура',
+      note: 'те же акты приёмки, но до товара', chart: 2656,
+      measures: [
+        { key: 'rrc', label: '₽ розница', kind: 'money' },
+        { key: 'sebes', label: '₽ себестоимость', kind: 'money' },
+        { key: 'strok', label: 'строк', kind: 'int' },
+      ],
+      dims: [
+        { key: 'tovar', label: 'номенклатура' },
+        { key: 'defekt', label: 'тип дефекта' },
+        { key: 'sektor', label: 'сектор-источник' },
+        { key: 'vid', label: 'место обнаружения' },
+        { key: 'poluchatel', label: 'точка' },
+      ],
     },
     {
       key: 'dmd', name: 'Движение брака ДМД', note: 'вход в брак-ячейки — товар и бренд', chart: 2669,
@@ -253,7 +274,12 @@
       bucket.push(row);
     });
 
-    const prepared = { ...payload, dimAt, measureAt, byWeek };
+    // Карточка товара: артикул, бренд, группа, модель учёта. В таблице ищем по
+    // названию, поэтому позицию в справочнике запоминаем сразу.
+    const tovarAt = new Map();
+    if (payload.tovarInfo) payload.labels.tovar.forEach((name, i) => tovarAt.set(name, i));
+
+    const prepared = { ...payload, dimAt, measureAt, byWeek, tovarAt };
     cache.set(key, prepared);
     return prepared;
   }
@@ -736,6 +762,24 @@
       dims.appendChild(chip);
     });
 
+    // Переход к номенклатуре — сразу в ряду разрезов, а не только когда они
+    // кончились: до товара иначе семь кликов, а вопрос «какой конкретно товар»
+    // возникает на первом же.
+    if (contour.productBridge) {
+      const jump = document.createElement('button');
+      jump.type = 'button';
+      jump.className = 'agDim agDim--jump';
+      jump.textContent = 'номенклатура →';
+      jump.title = 'Тот же срез, но до конкретного товара';
+      jump.addEventListener('click', () => {
+        const carry = state.filters
+          .filter((f) => contour.productBridge.carry[f.dim])
+          .map((f) => ({ dim: contour.productBridge.carry[f.dim], label: f.label }));
+        switchContour(contour.productBridge.contour, carry);
+      });
+      dims.appendChild(jump);
+    }
+
     const box = el('agTable');
     box.innerHTML = '';
 
@@ -744,7 +788,7 @@
       const note = document.createElement('div');
       note.className = 'agEmpty';
       note.innerHTML = 'Разрезы этого контура кончились. '
-        + (bridge ? 'Номенклатуры в витрине приёмки нет — товар и бренд живут в контуре движения.' : '');
+        + (bridge ? 'Номенклатура лежит отдельным файлом — открывается тем же срезом.' : '');
       box.appendChild(note);
       if (bridge) {
         const carry = state.filters
@@ -753,7 +797,7 @@
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'agBtn';
-        button.textContent = 'Посмотреть товары в движении брака';
+        button.textContent = 'Показать номенклатуру этого среза';
         button.addEventListener('click', () => switchContour(bridge.contour, carry));
         box.appendChild(button);
       }
@@ -803,6 +847,19 @@
       + `<span class="agRow__delta">${current ? 'к медиане' : 'доля'}</span>`;
     table.appendChild(header);
 
+    // Одни названия номенклатуры нечитаемы: половина начинается одинаково.
+    // Поэтому под названием — артикул, бренд и группа из справочника товаров.
+    const tovarMeta = (name) => {
+      if (state.drillDim !== 'tovar' || !data.tovarInfo) return '';
+      const at = data.tovarAt.get(name);
+      if (at === undefined) return '';
+      const card = data.tovarInfo[at];
+      const parts = [card[0] && card[0] !== '(нет)' ? `арт. ${card[0]}` : '',
+        data.tovarBooks.brand[card[1]], data.tovarBooks.gruppa[card[2]]]
+        .filter((part) => part && part !== '(нет)' && part !== '(не указано)');
+      return parts.length ? `<i class="agRow__meta">${escape(parts.join(' · '))}</i>` : '';
+    };
+
     const sum = rows.reduce((acc, row) => acc + row.value, 0) || 1;
     const peak = rows[0].value || 1;
     rows.slice(0, 40).forEach((row, i) => {
@@ -818,7 +875,8 @@
       }
       const color = i < 9 ? PIE_COLORS[i % PIE_COLORS.length] : 'var(--line-strong)';
       item.innerHTML = `<span class="agRow__chip" style="background:${color}"></span>`
-        + `<span class="agRow__name" title="${escape(row.name)}">${escape(row.name)}</span>`
+        + `<span class="agRow__name" title="${escape(row.name)}">${escape(row.name)}`
+        + `${tovarMeta(row.name)}</span>`
         + `<span class="agRow__bar"><i style="--w:${(row.value / peak) * 100}%"></i></span>`
         + `<span class="agRow__val">${fmt(row.value, measure.kind)}</span>`
         + `<span class="agRow__delta ${tone}">${right}</span>`;
@@ -890,6 +948,15 @@
         if (!scope.has(week) || !matches(data, row)) return;
         const item = {};
         data.dims.forEach((dim) => { item[dimTitle(contour, dim)] = data.labels[dim][row[data.dimAt[dim]]]; });
+        // Карточку товара разворачиваем в колонки: в выгрузке артикул нужнее
+        // всего — по нему ищут в 1С и в закупке.
+        if (data.tovarInfo) {
+          const card = data.tovarInfo[row[data.dimAt.tovar]];
+          item.Артикул = card[0];
+          item.Бренд = data.tovarBooks.brand[card[1]];
+          item['Группа товара'] = data.tovarBooks.gruppa[card[2]];
+          item['Модель учёта'] = data.tovarBooks.mu[card[3]];
+        }
         data.measures.forEach((m) => { item[measureTitle(contour, m)] = row[data.measureAt[m]]; });
         detail.push(item);
       });

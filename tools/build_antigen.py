@@ -13,8 +13,14 @@
     2656 забраковка · 2669 движение ДМД · 2654 задания · 2671 акты
     2957 контрольные метрики · 2950 план и цель
 
+Забраковка приезжает не из чарта, а прямо из DWH: в витрине 613 есть и сектор
+происхождения, и номенклатура, но в чарт 2656 они не заведены, а superset-dev
+регулярно отваливается. Обновить выгрузку:
+    py Инструменты/sqlq.py -f tools/sql/zabr_plus.sql --csv zabr_plus.csv --max-rows 500000
+
 Запуск на кэше (ничего не грузит из суперсета):
     py tools/build_antigen.py --cache "E:\\Work\\Черновики\\2026-09-07\\Антигенерация кэш"
+                              --zabr-csv zabr_plus.csv
 Запуск с живой выгрузкой:
     py tools/build_antigen.py
 """
@@ -166,17 +172,33 @@ def complete_weeks(weeks: Iterable[str], today: date,
 
 # ---------------------------------------------------------------- контуры
 
-def build_zabr(rows: list[dict[str, Any]], today: date) -> dict[str, Any]:
-    """Официальный факт: акты приёмки. Меры — строки, РРЦ и себестоимость."""
-    facts = Facts(
-        dims=["week", "vid", "region", "napr", "gruppa", "mu", "defekt"],
-        measures=["strok", "rrc", "sebes"],
-    )
+def zabr_weeks(rows: list[dict[str, Any]], today: date) -> tuple[list[str], list[str]]:
+    """Ось недель контура забраковки — общая для свода и товарной детализации."""
     totals: dict[str, float] = {}
     for row in rows:
-        totals[week_start(row.get("week_start_date"))] = \
-            totals.get(week_start(row.get("week_start_date")), 0.0) + number(row.get("strok"))
-    kept, partial = complete_weeks(totals, today, totals)
+        week = week_start(row.get("week_start_date"))
+        totals[week] = totals.get(week, 0.0) + number(row.get("strok"))
+    return complete_weeks(totals, today, totals)
+
+
+def build_zabr(rows: list[dict[str, Any]], today: date) -> dict[str, Any]:
+    """Официальный факт: акты приёмки. Меры — строки, РРЦ и себестоимость.
+
+    Место обнаружения расшито до конкретной точки (`poluchatel`) и до зоны, из
+    которой товар приехал на забраковку (`sektor`). Раньше на сайт доезжал
+    только вид точки — «Центр-ДМД» без ответа на вопрос, что это за место и
+    какой сектор стрельнул. Оба поля есть в витрине 613 с самого начала.
+
+    Номенклатуры здесь нет намеренно: с ней таблица фактов пухнет с 170 до 261
+    тысячи строк и с 6 до 20 МБ. Товар живёт в отдельном контуре, который
+    грузится только при провале в него, — см. build_zabr_tovar.
+    """
+    facts = Facts(
+        dims=["week", "vid", "region", "poluchatel", "sektor",
+              "napr", "gruppa", "mu", "defekt"],
+        measures=["strok", "rrc", "sebes"],
+    )
+    kept, partial = zabr_weeks(rows, today)
     keep = set(kept)
     for row in rows:
         week = week_start(row.get("week_start_date"))
@@ -184,11 +206,57 @@ def build_zabr(rows: list[dict[str, Any]], today: date) -> dict[str, Any]:
             continue
         facts.add(
             {"week": week, "vid": row.get("vid_tochki"), "region": row.get("region"),
+             "poluchatel": row.get("poluchatel"), "sektor": row.get("sektor"),
              "napr": row.get("napravlenie"), "gruppa": row.get("gruppa"),
              "mu": row.get("model_ucheta"), "defekt": row.get("tip_defekta")},
             [number(row.get("strok")), number(row.get("rrc_rub")), number(row.get("sebes_rub"))],
         )
     return {"weeks": kept, "partial_weeks": partial, **facts.payload()}
+
+
+def build_zabr_tovar(rows: list[dict[str, Any]], today: date) -> dict[str, Any]:
+    """Та же забраковка, но до номенклатуры: что именно признали браком.
+
+    Разрезы урезаны до тех, ради которых в товар и проваливаются: точка, сектор
+    и тип дефекта. Группа, направление и модель учёта не нужны — они однозначно
+    определяются товаром, и на сайте показываются из справочника `tovarInfo`,
+    а не отдельными измерениями.
+    """
+    # `vid` однозначно определяется точкой, поэтому новых строк не добавляет,
+    # зато позволяет перенести сюда фильтр «Центр-ДМД» из свода — без него
+    # переход к номенклатуре молча расширял срез на всю страну.
+    facts = Facts(
+        dims=["week", "vid", "poluchatel", "sektor", "defekt", "tovar"],
+        measures=["strok", "rrc", "sebes"],
+    )
+    # Свойства товара — не измерения, а карточка: артикул строкой, остальное
+    # индексами в свои словари. Хранить их строками на каждый из 89 тысяч
+    # товаров — это лишние восемь мегабайт на ровном месте.
+    props = ["brand", "gruppa", "mu"]
+    books = {name: Dictionary() for name in props}
+    info: dict[str, list[Any]] = {}
+    kept, partial = zabr_weeks(rows, today)
+    keep = set(kept)
+    for row in rows:
+        week = week_start(row.get("week_start_date"))
+        if week not in keep:
+            continue
+        tovar = norm(row.get("tovar")) or "(не указано)"
+        if tovar not in info:
+            info[tovar] = [norm(row.get("artikul")),
+                           books["brand"].index(row.get("brand")),
+                           books["gruppa"].index(row.get("gruppa")),
+                           books["mu"].index(row.get("model_ucheta"))]
+        facts.add(
+            {"week": week, "vid": row.get("vid_tochki"), "poluchatel": row.get("poluchatel"),
+             "sektor": row.get("sektor"), "defekt": row.get("tip_defekta"), "tovar": tovar},
+            [number(row.get("strok")), number(row.get("rrc_rub")), number(row.get("sebes_rub"))],
+        )
+    payload = facts.payload()
+    payload["tovarInfo"] = [info[name] for name in payload["labels"]["tovar"]]
+    payload["tovarFields"] = ["артикул", "бренд", "группа товара", "модель учёта"]
+    payload["tovarBooks"] = {name: books[name].values for name in props}
+    return {"weeks": kept, "partial_weeks": partial, **payload}
 
 
 def build_dmd(rows: list[dict[str, Any]], today: date) -> dict[str, Any]:
@@ -323,6 +391,20 @@ def build_control(metrics: list[dict[str, Any]], plan: list[dict[str, Any]]) -> 
 
 # ---------------------------------------------------------------- источники
 
+def load_zabr_csv(path: Path) -> list[dict[str, Any]]:
+    """Витрина забраковки прямо из DWH, минуя Superset.
+
+    Так она приезжает с номенклатурой и сектором-источником, которых нет в
+    чарте 2656, и не зависит от того, жив ли сегодня superset-dev. Обновить:
+        py Инструменты/sqlq.py -f tools/sql/zabr_plus.sql --csv <файл> --max-rows 500000
+    """
+    import csv
+
+    csv.field_size_limit(10 ** 7)
+    with path.open(encoding="utf-8-sig", newline="") as handle:
+        return list(csv.DictReader(handle))
+
+
 def load_cache(folder: Path) -> dict[str, list[dict[str, Any]]]:
     data = {}
     for path in folder.glob("*.json.gz"):
@@ -349,18 +431,25 @@ def load_live() -> dict[str, list[dict[str, Any]]]:
     return data
 
 
-BUILDERS: dict[str, Callable[[list[dict[str, Any]], date], dict[str, Any]]] = {
-    "zabr": build_zabr, "dmd": build_dmd, "gen": build_gen, "akty": build_akty,
+# Имя файла -> (какой источник читать, чем собирать). Товарный контур берёт тот
+# же источник, что и свод: одна выгрузка, две разные грани.
+BUILDERS: dict[str, tuple[str, Callable[[list[dict[str, Any]], date], dict[str, Any]]]] = {
+    "zabr": ("zabr", build_zabr), "zabrt": ("zabr", build_zabr_tovar),
+    "dmd": ("dmd", build_dmd), "gen": ("gen", build_gen), "akty": ("akty", build_akty),
 }
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--cache", type=Path, help="папка с *.json.gz вместо живой выгрузки")
+    parser.add_argument("--zabr-csv", type=Path,
+                        help="выгрузка tools/sql/zabr_plus.sql — забраковка с товаром и сектором")
     parser.add_argument("--out", type=Path, default=OUT_DIR)
     args = parser.parse_args()
 
     source = load_cache(args.cache) if args.cache else load_live()
+    if args.zabr_csv:
+        source["zabr"] = load_zabr_csv(args.zabr_csv)
     missing = [name for name in ("zabr", "dmd", "gen", "akty", "metrics", "plan")
                if name not in source]
     if missing:
@@ -373,12 +462,12 @@ def main() -> int:
         "built": datetime.now().astimezone().isoformat(timespec="seconds"),
         "contours": {},
         "control": build_control(source["metrics"], source["plan"]),
-        "sources": {"zabr": 2656, "dmd": 2669, "gen": 2654, "akty": 2671,
+        "sources": {"zabr": 2656, "zabrt": 2656, "dmd": 2669, "gen": 2654, "akty": 2671,
                     "metrics": 2957, "plan": 2950},
     }
 
-    for name, builder in BUILDERS.items():
-        payload = builder(source[name], today)
+    for name, (source_key, builder) in BUILDERS.items():
+        payload = builder(source[source_key], today)
         path = args.out / f"{name}.json"
         path.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")),
                         encoding="utf-8")
