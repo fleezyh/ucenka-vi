@@ -899,7 +899,11 @@
   document.addEventListener("click", (event) => {
     // Touch scrolling and navigation must not summon the scanner keyboard.
     if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
-    if (event.target.closest("a, button, select, textarea, input, summary")) return;
+    if (event.target.closest("a, button, select, textarea, input, summary, label")) return;
+    // Курсор возвращается в сканер только из пустого места. Раньше сюда попадал
+    // и клик по подписи «Наименование»: подпись не поле, поэтому проверка выше
+    // его пропускала, и человека выбрасывало из названия обратно в штрихкод.
+    if (document.activeElement === nameSearch) return;
     // В разделе паллет курсор должен оставаться в поле списка, а не убегать
     // обратно в сканер.
     if (MODES[mode].external) return;

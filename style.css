@@ -165,7 +165,7 @@ button { border: 0; }
 }
 
 body[data-mode="presort"] .eyebrow { color: #8db9ff; }
-.overline { color: var(--muted); font-size: 11px; letter-spacing: 0.12em; }
+.overline { color: var(--muted); font-size: 12px; letter-spacing: 0.12em; }
 
 h1 {
   margin: 5px 0 0;
@@ -214,10 +214,9 @@ h1 {
 
 .layout {
   display: grid;
-  grid-template-columns: minmax(270px, 0.72fr) minmax(0, 1.55fr);
+  grid-template-columns: minmax(250px, 0.58fr) minmax(0, 1.75fr);
   gap: 18px;
-  /* Карточки тянутся до общей высоты: разная длина колонок выглядела обрубком. */
-  align-items: stretch;
+  align-items: start;
 }
 
 /* Панель как на остальных разделах: рамка, ровный фон, радиус 16. Раньше здесь
@@ -310,14 +309,7 @@ body::after {
   .siteNav.is-open .navAdmin { grid-column: 1 / -1; justify-content: center; }
 }
 
-.databaseCard {
-  padding: 21px;
-  /* Примечание прижато вниз, чтобы растянутая карточка не зияла пустотой. */
-  display: flex;
-  flex-direction: column;
-}
-
-.databaseCard .databaseNote { margin-top: auto; }
+.databaseCard { padding: 21px; }
 .searchCard { min-width: 0; padding: 24px; }
 
 .cardHeading {
@@ -329,8 +321,8 @@ body::after {
 }
 
 .cardHeading h2 {
-  margin: 4px 0 0;
-  font-size: 17px;
+  margin: 5px 0 0;
+  font-size: 20px;
   font-weight: 600;
   letter-spacing: -0.01em;
 }
@@ -397,8 +389,8 @@ body[data-mode="presort"] .modePill {
 .connection.error .connection__icon { color: var(--red); }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.connection strong { display: block; font-size: 14.5px; font-weight: 600; }
-.connection p { margin: 6px 0 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
+.connection strong { display: block; font-size: 16px; font-weight: 600; }
+.connection p { margin: 6px 0 0; color: var(--muted); font-size: 14px; line-height: 1.45; }
 
 .progress {
   height: 5px;
@@ -421,7 +413,7 @@ body[data-mode="presort"] .modePill {
   display: grid;
   grid-template-columns: 1fr;
   gap: 8px;
-  margin: 15px 0 0;
+  margin: 14px 0 0;
 }
 
 .stats div {
@@ -429,7 +421,7 @@ body[data-mode="presort"] .modePill {
   justify-content: space-between;
   align-items: baseline;
   gap: 14px;
-  padding: 9px 11px;
+  padding: 10px 12px;
   border: 1px solid var(--line);
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.018);
@@ -437,7 +429,7 @@ body[data-mode="presort"] .modePill {
 
 .stats dt {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -449,10 +441,11 @@ body[data-mode="presort"] .modePill {
    и «2,38» превращается в «2 , 38». Только пропорциональные. */
 .stats dd {
   margin: 0;
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 600;
   font-feature-settings: "tnum" 0, "pnum" 1;
   letter-spacing: 0.01em;
+  white-space: nowrap;
 }
 
 .databaseNote,
@@ -460,7 +453,7 @@ body[data-mode="presort"] .modePill {
 .scannerNote {
   margin: 14px 2px 0;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.55;
 }
 
@@ -481,9 +474,9 @@ body[data-mode="presort"] .modePill {
    разными разрядками, и страница выглядела собранной из кусков. */
 .fieldLabel {
   display: block;
-  margin: 0 0 8px;
+  margin: 0 0 9px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -495,8 +488,8 @@ body[data-mode="presort"] .modePill {
 .searchRow input {
   width: 100%;
   min-width: 0;
-  height: 52px;
-  padding: 0 15px;
+  height: 58px;
+  padding: 0 17px;
   border: 1px solid var(--line);
   border-radius: 10px;
   outline: none;
@@ -505,7 +498,7 @@ body[data-mode="presort"] .modePill {
   transition: border-color 0.16s, box-shadow 0.16s;
 }
 
-#scan, #nameSearch { font-size: 16px; letter-spacing: 0.01em; }
+#scan, #nameSearch { font-size: 19px; letter-spacing: 0.01em; }
 .searchRow input::placeholder { color: #667487; font-family: var(--ui); letter-spacing: 0; }
 .searchRow input:focus { border-color: var(--blue); box-shadow: 0 0 0 4px rgba(77, 141, 247, 0.16); }
 body[data-mode="presort"] .searchRow input:focus { border-color: var(--blue); box-shadow: 0 0 0 4px rgba(77, 141, 247, 0.14); }
@@ -548,8 +541,8 @@ body[data-mode="presort"] .action--secondary { background: #2a384a; }
 
 .primary {
   flex: none;
-  min-width: 150px;
-  padding: 16px 18px;
+  min-width: 176px;
+  padding: 20px;
   border-radius: 12px;
   color: #fff;
   background: var(--blue-deep);
@@ -558,17 +551,17 @@ body[data-mode="presort"] .action--secondary { background: #2a384a; }
 .primary.category { text-align: center; background: var(--blue-deep); }
 .primary.none { background: #d9506a; }
 .primary span { display: block; opacity: 0.82; font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; }
-.primary strong { display: block; margin-top: 5px; font-size: 28px; line-height: 1.1; white-space: nowrap; }
-.primary.category strong { font-size: 28px; }
+.primary strong { display: block; margin-top: 6px; font-size: 34px; line-height: 1.08; white-space: nowrap; }
+.primary.category strong { font-size: 34px; }
 .primary span { letter-spacing: 0.12em; }
 
 .answer__info { min-width: 0; }
-.answer__label { color: var(--muted); font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; }
-.answer h3 { margin: 6px 0 0; font-size: 16px; font-weight: 600; line-height: 1.45; word-break: break-word; }
-.secondary { display: inline-block; margin-top: 10px; padding: 6px 11px; border: 1px solid var(--line-strong); border-radius: 8px; background: rgba(255, 255, 255, 0.03); color: var(--text); font-size: 13px; font-weight: 600; }
+.answer__label { color: var(--muted); font-size: 12px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; }
+.answer h3 { margin: 7px 0 0; font-size: 20px; font-weight: 600; line-height: 1.4; word-break: break-word; }
+.secondary { display: inline-block; margin-top: 12px; padding: 7px 13px; border: 1px solid var(--line-strong); border-radius: 8px; background: rgba(255, 255, 255, 0.03); color: var(--text); font-size: 15px; font-weight: 600; }
 .secondary.check { color: #ffc0ca; border-color: rgba(240, 93, 114, 0.4); background: rgba(240, 93, 114, 0.11); }
-.code { margin: 10px 0 0; color: var(--muted); font-size: 13px; letter-spacing: 0.02em; word-break: break-all; }
-.siteLink { display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; padding: 6px 11px; border: 1px solid rgba(77, 141, 247, 0.42); border-radius: 8px; background: rgba(77, 141, 247, 0.12); color: #b2d0ff; font-size: 12.5px; font-weight: 600; text-decoration: none; }
+.code { margin: 11px 0 0; color: var(--muted); font-size: 15px; letter-spacing: 0.02em; word-break: break-all; }
+.siteLink { display: inline-flex; align-items: center; gap: 6px; margin-top: 12px; padding: 8px 13px; border: 1px solid rgba(77, 141, 247, 0.42); border-radius: 8px; background: rgba(77, 141, 247, 0.12); color: #b2d0ff; font-size: 14px; font-weight: 600; text-decoration: none; }
 .siteLink::after { content: "↗"; font-size: 11px; opacity: .75; }
 .siteLink:hover { border-color: var(--blue); background: rgba(77, 141, 247, 0.2); color: #fff; }
 .siteLink[hidden] { display: none; }
@@ -580,14 +573,14 @@ body[data-mode="presort"] .action--secondary { background: #2a384a; }
 .copyBtn {
   flex: none;
   margin-top: 6px;
-  min-height: 34px;
-  padding: 0 12px;
+  min-height: 38px;
+  padding: 0 14px;
   border: 1px solid var(--line-strong);
   border-radius: 9px;
   background: transparent;
   color: var(--muted);
   font: inherit;
-  font-size: 12.5px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
 }
@@ -611,8 +604,8 @@ body[data-mode="presort"] .action--secondary { background: #2a384a; }
 }
 .kgtBox[hidden] { display: none; }
 .kgtBox__text { min-width: 0; }
-.kgtBox__text strong { display: block; font-size: 15px; }
-.kgtBox__text span { display: block; margin-top: 4px; color: var(--muted); font-size: 13px; line-height: 1.45; }
+.kgtBox__text strong { display: block; font-size: 17px; }
+.kgtBox__text span { display: block; margin-top: 5px; color: var(--muted); font-size: 14px; line-height: 1.45; }
 .kgtBox--done { border-color: rgba(39, 196, 107, 0.4); background: rgba(39, 196, 107, 0.07); }
 .kgtBtn {
   flex: none;
@@ -642,13 +635,12 @@ body[data-mode="presort"] .action--secondary { background: #2a384a; }
   border-radius: 13px;
 }
 
-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-th, td { padding: 9px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
-th { position: sticky; top: 0; z-index: 1; color: var(--muted); background: #141e2a; font-size: 10px; }
+table { width: 100%; border-collapse: collapse; font-size: 15px; }
+th, td { padding: 11px 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+th { position: sticky; top: 0; z-index: 1; color: var(--muted); background: #141e2a; font-size: 12px; }
 tbody tr:last-child th, tbody tr:last-child td { border-bottom: 0; }
 .results tr.hit { cursor: pointer; }
-.results tr.hit:hover { background: rgba(39, 196, 107, 0.07); }
-body[data-mode="presort"] .results tr.hit:hover { background: rgba(77, 141, 247, 0.08); }
+.results tr.hit:hover { background: rgba(77, 141, 247, 0.08); }
 .details th { position: static; width: 160px; }
 .details td { word-break: break-word; }
 
@@ -681,7 +673,7 @@ kbd {
   .card { border-radius: 18px; }
   .searchCard, .databaseCard { padding: 17px; }
   .searchHeading { margin-bottom: 16px; }
-  .searchRow input { height: 50px; }
+  .searchRow input { height: 54px; }
   .action { min-width: 78px; padding: 0 13px; }
   .answer { align-items: stretch; flex-direction: column; }
   .primary { min-width: 0; }
