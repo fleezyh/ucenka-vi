@@ -184,7 +184,9 @@ body[data-mode="people"] .shell {
 
 .plMapBody { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 340px); gap: 20px; align-items: start; }
 /* Ширину холст берёт от содержимого (max-width ставит скрипт): у маленького
-   склада колонок три, и растянутая на всю панель схема выглядит нелепо. */
+   склада колонок три, и растянутая на всю панель схема выглядит нелепо. Ниже
+   читаемого не сжимаем — на телефоне схема уезжает в горизонтальную прокрутку. */
+.plMapCanvas { overflow-x: auto; overscroll-behavior-x: contain; }
 .plMapBody svg { display: block; width: 100%; height: auto; margin: 0 auto; }
 
 /* Города: переключатель складов над картой. Отдельная строка, а не в шапке —
@@ -234,6 +236,9 @@ body[data-mode="people"] .shell {
 }
 .plMapRow--person { cursor: pointer; }
 .plMapRow--person:hover { border-color: var(--line-strong); background: rgba(255, 255, 255, 0.03); }
+/* Закреплённый кликом человек: на телефоне это единственный способ увидеть,
+   где он ходит, — наведения там нет. */
+.plMapRow--person.is-on { border-color: var(--blue); background: #16233a; }
 .plMapDot { flex: none; width: 9px; height: 9px; border-radius: 50%; }
 .plMapName { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .plMapRow b { flex: none; font-weight: 600; }
@@ -242,4 +247,16 @@ body[data-mode="people"] .shell {
 
 @media (max-width: 1000px) {
   .plMapBody { grid-template-columns: 1fr; }
+}
+
+/* На телефоне ряды кнопок не переносим: семь складов и пять месяцев в столбик
+   съедают весь экран до карты. Уводим в горизонтальную прокрутку. */
+@media (max-width: 700px) {
+  .plMap { padding: 16px 14px 18px; }
+  .plMapHead { gap: 12px; }
+  .plSeg--cities, .plMapHead .plSeg { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; }
+  .plSeg--cities .plSeg__item, .plMapHead .plSeg .plSeg__item { flex: none; }
+  /* Ниже читаемого схему не сжимаем: на узком экране она уезжает вбок. Порог
+     считает скрипт — он знает, сколько в этом городе колонок. */
+  .plMapBody svg { min-width: var(--map-min, 0); }
 }

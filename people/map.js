@@ -54,6 +54,8 @@
   let city = "ДМД";
   let picked = null;      // выбранная зона
   let hovered = null;     // человек под курсором в списке
+  let pinned = null;      // человек, выбранный кликом: на телефоне наведения нет
+  let mergedMap = new Map();  // зона -> узел, под которым она показана
 
   const stageOf = (zone) => (STAGES.find((stage) => stage.test.test(zone)) || STAGES[3]).key;
 
@@ -304,12 +306,15 @@
   function draw() {
     const { nodes, edges } = collect();
     const { placed, merged, lanes, W, H } = layout(nodes);
+    mergedMap = merged;
     const at = (zone) => placed.get(merged.get(zone) || zone);
     const svg = el("plMapDraw");
     svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
     // Холст не растягиваем на всю ширину панели: у маленького города колонок
-    // три, и раздутые до края кружки выглядят нелепо.
+    // три, и раздутые до края кружки выглядят нелепо. И не даём сжиматься ниже
+    // читаемого: на телефоне схема уезжает вбок в прокрутку, а не в кашу.
     svg.style.maxWidth = `${W}px`;
+    svg.style.setProperty("--map-min", `${Math.min(W, lanes.length * 210)}px`);
     svg.replaceChildren();
 
     const add = (tag, attrs, parent) => {
@@ -378,41 +383,51 @@
       const title = document.createElementNS(SVG, "title");
       title.textContent = `${node.zone}\n${count(node.actions)} действий · ${node.staff.size} человек`;
       group.appendChild(title);
-      group.addEventListener("click", () => {
+      group.addEventListener("click", (event) => {
+        event.stopPropagation();
         picked = picked === node.zone ? null : node.zone;
+        pinned = null;
         draw();
-        renderSide(placed);
       });
+    });
+
+    // Клик по пустому месту снимает выбор — иначе на телефоне из зоны не выйти.
+    svg.addEventListener("click", () => {
+      if (!picked && !pinned) return;
+      picked = null;
+      pinned = null;
+      draw();
     });
 
     highlight();
     renderSide(placed);
   }
 
-  /** Подсветка: выбранная зона и всё, что с ней связано; либо зоны человека. */
+  /** Подсветка: выбранная зона и всё, что с ней связано; либо зоны человека.
+   *  Человек может быть под курсором или закреплён кликом — на телефоне
+   *  наведения нет, а посмотреть, где он ходит, хочется так же. */
   function highlight() {
     const svg = el("plMapDraw");
+    const person = pinned || hovered;
     const zonesOfPerson = new Set();
-    if (hovered) {
-      svg.querySelectorAll(".dot").forEach((dot) => {
-        if (hovered.zones.has(dot.dataset.zone)) zonesOfPerson.add(dot.dataset.zone);
-      });
+    if (person) {
+      person.zones.forEach((zone) => zonesOfPerson.add(mergedMap.get(zone) || zone));
     }
     svg.querySelectorAll(".flow").forEach((path) => {
       const { from, to } = path.dataset;
       let on = true;
       if (picked) on = from === picked || to === picked;
-      if (hovered) on = zonesOfPerson.has(from) || zonesOfPerson.has(to);
-      path.classList.toggle("on", Boolean((picked || hovered) && on));
-      path.classList.toggle("off", Boolean((picked || hovered) && !on));
+      if (person) on = zonesOfPerson.has(from) || zonesOfPerson.has(to);
+      path.classList.toggle("on", Boolean((picked || person) && on));
+      path.classList.toggle("off", Boolean((picked || person) && !on));
     });
     svg.querySelectorAll(".dot").forEach((dot) => {
       const zone = dot.dataset.zone;
       let on = true;
       if (picked) on = zone === picked || [...svg.querySelectorAll(".flow.on")]
         .some((path) => path.dataset.from === zone || path.dataset.to === zone);
-      if (hovered) on = zonesOfPerson.has(zone);
-      dot.classList.toggle("off", Boolean((picked || hovered) && !on));
+      if (person) on = zonesOfPerson.has(zone);
+      dot.classList.toggle("off", Boolean((picked || person) && !on));
     });
   }
 
@@ -422,7 +437,7 @@
     if (!picked) {
       const all = [...placed.values()].sort((a, b) => b.actions - a.actions).slice(0, 8);
       box.innerHTML = '<p class="plMapHint">Клик по зоне — кто в ней работает. '
-        + 'Наведите на человека — увидите, где он ходит.</p>'
+        + 'Клик по человеку — где он ходит.</p>'
         + all.map((node) => `<div class="plMapRow"><span class="plMapDot" style="background:${STAGE_COLORS[node.stage]}"></span>`
           + `<span class="plMapName">${node.zone}</span><b>${count(node.actions)}</b></div>`).join("");
       return;
@@ -431,16 +446,29 @@
     const people = [...node.staff.entries()].sort((a, b) => b[1] - a[1]).slice(0, 14);
     const total = [...node.staff.values()].reduce((sum, value) => sum + value, 0) || 1;
     box.innerHTML = `<p class="plMapPicked">${node.zone}<span>${count(node.actions)} действий · ${node.staff.size} человек</span></p>`
-      + people.map(([who, actions]) => `<button class="plMapRow plMapRow--person" data-who="${who}">`
+      + people.map(([who, actions]) => `<button class="plMapRow plMapRow--person`
+        + `${pinned && pinned.who === who ? " is-on" : ""}" data-who="${who}">`
         + `<span class="plMapName">${who}</span><b>${count(actions)}</b>`
         + `<i style="--w:${(actions / total) * 100}%"></i></button>`).join("");
 
     box.querySelectorAll(".plMapRow--person").forEach((row) => {
+      const who = row.dataset.who;
       row.addEventListener("mouseenter", () => {
-        hovered = { who: row.dataset.who, zones: zonesOf(row.dataset.who) };
+        if (pinned) return;
+        hovered = { who, zones: zonesOf(who) };
         highlight();
       });
-      row.addEventListener("mouseleave", () => { hovered = null; highlight(); });
+      row.addEventListener("mouseleave", () => {
+        if (pinned) return;
+        hovered = null;
+        highlight();
+      });
+      row.addEventListener("click", () => {
+        pinned = pinned && pinned.who === who ? null : { who, zones: zonesOf(who) };
+        hovered = null;
+        renderSide(placed);
+        highlight();
+      });
     });
   }
 
