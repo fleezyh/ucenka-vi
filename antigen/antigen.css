@@ -49,6 +49,10 @@ body[data-mode="antigen"] .shell {
 .agGoals__item { display: flex; align-items: baseline; gap: 7px; font-size: 14px; }
 .agGoals__item b { font-size: 18px; font-weight: 600; }
 .agGoals__item span { color: var(--muted); font-size: 12.5px; }
+/* Текущий месяц и его прогноз — это то, ради чего на плашку и смотрят: сколько
+   уже набежало и куда мы придём, если ничего не менять. */
+.agGoals__item--now b { color: #f5ad32; }
+.agGoals__item--forecast b { color: var(--red); }
 .agGoals__gap { margin-left: auto; font-size: 14px; color: var(--muted); }
 .agGoals__gap b { color: var(--red); font-weight: 600; }
 .agGoals__track {

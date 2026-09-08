@@ -98,6 +98,8 @@
 
   const MONTHS = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь',
     'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'];
+  const MONTHS_IN = ['январе', 'феврале', 'марте', 'апреле', 'мае', 'июне',
+    'июле', 'августе', 'сентябре', 'октябре', 'ноябре', 'декабре'];
   const MONTHS_SHORT = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
   const ROMAN = ['I', 'II', 'III', 'IV'];
   const PIE_COLORS = ['#4d8df7', '#27c46b', '#f5ad32', '#f05d72', '#a985ff', '#2fc2c9',
@@ -227,9 +229,6 @@
     return `${one(start)} — ${one(end)}`;
   }
 
-  const monthOf = (week) => week.slice(0, 7);
-  const quarterOf = (week) => `${week.slice(0, 4)}-Q${Math.floor(Number(week.slice(5, 7) - 1) / 3) + 1}`;
-  const yearOf = (week) => week.slice(0, 4);
 
   // -------------------------------------------------------------- данные
 
@@ -251,12 +250,21 @@
       bucket.push(row);
     });
 
+    // Календарные месяцы контура. Там, где их в данных нет (старые контуры
+    // выгружаются только по неделям), берём месяц понедельника — как было.
+    const months = dimAt.month !== undefined
+      ? [...new Set(payload.labels.month)].sort()
+      : [...new Set(payload.weeks.map((week) => week.slice(0, 7)))].sort();
+    const monthOfRow = dimAt.month !== undefined
+      ? (row) => payload.labels.month[row[dimAt.month]]
+      : (row) => payload.labels.week[row[dimAt.week]].slice(0, 7);
+
     // Карточка товара: артикул, бренд, группа, модель учёта. В таблице ищем по
     // названию, поэтому позицию в справочнике запоминаем сразу.
     const tovarAt = new Map();
     if (payload.tovarInfo) payload.labels.tovar.forEach((name, i) => tovarAt.set(name, i));
 
-    const prepared = { ...payload, dimAt, measureAt, byWeek, tovarAt };
+    const prepared = { ...payload, dimAt, measureAt, byWeek, tovarAt, months, monthOfRow };
     cache.set(key, prepared);
     return prepared;
   }
@@ -265,66 +273,74 @@
 
   const periodDef = () => PERIODS.find((p) => p.key === state.period);
 
-  /** Недели периода: считаем от последней недели контура календарными месяцами. */
-  function periodWeeks(data, shift = 0) {
+  /** Месяцы периода: окно календарных месяцев от конца истории контура. */
+  function periodMonths(data, shift = 0) {
     const period = periodDef();
-    if (!period.months) return shift ? [] : data.weeks;
-    const last = data.weeks[data.weeks.length - 1];
-    const anchor = new Date(last + 'T00:00:00');
-    const to = new Date(anchor.getFullYear(), anchor.getMonth() + 1 - period.months * shift, 1);
-    const from = new Date(anchor.getFullYear(), anchor.getMonth() + 1 - period.months * (shift + 1), 1);
-    // Дату собираем по частям: toISOString переводит в UTC и в нашем поясе
-    // сдвигает границу на день назад — последняя неделя периода пропадала.
-    const iso = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-`
-      + `${String(date.getDate()).padStart(2, '0')}`;
-    return data.weeks.filter((week) => week >= iso(from) && week < iso(to));
+    if (!period.months) return shift ? [] : data.months;
+    const end = data.months.length - period.months * shift;
+    return data.months.slice(Math.max(end - period.months, 0), Math.max(end, 0));
   }
 
-  /** Сколько понедельников в календарном месяце или квартале ключа. */
-  function mondaysIn(key) {
-    const year = Number(key.slice(0, 4));
-    const first = key.includes('Q') ? (Number(key.slice(6)) - 1) * 3 : Number(key.slice(5)) - 1;
-    const months = key.includes('Q') ? 3 : 1;
-    let count = 0;
-    for (let m = first; m < first + months; m += 1) {
-      const days = new Date(year, m + 1, 0).getDate();
-      for (let day = 1; day <= days; day += 1) {
-        if (new Date(year, m, day).getDay() === 1) count += 1;
-      }
-    }
-    return count;
+  /** Идёт ли ещё календарный месяц: последний месяц истории обычно не дожит. */
+  function monthRunning(key) {
+    const now = new Date();
+    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    return key >= currentMonth;
   }
 
-  /** Точки оси по выбранному шагу. */
-  function pointsOf(weeks) {
-    if (state.step === 'week') {
-      return weeks.map((week) => ({
-        key: week,
-        label: weekTitle(week).split(' — ')[0],
-        title: weekTitle(week),
-        weeks: [week],
-        partial: false,
-      }));
-    }
+  /** Точки оси: строки раскладываются по шагу внутри месяцев периода.
+   *
+   * Раньше месяц собирался из недель, чей понедельник в него попал, и «август»
+   * получался длиной в тридцать пять дней — цифры не сходились с исходником.
+   * Теперь месяц берётся из самой строки, а неделя на стыке месяцев лежит в
+   * данных двумя строками, поэтому обе оси считаются точно.
+   */
+  function pointsOf(data, months) {
+    const inside = new Set(months);
+    const weekAt = data.dimAt.week;
     const groups = new Map();
-    weeks.forEach((week) => {
-      const key = state.step === 'month' ? monthOf(week) : quarterOf(week);
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key).push(week);
+    data.rows.forEach((row) => {
+      const month = data.monthOfRow(row);
+      if (!inside.has(month)) return;
+      const key = state.step === 'week' ? data.labels.week[row[weekAt]]
+        : state.step === 'month' ? month
+          : `${month.slice(0, 4)}-Q${Math.floor((Number(month.slice(5)) - 1) / 3) + 1}`;
+      let bucket = groups.get(key);
+      if (!bucket) { bucket = { rows: [], months: new Set() }; groups.set(key, bucket); }
+      bucket.rows.push(row);
+      bucket.months.add(month);
     });
-    return [...groups.entries()].map(([key, list]) => ({
-      key,
-      label: state.step === 'month'
-        ? `${MONTHS_SHORT[Number(key.slice(5)) - 1]} ${key.slice(2, 4)}`
-        : `${ROMAN[Number(key.slice(6)) - 1]} кв ${key.slice(2, 4)}`,
-      title: state.step === 'month'
-        ? `${MONTHS[Number(key.slice(5)) - 1]} ${key.slice(0, 4)}`
-        : `${ROMAN[Number(key.slice(6)) - 1]} квартал ${key.slice(0, 4)}`,
-      weeks: list,
-      // Крайние месяцы и кварталы истории собраны не целиком: без пометки они
-      // выглядят как обвал, хотя это просто нехватка недель в выгрузке.
-      partial: list.length < mondaysIn(key),
-    }));
+
+    const keys = [...groups.keys()].sort();
+    return keys.map((key) => {
+      const bucket = groups.get(key);
+      if (state.step === 'week') {
+        // Неделя на стыке месяцев показана не целиком, если вторая её половина
+        // осталась за границей периода.
+        const full = data.byWeek.get(key) || [];
+        return {
+          key,
+          label: weekTitle(key).split(' — ')[0],
+          title: weekTitle(key),
+          rows: bucket.rows,
+          partial: bucket.rows.length < full.length,
+        };
+      }
+      const isMonth = state.step === 'month';
+      return {
+        key,
+        label: isMonth
+          ? `${MONTHS_SHORT[Number(key.slice(5)) - 1]} ${key.slice(2, 4)}`
+          : `${ROMAN[Number(key.slice(6)) - 1]} кв ${key.slice(2, 4)}`,
+        title: isMonth
+          ? `${MONTHS[Number(key.slice(5)) - 1]} ${key.slice(0, 4)}`
+          : `${ROMAN[Number(key.slice(6)) - 1]} квартал ${key.slice(0, 4)}`,
+        rows: bucket.rows,
+        // Текущий месяц или квартал ещё не дожит: без пометки он выглядит
+        // обвалом, хотя это просто неполный период.
+        partial: [...bucket.months].some(monthRunning),
+      };
+    });
   }
 
   function matches(data, row) {
@@ -332,26 +348,22 @@
       data.labels[dim] && data.labels[dim][row[data.dimAt[dim]]] === label);
   }
 
-  function total(data, weeks, measure) {
+  function total(data, rows, measure) {
     const at = data.measureAt[measure];
     let sum = 0;
-    weeks.forEach((week) => {
-      (data.byWeek.get(week) || []).forEach((row) => { if (matches(data, row)) sum += row[at]; });
-    });
+    rows.forEach((row) => { if (matches(data, row)) sum += row[at]; });
     return sum;
   }
 
-  function breakdown(data, weeks, dim, measure) {
+  function breakdown(data, rows, dim, measure) {
     const at = data.measureAt[measure];
     const dimIdx = data.dimAt[dim];
     const names = data.labels[dim];
     const totals = new Map();
-    weeks.forEach((week) => {
-      (data.byWeek.get(week) || []).forEach((row) => {
-        if (!matches(data, row)) return;
-        const name = names[row[dimIdx]];
-        totals.set(name, (totals.get(name) || 0) + row[at]);
-      });
+    rows.forEach((row) => {
+      if (!matches(data, row)) return;
+      const name = names[row[dimIdx]];
+      totals.set(name, (totals.get(name) || 0) + row[at]);
     });
     return totals;
   }
@@ -510,13 +522,12 @@
 
     const period = periodDef();
     const now = values.reduce((a, b) => a + b, 0);
-    const beforeWeeks = period.months ? periodWeeks(data, 1) : [];
-    const before = beforeWeeks.length ? total(data, beforeWeeks, measure.key) : 0;
-    // Месяцы бывают из четырёх и пяти недель: без этой оговорки «+30%» читается
-    // как рост брака, хотя это лишняя неделя в периоде.
-    const nowWeeks = points.reduce((acc, point) => acc + point.weeks.length, 0);
-    const unevenNote = before && nowWeeks !== beforeWeeks.length
-      ? ` · ${nowWeeks} недель против ${beforeWeeks.length}` : '';
+    const beforeMonths = period.months ? periodMonths(data, 1) : [];
+    const before = beforeMonths.length
+      ? total(data, pointsOf(data, beforeMonths).flatMap((p) => p.rows), measure.key) : 0;
+    // Незакрытый месяц в периоде делает сравнение неравным: без оговорки
+    // «−40%» читается как обвал, хотя месяц просто ещё идёт.
+    const unevenNote = before && points.some((p) => p.partial) ? ' · период ещё не закрыт' : '';
     const compareName = period.compare || 'вся история';
 
     const cards = [
@@ -552,7 +563,38 @@
 
   // ------------------------------------------------------------- цели
 
-  function renderGoals() {
+  /** Сколько актов набежало в текущем месяце и сколько будет к его концу.
+   *
+   * Прогноз линейный: месяц идёт достаточно ровно, всплеск одной недели он
+   * сгладит, но на вопрос «укладываемся или нет» отвечает. Покрытие считаем
+   * дробным — по моменту сборки данных, а не по календарному числу: иначе
+   * сегодняшний неполный день делится как полный и прогноз занижается на
+   * десятую часть.
+   */
+  function runningMonth(data) {
+    if (!data.months || data.dimAt.month === undefined) return null;
+    const month = data.months[data.months.length - 1];
+    const built = new Date(index.built);
+    const stamp = `${built.getFullYear()}-${String(built.getMonth() + 1).padStart(2, '0')}`;
+    if (month !== stamp) return null;
+
+    const at = data.dimAt.month;
+    const strok = data.measureAt.strok;
+    let sum = 0;
+    data.rows.forEach((row) => {
+      if (data.labels.month[row[at]] === month) sum += row[strok];
+    });
+
+    const covered = built.getDate() - 1 + (built.getHours() * 60 + built.getMinutes()) / 1440;
+    const daysInMonth = new Date(built.getFullYear(), built.getMonth() + 1, 0).getDate();
+    return {
+      month, fact: sum, daysInMonth,
+      day: `${String(built.getDate()).padStart(2, '0')} ${MONTHS_SHORT[built.getMonth()]}`,
+      forecast: covered > 0.5 ? Math.round((sum / covered) * daysInMonth) : null,
+    };
+  }
+
+  function renderGoals(data) {
     const box = el('agGoals');
     if (state.contour !== 'zabr') { box.hidden = true; return; }
     const trajectory = index.control.trajectory || [];
@@ -560,13 +602,30 @@
     const target = [...trajectory].reverse().find((row) => row.point_b);
     if (!fact || !target) { box.hidden = true; return; }
 
-    const gap = fact.fact - target.point_b;
-    const span = Math.max(fact.fact - target.goal, 1);
+    const running = runningMonth(data);
+    // Шкала: от последнего закрытого месяца до цели года. Заполнение — то, где
+    // мы стоим по прогнозу текущего месяца, а не по позапрошлой цифре.
+    const start = fact.fact;
+    const span = Math.max(start - target.goal, 1);
+    const at = running && running.forecast ? running.forecast : start;
+    const done = Math.min(Math.max((start - at) / span, 0), 1);
+    const gap = at - target.point_b;
+
+    const monthName = (key) => `${MONTHS_SHORT[Number(key.slice(5)) - 1]} ${key.slice(0, 4)}`;
     box.hidden = false;
     box.innerHTML = '<span class="agGoals__label">зафиксировано</span>'
-      + `<span class="agGoals__item"><b>${fmtInt(fact.fact)}</b><span>актов · ${
-        MONTHS_SHORT[Number(fact.month.slice(5)) - 1]} ${fact.month.slice(0, 4)}</span></span>`
-      + `<span class="agGoals__track" style="--w:${((fact.fact - target.point_b) / span) * 100}%;--goal:100%">`
+      + `<span class="agGoals__item"><b>${fmtInt(start)}</b>`
+        + `<span>актов · ${monthName(fact.month)}</span></span>`
+      + (running
+        ? `<span class="agGoals__item agGoals__item--now"><b>${fmtInt(running.fact)}</b>`
+          + `<span>уже в ${MONTHS_IN[Number(running.month.slice(5)) - 1]}`
+          + ` · по ${running.day}</span></span>`
+          + (running.forecast
+            ? `<span class="agGoals__item agGoals__item--forecast"><b>${fmtInt(running.forecast)}</b>`
+              + '<span>будет по этому темпу</span></span>'
+            : '')
+        : '')
+      + `<span class="agGoals__track" style="--w:${(done * 100).toFixed(1)}%;--goal:100%">`
       + '<i></i><u></u></span>'
       + `<span class="agGoals__item"><b>${fmtInt(target.point_b)}</b><span>Точка Б · 31.12</span></span>`
       + `<span class="agGoals__item"><b>${fmtInt(target.goal)}</b><span>цель года</span></span>`
@@ -600,7 +659,7 @@
     }
 
     const measure = measureOf(contour);
-    const perPoint = points.map((point) => breakdown(data, point.weeks, state.heatDim, measure.key));
+    const perPoint = points.map((point) => breakdown(data, point.rows, state.heatDim, measure.key));
     const totals = new Map();
     perPoint.forEach((map) => map.forEach((value, name) => totals.set(name, (totals.get(name) || 0) + value)));
     const names = [...totals.entries()].sort((a, b) => b[1] - a[1]).slice(0, HEAT_ROWS).map(([name]) => name);
@@ -754,14 +813,14 @@
 
     const measure = measureOf(contour);
     const current = state.point ? points.find((p) => p.key === state.point) : null;
-    const scope = current ? current.weeks : points.flatMap((p) => p.weeks);
+    const scope = current ? current.rows : points.flatMap((p) => p.rows);
     const totals = breakdown(src, scope, state.drillDim, measure.key);
 
     const baseline = new Map();
     if (current) {
       const position = points.indexOf(current);
       const history = points.slice(Math.max(0, position - 4), position);
-      const maps = history.map((point) => breakdown(src, point.weeks, state.drillDim, measure.key));
+      const maps = history.map((point) => breakdown(src, point.rows, state.drillDim, measure.key));
       const names = new Set([...totals.keys()]);
       maps.forEach((map) => map.forEach((_, name) => names.add(name)));
       names.forEach((name) => baseline.set(name, median(maps.map((map) => map.get(name) || 0))));
@@ -887,14 +946,13 @@
       const src = data;
       const measure = measureOf(contour);
       const current = state.point ? points.find((p) => p.key === state.point) : null;
-      const scope = new Set(current ? current.weeks : points.flatMap((p) => p.weeks));
+      const scope = current ? current.rows : points.flatMap((p) => p.rows);
 
       // Лист 1 — строки среза как есть, с человеческими заголовками и числами
       // числами, чтобы в Excel сразу считались суммы и сводные.
       const detail = [];
-      src.rows.forEach((row) => {
-        const week = src.labels.week[row[src.dimAt.week]];
-        if (!scope.has(week) || !matches(src, row)) return;
+      scope.forEach((row) => {
+        if (!matches(src, row)) return;
         const item = {};
         src.dims.forEach((dim) => { item[dimTitle(contour, dim)] = src.labels[dim][row[src.dimAt[dim]]]; });
         // Карточку товара разворачиваем в колонки: в выгрузке артикул нужнее
@@ -911,7 +969,7 @@
       // Лист 2 — свод по текущему разрезу: то же, что видно в таблице на экране.
       const summary = [];
       if (state.drillDim) {
-        const totals = breakdown(src, current ? current.weeks : points.flatMap((p) => p.weeks),
+        const totals = breakdown(src, current ? current.rows : points.flatMap((p) => p.rows),
           state.drillDim, measure.key);
         const sum = [...totals.values()].reduce((a, b) => a + b, 0) || 1;
         [...totals.entries()].sort((a, b) => b[1] - a[1]).forEach(([name, value]) => {
@@ -926,7 +984,7 @@
       // Лист 3 — та самая карта: разрез в строках, точки периода в столбцах.
       const map = [];
       if (state.heatDim) {
-        const perPoint = points.map((point) => breakdown(data, point.weeks, state.heatDim, measure.key));
+        const perPoint = points.map((point) => breakdown(data, point.rows, state.heatDim, measure.key));
         const names = new Map();
         perPoint.forEach((m) => m.forEach((value, name) => names.set(name, (names.get(name) || 0) + value)));
         [...names.entries()].sort((a, b) => b[1] - a[1]).forEach(([name, total_]) => {
@@ -967,13 +1025,13 @@
     segment(el('agStep'), STEPS, state.step, (key) => { state.step = key; state.point = null; render(); });
 
     const data = await loadContour(state.contour);
-    const points = pointsOf(periodWeeks(data));
+    const points = pointsOf(data, periodMonths(data));
     if (state.point && !points.some((p) => p.key === state.point)) state.point = null;
     const measure = measureOf(contour);
-    const values = points.map((point) => total(data, point.weeks, measure.key));
+    const values = points.map((point) => total(data, point.rows, measure.key));
 
     el('agTimeTitle').textContent = contour.name;
-    renderGoals();
+    renderGoals(data);
     renderChart(data, contour, points, values);
     renderFacts(data, contour, points, values);
     renderHeat(data, contour, points);

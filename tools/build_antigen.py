@@ -193,8 +193,12 @@ def build_zabr(rows: list[dict[str, Any]], today: date) -> dict[str, Any]:
     которым товар актировали (столы уценки, предсорт, вход в некомплекты), а не
     ячейка, где он лежал и разбился. Как «место» он читается неверно.
     """
+    # Месяц — вторая ось времени, а не разрез: складывать его из недель нельзя,
+    # неделя на стыке принадлежит обоим месяцам сразу. В таблице фактов она
+    # поэтому лежит двумя строками, и обе оси сходятся с исходником.
     facts = Facts(
-        dims=["week", "vid", "region", "poluchatel", "napr", "gruppa", "mu", "defekt", "tovar"],
+        dims=["week", "month", "vid", "region", "poluchatel",
+              "napr", "gruppa", "mu", "defekt", "tovar"],
         measures=["strok", "rrc", "sebes"],
     )
     # Артикул и бренд — не измерения, а карточка товара: показываются подписью в
@@ -202,8 +206,12 @@ def build_zabr(rows: list[dict[str, Any]], today: date) -> dict[str, Any]:
     # бренда лежит в файле 89 тысяч раз.
     brands = Dictionary()
     info: dict[str, list[Any]] = {}
+    # Незакрытые недели тоже кладём: без них текущий месяц на сайте обрезан, а
+    # именно по нему смотрят, сколько актов уже набежало и сколько будет к
+    # концу. Они помечены в partial_weeks — страница рисует их иначе и в тренд
+    # не берёт.
     kept, partial = zabr_weeks(rows, today)
-    keep = set(kept)
+    keep = set(kept) | set(partial)
     for row in rows:
         week = week_start(row.get("week_start_date"))
         if week not in keep:
@@ -212,7 +220,8 @@ def build_zabr(rows: list[dict[str, Any]], today: date) -> dict[str, Any]:
         if tovar not in info:
             info[tovar] = [norm(row.get("artikul")), brands.index(row.get("brand"))]
         facts.add(
-            {"week": week, "vid": row.get("vid_tochki"), "region": row.get("region"),
+            {"week": week, "month": norm(row.get("month_key")) or week[:7],
+             "vid": row.get("vid_tochki"), "region": row.get("region"),
              "poluchatel": row.get("poluchatel"), "napr": row.get("napravlenie"),
              "gruppa": row.get("gruppa"), "mu": row.get("model_ucheta"),
              "defekt": row.get("tip_defekta"), "tovar": tovar},
@@ -221,7 +230,7 @@ def build_zabr(rows: list[dict[str, Any]], today: date) -> dict[str, Any]:
     payload = facts.payload()
     payload["tovarInfo"] = [info[name] for name in payload["labels"]["tovar"]]
     payload["tovarBooks"] = {"brand": brands.values}
-    return {"weeks": kept, "partial_weeks": partial, **payload}
+    return {"weeks": sorted(keep), "closed_weeks": kept, "partial_weeks": partial, **payload}
 
 
 def build_dmd(rows: list[dict[str, Any]], today: date) -> dict[str, Any]:

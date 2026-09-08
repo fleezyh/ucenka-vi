@@ -11,11 +11,16 @@
                    на нём строить можно.
      tovar/brand — номенклатура. В самих актах её нет, тянется через
                    dwh_nomenclature_guid → Dim_Product, как и группа товара.
+     month_key   — календарный месяц акта, отдельно от недели. Складывать
+                   месяц из недель нельзя: неделя с понедельником 31 августа
+                   почти вся сентябрьская, и «август» на сайте получался в
+                   тридцать пять дней. Неделя на стыке даёт здесь две строки,
+                   и обе оси — недельная и месячная — сходятся с исходником.
 
    Забираем сырую грань; свод по неделям, вид точки и всё остальное считает
    сборщик и потом браузер.
 */
-SELECT t.week_start_date, t.vid_tochki, t.region, t.poluchatel, t.sektor,
+SELECT t.week_start_date, t.month_key, t.vid_tochki, t.region, t.poluchatel, t.sektor,
        t.napravlenie, t.gruppa, t.model_ucheta, t.tip_defekta,
        t.brand, t.artikul, t.tovar,
        COUNT(*)                          AS strok,
@@ -23,6 +28,7 @@ SELECT t.week_start_date, t.vid_tochki, t.region, t.poluchatel, t.sektor,
        CAST(SUM(t.sebes) AS decimal(18,2)) AS sebes_rub
 FROM (
     SELECT DATEADD(DAY, -(DATEDIFF(DAY, '19000101', a.date_time) % 7), CAST(a.date_time AS date)) AS week_start_date,
+           CONVERT(varchar(7), a.date_time, 120) AS month_key,
            CASE WHEN z.name LIKE N'ДОМОДЕДОВО%' OR z.name LIKE N'ЧАШНИКОВО%' THEN N'МСК'
                 WHEN z.name LIKE N'СЦ - %' THEN LTRIM(SUBSTRING(z.name, CHARINDEX(N' - ', z.name) + 3, 100))
                 WHEN CHARINDEX(N' - ', z.name) > 0 THEN LEFT(z.name, CHARINDEX(N' - ', z.name) - 1)
@@ -88,6 +94,6 @@ FROM (
       AND a.appeal_type_id = 7
       AND a.status_id = 3
 ) t
-GROUP BY t.week_start_date, t.vid_tochki, t.region, t.poluchatel, t.sektor,
+GROUP BY t.week_start_date, t.month_key, t.vid_tochki, t.region, t.poluchatel, t.sektor,
          t.napravlenie, t.gruppa, t.model_ucheta, t.tip_defekta,
          t.brand, t.artikul, t.tovar
