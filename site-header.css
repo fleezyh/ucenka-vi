@@ -167,6 +167,20 @@ body[data-mode="dashboard"] > header {
   transition: transform 120ms cubic-bezier(.22,1,.36,1), background 140ms ease, border-color 140ms ease, color 140ms ease;
 }
 
+/* Названия вкладок набраны со строчными: их зрительная масса лежит между
+   базовой линией и высотой строчной, а браузер центрирует строку целиком —
+   вместе с надстрочным запасом под заглавную и подстрочным под «р» и «ц».
+   Из-за этого текст садится на полтора пикселя ниже оптического центра, и
+   рядом с меткой группы, набранной прописными, это видно. Обрезаем строку по
+   реальным краям знаков — плашка вкладки остаётся на месте, съезжает только
+   текст внутри неё. Где свойство не поддерживается, всё остаётся как было. */
+@supports (text-box: trim-both ex alphabetic) {
+  .siteHeaderShell .navLink,
+  .shell > .topbar .navLink,
+  .siteHeaderShell .navAdmin,
+  .shell > .topbar .navAdmin { text-box: trim-both ex alphabetic; }
+}
+
 .siteHeaderShell .navLink,
 .shell > .topbar .navLink {
   border: 0;
