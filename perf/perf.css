@@ -25,6 +25,25 @@
 .perfTools .tab { min-width: 0; }
 .perfTools .stamp { margin: 0; color: var(--muted); font-size: 12px; }
 
+.perfViews {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: rgba(8, 13, 20, 0.72);
+}
+.perfView {
+  padding: 8px 14px;
+  border-radius: 9px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.perfView:hover { color: var(--text); }
+.perfView.is-on { color: #fff; background: rgba(255, 255, 255, 0.12); }
+
 /* ---- Период ---------------------------------------------------------------- */
 
 /* Один период на всю страницу — поэтому и стоит над всем, а не внутри блоков. */
@@ -454,6 +473,7 @@
 @media (max-width: 600px) {
   .heroPerf h1 { font-size: clamp(28px, 7.6vw, 38px); line-height: 1.08; }
   .perfTools { justify-items: stretch; }
+  .perfViews { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); text-align: center; }
   .perfTools .tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .perfTools .tab { font-size: 14px; padding: 10px 6px; }
   .months { overflow-x: auto; grid-auto-columns: minmax(48px, 1fr); }

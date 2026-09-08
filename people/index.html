@@ -5,11 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0a1018">
   <meta name="robots" content="noindex, nofollow">
-  <title>Уценка · Кто чем занят</title>
+  <title>Уценка · Паноптикум</title>
   <link rel="icon" type="image/svg+xml" href="../assets/brand/vi-mark.svg">
   <link rel="preload" href="../assets/fonts/VI_Sans_Medium.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="../style.css?v=20260907-6">
-  <link rel="stylesheet" href="people.css?v=20260908-1">
+  <link rel="stylesheet" href="people.css?v=20260908-2">
   <link rel="stylesheet" href="../reeded-bg.css?v=20260907-6">
   <link rel="stylesheet" href="../site-header.css?v=20260908-2">
   <script src="../reeded-bg.js?v=20260906-7" defer></script>
@@ -29,7 +29,7 @@
           <a class="navLink" href="../antigen/">Антигенерация</a>
           <a class="navLink" href="../heatmap/">Хитмап</a>
           <a class="navLink" href="../sales/">Продажи</a>
-          <a class="navLink" href="../perf/">Производительность</a>
+          <a class="navLink" href="../perf/" aria-current="page">Производительность</a>
         </span>
         <span class="navGroup">
           <span class="navGroup__label">Инструменты</span>
@@ -41,13 +41,18 @@
 
     <section class="hero">
       <div>
-        <p class="eyebrow">служебная страница</p>
-        <h1>Кто чем занят</h1>
-        <p class="lead">Люди направления по работе с браком и их следы в WMS: движения товара,
-          акты приёмки и расхождений, задания, поступления, инвентаризация.</p>
+        <p class="eyebrow">Все действия сотрудников</p>
+        <h1>Паноптикум</h1>
+        <p class="lead">Кто, когда и что делал в WMS: движения товара, акты приёмки и
+          расхождений, задания, поступления и инвентаризация.</p>
       </div>
       <p class="stamp" id="stamp">данные загружаются…</p>
     </section>
+
+    <nav class="peopleViews" aria-label="Раздел производительности">
+      <a class="peopleView" href="../perf/">Показатели</a>
+      <a class="peopleView is-on" href="./" aria-current="page">Паноптикум</a>
+    </nav>
 
     <section class="plPanel">
       <div class="plTools">
@@ -63,9 +68,8 @@
     <div id="plGroups"></div>
 
     <footer class="plFoot">
-      <p>Страница служебная: в навигации её нет, поисковикам закрыта. Но репозиторий сайта
-        публичный, так что это скрытность по неочевидности, а не защита — фамилии и объёмы
-        видит любой, кто знает адрес.</p>
+      <p>Раздел показывает операционные следы сотрудников в WMS. Отсутствие действий
+        означает только отсутствие записей в подключённых источниках, а не отсутствие работы.</p>
       <p id="plSources"></p>
     </footer>
   </main>
