@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0a1018">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Уценка · Кто чем занят</title>
+  <link rel="icon" type="image/svg+xml" href="../assets/brand/vi-mark.svg">
+  <link rel="preload" href="../assets/fonts/VI_Sans_Medium.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="../style.css?v=20260907-6">
+  <link rel="stylesheet" href="people.css?v=20260908-1">
+  <link rel="stylesheet" href="../reeded-bg.css?v=20260907-6">
+  <link rel="stylesheet" href="../site-header.css?v=20260908-2">
+  <script src="../reeded-bg.js?v=20260906-7" defer></script>
+  <script src="people.js?v=20260908-1" defer></script>
+  <script src="../nav.js?v=20260906-1" defer></script>
+</head>
+<body data-mode="people">
+  <main class="shell">
+    <header class="topbar">
+      <a class="brand" href="../" aria-label="Уценка — главная">
+        <img class="brand__mark" src="../assets/brand/vi-mark.svg" alt="" width="27" height="27">
+        <span>Уценка</span>
+      </a>
+      <nav class="siteNav" aria-label="Разделы сайта">
+        <span class="navGroup">
+          <span class="navGroup__label">Уценка</span>
+          <a class="navLink" href="../antigen/">Антигенерация</a>
+          <a class="navLink" href="../heatmap/">Хитмап</a>
+          <a class="navLink" href="../sales/">Продажи</a>
+          <a class="navLink" href="../perf/">Производительность</a>
+        </span>
+        <span class="navGroup">
+          <span class="navGroup__label">Инструменты</span>
+          <a class="navLink" href="../picker/">Пикалка</a>
+        </span>
+        <a class="navAdmin" href="https://fleezy.tailb770fe.ts.net" target="_blank" rel="noopener">Админка</a>
+      </nav>
+    </header>
+
+    <section class="hero">
+      <div>
+        <p class="eyebrow">служебная страница</p>
+        <h1>Кто чем занят</h1>
+        <p class="lead">Люди направления по работе с браком и их следы в WMS: движения товара,
+          акты приёмки и расхождений, задания, поступления, инвентаризация.</p>
+      </div>
+      <p class="stamp" id="stamp">данные загружаются…</p>
+    </section>
+
+    <section class="plPanel">
+      <div class="plTools">
+        <div class="plSeg plSeg--months" id="plMonths" role="group" aria-label="Месяц"></div>
+      </div>
+      <div class="plTools">
+        <div class="plSeg" id="plRails" role="group" aria-label="Рельс"></div>
+        <button type="button" class="action action--secondary" id="plEmpty">Показать без следов</button>
+      </div>
+      <div class="plSummary" id="plSummary"></div>
+    </section>
+
+    <div id="plGroups"></div>
+
+    <footer class="plFoot">
+      <p>Страница служебная: в навигации её нет, поисковикам закрыта. Но репозиторий сайта
+        публичный, так что это скрытность по неочевидности, а не защита — фамилии и объёмы
+        видит любой, кто знает адрес.</p>
+      <p id="plSources"></p>
+    </footer>
+  </main>
+</body>
+</html>

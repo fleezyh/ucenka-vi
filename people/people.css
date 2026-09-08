@@ -1,0 +1,145 @@
+/* Служебная страница «Кто чем занят». Сетка, шапка и переменные — общие
+   (style.css, site-header.css), здесь только раскладка самой страницы. */
+
+body[data-mode="people"] .shell {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.plPanel {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #0d151f;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.plTools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+.plSeg { display: flex; gap: 6px; flex-wrap: wrap; }
+.plSeg button {
+  appearance: none;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 13px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.plSeg button:hover { color: var(--text); }
+.plSeg button[aria-pressed="true"] { border-color: var(--blue); background: #16233a; color: var(--text); font-weight: 600; }
+.plSeg i { width: 9px; height: 9px; border-radius: 3px; display: inline-block; }
+
+.plSummary { display: flex; gap: 22px; flex-wrap: wrap; font-size: 13.5px; color: var(--muted); }
+.plSummary b { color: var(--text); font-weight: 600; font-size: 16px; }
+
+.plGroup {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #0d151f;
+  padding: 14px 16px 16px;
+  margin-bottom: 12px;
+}
+.plGroup__head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.plGroup__name { font-size: 19px; font-weight: 600; }
+.plGroup__note { font-size: 13px; color: var(--muted); }
+.plGroup__count { margin-left: auto; font-size: 13px; color: var(--muted); }
+.plGroup__count b { color: var(--text); font-weight: 600; }
+
+.plRow {
+  display: grid;
+  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr) 96px;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  width: 100%;
+}
+.plRow:nth-child(odd) { background: rgba(255, 255, 255, .022); }
+.plRow:hover { border-color: var(--line-strong); }
+.plRow__who { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.plRow__name { display: block; font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.plRow__post { display: block; font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.plRow__bar { display: flex; height: 12px; border-radius: 6px; overflow: hidden; background: rgba(255, 255, 255, .06); }
+.plRow__bar i { display: block; height: 100%; }
+.plRow__total { text-align: right; font-size: 14px; font-weight: 600; }
+.plRow--empty { opacity: .55; }
+.plRow--empty .plRow__total { color: var(--muted); font-weight: 500; font-size: 12.5px; }
+
+.plDetail {
+  margin: 2px 0 10px;
+  padding: 10px 12px;
+  border-left: 2px solid var(--blue);
+  background: rgba(77, 141, 247, .07);
+  border-radius: 0 10px 10px 0;
+  font-size: 13px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 6px 18px;
+}
+.plDetail span { color: var(--muted); }
+.plDetail b { color: var(--text); font-weight: 600; }
+
+.plFoot { color: var(--muted); font-size: 12.5px; max-width: 96ch; }
+
+@media (max-width: 780px) {
+  .plRow { grid-template-columns: minmax(0, 1fr) 86px; }
+  .plRow__bar { display: none; }
+}
+
+/* Месяц выделяем: это первый выбор, а не такой же фильтр, как рельс. */
+.plSeg--months button { border-radius: 10px; font-weight: 600; }
+.plSeg--months button[aria-pressed="true"] { border-color: var(--green); background: rgba(39, 196, 107, .14); }
+
+/* Раскрытие человека: рельс, а под ним что именно он делал. */
+.plDetail { display: block; }
+.plDetail__rail { margin-bottom: 10px; }
+.plDetail__head { font-size: 13.5px; margin-bottom: 5px; display: flex; align-items: center; gap: 7px; }
+.plDetail__head i { width: 9px; height: 9px; border-radius: 3px; }
+.plDetail__head b { color: var(--text); font-weight: 600; }
+.plKind {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) 78px 92px;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 0 3px 14px;
+  font-size: 12.5px;
+}
+.plKind i { width: 7px; height: 7px; border-radius: 2px; opacity: .65; }
+.plKind__name { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.plKind b { text-align: right; color: var(--text); font-weight: 600; }
+.plKind em { text-align: right; font-style: normal; color: var(--muted); font-size: 11.5px; }
+.plDetail__foot { font-size: 12px; color: var(--muted); padding-top: 6px; border-top: 1px solid var(--line); }
+.plDetail__foot b { color: var(--text); font-weight: 600; }
+
+/* Календарь месяца внутри раскрытия: столбик на каждый день, пустые места —
+   дни, когда человек не выходил. */
+.plDays { margin-bottom: 14px; }
+.plDays__head { display: flex; gap: 18px; flex-wrap: wrap; font-size: 12.5px; color: var(--muted); margin-bottom: 8px; }
+.plDays__head b { color: var(--text); font-weight: 600; }
+.plDays__grid { display: flex; align-items: flex-end; gap: 3px; height: 96px; }
+.plDay { flex: 1 1 0; min-width: 0; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; gap: 3px; }
+.plDay i { display: block; width: 100%; border-radius: 3px 3px 0 0; min-height: 2px; }
+.plDay span { font-size: 9px; color: var(--muted); text-align: center; }
+.plDay--off i { background: rgba(255,255,255,.05) !important; height: 3px !important; }
+.plDay--off span { opacity: .45; }
+.plDay--weekend span { color: var(--red); opacity: .8; }
