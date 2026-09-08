@@ -456,6 +456,16 @@
     return /^[0-9]{6,30}$/.test(value);
   }
 
+  function recordPick(barcode, found) {
+    fetch("/__pick", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ barcode, found, mode }),
+      keepalive: true,
+    }).catch(() => {});
+  }
+
   async function searchBarcode() {
     const code = scan.value.trim().replace(/^"|"$/g, "");
     if (!code || busy || !manifest) {
@@ -493,6 +503,7 @@
 
       if (hit) showHit(hit, code);
       else showNotFound(code);
+      recordPick(code, Boolean(hit));
     } catch (error) {
       if (operationVersion !== version) return;
       say(`Не удалось выполнить поиск: ${error?.message || error}`, "error");
