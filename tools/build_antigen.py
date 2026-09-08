@@ -184,56 +184,23 @@ def zabr_weeks(rows: list[dict[str, Any]], today: date) -> tuple[list[str], list
 def build_zabr(rows: list[dict[str, Any]], today: date) -> dict[str, Any]:
     """Официальный факт: акты приёмки. Меры — строки, РРЦ и себестоимость.
 
-    Место обнаружения расшито до конкретной точки (`poluchatel`) и до зоны, из
-    которой товар приехал на забраковку (`sektor`). Раньше на сайт доезжал
-    только вид точки — «Центр-ДМД» без ответа на вопрос, что это за место и
-    какой сектор стрельнул. Оба поля есть в витрине 613 с самого начала.
+    Два отличия от того, что доезжало раньше. Место обнаружения расшито до
+    конкретной точки (`poluchatel`): не «Регион-РЦ», а какой именно РЦ. И есть
+    номенклатура — обычным измерением, как товар в контуре движения, а не
+    отдельной сущностью: с ней таблица фактов растёт со 160 до 259 тысяч строк.
 
-    Номенклатуры здесь нет намеренно: с ней таблица фактов пухнет с 170 до 261
-    тысячи строк и с 6 до 20 МБ. Товар живёт в отдельном контуре, который
-    грузится только при провале в него, — см. build_zabr_tovar.
+    Сектор-источник из витрины сознательно не берём: в акте это стол, за
+    которым товар актировали (столы уценки, предсорт, вход в некомплекты), а не
+    ячейка, где он лежал и разбился. Как «место» он читается неверно.
     """
     facts = Facts(
-        dims=["week", "vid", "region", "poluchatel", "sektor",
-              "napr", "gruppa", "mu", "defekt"],
+        dims=["week", "vid", "region", "poluchatel", "napr", "gruppa", "mu", "defekt", "tovar"],
         measures=["strok", "rrc", "sebes"],
     )
-    kept, partial = zabr_weeks(rows, today)
-    keep = set(kept)
-    for row in rows:
-        week = week_start(row.get("week_start_date"))
-        if week not in keep:
-            continue
-        facts.add(
-            {"week": week, "vid": row.get("vid_tochki"), "region": row.get("region"),
-             "poluchatel": row.get("poluchatel"), "sektor": row.get("sektor"),
-             "napr": row.get("napravlenie"), "gruppa": row.get("gruppa"),
-             "mu": row.get("model_ucheta"), "defekt": row.get("tip_defekta")},
-            [number(row.get("strok")), number(row.get("rrc_rub")), number(row.get("sebes_rub"))],
-        )
-    return {"weeks": kept, "partial_weeks": partial, **facts.payload()}
-
-
-def build_zabr_tovar(rows: list[dict[str, Any]], today: date) -> dict[str, Any]:
-    """Та же забраковка, но до номенклатуры: что именно признали браком.
-
-    Разрезы урезаны до тех, ради которых в товар и проваливаются: точка, сектор
-    и тип дефекта. Группа, направление и модель учёта не нужны — они однозначно
-    определяются товаром, и на сайте показываются из справочника `tovarInfo`,
-    а не отдельными измерениями.
-    """
-    # `vid` однозначно определяется точкой, поэтому новых строк не добавляет,
-    # зато позволяет перенести сюда фильтр «Центр-ДМД» из свода — без него
-    # переход к номенклатуре молча расширял срез на всю страну.
-    facts = Facts(
-        dims=["week", "vid", "poluchatel", "sektor", "defekt", "tovar"],
-        measures=["strok", "rrc", "sebes"],
-    )
-    # Свойства товара — не измерения, а карточка: артикул строкой, остальное
-    # индексами в свои словари. Хранить их строками на каждый из 89 тысяч
-    # товаров — это лишние восемь мегабайт на ровном месте.
-    props = ["brand", "gruppa", "mu"]
-    books = {name: Dictionary() for name in props}
+    # Артикул и бренд — не измерения, а карточка товара: показываются подписью в
+    # строке и колонками в выгрузке. Бренд индексом в свой словарь, иначе строка
+    # бренда лежит в файле 89 тысяч раз.
+    brands = Dictionary()
     info: dict[str, list[Any]] = {}
     kept, partial = zabr_weeks(rows, today)
     keep = set(kept)
@@ -243,19 +210,17 @@ def build_zabr_tovar(rows: list[dict[str, Any]], today: date) -> dict[str, Any]:
             continue
         tovar = norm(row.get("tovar")) or "(не указано)"
         if tovar not in info:
-            info[tovar] = [norm(row.get("artikul")),
-                           books["brand"].index(row.get("brand")),
-                           books["gruppa"].index(row.get("gruppa")),
-                           books["mu"].index(row.get("model_ucheta"))]
+            info[tovar] = [norm(row.get("artikul")), brands.index(row.get("brand"))]
         facts.add(
-            {"week": week, "vid": row.get("vid_tochki"), "poluchatel": row.get("poluchatel"),
-             "sektor": row.get("sektor"), "defekt": row.get("tip_defekta"), "tovar": tovar},
+            {"week": week, "vid": row.get("vid_tochki"), "region": row.get("region"),
+             "poluchatel": row.get("poluchatel"), "napr": row.get("napravlenie"),
+             "gruppa": row.get("gruppa"), "mu": row.get("model_ucheta"),
+             "defekt": row.get("tip_defekta"), "tovar": tovar},
             [number(row.get("strok")), number(row.get("rrc_rub")), number(row.get("sebes_rub"))],
         )
     payload = facts.payload()
     payload["tovarInfo"] = [info[name] for name in payload["labels"]["tovar"]]
-    payload["tovarFields"] = ["артикул", "бренд", "группа товара", "модель учёта"]
-    payload["tovarBooks"] = {name: books[name].values for name in props}
+    payload["tovarBooks"] = {"brand": brands.values}
     return {"weeks": kept, "partial_weeks": partial, **payload}
 
 
@@ -431,11 +396,9 @@ def load_live() -> dict[str, list[dict[str, Any]]]:
     return data
 
 
-# Имя файла -> (какой источник читать, чем собирать). Товарный контур берёт тот
-# же источник, что и свод: одна выгрузка, две разные грани.
 BUILDERS: dict[str, tuple[str, Callable[[list[dict[str, Any]], date], dict[str, Any]]]] = {
-    "zabr": ("zabr", build_zabr), "zabrt": ("zabr", build_zabr_tovar),
-    "dmd": ("dmd", build_dmd), "gen": ("gen", build_gen), "akty": ("akty", build_akty),
+    "zabr": ("zabr", build_zabr), "dmd": ("dmd", build_dmd),
+    "gen": ("gen", build_gen), "akty": ("akty", build_akty),
 }
 
 
@@ -462,7 +425,7 @@ def main() -> int:
         "built": datetime.now().astimezone().isoformat(timespec="seconds"),
         "contours": {},
         "control": build_control(source["metrics"], source["plan"]),
-        "sources": {"zabr": 2656, "zabrt": 2656, "dmd": 2669, "gen": 2654, "akty": 2671,
+        "sources": {"zabr": 2656, "dmd": 2669, "gen": 2654, "akty": 2671,
                     "metrics": 2957, "plan": 2950},
     }
 

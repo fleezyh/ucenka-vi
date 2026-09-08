@@ -27,35 +27,12 @@
       dims: [
         { key: 'vid', label: 'место обнаружения' },
         { key: 'poluchatel', label: 'точка' },
-        { key: 'sektor', label: 'сектор-источник' },
         { key: 'defekt', label: 'тип дефекта' },
         { key: 'gruppa', label: 'группа товара' },
+        { key: 'tovar', label: 'номенклатура' },
         { key: 'napr', label: 'направление' },
         { key: 'mu', label: 'модель учёта' },
         { key: 'region', label: 'регион' },
-      ],
-      // Номенклатура в актах есть, но живёт отдельным файлом: с ней таблица
-      // фактов втрое тяжелее, а нужна она только когда действительно дошли до
-      // вопроса «а какой конкретно товар». Поэтому — переход с переносом среза.
-      productBridge: {
-        contour: 'zabrt',
-        carry: { vid: 'vid', poluchatel: 'poluchatel', sektor: 'sektor', defekt: 'defekt' },
-      },
-    },
-    {
-      key: 'zabrt', name: 'Официальный брак · номенклатура',
-      note: 'те же акты приёмки, но до товара', chart: 2656,
-      measures: [
-        { key: 'rrc', label: '₽ розница', kind: 'money' },
-        { key: 'sebes', label: '₽ себестоимость', kind: 'money' },
-        { key: 'strok', label: 'строк', kind: 'int' },
-      ],
-      dims: [
-        { key: 'tovar', label: 'номенклатура' },
-        { key: 'defekt', label: 'тип дефекта' },
-        { key: 'sektor', label: 'сектор-источник' },
-        { key: 'vid', label: 'место обнаружения' },
-        { key: 'poluchatel', label: 'точка' },
       ],
     },
     {
@@ -746,6 +723,7 @@
   }
 
   function renderTable(data, contour, points) {
+    const src = data;
     const dims = el('agDims');
     dims.innerHTML = '';
     const used = new Set(state.filters.map((f) => f.dim));
@@ -762,58 +740,28 @@
       dims.appendChild(chip);
     });
 
-    // Переход к номенклатуре — сразу в ряду разрезов, а не только когда они
-    // кончились: до товара иначе семь кликов, а вопрос «какой конкретно товар»
-    // возникает на первом же.
-    if (contour.productBridge) {
-      const jump = document.createElement('button');
-      jump.type = 'button';
-      jump.className = 'agDim agDim--jump';
-      jump.textContent = 'номенклатура →';
-      jump.title = 'Тот же срез, но до конкретного товара';
-      jump.addEventListener('click', () => {
-        const carry = state.filters
-          .filter((f) => contour.productBridge.carry[f.dim])
-          .map((f) => ({ dim: contour.productBridge.carry[f.dim], label: f.label }));
-        switchContour(contour.productBridge.contour, carry);
-      });
-      dims.appendChild(jump);
-    }
 
     const box = el('agTable');
     box.innerHTML = '';
 
     if (!state.drillDim) {
-      const bridge = contour.productBridge;
       const note = document.createElement('div');
       note.className = 'agEmpty';
-      note.innerHTML = 'Разрезы этого контура кончились. '
-        + (bridge ? 'Номенклатура лежит отдельным файлом — открывается тем же срезом.' : '');
+      note.textContent = 'Разрезы этого контура кончились — снимите какой-нибудь фильтр.';
       box.appendChild(note);
-      if (bridge) {
-        const carry = state.filters
-          .filter((f) => bridge.carry[f.dim])
-          .map((f) => ({ dim: bridge.carry[f.dim], label: f.label }));
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'agBtn';
-        button.textContent = 'Показать номенклатуру этого среза';
-        button.addEventListener('click', () => switchContour(bridge.contour, carry));
-        box.appendChild(button);
-      }
       return;
     }
 
     const measure = measureOf(contour);
     const current = state.point ? points.find((p) => p.key === state.point) : null;
     const scope = current ? current.weeks : points.flatMap((p) => p.weeks);
-    const totals = breakdown(data, scope, state.drillDim, measure.key);
+    const totals = breakdown(src, scope, state.drillDim, measure.key);
 
     const baseline = new Map();
     if (current) {
       const position = points.indexOf(current);
       const history = points.slice(Math.max(0, position - 4), position);
-      const maps = history.map((point) => breakdown(data, point.weeks, state.drillDim, measure.key));
+      const maps = history.map((point) => breakdown(src, point.weeks, state.drillDim, measure.key));
       const names = new Set([...totals.keys()]);
       maps.forEach((map) => map.forEach((_, name) => names.add(name)));
       names.forEach((name) => baseline.set(name, median(maps.map((map) => map.get(name) || 0))));
@@ -850,12 +798,12 @@
     // Одни названия номенклатуры нечитаемы: половина начинается одинаково.
     // Поэтому под названием — артикул, бренд и группа из справочника товаров.
     const tovarMeta = (name) => {
-      if (state.drillDim !== 'tovar' || !data.tovarInfo) return '';
-      const at = data.tovarAt.get(name);
+      if (state.drillDim !== 'tovar' || !src.tovarInfo) return '';
+      const at = src.tovarAt.get(name);
       if (at === undefined) return '';
-      const card = data.tovarInfo[at];
+      const card = src.tovarInfo[at];
       const parts = [card[0] && card[0] !== '(нет)' ? `арт. ${card[0]}` : '',
-        data.tovarBooks.brand[card[1]], data.tovarBooks.gruppa[card[2]]]
+        src.tovarBooks.brand[card[1]]]
         .filter((part) => part && part !== '(нет)' && part !== '(не указано)');
       return parts.length ? `<i class="agRow__meta">${escape(parts.join(' · '))}</i>` : '';
     };
@@ -936,6 +884,7 @@
     button.textContent = 'Собираю…';
     try {
       const XLSX = await loadXlsx();
+      const src = data;
       const measure = measureOf(contour);
       const current = state.point ? points.find((p) => p.key === state.point) : null;
       const scope = new Set(current ? current.weeks : points.flatMap((p) => p.weeks));
@@ -943,28 +892,26 @@
       // Лист 1 — строки среза как есть, с человеческими заголовками и числами
       // числами, чтобы в Excel сразу считались суммы и сводные.
       const detail = [];
-      data.rows.forEach((row) => {
-        const week = data.labels.week[row[data.dimAt.week]];
-        if (!scope.has(week) || !matches(data, row)) return;
+      src.rows.forEach((row) => {
+        const week = src.labels.week[row[src.dimAt.week]];
+        if (!scope.has(week) || !matches(src, row)) return;
         const item = {};
-        data.dims.forEach((dim) => { item[dimTitle(contour, dim)] = data.labels[dim][row[data.dimAt[dim]]]; });
+        src.dims.forEach((dim) => { item[dimTitle(contour, dim)] = src.labels[dim][row[src.dimAt[dim]]]; });
         // Карточку товара разворачиваем в колонки: в выгрузке артикул нужнее
         // всего — по нему ищут в 1С и в закупке.
-        if (data.tovarInfo) {
-          const card = data.tovarInfo[row[data.dimAt.tovar]];
+        if (src.tovarInfo) {
+          const card = src.tovarInfo[row[src.dimAt.tovar]];
           item.Артикул = card[0];
-          item.Бренд = data.tovarBooks.brand[card[1]];
-          item['Группа товара'] = data.tovarBooks.gruppa[card[2]];
-          item['Модель учёта'] = data.tovarBooks.mu[card[3]];
+          item.Бренд = src.tovarBooks.brand[card[1]];
         }
-        data.measures.forEach((m) => { item[measureTitle(contour, m)] = row[data.measureAt[m]]; });
+        src.measures.forEach((m) => { item[measureTitle(contour, m)] = row[src.measureAt[m]]; });
         detail.push(item);
       });
 
       // Лист 2 — свод по текущему разрезу: то же, что видно в таблице на экране.
       const summary = [];
       if (state.drillDim) {
-        const totals = breakdown(data, current ? current.weeks : points.flatMap((p) => p.weeks),
+        const totals = breakdown(src, current ? current.weeks : points.flatMap((p) => p.weeks),
           state.drillDim, measure.key);
         const sum = [...totals.values()].reduce((a, b) => a + b, 0) || 1;
         [...totals.entries()].sort((a, b) => b[1] - a[1]).forEach(([name, value]) => {
