@@ -282,8 +282,8 @@ body[data-mode="people"] .shell {
 @media (max-width: 700px) {
   .plMap { padding: 16px 14px 18px; }
   .plMapHead { gap: 12px; }
-  .plSeg--cities, .plMapHead .plSeg { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; }
-  .plSeg--cities .plSeg__item, .plMapHead .plSeg .plSeg__item { flex: none; }
+  .plSeg--cities, .plSeg--teams, .plMapHead .plSeg { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; }
+  .plSeg--cities .plSeg__item, .plSeg--teams .plSeg__item, .plMapHead .plSeg .plSeg__item { flex: none; }
   /* Ниже читаемого схему не сжимаем: на узком экране она уезжает вбок. Порог
      считает скрипт — он знает, сколько в этом городе колонок. */
   .plMapBody svg { min-width: var(--map-min, 0); }
@@ -310,3 +310,13 @@ body[data-mode="people"] .shell {
 .plFind::placeholder { color: var(--muted); }
 .plFind:focus { outline: none; border-color: var(--blue); background: #101a29; }
 .plMapName em { display: block; font-style: normal; font-size: 11.5px; color: var(--muted); }
+
+/* Пульс: день за днём по всему срезу, стопка — из чего сложились действия. */
+.plPulse { margin: 0 0 18px; }
+.plPulse:empty { display: none; }
+.plPulse__head { display: flex; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-bottom: 6px; color: var(--muted); font-size: 12px; }
+.plPulse__keys { display: flex; gap: 12px; flex-wrap: wrap; }
+.plPulse__key { display: inline-flex; align-items: center; gap: 6px; }
+.plPulse__key i { width: 8px; height: 8px; border-radius: 2px; }
+.plPulse__draw { display: block; width: 100%; height: 108px; }
+.plCard__nums em { font-style: normal; font-size: 10.5px; color: var(--muted); }

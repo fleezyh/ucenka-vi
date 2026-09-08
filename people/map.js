@@ -751,13 +751,30 @@
     const spread = [...cities.entries()].sort((a, b) => b[1] - a[1])
       .map(([key, value]) => `${key} ${Math.round((value / touched) * 100)}%`).join(" · ");
 
+    // Выработку показываем рядом с медианой бригады: «524 за смену» само по
+    // себе ничего не значит, пока не видно, сколько делают рядом стоящие.
+    const peers = stats.group.люди
+      .map((person) => {
+        const list = monthsOf(person);
+        const actions = list.reduce((sum, [, data]) => sum + (data.всего || 0), 0);
+        const shifts = list.reduce((sum, [, data]) => sum + (data.смен || 0), 0);
+        return shifts ? actions / shifts : 0;
+      })
+      .filter((value) => value > 0)
+      .sort((a, b) => a - b);
+    const median = peers.length ? peers[Math.floor(peers.length / 2)] : 0;
+    const perShiftNote = median
+      ? `${perShift >= median ? "+" : "−"}${Math.round(Math.abs(perShift - median) / median * 100)}%`
+        + ` к медиане ${stats.group.имя}`
+      : "";
+
     return `<div class="plCard">
       <p class="plCard__who">${who}<span>${stats.person.должность} · ${stats.group.имя}`
       + `${stats.person.принят ? ` · с ${stats.person.принят}` : ""}</span></p>
       <div class="plCard__nums">
         <span><b>${count(stats.actions)}</b>действий</span>
         <span><b>${count(stats.shifts)}</b>смен</span>
-        <span><b>${count(perShift)}</b>за смену</span>
+        <span><b>${count(perShift)}</b>за смену${perShiftNote ? `<em>${perShiftNote}</em>` : ""}</span>
         <span><b>${count(stats.items)}</b>штук</span>
       </div>
       <p class="plCard__cap">Когда выходил и сколько делал${spread ? ` · ${spread}` : ""}</p>
@@ -842,6 +859,79 @@
     segment(el("plMapTeams"), teamItems, team, (key) => { team = key; pick(null); });
   }
 
+  /* ---- Пульс -----------------------------------------------------------
+     Полоса над картой: сколько направление делает каждый день и из чего это
+     складывается. Дни в выгрузке лежат по человеку целиком, без разбивки по
+     складам, поэтому пульс слушается только отдела — про это и написано в
+     подписи, чтобы никто не считал его срезом по городу. */
+  const PULSE_COLORS = {
+    "Движения: Перемещение": "#4d8df7",
+    "Движения: Отбор": "#27c46b",
+    "Акты приёмки": "#f05d72",
+    "Акты расхождений": "#f5ad32",
+  };
+  const PULSE_OTHER = "#a985ff";
+
+  function pulse() {
+    const byDay = new Map();
+    payload.группы.forEach((group) => {
+      if (team && group.имя !== team) return;
+      group.люди.forEach((person) => {
+        monthsOf(person).forEach(([, data]) => {
+          (data.дни || []).forEach((day) => {
+            const found = byDay.get(day.день) || { total: 0, kinds: new Map(), people: new Set() };
+            found.total += day.всего || 0;
+            found.people.add(person.фио);
+            (day.виды || []).forEach((item) => {
+              found.kinds.set(item.вид, (found.kinds.get(item.вид) || 0) + item.действий);
+            });
+            byDay.set(day.день, found);
+          });
+        });
+      });
+    });
+
+    const days = [...byDay.entries()].sort((a, b) => (a[0] < b[0] ? -1 : 1));
+    const box = el("plMapPulse");
+    if (!box) return;
+    if (days.length < 3) { box.innerHTML = ""; return; }
+
+    const W = 1000;
+    const H = 108;
+    const step = W / days.length;
+    const max = Math.max(...days.map(([, item]) => item.total), 1);
+    const kinds = [...new Set(days.flatMap(([, item]) => [...item.kinds.keys()]))]
+      .sort((a, b) => (PULSE_COLORS[b] ? 1 : 0) - (PULSE_COLORS[a] ? 1 : 0));
+
+    const bars = days.map(([date, item], index) => {
+      const x = step * index;
+      const width = Math.max(1, step - 1.2);
+      let y = H - 16;
+      const stack = kinds.map((kind) => {
+        const value = item.kinds.get(kind) || 0;
+        if (!value) return "";
+        const height = (H - 30) * (value / max);
+        y -= height;
+        return `<rect x="${x}" y="${y}" width="${width}" height="${height}"`
+          + ` fill="${PULSE_COLORS[kind] || PULSE_OTHER}" fill-opacity=".85"/>`;
+      }).join("");
+      const weekend = new Date(`${date}T00:00:00`).getDay() % 6 ? "" :
+        `<rect x="${x}" y="0" width="${width}" height="${H - 16}" fill="rgba(255,255,255,.03)"/>`;
+      return `${weekend}${stack}<rect x="${x}" y="0" width="${width}" height="${H - 16}" fill="transparent">`
+        + `<title>${date} · ${count(item.total)} действий · ${item.people.size} человек</title></rect>`;
+    }).join("");
+
+    const marks = days.map(([date], index) => (date.slice(8) === "01"
+      ? `<text x="${step * index + 2}" y="${H - 4}" class="plRh__d">${date.slice(0, 7)}</text>` : "")).join("");
+
+    const legend = kinds.slice(0, 5).map((kind) => `<span class="plPulse__key">`
+      + `<i style="background:${PULSE_COLORS[kind] || PULSE_OTHER}"></i>${kind}</span>`).join("");
+
+    box.innerHTML = `<div class="plPulse__head"><span>Пульс${team ? ` · ${team}` : " направления"}`
+      + ` · день за днём, все склады вместе</span><span class="plPulse__keys">${legend}</span></div>`
+      + `<svg class="plPulse__draw" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${bars}${marks}</svg>`;
+  }
+
   /** Смена среза: выбор зоны и человека сбрасываем — они были про прошлый. */
   function pick(zone) {
     picked = zone;
@@ -849,6 +939,7 @@
     hovered = null;
     renderMonths();
     renderFilters();
+    pulse();
     draw(true);
     writeHash();
   }
