@@ -15,22 +15,26 @@
   let contour = "presort";
   let showAllStaff = false;
 
-  /* Окно, за которое считается рейтинг людей.
+  /* Период, за который считается рейтинг людей.
 
-     Раньше таблица всегда показывала всё время, и наверху висели те, кто
-     отработал пару смен в марте и больше не появлялся: рекорд «4969 штук за
-     смену» — это одна смена одного человека. Теперь по умолчанию смотрим
-     последние четыре недели, а кто в окне не работал — в список не попадает.
-     Порог смен тоже свой на каждое окно: за четыре недели пять смен требовать
-     бессмысленно. */
-  const STAFF_WINDOWS = [
-    { key: "4w", label: "4 недели", weeks: 4, minShifts: 3 },
-    { key: "13w", label: "13 недель", weeks: 13, minShifts: 5 },
-    { key: "all", label: "всё время", weeks: 0, minShifts: 5 },
+     Раньше таблица показывала всю историю, и наверху висели те, кто отработал
+     пару смен весной: рекорд «4969 штук за смену» — это одна смена одного
+     человека в марте. Скользящее окно «последние N недель» эту болезнь лечило,
+     но само по себе производная: смотреть надо конкретную неделю или
+     конкретный месяц, как в отчётности. */
+  const STAFF_MODES = [
+    { key: "week", label: "неделя", minShifts: 2 },
+    { key: "month", label: "месяц", minShifts: 5 },
+    { key: "all", label: "вся история", minShifts: 5 },
   ];
-  let staffWindow = "4w";
+  let staffMode = "month";
+  let staffPeriod = null;   // конкретный ключ: 2026-W37 или 2026-09
 
   const SHIFT_WORDS = ["смена", "смены", "смен"];
+  const MONTHS_SHORT = ["янв", "фев", "мар", "апр", "май", "июн",
+                        "июл", "авг", "сен", "окт", "ноя", "дек"];
+  const MONTHS_FULL = ["январь", "февраль", "март", "апрель", "май", "июнь",
+                       "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь"];
 
   /** Склонение слова «смена» по числу: 3 смены, 5 смен. */
   function shiftWord(count) {
@@ -40,51 +44,87 @@
     return last === 1 ? SHIFT_WORDS[0] : last >= 2 && last <= 4 ? SHIFT_WORDS[1] : SHIFT_WORDS[2];
   }
 
-  /** «17 авг — 13 сен» вместо 2026-W34 — 2026-W37: недели ISO мало кто читает. */
-  function weekRange(from, to) {
-    // Свои сокращения, а не toLocaleDateString: тот даёт вперемешку «авг» и
-    // «сент», и подпись выглядит неряшливо.
-    const MONTHS = ["янв", "фев", "мар", "апр", "май", "июн",
-                    "июл", "авг", "сен", "окт", "ноя", "дек"];
-    const short = (date) => `${String(date.getDate()).padStart(2, "0")} ${MONTHS[date.getMonth()]}`;
-    const start = mondayOfWeek(from);
-    const end = mondayOfWeek(to);
-    end.setDate(end.getDate() + 6);
+  /** «07 сен — 13 сен» вместо 2026-W37: недели ISO мало кто читает. */
+  function staffWeekLabel(key) {
+    const start = mondayOfWeek(key);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    const short = (date) => `${String(date.getDate()).padStart(2, "0")} ${MONTHS_SHORT[date.getMonth()]}`;
     return `${short(start)} — ${short(end)}`;
   }
 
-  /** Люди с показателями, пересчитанными за выбранное окно. */
-  function staffInWindow(data) {
-    const win = STAFF_WINDOWS.find((w) => w.key === staffWindow) || STAFF_WINDOWS[0];
-    const axis = (data.поНеделям || []).map((w) => w.неделя);
-    const keep = win.weeks ? new Set(axis.slice(-win.weeks)) : null;
+  const staffMonthLabel = (key) => `${MONTHS_FULL[Number(key.slice(5)) - 1]} ${key.slice(0, 4)}`;
+
+  /** До какого дня данные вообще есть: по нему считаем, закрыт период или нет. */
+  function dataEdge() {
+    const stampText = String(payload?.обновлено || "").slice(0, 10);
+    const parsed = stampText ? new Date(stampText + "T00:00:00") : new Date();
+    return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+  }
+
+  /** Список конкретных периодов контура, свежие сверху.
+   *
+   * Текущие неделя и месяц ещё идут, и рейтинг по ним обманчив: у людей по
+   * одной-две смены. Такие периоды помечаем и по умолчанию не выбираем.
+   */
+  function staffPeriods(data) {
+    const edge = dataEdge();
+    if (staffMode === "week") {
+      return (data.поНеделям || []).map((w) => {
+        const end = mondayOfWeek(w.неделя);
+        end.setDate(end.getDate() + 7);
+        const open = end > edge;
+        return { key: w.неделя, label: staffWeekLabel(w.неделя) + (open ? " · идёт" : ""), open };
+      }).reverse();
+    }
+    if (staffMode === "month") {
+      return (data.поМесяцам || []).map((m) => {
+        const year = Number(m.месяц.slice(0, 4));
+        const month = Number(m.месяц.slice(5)) - 1;
+        const open = new Date(year, month + 1, 1) > edge;
+        return { key: m.месяц, label: staffMonthLabel(m.месяц) + (open ? " · идёт" : ""), open };
+      }).reverse();
+    }
+    return [];
+  }
+
+  /** Люди с показателями, пересчитанными за выбранный период. */
+  function staffInPeriod(data) {
+    const mode = STAFF_MODES.find((m) => m.key === staffMode) || STAFF_MODES[1];
+    const periods = staffPeriods(data);
+    if (mode.key !== "all" && !periods.some((item) => item.key === staffPeriod)) {
+      const closed = periods.find((item) => !item.open);
+      staffPeriod = (closed || periods[0] || {}).key || null;
+    }
+    const field = mode.key === "week" ? "поНеделям" : "поМесяцам";
+    const stamp = mode.key === "week" ? "неделя" : "месяц";
 
     const list = [];
     (data.сотрудники || []).forEach((person) => {
-      if (!keep) {
-        list.push({ ...person, мало_смен: person.смен < win.minShifts });
+      if (mode.key === "all") {
+        list.push({ ...person, мало_смен: person.смен < mode.minShifts });
         return;
       }
-      let штук = 0;
-      let смен = 0;
-      (person.поНеделям || []).forEach((week) => {
-        if (!keep.has(week.неделя)) return;
-        штук += week.штук;
-        смен += week.смен;
-      });
-      if (!смен) return;   // в окне не работал — в рейтинге ему не место
+      const row = (person[field] || []).find((item) => item[stamp] === staffPeriod);
+      if (!row || !row.смен) return;   // в этом периоде не работал — в рейтинге ему не место
       list.push({
         ...person,
-        штук,
-        смен,
-        на_смену: Math.round((штук / смен) * 10) / 10,
-        мало_смен: смен < win.minShifts,
+        штук: row.штук,
+        смен: row.смен,
+        на_смену: row.на_смену,
+        мало_смен: row.смен < mode.minShifts,
       });
     });
 
     list.sort((a, b) => (a.мало_смен - b.мало_смен) || (b.на_смену - a.на_смену));
-    const from = keep ? axis.slice(-win.weeks)[0] : axis[0];
-    return { win, list, from, to: axis[axis.length - 1], скрыто: (data.сотрудники || []).length - list.length };
+    const current = periods.find((item) => item.key === staffPeriod);
+    return {
+      mode,
+      periods,
+      list,
+      label: mode.key === "all" ? "вся история" : (current ? current.label : "—"),
+      скрыто: (data.сотрудники || []).length - list.length,
+    };
   }
   let barStep = "недели";
 
@@ -629,8 +669,8 @@
    * хорошо или обычно. Здесь видно и расстановку, и насколько человек
    * отклонился от того, как работает большинство.
    */
-  function renderStaff(list) {
-    const shown = showAllStaff ? list : list.filter((s) => !s.мало_смен);
+  function renderStaff(list, forceAll = false) {
+    const shown = (showAllStaff || forceAll) ? list : list.filter((s) => !s.мало_смен);
     if (!shown.length) return document.createTextNode("");
 
     const values = shown.map((s) => s.на_смену).sort((a, b) => a - b);
@@ -691,7 +731,7 @@
 
       const shifts = document.createElement("span");
       shifts.className = "staffRow__shifts";
-      shifts.textContent = count(person.смен) + " смен";
+      shifts.textContent = count(person.смен) + " " + shiftWord(person.смен);
 
       row.append(name, track, value, spark, trend, shifts);
 
@@ -926,30 +966,48 @@
                        renderMonths(rampAsBars(ramp))));
     }
 
-    const staff = staffInWindow(data);
+    const staff = staffInPeriod(data);
 
-    parts.push(block("Ядро и хвост", `На скольких людях держится контур · ${staff.win.label}`,
+    parts.push(block("Ядро и хвост", `На скольких людях держится контур · ${staff.label}`,
                      renderCore(staff.list)));
 
-    // Окно рейтинга: за него считаются и штуки, и смены, и медиана.
-    const windowTabs = document.createElement("div");
-    windowTabs.className = "tabs tabs--inline";
-    windowTabs.setAttribute("role", "tablist");
-    windowTabs.setAttribute("aria-label", "Период рейтинга");
-    STAFF_WINDOWS.forEach((w) => {
+    // Единица периода: конкретная неделя, конкретный месяц или вся история.
+    const modeTabs = document.createElement("div");
+    modeTabs.className = "tabs tabs--inline";
+    modeTabs.setAttribute("role", "tablist");
+    modeTabs.setAttribute("aria-label", "Единица периода");
+    STAFF_MODES.forEach((mode) => {
       const tab = document.createElement("button");
       tab.className = "tab";
       tab.type = "button";
       tab.setAttribute("role", "tab");
-      tab.setAttribute("aria-selected", String(w.key === staffWindow));
-      tab.textContent = w.label;
+      tab.setAttribute("aria-selected", String(mode.key === staffMode));
+      tab.textContent = mode.label;
       tab.addEventListener("click", () => {
-        if (staffWindow === w.key) return;
-        staffWindow = w.key;
+        if (staffMode === mode.key) return;
+        staffMode = mode.key;
+        staffPeriod = null;   // подставится самый свежий период новой единицы
         try { navigator.vibrate?.(10); } catch { /* нет поддержки */ }
         render();
       });
-      windowTabs.appendChild(tab);
+      modeTabs.appendChild(tab);
+    });
+
+    // Сам период: список конкретных недель или месяцев, свежие сверху.
+    const periodPick = document.createElement("select");
+    periodPick.className = "perfSelect";
+    periodPick.setAttribute("aria-label", "Период рейтинга");
+    staff.periods.forEach((period) => {
+      const option = document.createElement("option");
+      option.value = period.key;
+      option.textContent = period.label;
+      option.selected = period.key === staffPeriod;
+      periodPick.appendChild(option);
+    });
+    periodPick.hidden = staff.mode.key === "all";
+    periodPick.addEventListener("change", () => {
+      staffPeriod = periodPick.value;
+      render();
     });
 
     // Переключатель «показать всех» — рядом с заголовком таблицы.
@@ -958,7 +1016,7 @@
     toggle.className = "action action--secondary";
     toggle.type = "button";
     toggle.textContent = showAllStaff
-      ? `Только от ${staff.win.minShifts} смен`
+      ? `Только от ${staff.mode.minShifts} ${shiftWord(staff.mode.minShifts)}`
       : `Показать всех (+${thin})`;
     toggle.addEventListener("click", () => {
       showAllStaff = !showAllStaff;
@@ -969,24 +1027,30 @@
     const staffTools = document.createElement("div");
     staffTools.className = "perfActions";
     staffTools.append(
-      windowTabs,
+      modeTabs,
+      periodPick,
       excelButton([["сотрудник", "тип", "площадка", "период", "штук", "смен", "штук за смену",
                     "тренд, %", "разброс", "первая смена"],
-                   ...staff.list.map((s) => [s.сотрудник, s.тип, s.площадка, staff.win.label,
+                   ...staff.list.map((s) => [s.сотрудник, s.тип, s.площадка, staff.label,
                                              s.штук, s.смен, s.на_смену, s.тренд ?? "",
                                              s.разброс ?? "", s.первая_смена || ""])],
-                  `${data.название} сотрудники ${staff.win.label}`),
+                  `${data.название} сотрудники ${staff.label}`),
       toggle);
 
-    const windowNote = staff.win.weeks
-      ? `${weekRange(staff.from, staff.to)}, не работавшие в окне скрыты (${staff.скрыто})`
-      : "вся история контура";
+    const periodNote = staff.mode.key === "all"
+      ? "вся история контура"
+      : `${staff.label}, не работавшие в этом периоде скрыты (${staff.скрыто})`;
+    // Если порог отсекает вообще всех — показываем список целиком: пустая
+    // таблица объясняет меньше, чем список с оговоркой.
+    const allThin = staff.list.length > 0 && staff.list.every((s) => s.мало_смен);
+    const staffHead = allThin
+      ? `Ни у кого нет ${staff.mode.minShifts} ${shiftWord(staff.mode.minShifts)} — показаны все`
+      : (showAllStaff
+        ? `Все, включая тех, у кого меньше ${staff.mode.minShifts} ${shiftWord(staff.mode.minShifts)}`
+        : `Те, у кого ${staff.mode.minShifts} ${shiftWord(staff.mode.minShifts)} и больше`);
     parts.push(block("По сотрудникам",
-                     (showAllStaff
-                       ? `Все, включая тех, у кого меньше ${staff.win.minShifts} ${shiftWord(staff.win.minShifts)}`
-                       : `Те, у кого ${staff.win.minShifts} ${shiftWord(staff.win.minShifts)} и больше`)
-                     + `. ${windowNote}. Клик — недели человека`,
-                     renderStaff(staff.list), staffTools));
+                     `${staffHead}. ${periodNote}. Клик — недели человека`,
+                     renderStaff(staff.list, allThin), staffTools));
 
     parts.push(block("Контуры рядом", "Одна шкала: где узкое место всего направления",
                      renderContours(payload.контуры)));

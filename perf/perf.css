@@ -507,3 +507,24 @@
    не растягивается на всю ширину, как вкладки контуров наверху. */
 .tabs--inline { width: auto; flex: 0 0 auto; margin: 0; }
 .tabs--inline .tab { padding: 7px 13px; font-size: 13px; }
+
+/* Выбор конкретной недели или месяца — рядом с переключателем единицы. */
+.perfSelect {
+  appearance: none;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  background: rgba(10, 18, 27, .85);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 8px 32px 8px 14px;
+  cursor: pointer;
+  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+    linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position: calc(100% - 16px) 54%, calc(100% - 11px) 54%;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+}
+.perfSelect:hover { border-color: var(--line-strong); }
+.perfSelect[hidden] { display: none; }
