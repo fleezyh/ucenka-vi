@@ -210,8 +210,12 @@ body[data-mode="people"] .shell {
 .plSeg__item em { font-style: normal; font-size: 12px; color: var(--muted); }
 .plSeg__item.is-on em { color: var(--text); opacity: .7; }
 
-.plSeg--cities { margin: -6px 0 16px; gap: 7px; }
+.plSeg--cities { margin: -6px 0 8px; gap: 7px; }
 .plSeg--cities .plSeg__item { font-size: 14px; padding: 8px 15px; }
+/* Отделы — вторая линейка, тоном ниже складов: срез внутри среза. */
+.plSeg--teams { margin: 0 0 16px; gap: 6px; }
+.plSeg--teams .plSeg__item { font-size: 13px; padding: 6px 12px; border-radius: 9px; }
+.plSeg--teams .plSeg__item.is-on { border-color: var(--green); background: rgba(39, 196, 107, .14); }
 
 .plMapSide { display: flex; flex-direction: column; gap: 6px; }
 .plMapHint { margin: 0 0 8px; color: var(--muted); font-size: 13.5px; line-height: 1.5; }
@@ -245,6 +249,30 @@ body[data-mode="people"] .shell {
 /* Полоска доли — фоном под строкой, а не отдельным элементом рядом. */
 .plMapRow i { position: absolute; left: 0; bottom: 0; height: 2px; width: var(--w, 0%); background: var(--blue); }
 
+/* ---- Декомпозиция человека -------------------------------------------------
+   Раскрытие под списком: смены и часы, объём по дням, зоны и виды действий. */
+.plCard {
+  margin-top: 10px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(77, 141, 247, .06);
+}
+.plCard__who { margin: 0 0 12px; font-size: 15px; font-weight: 600; line-height: 1.35; }
+.plCard__who span { display: block; margin-top: 3px; color: var(--muted); font-size: 12.5px; font-weight: 500; }
+.plCard__nums { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 14px; }
+.plCard__nums span { display: flex; flex-direction: column; gap: 2px; color: var(--muted); font-size: 11.5px; }
+.plCard__nums b { color: var(--text); font-size: 16px; font-weight: 600; }
+.plCard__cap { margin: 14px 0 7px; color: var(--muted); font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; }
+.plCard__cap:first-of-type { margin-top: 0; }
+.plRh { display: block; width: 100%; height: 150px; }
+.plRh__h { fill: #7e8899; font: 500 8px "VI Sans", system-ui, sans-serif; }
+
+.plBar { position: relative; display: flex; align-items: center; gap: 10px; padding: 7px 9px 8px; font-size: 12.5px; }
+.plBar__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
+.plBar b { font-weight: 600; }
+.plBar i { position: absolute; left: 0; bottom: 0; height: 2px; width: var(--w, 0%); background: var(--c, var(--blue)); border-radius: 2px; }
+
 @media (max-width: 1000px) {
   .plMapBody { grid-template-columns: 1fr; }
 }
@@ -260,3 +288,4 @@ body[data-mode="people"] .shell {
      считает скрипт — он знает, сколько в этом городе колонок. */
   .plMapBody svg { min-width: var(--map-min, 0); }
 }
+.plRh__d { fill: #6f7889; font: 500 8px "VI Sans", system-ui, sans-serif; }

@@ -52,16 +52,21 @@
   let payload = null;
   let month = "";
   let city = "ДМД";
+  let team = "";          // отдел или смена; пусто — все
   let picked = null;      // выбранная зона
   let hovered = null;     // человек под курсором в списке
   let pinned = null;      // человек, выбранный кликом: на телефоне наведения нет
   let mergedMap = new Map();  // зона -> узел, под которым она показана
+  let lastPlaced = new Map(); // последняя раскладка: панель рисуется по ней
 
   const stageOf = (zone) => (STAGES.find((stage) => stage.test.test(zone)) || STAGES[3]).key;
 
-  /** Один проход по всем следам: отдаёт маршруты «откуда → куда». */
-  function walk(only, fn) {
+  /** Один проход по следам: отдаёт маршруты «откуда → куда».
+   *  `only` — месяц (пусто: все), отдел берётся из выбранного фильтра, но при
+   *  разметке городов его надо отключать — там нужны все зоны сразу. */
+  function walk(only, fn, allTeams = false) {
     payload.группы.forEach((group) => {
+      if (!allTeams && team && group.имя !== team) return;
       group.люди.forEach((person) => {
         Object.entries(person.месяцы).forEach(([key, data]) => {
           if (only && key !== only) return;
@@ -71,7 +76,7 @@
               const route = parts.length > 1 ? parts[1] : "";
               if (!route.includes(" → ")) return;
               const [from, to] = route.split(" → ").map((value) => value.trim());
-              fn(from, to, item, person);
+              fn(from, to, item, person, group);
             });
           });
         });
@@ -96,7 +101,7 @@
       const found = flows.get(key) || { from, to, actions: 0 };
       found.actions += item.действий;
       flows.set(key, found);
-    });
+    }, true);
 
     zones.forEach((zone) => {
       const found = CITIES.find((item) => item.test.test(zone));
@@ -127,13 +132,28 @@
     zones.forEach((zone) => { if (!cityOf.has(zone)) cityOf.set(zone, "ДМД"); });
   }
 
-  /** Сколько действий у каждого города за выбранный месяц. */
-  function cityTotals() {
-    const totals = new Map();
-    walk(month, (from, to, item) => {
+  /** Куб «склад × отдел» за выбранный месяц: из него считаются обе линейки
+   *  кнопок. Склады считаются с учётом выбранного отдела, отделы — с учётом
+   *  выбранного склада, так что числа на кнопках всегда про то, что увидишь. */
+  function cube() {
+    const grid = new Map();
+    walk(month, (from, to, item, person, group) => {
       const key = cityOf.get(from) || cityOf.get(to);
       if (!key) return;
-      totals.set(key, (totals.get(key) || 0) + item.действий);
+      const id = `${key}|${group.имя}`;
+      grid.set(id, (grid.get(id) || 0) + item.действий);
+    }, true);
+    return grid;
+  }
+
+  function totalsBy(grid, axis) {
+    const totals = new Map();
+    grid.forEach((actions, id) => {
+      const [cityKey, teamKey] = id.split("|");
+      if (axis === "city" && team && teamKey !== team) return;
+      if (axis === "team" && city && cityKey !== city) return;
+      const key = axis === "city" ? cityKey : teamKey;
+      totals.set(key, (totals.get(key) || 0) + actions);
     });
     return totals;
   }
@@ -145,14 +165,14 @@
     const staff = new Map();   // зона -> Map(фио -> действий)
 
     walk(month, (from, to, item, person) => {
-      if (cityOf.get(from) !== city && cityOf.get(to) !== city) return;
+      if (city && cityOf.get(from) !== city && cityOf.get(to) !== city) return;
       const key = `${from}\u0000${to}`;
       const edge = edges.get(key) || { from, to, actions: 0, items: 0 };
       edge.actions += item.действий;
       edge.items += item.штук;
       edges.set(key, edge);
       [from, to].forEach((zone) => {
-        if (cityOf.get(zone) !== city) return;
+        if (city && cityOf.get(zone) !== city) return;
         zones.set(zone, (zones.get(zone) || 0) + item.действий);
         if (!staff.has(zone)) staff.set(zone, new Map());
         const people = staff.get(zone);
@@ -303,10 +323,11 @@
     return lines;
   }
 
-  function draw() {
+  function draw(animate = false) {
     const { nodes, edges } = collect();
     const { placed, merged, lanes, W, H } = layout(nodes);
     mergedMap = merged;
+    lastPlaced = placed;
     const at = (zone) => placed.get(merged.get(zone) || zone);
     const svg = el("plMapDraw");
     svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
@@ -329,13 +350,29 @@
       .lane { fill: #8f9cad; font: 600 15px "VI Sans", system-ui, sans-serif; letter-spacing: .1em; }
       .zn { font: 600 15px "VI Sans", system-ui, sans-serif; fill: #dfe7f2; }
       .zv { font: 600 14px "VI Sans", system-ui, sans-serif; fill: #8f9cad; }
-      .flow { fill: none; opacity: .3; }
-      .flow.on { opacity: .95; }
-      .flow.off { opacity: .06; }
-      .dot { cursor: pointer; }
-      .dot.off { opacity: .18; }
+      .flow { fill: none; opacity: .34; transition: opacity .25s ease; }
+      .flow.on { opacity: 1; filter: drop-shadow(0 0 6px currentColor); }
+      .flow.off { opacity: .05; }
+      .dot { cursor: pointer; transition: opacity .25s ease; }
+      .dot.off { opacity: .16; }
+      .dot circle { transition: r .3s cubic-bezier(.2,.8,.3,1), fill-opacity .25s ease; }
+      .dot:hover circle { fill-opacity: .62; }
+      .halo { animation: pulse 2.4s ease-out infinite; transform-box: fill-box; transform-origin: center; }
+      @keyframes pulse { 0% { opacity: .5; transform: scale(1); } 70%, 100% { opacity: 0; transform: scale(1.9); } }
+      .draw .flow { animation: dash .9s ease-out both; }
+      .draw .dot { animation: fade .5s ease-out both; }
+      @keyframes dash { from { stroke-dasharray: 1; stroke-dashoffset: 1; } to { stroke-dasharray: 1; stroke-dashoffset: 0; } }
+      @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+      @media (prefers-reduced-motion: reduce) {
+        .draw .flow, .draw .dot, .halo { animation: none; }
+      }
     `;
     svg.appendChild(style);
+    // Появление рисуем только при смене среза: при выборе зоны перерисовка
+    // идёт постоянно, и мигать на каждый клик было бы издевательством.
+    svg.classList.toggle("draw", Boolean(animate));
+
+    const defs = add("defs", {});
 
     lanes.forEach((stage, index) => {
       add("text", { x: COL_W * index + COL_W / 2, y: 30, class: "lane", "text-anchor": "middle" })
@@ -345,15 +382,27 @@
     // Потоки рисуем первыми, чтобы кружки зон лежали поверх.
     const maxFlow = Math.max(...edges.map((edge) => edge.actions), 1);
     const flows = add("g", {});
+    let flowId = 0;
     edges.forEach((edge) => {
       const a = at(edge.from);
       const b = at(edge.to);
       if (!a || !b || a === b || edge.actions < maxFlow * 0.012) return;
       const mid = (a.x + b.x) / 2;
+      // Поток перетекает из цвета зоны-источника в цвет зоны-приёмника: по
+      // одной линии видно, между какими этапами он идёт, даже когда их много.
+      const id = `fl${flowId += 1}`;
+      const gradient = add("linearGradient", {
+        id, gradientUnits: "userSpaceOnUse", x1: a.x, y1: a.y, x2: b.x, y2: b.y,
+      }, defs);
+      add("stop", { offset: "0%", "stop-color": STAGE_COLORS[a.stage] }, gradient);
+      add("stop", { offset: "100%", "stop-color": STAGE_COLORS[b.stage] }, gradient);
       const path = add("path", {
         d: `M${a.x},${a.y} C${mid},${a.y} ${mid},${b.y} ${b.x},${b.y}`,
-        stroke: STAGE_COLORS[a.stage],
+        stroke: `url(#${id})`,
+        color: STAGE_COLORS[b.stage],
         "stroke-width": Math.max(1.5, 18 * (edge.actions / maxFlow)),
+        "stroke-linecap": "round",
+        "pathLength": 1,
         class: "flow",
       }, flows);
       path.dataset.from = a.zone;
@@ -366,6 +415,10 @@
     placed.forEach((node) => {
       const group = add("g", { class: "dot" });
       group.dataset.zone = node.zone;
+      if (node.zone === picked) {
+        add("circle", { cx: node.x, cy: node.y, r: node.r + 6, fill: "none",
+                        stroke: STAGE_COLORS[node.stage], "stroke-width": 2, class: "halo" }, group);
+      }
       add("circle", { cx: node.x, cy: node.y, r: node.r, fill: STAGE_COLORS[node.stage],
                       "fill-opacity": node.zone === picked ? 0.9 : 0.34,
                       stroke: STAGE_COLORS[node.stage], "stroke-width": node.zone === picked ? 3 : 2 }, group);
@@ -388,16 +441,18 @@
         picked = picked === node.zone ? null : node.zone;
         pinned = null;
         draw();
+        writeHash();
       });
     });
 
     // Клик по пустому месту снимает выбор — иначе на телефоне из зоны не выйти.
-    svg.addEventListener("click", () => {
+    svg.onclick = () => {
       if (!picked && !pinned) return;
       picked = null;
       pinned = null;
       draw();
-    });
+      writeHash();
+    };
 
     highlight();
     renderSide(placed);
@@ -431,6 +486,8 @@
     });
   }
 
+  const renderSideFromMap = () => renderSide(lastPlaced);
+
   /** Панель справа: кто работает в выбранной зоне или общий расклад. */
   function renderSide(placed) {
     const box = el("plMapSide");
@@ -451,6 +508,8 @@
         + `<span class="plMapName">${who}</span><b>${count(actions)}</b>`
         + `<i style="--w:${(actions / total) * 100}%"></i></button>`).join("");
 
+    if (pinned) box.insertAdjacentHTML("beforeend", personCard(pinned.who));
+
     box.querySelectorAll(".plMapRow--person").forEach((row) => {
       const who = row.dataset.who;
       row.addEventListener("mouseenter", () => {
@@ -468,8 +527,171 @@
         hovered = null;
         renderSide(placed);
         highlight();
+        writeHash();
       });
     });
+  }
+
+  /* ---- Декомпозиция человека -------------------------------------------
+     Клик по строке в панели раскрывает того же человека вглубь: когда он
+     выходил и в какие часы, сколько делал в день, в каких зонах и каких
+     городах оставил след, из чего сложились его действия. Всё это уже лежит
+     в people.json — на странице этого просто не было видно. */
+
+  const personIndex = new Map();
+
+  function indexPeople() {
+    payload.группы.forEach((group) => {
+      group.люди.forEach((person) => personIndex.set(person.фио, { person, group }));
+    });
+  }
+
+  /** Месяцы человека, попавшие в выбранный период. */
+  const monthsOf = (person) => Object.entries(person.месяцы)
+    .filter(([key]) => !month || key === month)
+    .sort((a, b) => (a[0] < b[0] ? -1 : 1));
+
+  function personStats(who) {
+    const found = personIndex.get(who);
+    if (!found) return null;
+    const months = monthsOf(found.person);
+    const days = [];
+    const zones = new Map();
+    const kinds = new Map();
+    let actions = 0;
+    let shifts = 0;
+    let items = 0;
+
+    months.forEach(([, data]) => {
+      actions += data.всего || 0;
+      shifts += data.смен || 0;
+      (data.дни || []).forEach((day) => days.push(day));
+      (data.рельсы || []).forEach((rail) => {
+        items += rail.штук || 0;
+        rail.виды.forEach((item) => {
+          const label = `${rail.рельс} · ${String(item.вид).split(" · ")[0]}`;
+          kinds.set(label, (kinds.get(label) || 0) + item.действий);
+          const parts = String(item.вид).split(" · ");
+          if (parts.length < 2 || !parts[1].includes(" → ")) return;
+          parts[1].split(" → ").forEach((zone) => {
+            const name = zone.trim();
+            zones.set(name, (zones.get(name) || 0) + item.действий);
+          });
+        });
+      });
+    });
+
+    days.sort((a, b) => (a.день < b.день ? -1 : 1));
+    return { ...found, actions, shifts, items, days, zones, kinds };
+  }
+
+  /** Ритм смен: по дню — отрезок от первого до последнего часа работы.
+   *  Ночные смены, переработки и провалы видно одним взглядом, а высота
+   *  столбика снизу — сколько человек за этот день сделал. */
+  function rhythm(days) {
+    if (!days.length) return "";
+    const W = 320;
+    const H = 158;
+    const top = 18;
+    const hours = 88;      // поле часов
+    const bars = 34;       // столбики объёма под ним
+    const max = Math.max(...days.map((day) => day.всего), 1);
+    const y = (hour) => top + hours * (1 - (hour - 5) / 19);   // шкала 5:00–24:00
+
+    // Ось — календарь, а не только рабочие дни: иначе пропуски схлопываются и
+    // график выходов выглядит сплошным.
+    const found = new Map(days.map((day) => [day.день, day]));
+    const first = new Date(`${days[0].день}T00:00:00`);
+    const last = new Date(`${days[days.length - 1].день}T00:00:00`);
+    const axis = [];
+    for (let cursor = new Date(first); cursor <= last; cursor.setDate(cursor.getDate() + 1)) {
+      const key = cursor.toISOString().slice(0, 10);
+      axis.push({ key, date: new Date(cursor), day: found.get(key) });
+    }
+
+    const step = W / axis.length;
+    const width = Math.max(2.5, Math.min(9, step - 2.5));
+
+    const weekend = axis.map((item, index) => (item.date.getDay() % 6 ? "" :
+      `<rect x="${step * index}" y="${top - 8}" width="${step}" height="${H - top + 8}" fill="rgba(255,255,255,.03)"/>`)).join("");
+
+    // Подписи часов держим над линией у самого края: столбики начинаются
+    // правее, поэтому цифры ни на что не наезжают.
+    const grid = [8, 14, 20].map((hour) => `<line x1="22" x2="${W}" y1="${y(hour)}" y2="${y(hour)}"`
+      + ` stroke="rgba(255,255,255,.07)"/><text x="0" y="${y(hour) + 3}" class="plRh__h">${hour}:00</text>`).join("");
+
+    const shift = axis.map((item, index) => {
+      const day = item.day;
+      const x = step * index + step / 2;
+      // День без выхода — короткая риска у базовой линии: пустое место читается
+      // хуже, чем явная отметка «в этот день его не было».
+      if (!day || !day.часы) {
+        return `<line x1="${x}" x2="${x}" y1="${top + hours}" y2="${top + hours + 4}"`
+          + ` stroke="rgba(255,255,255,.16)" stroke-width="${Math.min(width, 5)}" stroke-linecap="round"/>`;
+      }
+      const [from, to] = day.часы;
+      const a = y(Math.max(5, Math.min(24, from)));
+      const b = y(Math.max(5, Math.min(24, to + 1)));
+      const heat = 0.4 + 0.6 * (day.всего / max);
+      return `<line x1="${x}" x2="${x}" y1="${Math.min(a, b)}" y2="${Math.max(a, b)}"`
+        + ` stroke="#4d8df7" stroke-opacity="${heat.toFixed(2)}" stroke-width="${width}"`
+        + ` stroke-linecap="round"><title>${day.день} · ${from}:00–${to + 1}:00 · ${count(day.всего)} действий</title></line>`;
+    }).join("");
+
+    const volume = axis.map((item, index) => {
+      if (!item.day) return "";
+      const x = step * index + step / 2;
+      const height = Math.max(2, bars * (item.day.всего / max));
+      return `<rect x="${x - width / 2}" y="${H - height}" width="${width}" height="${height}"`
+        + ` rx="2" fill="#27c46b" fill-opacity=".8"><title>${item.day.день} · ${count(item.day.всего)}</title></rect>`;
+    }).join("");
+
+    const marks = axis.map((item, index) => (item.date.getDate() % 5 ? "" :
+      `<text x="${step * index + step / 2}" y="${H - bars - 6}" class="plRh__d" text-anchor="middle">${item.date.getDate()}</text>`)).join("");
+
+    return `<svg class="plRh" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">`
+      + `${weekend}${grid}${shift}${marks}${volume}</svg>`;
+  }
+
+  function bars(map, limit, color) {
+    const list = [...map.entries()].sort((a, b) => b[1] - a[1]).slice(0, limit);
+    const max = Math.max(...list.map(([, value]) => value), 1);
+    return list.map(([name, value]) => `<div class="plBar">`
+      + `<span class="plBar__name">${name}</span><b>${count(value)}</b>`
+      + `<i style="--w:${(value / max) * 100}%;--c:${color}"></i></div>`).join("");
+  }
+
+  function personCard(who) {
+    const stats = personStats(who);
+    if (!stats) return "";
+    const perShift = stats.shifts ? Math.round(stats.actions / stats.shifts) : 0;
+    const cities = new Map();
+    stats.zones.forEach((value, zone) => {
+      const key = cityOf.get(zone) || "?";
+      cities.set(key, (cities.get(key) || 0) + value);
+    });
+    // Доля считается от суммы по зонам, а не от действий: у перемещения две
+    // зоны, откуда и куда, и по действиям сумма вышла бы за сто процентов.
+    const touched = [...cities.values()].reduce((sum, value) => sum + value, 0) || 1;
+    const spread = [...cities.entries()].sort((a, b) => b[1] - a[1])
+      .map(([key, value]) => `${key} ${Math.round((value / touched) * 100)}%`).join(" · ");
+
+    return `<div class="plCard">
+      <p class="plCard__who">${who}<span>${stats.person.должность} · ${stats.group.имя}`
+      + `${stats.person.принят ? ` · с ${stats.person.принят}` : ""}</span></p>
+      <div class="plCard__nums">
+        <span><b>${count(stats.actions)}</b>действий</span>
+        <span><b>${count(stats.shifts)}</b>смен</span>
+        <span><b>${count(perShift)}</b>за смену</span>
+        <span><b>${count(stats.items)}</b>штук</span>
+      </div>
+      <p class="plCard__cap">Когда выходил и сколько делал${spread ? ` · ${spread}` : ""}</p>
+      ${rhythm(stats.days)}
+      <p class="plCard__cap">Где работал</p>
+      ${bars(stats.zones, 6, "#a985ff")}
+      <p class="plCard__cap">Из чего сложились действия</p>
+      ${bars(stats.kinds, 5, "#4d8df7")}
+    </div>`;
   }
 
   /** В каких зонах человек оставил след за выбранный месяц. */
@@ -483,7 +705,7 @@
     return zones;
   }
 
-  function segment(box, items, current, pick) {
+  function segment(box, items, current, onPick) {
     box.replaceChildren();
     items.forEach((item) => {
       const button = document.createElement("button");
@@ -496,7 +718,7 @@
         note.textContent = item.note;
         button.appendChild(note);
       }
-      button.addEventListener("click", () => pick(item.key));
+      button.addEventListener("click", () => onPick(item.key));
       box.appendChild(button);
     });
   }
@@ -508,34 +730,87 @@
       month,
       (key) => {
         month = key;
-        picked = null;
-        renderMonths();
-        renderCities();
-        draw();
+        pick(null);
       },
     );
   }
 
-  function renderCities() {
-    const box = el("plMapCities");
-    if (!box) return;
-    const totals = cityTotals();
-    const items = CITY_ORDER.filter((key) => totals.get(key))
-      .map((key) => ({
+  /** Обе линейки и схема пересчитываются вместе: числа на кнопках должны
+   *  показывать ровно тот срез, который откроется по клику. */
+  function renderFilters() {
+    const grid = cube();
+    const cities = totalsBy(grid, "city");
+    const teams = totalsBy(grid, "team");
+    const total = [...cities.values()].reduce((sum, value) => sum + value, 0);
+
+    const cityItems = [{ key: "", label: "все склады", note: count(total) }].concat(
+      CITY_ORDER.filter((key) => cities.get(key)).map((key) => ({
         key,
         label: (CITIES.find((item) => item.key === key) || {}).name || key,
-        note: count(totals.get(key)),
-      }));
-    // Если в выбранном месяце города нет — уходим в самый крупный.
-    if (!items.some((item) => item.key === city) && items.length) {
-      city = [...totals.entries()].sort((a, b) => b[1] - a[1])[0][0];
+        note: count(cities.get(key)),
+      })),
+    );
+    // Склада может не быть в выбранном месяце или у выбранного отдела.
+    if (!cityItems.some((item) => item.key === city)) city = "";
+
+    const teamItems = [{ key: "", label: "все отделы", note: count(total) }].concat(
+      payload.группы.filter((group) => teams.get(group.имя)).map((group) => ({
+        key: group.имя,
+        label: group.имя,
+        note: count(teams.get(group.имя)),
+      })),
+    );
+    if (!teamItems.some((item) => item.key === team)) team = "";
+
+    segment(el("plMapCities"), cityItems, city, (key) => { city = key; pick(null); });
+    segment(el("plMapTeams"), teamItems, team, (key) => { team = key; pick(null); });
+  }
+
+  /** Смена среза: выбор зоны и человека сбрасываем — они были про прошлый. */
+  function pick(zone) {
+    picked = zone;
+    pinned = null;
+    hovered = null;
+    renderMonths();
+    renderFilters();
+    draw(true);
+    writeHash();
+  }
+
+  /* Срез живёт в адресе: так его можно кинуть ссылкой — «посмотри вот на эту
+     зону в Казани за август» — и открыть ровно то же самое. */
+  let hashLock = false;
+
+  function writeHash() {
+    if (hashLock) return;
+    const parts = [];
+    if (month) parts.push(`month=${month}`);
+    if (city) parts.push(`city=${city}`);
+    if (team) parts.push(`team=${team}`);
+    if (picked) parts.push(`zone=${encodeURIComponent(picked)}`);
+    if (pinned) parts.push(`who=${encodeURIComponent(pinned.who)}`);
+    const hash = parts.length ? `#${parts.join("&")}` : "";
+    if (hash !== location.hash) history.replaceState(null, "", `${location.pathname}${hash}`);
+  }
+
+  function readHash() {
+    const raw = location.hash.replace(/^#/, "");
+    if (!raw) return false;
+    const params = new URLSearchParams(raw);
+    if (params.has("month")) month = params.get("month");
+    if (params.has("city")) city = params.get("city");
+    if (params.has("team")) team = params.get("team");
+    hashLock = true;
+    pick(params.get("zone") || null);
+    hashLock = false;
+    const who = params.get("who");
+    if (who && picked) {
+      pinned = { who, zones: zonesOf(who) };
+      renderSideFromMap();
+      highlight();
     }
-    segment(box, items, city, (key) => {
-      city = key;
-      picked = null;
-      renderCities();
-      draw();
-    });
+    writeHash();
+    return true;
   }
 
   fetch(DATA_URL, { cache: "no-cache" })
@@ -544,10 +819,11 @@
       payload = data;
       month = data.месяцы[data.месяцы.length - 1] || "";
       classify();
+      indexPeople();
       host.hidden = false;
-      renderMonths();
-      renderCities();
-      draw();
+      // Сначала адрес: pick() сам переписывает хэш, и вызванный до чтения он
+      // затирал бы срез из ссылки.
+      if (!readHash()) pick(null);
     })
     .catch(() => { host.hidden = true; });
 })();
