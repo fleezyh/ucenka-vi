@@ -164,3 +164,56 @@ body[data-mode="people"] .shell {
 .plDay--off i { background: rgba(255,255,255,.05) !important; height: 3px !important; }
 .plDay--off span { opacity: .45; }
 .plDay--weekend span { color: var(--red); opacity: .8; }
+
+/* ---- Карта склада ----------------------------------------------------------
+   Зоны стоят колонками по этапам работы, линии между ними — перемещения
+   товара, толщина линии равна объёму. Люди появляются справа по клику на зону:
+   так видно не только «кто сколько сделал», но и где именно он работает. */
+.plMap {
+  margin-bottom: 22px;
+  padding: 20px 22px 22px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--panel);
+}
+.plMap[hidden] { display: none; }
+
+.plMapHead { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; flex-wrap: wrap; margin-bottom: 16px; }
+.plMapKicker { margin: 0 0 5px; color: var(--muted); font-size: 12px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; }
+.plMapHead h2 { margin: 0; font-size: 21px; font-weight: 600; letter-spacing: -0.01em; }
+
+.plMapBody { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 340px); gap: 20px; align-items: start; }
+.plMapBody svg { display: block; width: 100%; height: auto; }
+
+.plMapSide { display: flex; flex-direction: column; gap: 6px; }
+.plMapHint { margin: 0 0 8px; color: var(--muted); font-size: 13.5px; line-height: 1.5; }
+.plMapPicked { margin: 0 0 10px; font-size: 15px; font-weight: 600; line-height: 1.4; }
+.plMapPicked span { display: block; margin-top: 4px; color: var(--muted); font-size: 13px; font-weight: 500; }
+
+.plMapRow {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 13.5px;
+  text-align: left;
+  overflow: hidden;
+}
+.plMapRow--person { cursor: pointer; }
+.plMapRow--person:hover { border-color: var(--line-strong); background: rgba(255, 255, 255, 0.03); }
+.plMapDot { flex: none; width: 9px; height: 9px; border-radius: 50%; }
+.plMapName { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.plMapRow b { flex: none; font-weight: 600; }
+/* Полоска доли — фоном под строкой, а не отдельным элементом рядом. */
+.plMapRow i { position: absolute; left: 0; bottom: 0; height: 2px; width: var(--w, 0%); background: var(--blue); }
+
+@media (max-width: 1000px) {
+  .plMapBody { grid-template-columns: 1fr; }
+}

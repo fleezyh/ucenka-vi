@@ -14,6 +14,7 @@
   <link rel="stylesheet" href="../site-header.css?v=20260908-2">
   <script src="../reeded-bg.js?v=20260906-7" defer></script>
   <script src="people.js?v=20260908-1" defer></script>
+  <script src="map.js?v=20260908-1" defer></script>
   <script src="../nav.js?v=20260906-1" defer></script>
 </head>
 <body data-mode="people">
@@ -53,6 +54,22 @@
       <a class="peopleView" href="../perf/">Показатели</a>
       <a class="peopleView is-on" href="./" aria-current="page">Паноптикум</a>
     </nav>
+
+    <!-- Карта потока: зоны склада колонками по этапам, толщина линии — объём
+         перемещений, клик по зоне показывает, кто в ней работает. -->
+    <section class="plMap" id="plMap" hidden>
+      <div class="plMapHead">
+        <div>
+          <p class="plMapKicker">Карта склада</p>
+          <h2>Куда течёт товар и кто его двигает</h2>
+        </div>
+        <div class="plSeg" id="plMapMonths" role="group" aria-label="Месяц карты"></div>
+      </div>
+      <div class="plMapBody">
+        <svg id="plMapDraw" viewBox="0 0 1280 720" preserveAspectRatio="xMidYMid meet" aria-hidden="true"></svg>
+        <div class="plMapSide" id="plMapSide"></div>
+      </div>
+    </section>
 
     <section class="plPanel">
       <div class="plTools">
