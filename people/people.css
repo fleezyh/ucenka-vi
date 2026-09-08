@@ -183,7 +183,33 @@ body[data-mode="people"] .shell {
 .plMapHead h2 { margin: 0; font-size: 21px; font-weight: 600; letter-spacing: -0.01em; }
 
 .plMapBody { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 340px); gap: 20px; align-items: start; }
-.plMapBody svg { display: block; width: 100%; height: auto; }
+/* Ширину холст берёт от содержимого (max-width ставит скрипт): у маленького
+   склада колонок три, и растянутая на всю панель схема выглядит нелепо. */
+.plMapBody svg { display: block; width: 100%; height: auto; margin: 0 auto; }
+
+/* Города: переключатель складов над картой. Отдельная строка, а не в шапке —
+   это первый выбор, от него зависит вся картинка. */
+.plSeg__item {
+  appearance: none;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  padding: 7px 13px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.plSeg__item:hover { color: var(--text); border-color: var(--line-strong); }
+.plSeg__item.is-on { border-color: var(--blue); background: #16233a; color: var(--text); font-weight: 600; }
+.plSeg__item em { font-style: normal; font-size: 12px; color: var(--muted); }
+.plSeg__item.is-on em { color: var(--text); opacity: .7; }
+
+.plSeg--cities { margin: -6px 0 16px; gap: 7px; }
+.plSeg--cities .plSeg__item { font-size: 14px; padding: 8px 15px; }
 
 .plMapSide { display: flex; flex-direction: column; gap: 6px; }
 .plMapHint { margin: 0 0 8px; color: var(--muted); font-size: 13.5px; line-height: 1.5; }
