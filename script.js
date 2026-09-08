@@ -27,12 +27,6 @@
   const progress = $("progress");
   const progressValue = $("progressValue");
   const retry = $("retry");
-  const copyName = $("copyName");
-  const kgtBox = $("kgtBox");
-  const kgtTitle = $("kgtTitle");
-  const kgtHint = $("kgtHint");
-  const kgtMark = $("kgtMark");
-  const sizeBox = $("sizeBox");
 
   const MODES = {
     ucenka: {
@@ -74,11 +68,9 @@
   const utf8 = new TextDecoder("utf-8");
   const numberFormat = new Intl.NumberFormat("ru-RU");
 
-  // Короткое имя — то, что читают с трёх метров: КГТ, а не «4 · Крупногабаритные»
-  // во всю плитку. Полное остаётся подписью под ним.
   const CLUSTER_NAMES = {
-    "1": { short: "1 · Расходники", full: "расходные материалы" },
-    "4": { short: "КГТ", full: "крупногабаритный товар" },
+    "1": "1 · Расходные материалы",
+    "4": "4 · Крупногабаритные",
   };
 
   // Каталог сайта рубрики переименовал, а витрина 9901_Name осталась на старых
@@ -129,9 +121,6 @@
     details.style.display = "none";
     nameResults.style.display = "none";
     nameResultsBody.replaceChildren();
-    if (kgtBox) kgtBox.hidden = true;
-    if (copyName) copyName.hidden = true;
-    if (sizeBox) sizeBox.hidden = true;
     scan.value = "";
     nameSearch.value = "";
   }
@@ -151,7 +140,7 @@
   }
 
   function showReady() {
-    connection.className = "dbBar is-ready";
+    connection.className = "connection ready";
     connectionIcon.textContent = "✓";
     connectionTitle.textContent = "Поиск готов";
     connectionHint.textContent = "Скачивается только нужный кусочек базы — обычно меньше 30 КБ.";
@@ -161,7 +150,7 @@
   }
 
   function showConnectionError(error) {
-    connection.className = "dbBar is-error";
+    connection.className = "connection error";
     connectionIcon.textContent = "!";
     connectionTitle.textContent = "Не удалось загрузить справочник";
     connectionHint.textContent = error?.message || String(error);
@@ -176,6 +165,7 @@
     $("eyebrow").textContent = config.eyebrow;
     $("pageTitle").textContent = config.title;
     $("modeDescription").textContent = config.description;
+    $("modePill").textContent = config.title;
     tabs.forEach((tab) => tab.setAttribute("aria-selected", String(tab.dataset.mode === mode)));
     if (config.external) return;
 
@@ -387,131 +377,13 @@
   function recordFields(row) {
     const cluster = field(row, "Кластер");
     const rubric = field(row, "Рубрика");
-    const known = CLUSTER_NAMES[cluster];
     return {
       name: field(row, "Наименование"),
       rubric: RUBRIC_ALIASES[rubric] || rubric,
       price: money(field(row, "Себес")),
-      cluster: known ? known.short : cluster,
-      clusterFull: known ? known.full : "",
-      clusterCode: cluster,
-      isKgt: cluster === "4",
+      cluster: CLUSTER_NAMES[cluster] || cluster,
     };
   }
-
-  // ---- Отметка «не та категория» --------------------------------------------
-  //
-  // Список рубрик, попадающих под КГТ, продажи разрешили править — но чем именно
-  // мерить крупногабаритность, пока не решено. Поэтому здесь не вердикт, а сбор:
-  // человек с товаром в руках отмечает, что пикалка ошиблась, отметки копятся, и
-  // правило выводится из них, а не выдумывается заранее.
-  //
-  // Отправка идёт на воркер авторизации: он знает логин и складывает отметки.
-  // Пока домен на него не переехал, запрос не проходит — тогда отметка остаётся
-  // в очереди в браузере и уезжает при следующем удачном заходе.
-  const KGT_ENDPOINT = "/__kgt";
-  const KGT_QUEUE_KEY = "kgt-marks-queue";
-  let kgtCurrent = null;
-
-  function queueRead() {
-    try { return JSON.parse(localStorage.getItem(KGT_QUEUE_KEY) || "[]"); } catch { return []; }
-  }
-
-  function queueWrite(list) {
-    try { localStorage.setItem(KGT_QUEUE_KEY, JSON.stringify(list.slice(-500))); } catch { /* переполнено */ }
-  }
-
-  async function sendMark(mark) {
-    const response = await fetch(KGT_ENDPOINT, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(mark),
-    });
-    if (!response.ok) throw new Error(String(response.status));
-  }
-
-  async function flushQueue() {
-    const list = queueRead();
-    if (!list.length) return;
-    const left = [];
-    for (const mark of list) {
-      try { await sendMark(mark); } catch { left.push(mark); }
-    }
-    queueWrite(left);
-  }
-
-  function renderKgt(fields, code) {
-    if (!kgtBox) return;
-    kgtCurrent = { fields, code };
-    // В режиме уценки кластер не показывается вовсе — отмечать нечего.
-    if (mode !== "presort") { kgtBox.hidden = true; return; }
-    kgtBox.hidden = false;
-    kgtBox.className = "kgtBox";
-    kgtTitle.textContent = fields.isKgt ? "Пикалка отнесла товар к КГТ" : "Пикалка считает товар обычным";
-    kgtHint.textContent = fields.isKgt
-      ? "Если он спокойно влезает в паллету — отметьте, это попадёт в разбор."
-      : "Если он за пределы паллеты выходит — отметьте, это попадёт в разбор.";
-    kgtMark.textContent = fields.isKgt ? "НЕ КГТ" : "Это КГТ";
-    kgtMark.className = `kgtBtn${fields.isKgt ? " kgtBtn--no" : " kgtBtn--yes"}`;
-    kgtMark.disabled = false;
-  }
-
-  async function markKgt() {
-    if (!kgtCurrent || kgtMark.disabled) return;
-    const { fields, code } = kgtCurrent;
-    const mark = {
-      at: new Date().toISOString(),
-      barcode: code,
-      site: field(kgtCurrent.row || [], "Код сайта") || kgtCurrent.site || "",
-      name: fields.name,
-      rubric: fields.rubric,
-      cluster: fields.clusterCode,
-      says: fields.isKgt ? "КГТ" : "не КГТ",
-      human: fields.isKgt ? "не КГТ" : "КГТ",
-    };
-    kgtMark.disabled = true;
-    kgtBox.className = "kgtBox kgtBox--done";
-    kgtTitle.textContent = "Отметка записана";
-    kgtHint.textContent = `${mark.name || mark.barcode} · человек говорит «${mark.human}»`;
-    try {
-      await sendMark(mark);
-    } catch {
-      queueWrite(queueRead().concat(mark));
-      kgtHint.textContent += " · отправится, когда появится связь";
-    }
-    try { navigator.vibrate?.(20); } catch { /* нет поддержки */ }
-  }
-
-  async function copyToClipboard(text, button) {
-    const was = button.textContent;
-    try {
-      await navigator.clipboard.writeText(text);
-    } catch {
-      // Без https и разрешения буфер недоступен — выделяем текст, чтобы человек
-      // мог скопировать сам, а не остался ни с чем.
-      const area = document.createElement("textarea");
-      area.value = text;
-      document.body.appendChild(area);
-      area.select();
-      try { document.execCommand("copy"); } catch { /* и так не вышло */ }
-      area.remove();
-    }
-    button.textContent = "Скопировано";
-    button.classList.add("copyBtn--done");
-    setTimeout(() => { button.textContent = was; button.classList.remove("copyBtn--done"); }, 1400);
-  }
-
-  if (kgtMark) kgtMark.addEventListener("click", markKgt);
-  if (copyName) {
-    copyName.addEventListener("click", () => copyToClipboard(productName.textContent || "", copyName));
-  }
-  if (productCode) {
-    productCode.addEventListener("click", () => {
-      const text = (productCode.textContent || "").split("→").pop().trim();
-      if (text) copyToClipboard(text, productCode);
-    });
-  }
-  flushQueue();
 
   function showHit(row, scannedCode = "") {
     const fields = recordFields(row);
@@ -530,16 +402,12 @@
     secondary.style.display = "inline-block";
 
     productName.textContent = fields.name || "—";
-    if (copyName) copyName.hidden = !fields.name;
-    renderSize(row);
     // Сканировали внутреннюю этикетку — показываем обе: человек видит на руках
     // одну, а в базе товар лежит под другой.
     const viaLabel = scannedCode && scannedCode !== code;
     productCode.textContent = viaLabel ? `${scannedCode} → ${code}` : code;
     showSiteLink(field(row, "Код сайта"));
     answer.style.display = "flex";
-    renderKgt(fields, code);
-    if (kgtCurrent) { kgtCurrent.row = row; kgtCurrent.site = field(row, "Код сайта"); }
 
     detailsBody.replaceChildren();
     manifest.fields.forEach((header, index) => {
@@ -556,31 +424,6 @@
     details.style.display = "block";
     nameResults.style.display = "none";
     say(viaLabel ? `Найдено по внутренней этикетке: ${code}` : `Найдено: ${code}`, "ok");
-  }
-
-  /** Габариты единицы товара и вес — если они есть в справочнике. */
-  function renderSize(row) {
-    if (!sizeBox) return;
-    const mm = (name) => {
-      const value = Number(field(row, name));
-      return Number.isFinite(value) && value > 0 ? value : null;
-    };
-    const depth = mm("Длина");
-    const width = mm("Ширина");
-    const height = mm("Высота");
-    const weight = Number(String(field(row, "Вес")).replace(",", "."));
-    if (!depth && !width && !height && !(weight > 0)) { sizeBox.hidden = true; return; }
-
-    const parts = [];
-    if (depth && width && height) {
-      // В миллиметрах читать неудобно всё, что длиннее полуметра.
-      const big = Math.max(depth, width, height) >= 500;
-      const scale = (value) => (big ? (value / 10).toFixed(0) : String(value));
-      parts.push(`<span><b>${scale(depth)} × ${scale(width)} × ${scale(height)}</b> ${big ? "см" : "мм"}</span>`);
-    }
-    if (weight > 0) parts.push(`<span><b>${weight.toLocaleString("ru-RU")}</b> кг</span>`);
-    sizeBox.innerHTML = `<span class="sizeBox__label">Габариты</span>${parts.join("")}`;
-    sizeBox.hidden = false;
   }
 
   function showSiteLink(productCode) {
@@ -603,9 +446,6 @@
     productName.textContent = "Штрихкод не найден в справочнике";
     productCode.textContent = code;
     if (siteLink) siteLink.hidden = true;
-    if (copyName) copyName.hidden = true;
-    if (kgtBox) kgtBox.hidden = true;
-    if (sizeBox) sizeBox.hidden = true;
     answer.style.display = "flex";
     details.style.display = "none";
     nameResults.style.display = "none";
@@ -927,11 +767,7 @@
   document.addEventListener("click", (event) => {
     // Touch scrolling and navigation must not summon the scanner keyboard.
     if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
-    if (event.target.closest("a, button, select, textarea, input, summary, label")) return;
-    // Курсор возвращается в сканер только из пустого места. Раньше сюда попадал
-    // и клик по подписи «Наименование»: подпись не поле, поэтому проверка выше
-    // его пропускала, и человека выбрасывало из названия обратно в штрихкод.
-    if (document.activeElement === nameSearch) return;
+    if (event.target.closest("a, button, select, textarea, input, summary")) return;
     // В разделе паллет курсор должен оставаться в поле списка, а не убегать
     // обратно в сканер.
     if (MODES[mode].external) return;

@@ -9,11 +9,11 @@
   <link rel="icon" type="image/svg+xml" href="assets/brand/vi-mark.svg?v=20260903-3">
   <link rel="preload" href="assets/fonts/VI_Sans_Regular.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="assets/fonts/VI_Sans_ExtraBold.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="style.css?v=20260908-8">
+  <link rel="stylesheet" href="style.css?v=20260907-6">
   <link rel="stylesheet" href="reeded-bg.css?v=20260907-6">
   <link rel="stylesheet" href="site-header.css?v=20260908-2">
   <script src="reeded-bg.js?v=20260906-7" defer></script>
-  <script src="script.js?v=20260908-7" defer></script>
+  <script src="script.js?v=20260905-8" defer></script>
   <script src="pallets.js?v=20260905-7" defer></script>
   <script src="nav.js?v=20260906-1" defer></script>
 </head>
@@ -55,26 +55,46 @@
       </div>
     </section>
 
-    <!-- Справочник больше не занимает колонку: он служебный, и всё, что от него
-         нужно человеку, — жив он или нет. Строка статуса, дальше поле и ответ
-         во всю ширину. -->
-    <div class="dbBar" id="connection" aria-live="polite">
-      <span class="dbBar__icon" id="connectionIcon" aria-hidden="true">↻</span>
-      <span class="dbBar__text">
-        <strong id="connectionTitle">Загружаю справочник</strong>
-        <span id="connectionHint">Ничего выбирать не нужно.</span>
-      </span>
-      <span class="dbBar__stats">
-        <span><b id="rowCount">—</b> строк</span>
-        <span><b id="partCount">0</b> в памяти</span>
-        <span id="readyState">Подключение</span>
-      </span>
-      <button class="dbBar__retry" id="retry" type="button" hidden>Повторить</button>
-    </div>
-    <div class="progress" id="progress" hidden><i id="progressValue"></i></div>
-
     <section class="layout">
+      <aside class="card databaseCard" aria-live="polite">
+        <div class="cardHeading">
+          <div>
+            <p class="overline">Справочник</p>
+            <h2>База товаров</h2>
+          </div>
+          <span class="modePill" id="modePill">Уценка</span>
+        </div>
+
+        <div class="connection loading" id="connection">
+          <span class="connection__icon" id="connectionIcon" aria-hidden="true">↻</span>
+          <div>
+            <strong id="connectionTitle">Загружаю справочник</strong>
+            <p id="connectionHint">Ничего выбирать не нужно.</p>
+          </div>
+        </div>
+        <div class="progress" id="progress" hidden><i id="progressValue"></i></div>
+
+        <dl class="stats">
+          <div><dt>Строк</dt><dd id="rowCount">—</dd></div>
+          <div><dt>Кусочков в памяти</dt><dd id="partCount">0</dd></div>
+          <div><dt>Состояние</dt><dd id="readyState">Подключение</dd></div>
+        </dl>
+
+        <button class="retry" id="retry" type="button" hidden>Повторить подключение</button>
+        <p class="databaseNote">
+          Для каждого штрихкода скачивается только его кусочек справочника — обычно меньше 30 КБ. Он остаётся в кэше браузера.
+        </p>
+      </aside>
+
       <section class="card searchCard">
+        <div class="cardHeading searchHeading">
+          <div>
+            <p class="overline">Поиск</p>
+            <h2>Найти товар</h2>
+          </div>
+          <span class="readyPill"><i></i>Сканер</span>
+        </div>
+
         <label class="fieldLabel" for="scan">Штрихкод</label>
         <div class="searchRow">
           <input id="scan" type="text" inputmode="numeric" autocomplete="off" spellcheck="false"
@@ -82,15 +102,13 @@
           <button class="action" id="go" type="button" disabled>Найти</button>
         </div>
 
-        <details class="byName">
-          <summary>Не сканируется — искать по названию</summary>
-          <div class="searchRow searchRow--name">
-            <input id="nameSearch" type="text" autocomplete="off" spellcheck="false"
-                   placeholder="Введите минимум 3 символа…" disabled>
-            <button class="action action--secondary" id="goName" type="button" disabled>Найти</button>
-          </div>
-          <p class="nameNote">Поиск идёт по словарю: скачивается только нужный кусочек.</p>
-        </details>
+        <label class="fieldLabel nameLabel" for="nameSearch">Наименование</label>
+        <div class="searchRow searchRow--name">
+          <input id="nameSearch" type="text" autocomplete="off" spellcheck="false"
+                 placeholder="Введите минимум 3 символа…" disabled>
+          <button class="action action--secondary" id="goName" type="button" disabled>Найти</button>
+        </div>
+        <p class="nameNote">Поиск по названию идёт по словарю: скачивается только нужный кусочек.</p>
 
         <p class="message" id="message">Подключаю справочник…</p>
 
@@ -101,27 +119,12 @@
           </div>
           <div class="answer__info">
             <span class="answer__label">Наименование</span>
-            <div class="answer__name">
-              <h3 id="productName">—</h3>
-              <button class="copyBtn" id="copyName" type="button" title="Скопировать наименование"
-                      aria-label="Скопировать наименование" hidden>Копировать</button>
-            </div>
+            <h3 id="productName">—</h3>
             <span class="secondary" id="secondary">—</span>
             <p class="code" id="productCode"></p>
-            <div class="sizeBox" id="sizeBox" hidden></div>
             <a class="siteLink" id="siteLink" href="#" target="_blank" rel="noopener" hidden>Открыть на сайте</a>
           </div>
         </article>
-
-        <!-- Отметка о неверной категории. Порога по габаритам пока нет намеренно:
-             сначала копим, что говорят люди, потом сводим с ВГХ и выводим правило. -->
-        <div class="kgtBox" id="kgtBox" hidden>
-          <div class="kgtBox__text">
-            <strong id="kgtTitle">Категория определена неверно?</strong>
-            <span id="kgtHint">Нажмите, если пикалка отнесла товар не туда — это попадёт в разбор.</span>
-          </div>
-          <button class="kgtBtn" id="kgtMark" type="button"></button>
-        </div>
 
         <div class="results" id="nameResults">
           <table>
