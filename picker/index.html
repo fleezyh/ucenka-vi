@@ -9,11 +9,11 @@
   <link rel="icon" type="image/svg+xml" href="assets/brand/vi-mark.svg?v=20260903-3">
   <link rel="preload" href="assets/fonts/VI_Sans_Regular.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="assets/fonts/VI_Sans_ExtraBold.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="style.css?v=20260907-6">
+  <link rel="stylesheet" href="style.css?v=20260908-3">
   <link rel="stylesheet" href="reeded-bg.css?v=20260907-6">
   <link rel="stylesheet" href="site-header.css?v=20260908-2">
   <script src="reeded-bg.js?v=20260906-7" defer></script>
-  <script src="script.js?v=20260905-8" defer></script>
+  <script src="script.js?v=20260908-3" defer></script>
   <script src="pallets.js?v=20260905-7" defer></script>
   <script src="nav.js?v=20260906-1" defer></script>
 </head>
@@ -119,12 +119,26 @@
           </div>
           <div class="answer__info">
             <span class="answer__label">Наименование</span>
-            <h3 id="productName">—</h3>
+            <div class="answer__name">
+              <h3 id="productName">—</h3>
+              <button class="copyBtn" id="copyName" type="button" title="Скопировать наименование"
+                      aria-label="Скопировать наименование" hidden>Копировать</button>
+            </div>
             <span class="secondary" id="secondary">—</span>
             <p class="code" id="productCode"></p>
             <a class="siteLink" id="siteLink" href="#" target="_blank" rel="noopener" hidden>Открыть на сайте</a>
           </div>
         </article>
+
+        <!-- Отметка о неверной категории. Порога по габаритам пока нет намеренно:
+             сначала копим, что говорят люди, потом сводим с ВГХ и выводим правило. -->
+        <div class="kgtBox" id="kgtBox" hidden>
+          <div class="kgtBox__text">
+            <strong id="kgtTitle">Категория определена неверно?</strong>
+            <span id="kgtHint">Нажмите, если пикалка отнесла товар не туда — это попадёт в разбор.</span>
+          </div>
+          <button class="kgtBtn" id="kgtMark" type="button"></button>
+        </div>
 
         <div class="results" id="nameResults">
           <table>

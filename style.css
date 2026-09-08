@@ -226,47 +226,17 @@ h1 {
   align-items: stretch;
 }
 
+/* Панель как на остальных разделах: рамка, ровный фон, радиус 16. Раньше здесь
+   был радиус 22 и бегущий зелёный перелив по краю — из-за него Пикалка выглядела
+   из другого приложения, чем антигенерация и производительность. */
 .card {
   position: relative;
   border: 1px solid var(--line);
-  border-radius: 22px;
-  background: rgba(16, 24, 34, 0.95);
-  
-}
-
-/* Медленный перелив по краю карточки — только подсветка, содержимое не трогает. */
-.card::before {
-  content: "";
-  position: absolute;
-  inset: -1px;
-  border-radius: inherit;
-  padding: 1px;
-  background: linear-gradient(
-    115deg,
-    rgba(0, 200, 83, 0) 18%,
-    rgba(0, 200, 83, 0.55) 34%,
-    rgba(120, 220, 255, 0.35) 46%,
-    rgba(0, 200, 83, 0) 62%
-  );
-  background-size: 280% 100%;
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  mask-composite: exclude;
-  opacity: 0.75;
-  pointer-events: none;
-  animation: cardSheen 9s linear infinite;
-}
-
-.searchCard::before { animation-delay: -4.5s; }
-
-@keyframes cardSheen {
-  from { background-position: 140% 0; }
-  to { background-position: -140% 0; }
+  border-radius: 16px;
+  background: var(--panel);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .card::before { animation: none; opacity: 0.35; }
   body::before {
     background-image:
       radial-gradient(circle at 24% 28%, rgba(255,91,168,.16), transparent 38%),
@@ -549,7 +519,7 @@ body[data-mode="presort"] .progress i { background: var(--blue); }
 #scan { font-family: var(--mono); font-size: 25px; letter-spacing: 0.06em; }
 #nameSearch { font-size: 18px; }
 .searchRow input::placeholder { color: #667487; font-family: var(--ui); letter-spacing: 0; }
-.searchRow input:focus { border-color: var(--green); box-shadow: 0 0 0 4px rgba(39, 196, 107, 0.13); }
+.searchRow input:focus { border-color: var(--blue); box-shadow: 0 0 0 4px rgba(77, 141, 247, 0.16); }
 body[data-mode="presort"] .searchRow input:focus { border-color: var(--blue); box-shadow: 0 0 0 4px rgba(77, 141, 247, 0.14); }
 .searchRow input:disabled { opacity: 0.5; }
 
@@ -559,12 +529,10 @@ body[data-mode="presort"] .searchRow input:focus { border-color: var(--blue); bo
   padding: 0 18px;
   border-radius: 13px;
   color: #fff;
-  background: var(--green);
+  background: var(--blue);
   font-weight: 600;
   cursor: pointer;
 }
-
-body[data-mode="presort"] .action { background: var(--blue); }
 .action--secondary { color: var(--text); background: #2a384a; }
 body[data-mode="presort"] .action--secondary { background: #2a384a; }
 .action:disabled { opacity: 0.38; cursor: wait; }
@@ -575,8 +543,7 @@ body[data-mode="presort"] .action--secondary { background: #2a384a; }
   color: var(--muted);
   font-size: 14px;
 }
-.message.ok { color: var(--green); }
-body[data-mode="presort"] .message.ok { color: #8db9ff; }
+.message.ok { color: #8db9ff; }
 .message.warn { color: var(--amber); }
 .message.error { color: var(--red); }
 
@@ -617,6 +584,65 @@ body[data-mode="presort"] .message.ok { color: #8db9ff; }
 .siteLink::after { content: "↗"; font-size: 11px; opacity: .75; }
 .siteLink:hover { border-color: rgba(46, 178, 106, 0.7); background: rgba(46, 178, 106, 0.2); color: #d6ffe7; }
 .siteLink[hidden] { display: none; }
+
+/* Наименование копируется кнопкой: на складе руки заняты сканером, выделять
+   мышью нечем, а с сенсорного экрана длинное название не выделяется вовсе. */
+.answer__name { display: flex; align-items: flex-start; gap: 10px; }
+.answer__name h3 { flex: 1 1 auto; min-width: 0; }
+.copyBtn {
+  flex: none;
+  margin-top: 6px;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 9px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.copyBtn:hover { border-color: var(--blue); color: var(--text); }
+.copyBtn--done { border-color: var(--green); color: #a8f0c6; }
+.copyBtn[hidden] { display: none; }
+.code { cursor: copy; }
+
+/* Отметка о неверной категории. Кнопка одна и всегда предлагает противоположное
+   тому, что решила Пикалка, — человек с товаром в руках либо соглашается
+   молча, либо одним нажатием возражает. */
+.kgtBox {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.025);
+}
+.kgtBox[hidden] { display: none; }
+.kgtBox__text { min-width: 0; }
+.kgtBox__text strong { display: block; font-size: 15px; }
+.kgtBox__text span { display: block; margin-top: 4px; color: var(--muted); font-size: 13px; line-height: 1.45; }
+.kgtBox--done { border-color: rgba(39, 196, 107, 0.4); background: rgba(39, 196, 107, 0.07); }
+.kgtBtn {
+  flex: none;
+  margin-left: auto;
+  min-height: 44px;
+  min-width: 132px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: 13px;
+  color: #fff;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.kgtBtn--no { background: var(--red); }
+.kgtBtn--yes { background: var(--blue); }
+.kgtBtn:disabled { opacity: 0.4; cursor: default; }
 
 .results,
 .details {
