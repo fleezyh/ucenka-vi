@@ -32,6 +32,7 @@
   const kgtTitle = $("kgtTitle");
   const kgtHint = $("kgtHint");
   const kgtMark = $("kgtMark");
+  const sizeBox = $("sizeBox");
 
   const MODES = {
     ucenka: {
@@ -130,6 +131,7 @@
     nameResultsBody.replaceChildren();
     if (kgtBox) kgtBox.hidden = true;
     if (copyName) copyName.hidden = true;
+    if (sizeBox) sizeBox.hidden = true;
     scan.value = "";
     nameSearch.value = "";
   }
@@ -149,7 +151,7 @@
   }
 
   function showReady() {
-    connection.className = "connection ready";
+    connection.className = "dbBar is-ready";
     connectionIcon.textContent = "✓";
     connectionTitle.textContent = "Поиск готов";
     connectionHint.textContent = "Скачивается только нужный кусочек базы — обычно меньше 30 КБ.";
@@ -159,7 +161,7 @@
   }
 
   function showConnectionError(error) {
-    connection.className = "connection error";
+    connection.className = "dbBar is-error";
     connectionIcon.textContent = "!";
     connectionTitle.textContent = "Не удалось загрузить справочник";
     connectionHint.textContent = error?.message || String(error);
@@ -174,7 +176,6 @@
     $("eyebrow").textContent = config.eyebrow;
     $("pageTitle").textContent = config.title;
     $("modeDescription").textContent = config.description;
-    $("modePill").textContent = config.title;
     tabs.forEach((tab) => tab.setAttribute("aria-selected", String(tab.dataset.mode === mode)));
     if (config.external) return;
 
@@ -530,6 +531,7 @@
 
     productName.textContent = fields.name || "—";
     if (copyName) copyName.hidden = !fields.name;
+    renderSize(row);
     // Сканировали внутреннюю этикетку — показываем обе: человек видит на руках
     // одну, а в базе товар лежит под другой.
     const viaLabel = scannedCode && scannedCode !== code;
@@ -556,6 +558,31 @@
     say(viaLabel ? `Найдено по внутренней этикетке: ${code}` : `Найдено: ${code}`, "ok");
   }
 
+  /** Габариты единицы товара и вес — если они есть в справочнике. */
+  function renderSize(row) {
+    if (!sizeBox) return;
+    const mm = (name) => {
+      const value = Number(field(row, name));
+      return Number.isFinite(value) && value > 0 ? value : null;
+    };
+    const depth = mm("Длина");
+    const width = mm("Ширина");
+    const height = mm("Высота");
+    const weight = Number(String(field(row, "Вес")).replace(",", "."));
+    if (!depth && !width && !height && !(weight > 0)) { sizeBox.hidden = true; return; }
+
+    const parts = [];
+    if (depth && width && height) {
+      // В миллиметрах читать неудобно всё, что длиннее полуметра.
+      const big = Math.max(depth, width, height) >= 500;
+      const scale = (value) => (big ? (value / 10).toFixed(0) : String(value));
+      parts.push(`<span><b>${scale(depth)} × ${scale(width)} × ${scale(height)}</b> ${big ? "см" : "мм"}</span>`);
+    }
+    if (weight > 0) parts.push(`<span><b>${weight.toLocaleString("ru-RU")}</b> кг</span>`);
+    sizeBox.innerHTML = `<span class="sizeBox__label">Габариты</span>${parts.join("")}`;
+    sizeBox.hidden = false;
+  }
+
   function showSiteLink(productCode) {
     if (!siteLink) return;
     const code = (productCode || "").trim();
@@ -578,6 +605,7 @@
     if (siteLink) siteLink.hidden = true;
     if (copyName) copyName.hidden = true;
     if (kgtBox) kgtBox.hidden = true;
+    if (sizeBox) sizeBox.hidden = true;
     answer.style.display = "flex";
     details.style.display = "none";
     nameResults.style.display = "none";

@@ -212,12 +212,7 @@ h1 {
 
 .tab:disabled { opacity: 0.45; cursor: wait; }
 
-.layout {
-  display: grid;
-  grid-template-columns: minmax(250px, 0.58fr) minmax(0, 1.75fr);
-  gap: 18px;
-  align-items: start;
-}
+.layout { display: block; }
 
 /* Панель как на остальных разделах: рамка, ровный фон, радиус 16. Раньше здесь
    был радиус 22 и бегущий зелёный перелив по краю — из-за него Пикалка выглядела
@@ -913,4 +908,84 @@ body[data-mode="pallets"] .readyPill i { background: var(--amber); }
   .retry:active, .dashboardLink:active, .answer:active, .results tbody tr:active {
     transform: none;
   }
+}
+
+
+/* ---- Строка справочника ---------------------------------------------------
+   Раньше это была колонка в треть экрана с тремя служебными цифрами. Человеку
+   от неё нужно одно: работает или нет. Всё остальное — мелким справа. */
+.dbBar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 11px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+}
+.dbBar__icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 16px;
+  font-weight: 600;
+}
+.dbBar.loading .dbBar__icon { animation: spin 1s linear infinite; }
+.dbBar.is-ready { border-color: rgba(77, 141, 247, 0.4); }
+.dbBar.is-ready .dbBar__icon { color: var(--blue); border-color: rgba(77, 141, 247, 0.5); }
+.dbBar.is-error { border-color: rgba(240, 93, 114, 0.4); }
+.dbBar.is-error .dbBar__icon { color: var(--red); }
+.dbBar__text { min-width: 0; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.dbBar__text strong { font-size: 15px; font-weight: 600; }
+.dbBar__text span { color: var(--muted); font-size: 13.5px; }
+.dbBar__stats { margin-left: auto; display: flex; gap: 18px; color: var(--muted); font-size: 13px; white-space: nowrap; }
+.dbBar__stats b { color: var(--text); font-weight: 600; }
+.dbBar__retry {
+  flex: none;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 9px;
+  color: #fff;
+  background: var(--red);
+  font-weight: 600;
+  cursor: pointer;
+}
+.dbBar__retry[hidden] { display: none; }
+
+/* Поиск по названию — вторичный сценарий: раскрывается, когда штрихкод не бьётся. */
+.byName { margin-top: 14px; }
+.byName summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 38px;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+.byName summary::-webkit-details-marker { display: none; }
+.byName summary::before { content: "+"; font-size: 16px; }
+.byName[open] summary::before { content: "−"; }
+.byName summary:hover { color: var(--text); }
+.byName .searchRow { margin-top: 10px; }
+
+/* Габариты единицы товара — рядом с кодом, чтобы человек видел, чем система
+   меряет товар, когда спорит с его категорией. */
+.sizeBox { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-top: 11px; }
+.sizeBox[hidden] { display: none; }
+.sizeBox__label { color: var(--muted); font-size: 12px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; }
+.sizeBox span { color: var(--muted); font-size: 15px; }
+.sizeBox b { color: var(--text); font-weight: 600; }
+
+@media (max-width: 720px) {
+  .dbBar { flex-wrap: wrap; }
+  .dbBar__stats { margin-left: 0; width: 100%; justify-content: space-between; gap: 10px; }
 }
