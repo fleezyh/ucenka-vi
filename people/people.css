@@ -289,3 +289,24 @@ body[data-mode="people"] .shell {
   .plMapBody svg { min-width: var(--map-min, 0); }
 }
 .plRh__d { fill: #6f7889; font: 500 8px "VI Sans", system-ui, sans-serif; }
+.plRh--m { height: 84px; margin-top: 2px; }
+.plKey { color: var(--text); }
+.plKey--b { color: #4d8df7; }
+.plKey--y { color: #f5ad32; }
+
+/* Поиск человека над панелью: декомпозиция открывается по любому сотруднику,
+   не только по тем, кто попал в выбранную зону. */
+.plMapAside { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.plFind {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: rgba(8, 13, 20, .6);
+  color: var(--text);
+  font: inherit;
+  font-size: 13.5px;
+}
+.plFind::placeholder { color: var(--muted); }
+.plFind:focus { outline: none; border-color: var(--blue); background: #101a29; }
+.plMapName em { display: block; font-style: normal; font-size: 11.5px; color: var(--muted); }

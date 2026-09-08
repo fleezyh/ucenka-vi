@@ -53,6 +53,7 @@
   let month = "";
   let city = "ДМД";
   let team = "";          // отдел или смена; пусто — все
+  let query = "";         // поиск человека по фамилии
   let picked = null;      // выбранная зона
   let hovered = null;     // человек под курсором в списке
   let pinned = null;      // человек, выбранный кликом: на телефоне наведения нет
@@ -488,10 +489,40 @@
 
   const renderSideFromMap = () => renderSide(lastPlaced);
 
-  /** Панель справа: кто работает в выбранной зоне или общий расклад. */
+  /** Панель справа: поиск человека, люди выбранной зоны или общий расклад. */
   function renderSide(placed) {
     const box = el("plMapSide");
+
+    // Поиск идёт по всем людям направления, а не только по выбранному складу:
+    // человека ищут по фамилии, а не по тому, где он сегодня работал.
+    if (query.length >= 2) {
+      const needle = query.toLowerCase();
+      const found = [...personIndex.entries()]
+        .filter(([who]) => who.toLowerCase().includes(needle))
+        .map(([who, item]) => {
+          const total = monthsOf(item.person).reduce((sum, [, data]) => sum + (data.всего || 0), 0);
+          return { who, item, total };
+        })
+        .sort((a, b) => b.total - a.total)
+        .slice(0, 12);
+
+      box.innerHTML = found.length
+        ? found.map(({ who, item, total }) => `<button class="plMapRow plMapRow--person`
+          + `${pinned && pinned.who === who ? " is-on" : ""}" data-who="${who}">`
+          + `<span class="plMapName">${who}<em>${item.group.имя}</em></span>`
+          + `<b>${total ? count(total) : "—"}</b></button>`).join("")
+        : '<p class="plMapHint">Никого не нашлось.</p>';
+      if (pinned) box.insertAdjacentHTML("beforeend", personCard(pinned.who));
+      bindPeople(box, placed);
+      return;
+    }
+
     if (!picked) {
+      if (pinned) {
+        box.innerHTML = `<p class="plMapHint">Подсвечено, где ходит выбранный человек. `
+          + `Клик по пустому месту схемы — снять.</p>${personCard(pinned.who)}`;
+        return;
+      }
       const all = [...placed.values()].sort((a, b) => b.actions - a.actions).slice(0, 8);
       box.innerHTML = '<p class="plMapHint">Клик по зоне — кто в ней работает. '
         + 'Клик по человеку — где он ходит.</p>'
@@ -509,7 +540,10 @@
         + `<i style="--w:${(actions / total) * 100}%"></i></button>`).join("");
 
     if (pinned) box.insertAdjacentHTML("beforeend", personCard(pinned.who));
+    bindPeople(box, placed);
+  }
 
+  function bindPeople(box, placed) {
     box.querySelectorAll(".plMapRow--person").forEach((row) => {
       const who = row.dataset.who;
       row.addEventListener("mouseenter", () => {
@@ -661,6 +695,47 @@
       + `<i style="--w:${(value / max) * 100}%;--c:${color}"></i></div>`).join("");
   }
 
+  /** Месяц к месяцу: столбик — действия, точка — сколько за смену.
+   *  Объём может вырасти просто потому, что человек выходил чаще, — поэтому
+   *  рядом с ним всегда идёт выработка за смену. */
+  function months(person) {
+    const list = Object.entries(person.месяцы).sort((a, b) => (a[0] < b[0] ? -1 : 1));
+    if (list.length < 2) return "";
+    const max = Math.max(...list.map(([, data]) => data.всего || 0), 1);
+    const maxRate = Math.max(...list.map(([, data]) => data.за_смену || 0), 1);
+    const W = 320;
+    const H = 84;
+    const step = W / list.length;
+
+    const bars = list.map(([key, data], index) => {
+      const height = Math.max(2, 52 * ((data.всего || 0) / max));
+      const x = step * index + step / 2;
+      const on = key === month;
+      return `<rect x="${x - Math.min(26, step / 2 - 6)}" y="${62 - height}"`
+        + ` width="${Math.min(52, step - 12)}" height="${height}" rx="3"`
+        + ` fill="${on ? "#4d8df7" : "#4d8df7"}" fill-opacity="${on ? 0.95 : 0.3}">`
+        + `<title>${key} · ${count(data.всего)} действий · ${count(data.смен)} смен</title></rect>`
+        + `<text x="${x}" y="${H - 4}" class="plRh__d" text-anchor="middle">${key.slice(5)}</text>`;
+    }).join("");
+
+    const dots = list.map(([, data], index) => {
+      const x = step * index + step / 2;
+      const y = 62 - 52 * ((data.за_смену || 0) / maxRate);
+      return `<circle cx="${x}" cy="${y}" r="3" fill="#f5ad32"/>`;
+    }).join("");
+
+    const line = list.map(([, data], index) => {
+      const x = step * index + step / 2;
+      const y = 62 - 52 * ((data.за_смену || 0) / maxRate);
+      return `${index ? "L" : "M"}${x},${y}`;
+    }).join(" ");
+
+    return `<p class="plCard__cap">Месяц к месяцу · <span class="plKey plKey--b">объём</span>`
+      + ` и <span class="plKey plKey--y">за смену</span></p>`
+      + `<svg class="plRh plRh--m" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">`
+      + `${bars}<path d="${line}" fill="none" stroke="#f5ad32" stroke-opacity=".55" stroke-width="1.5"/>${dots}</svg>`;
+  }
+
   function personCard(who) {
     const stats = personStats(who);
     if (!stats) return "";
@@ -687,6 +762,7 @@
       </div>
       <p class="plCard__cap">Когда выходил и сколько делал${spread ? ` · ${spread}` : ""}</p>
       ${rhythm(stats.days)}
+      ${months(stats.person)}
       <p class="plCard__cap">Где работал</p>
       ${bars(stats.zones, 6, "#a985ff")}
       <p class="plCard__cap">Из чего сложились действия</p>
@@ -820,6 +896,14 @@
       month = data.месяцы[data.месяцы.length - 1] || "";
       classify();
       indexPeople();
+      const find = el("plMapFind");
+      if (find) {
+        find.addEventListener("input", () => {
+          query = find.value.trim();
+          renderSideFromMap();
+          highlight();
+        });
+      }
       host.hidden = false;
       // Сначала адрес: pick() сам переписывает хэш, и вызванный до чтения он
       // затирал бы срез из ссылки.
