@@ -25,9 +25,11 @@ a{text-decoration:none;color:inherit}
 .homeSwitch button[aria-selected="true"]{color:#fff}
 .homeSwitch button:active{transform:scale(.97)}
 .srOnly{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-.homeAssistantTrigger{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px;width:min(610px,100%);margin:-10px auto 20px;padding:10px 11px;border-color:rgba(255,255,255,.25);border-radius:999px;color:var(--text);background:linear-gradient(120deg,rgba(183,187,190,.18),rgba(65,60,68,.12));box-shadow:inset 0 1px 0 rgba(255,255,255,.18),inset 0 -1px 0 rgba(0,0,0,.22),0 14px 38px rgba(0,0,0,.16);backdrop-filter:blur(26px) saturate(1.25);-webkit-backdrop-filter:blur(26px) saturate(1.25);text-align:left;cursor:pointer;transition:border-color .2s ease,background .2s ease,transform .16s ease}
-.homeAssistantTrigger:hover{border-color:rgba(255,255,255,.48);background:linear-gradient(120deg,rgba(207,211,214,.23),rgba(78,73,82,.16))}
-.homeAssistantTrigger:active{transform:scale(.99)}
+.homeAssistantTrigger{--mx:50%;--my:50%;--lift:0px;--rx:0deg;--ry:0deg;isolation:isolate;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px;width:min(610px,100%);margin:-10px auto 20px;padding:10px 11px;border-color:rgba(255,255,255,.25);border-radius:999px;overflow:hidden;color:var(--text);background:linear-gradient(120deg,rgba(183,187,190,.18),rgba(65,60,68,.12));box-shadow:inset 0 1px 0 rgba(255,255,255,.18),inset 0 -1px 0 rgba(0,0,0,.22),0 14px 38px rgba(0,0,0,.16);backdrop-filter:blur(26px) saturate(1.25);-webkit-backdrop-filter:blur(26px) saturate(1.25);text-align:left;cursor:pointer;transform:perspective(900px) translate3d(0,var(--lift),0) rotateX(var(--rx)) rotateY(var(--ry));transform-style:preserve-3d;transition:border-color .35s ease,background .35s ease,box-shadow .45s cubic-bezier(.16,1,.3,1),transform .18s ease-out}
+.homeAssistantTrigger::before{content:"";position:absolute;z-index:-1;inset:-1px;border-radius:inherit;pointer-events:none;background:radial-gradient(190px circle at var(--mx) var(--my),rgba(255,255,255,.3),rgba(255,255,255,.08) 34%,transparent 70%);opacity:.28;transition:opacity .35s ease}
+.homeAssistantTrigger:hover{--lift:-5px;border-color:rgba(255,255,255,.5);background:linear-gradient(120deg,rgba(207,211,214,.23),rgba(78,73,82,.16));box-shadow:inset 0 1px 0 rgba(255,255,255,.26),inset 0 -1px 0 rgba(0,0,0,.2),0 23px 56px rgba(0,0,0,.25)}
+.homeAssistantTrigger:hover::before{opacity:1}
+.homeAssistantTrigger:active{--lift:-1px;transform:perspective(900px) translate3d(0,var(--lift),0) rotateX(var(--rx)) rotateY(var(--ry)) scale(.985)}
 .homeAssistantTrigger__mark{display:grid;place-items:center;width:38px;height:38px;border:1px solid rgba(255,255,255,.3);border-radius:50%;color:#effff6;background:rgba(36,209,119,.34);box-shadow:inset 0 1px 1px rgba(255,255,255,.28);font-size:16px;font-weight:800}
 .homeAssistantTrigger__copy{display:grid;gap:2px;min-width:0}
 .homeAssistantTrigger__copy strong{font-size:14px;line-height:1.2}
@@ -35,10 +37,14 @@ a{text-decoration:none;color:inherit}
 .homeAssistantTrigger__hint{display:inline-flex;align-items:center;gap:8px;color:rgba(255,255,255,.7);font-size:12px;font-weight:600}
 .homeAssistantTrigger__hint i{display:grid;place-items:center;width:38px;height:38px;border:1px solid rgba(255,255,255,.38);border-radius:50%;color:#fff;background:linear-gradient(145deg,rgba(255,255,255,.2),rgba(255,255,255,.04));box-shadow:inset 0 1px 1px rgba(255,255,255,.34),0 4px 12px rgba(0,0,0,.2);font-size:17px;font-style:normal}
 .homeAssistantModal[hidden]{display:none}
-.homeAssistantModal{position:fixed;z-index:10000;inset:0;display:grid;place-items:center;padding:22px;isolation:isolate}
+.homeAssistantModal{--assistant-from-x:0px;--assistant-from-y:80px;position:fixed;z-index:10000;inset:0;display:grid;place-items:center;padding:22px;isolation:isolate}
 .homeAssistantModal__backdrop{position:absolute;z-index:-1;inset:0;width:100%;height:100%;padding:0;border:0;background:rgba(4,5,8,.32);backdrop-filter:blur(32px) saturate(.72);-webkit-backdrop-filter:blur(32px) saturate(.72);cursor:default}
+.homeAssistantModal.is-opening .homeAssistantModal__backdrop{animation:assistantVeilIn .48s ease both}
+.homeAssistantModal.is-opening .homeAssistant{animation:assistantOpen .62s cubic-bezier(.16,1,.3,1) both}
+.homeAssistantModal.is-closing .homeAssistantModal__backdrop{animation:assistantVeilOut .24s ease both}
+.homeAssistantModal.is-closing .homeAssistant{animation:assistantClose .24s cubic-bezier(.4,0,1,1) both}
 body.hasAssistantOpen{overflow:hidden}
-.homeAssistant{display:flex;flex-direction:column;width:min(700px,100%);max-height:min(680px,calc(100vh - 44px));padding:20px;border-color:rgba(255,255,255,.27);border-radius:30px;background:linear-gradient(145deg,rgba(119,123,127,.23),rgba(30,28,35,.3));box-shadow:inset 0 1px 0 rgba(255,255,255,.2),inset 0 -1px 0 rgba(0,0,0,.28),0 38px 130px rgba(0,0,0,.5);backdrop-filter:blur(42px) saturate(1.15);-webkit-backdrop-filter:blur(42px) saturate(1.15)}
+.homeAssistant{position:relative;display:flex;flex-direction:column;width:min(700px,100%);max-height:min(680px,calc(100vh - 44px));padding:20px;border-color:rgba(255,255,255,.27);border-radius:30px;background:linear-gradient(145deg,rgba(119,123,127,.23),rgba(30,28,35,.3));box-shadow:inset 0 1px 0 rgba(255,255,255,.2),inset 0 -1px 0 rgba(0,0,0,.28),0 38px 130px rgba(0,0,0,.5);backdrop-filter:blur(42px) saturate(1.15);-webkit-backdrop-filter:blur(42px) saturate(1.15);transform-origin:center}
 .homeAssistant__head{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;gap:13px;margin-bottom:18px}
 .homeAssistant__mark{display:grid;place-items:center;width:42px;height:42px;border:1px solid rgba(255,255,255,.34);border-radius:50%;color:#effff6;background:rgba(43,209,121,.38);box-shadow:inset 0 1px 1px rgba(255,255,255,.3);font-size:18px;font-weight:800}
 .homeAssistant__head h2{margin:0;font-size:18px;line-height:1.2;letter-spacing:-.02em}
@@ -61,6 +67,10 @@ body.hasAssistantOpen{overflow:hidden}
 .homeAssistant__examples button::after{content:'↗';position:absolute;right:4px;color:rgba(255,255,255,.38)}
 .homeAssistant__examples button:hover{color:#fff;border-color:rgba(255,255,255,.2)}
 .homeAssistant__reply{margin:0 0 13px;padding:11px 13px;border-left:2px solid var(--green);border-radius:0 10px 10px 0;color:#cdd4dc;background:rgba(43,209,121,.07);font-size:13px;line-height:1.45}
+@keyframes assistantVeilIn{from{opacity:0;backdrop-filter:blur(0) saturate(1);-webkit-backdrop-filter:blur(0) saturate(1)}to{opacity:1}}
+@keyframes assistantVeilOut{from{opacity:1}to{opacity:0;backdrop-filter:blur(0) saturate(1);-webkit-backdrop-filter:blur(0) saturate(1)}}
+@keyframes assistantOpen{0%{opacity:0;transform:translate3d(var(--assistant-from-x),var(--assistant-from-y),0) scale(.62,.22);filter:blur(12px);border-radius:999px}55%{opacity:1;filter:blur(0);border-radius:36px}78%{transform:translate3d(0,-7px,0) scale(1.012)}100%{opacity:1;transform:none;filter:none;border-radius:30px}}
+@keyframes assistantClose{from{opacity:1;transform:none;filter:none}to{opacity:0;transform:translate3d(var(--assistant-from-x),var(--assistant-from-y),0) scale(.7,.3);filter:blur(7px)}}
 .homePanel[hidden]{display:none}
 .homePanel.is-entering{animation:panelIn .42s cubic-bezier(.22,1,.36,1)}
 @keyframes panelIn{from{opacity:0;transform:translateY(12px) scale(.99)}}
@@ -113,6 +123,8 @@ footer{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap
   .homeCard{gap:12px;padding:15px}
   .homeCard__arrow{width:32px;height:32px}
 }
+@media(hover:none),(pointer:coarse){.homeAssistantTrigger{transform:none}.homeAssistantTrigger:hover{--lift:0px}.homeAssistantTrigger::before{display:none}}
+@media(prefers-reduced-motion:reduce){.homeAssistantTrigger,.homeAssistantModal__backdrop,.homeAssistant{animation:none!important;transition:none!important}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important}}
 @media(prefers-reduced-transparency:reduce){.glass,.homeSwitch__lens{backdrop-filter:none;-webkit-backdrop-filter:none;background:#131c28}}
 

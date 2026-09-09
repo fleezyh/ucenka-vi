@@ -38,21 +38,69 @@
   const assistantOpen = document.querySelector("#homeAssistantOpen");
   const assistantDialog = assistantModal?.querySelector("[role=dialog]");
   let assistantReturnFocus = null;
+  let assistantCloseTimer = 0;
+
+  function setAssistantOrigin() {
+    const source = assistantOpen?.getBoundingClientRect();
+    const target = assistantDialog?.getBoundingClientRect();
+    if (!source || !target) return;
+    const sourceX = source.left + source.width / 2;
+    const sourceY = source.top + source.height / 2;
+    const targetX = target.left + target.width / 2;
+    const targetY = target.top + target.height / 2;
+    assistantModal.style.setProperty("--assistant-from-x", `${sourceX - targetX}px`);
+    assistantModal.style.setProperty("--assistant-from-y", `${sourceY - targetY}px`);
+  }
 
   function openAssistant() {
+    clearTimeout(assistantCloseTimer);
     assistantReturnFocus = document.activeElement;
     assistantModal.hidden = false;
+    assistantModal.classList.remove("is-closing");
+    setAssistantOrigin();
+    assistantModal.classList.remove("is-opening");
+    void assistantModal.offsetWidth;
+    assistantModal.classList.add("is-opening");
     document.body.classList.add("hasAssistantOpen");
-    requestAnimationFrame(() => assistantInput?.focus());
+    assistantCloseTimer = window.setTimeout(() => {
+      assistantModal.classList.remove("is-opening");
+      assistantInput?.focus();
+    }, 520);
   }
 
   function closeAssistant() {
-    assistantModal.hidden = true;
-    document.body.classList.remove("hasAssistantOpen");
-    assistantReturnFocus?.focus?.();
+    if (assistantModal.hidden || assistantModal.classList.contains("is-closing")) return;
+    clearTimeout(assistantCloseTimer);
+    assistantModal.classList.remove("is-opening");
+    assistantModal.classList.add("is-closing");
+    assistantCloseTimer = window.setTimeout(() => {
+      assistantModal.hidden = true;
+      assistantModal.classList.remove("is-closing");
+      document.body.classList.remove("hasAssistantOpen");
+      assistantReturnFocus?.focus?.();
+    }, 240);
   }
 
   assistantOpen?.addEventListener("click", openAssistant);
+  if (assistantOpen && matchMedia("(hover:hover) and (pointer:fine)").matches) {
+    assistantOpen.addEventListener("pointermove", (event) => {
+      const rect = assistantOpen.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+      const nx = x / rect.width - .5;
+      const ny = y / rect.height - .5;
+      assistantOpen.style.setProperty("--mx", `${x}px`);
+      assistantOpen.style.setProperty("--my", `${y}px`);
+      assistantOpen.style.setProperty("--rx", `${-ny * 4}deg`);
+      assistantOpen.style.setProperty("--ry", `${nx * 5}deg`);
+    });
+    assistantOpen.addEventListener("pointerleave", () => {
+      assistantOpen.style.setProperty("--mx", "50%");
+      assistantOpen.style.setProperty("--my", "50%");
+      assistantOpen.style.setProperty("--rx", "0deg");
+      assistantOpen.style.setProperty("--ry", "0deg");
+    });
+  }
   assistantModal?.querySelectorAll("[data-assistant-close]").forEach((button) => {
     button.addEventListener("click", closeAssistant);
   });
