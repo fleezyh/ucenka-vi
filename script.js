@@ -438,6 +438,19 @@
     siteLink.hidden = false;
   }
 
+  function showLoadFailed(code) {
+    primaryLabel.textContent = MODES[mode].primary;
+    primaryValue.textContent = "НЕ ПРОВЕРЕН";
+    primary.className = "primary none";
+    secondary.style.display = "none";
+    productName.textContent = "Справочник не ответил — это не значит, что товара нет";
+    productCode.textContent = code;
+    if (siteLink) siteLink.hidden = true;
+    answer.style.display = "flex";
+    details.style.display = "none";
+    nameResults.style.display = "none";
+  }
+
   function showNotFound(code) {
     primaryLabel.textContent = MODES[mode].primary;
     primaryValue.textContent = "НЕ НАЙДЕН";
@@ -456,14 +469,52 @@
     return /^[0-9]{6,30}$/.test(value);
   }
 
-  function recordPick(barcode, found) {
-    fetch("/__pick", {
+  /* Что человек сканировал и нашлось ли это.
+   *
+   * Ненайденные штрихкоды нужны не меньше найденных: по ним видно, чего в
+   * справочнике не хватает, а не только то, что люди «жалуются». Если сервер
+   * сейчас недоступен — а так бывает, пока адрес не переехал у всех, — записи
+   * копятся в браузере и уезжают при первом удачном заходе.
+   */
+  const PICK_QUEUE_KEY = "picks-queue";
+
+  function queuePick(pick) {
+    try {
+      const queue = JSON.parse(localStorage.getItem(PICK_QUEUE_KEY) || "[]");
+      queue.push(pick);
+      localStorage.setItem(PICK_QUEUE_KEY, JSON.stringify(queue.slice(-500)));
+    } catch { /* переполнено — молча пропускаем */ }
+  }
+
+  async function sendPick(pick) {
+    const response = await fetch("/__pick", {
       method: "POST",
       credentials: "same-origin",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ barcode, found, mode }),
+      body: JSON.stringify(pick),
       keepalive: true,
-    }).catch(() => {});
+    });
+    if (!response.ok) throw new Error(String(response.status));
+  }
+
+  function recordPick(barcode, found) {
+    const pick = { barcode, found, mode, at: new Date().toISOString() };
+    sendPick(pick).catch(() => queuePick(pick));
+  }
+
+  async function flushPicks() {
+    let queue;
+    try {
+      queue = JSON.parse(localStorage.getItem(PICK_QUEUE_KEY) || "[]");
+    } catch {
+      return;
+    }
+    if (!queue.length) return;
+    const left = [];
+    for (const pick of queue) {
+      try { await sendPick(pick); } catch { left.push(pick); }
+    }
+    try { localStorage.setItem(PICK_QUEUE_KEY, JSON.stringify(left)); } catch { /* не влезло */ }
   }
 
   async function searchBarcode() {
@@ -506,7 +557,9 @@
       recordPick(code, Boolean(hit));
     } catch (error) {
       if (operationVersion !== version) return;
-      say(`Не удалось выполнить поиск: ${error?.message || error}`, "error");
+      say("Не получилось скачать кусочек справочника — товар не проверен. "
+          + "Отсканируйте ещё раз.", "error");
+      showLoadFailed(code);
       showConnectionError(error);
     } finally {
       if (operationVersion === version) {
@@ -792,4 +845,5 @@
 
   renderMode();
   connect();
+  flushPicks();
 })();
