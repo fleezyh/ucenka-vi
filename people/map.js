@@ -40,9 +40,13 @@
     { key: "КАЗ", name: "Казань", test: /КАЗ/i },
     { key: "НСК", name: "Новосибирск", test: /НСК|Петухова/i },
     { key: "РНД", name: "Ростов-на-Дону", test: /РНД/i },
-    { key: "ДМД", name: "Домодедово", test: /ДМД|Домодедово|ДАНИЛОВО|Данилово/i },
+    { key: "ДМД", name: "Домодедово", test: /ДМД|Домодедово/i },
+    /* Данилово проверяем последним, уже после ДМД: «017 ДАНИЛОВО ДМД» — это
+       зона Домодедова, которая отгружает в Данилово, а не сам Данилово. Своим
+       складом остаётся то, где второй метки нет, — «Брак Данилово». */
+    { key: "ДНЛ", name: "Данилово", test: /ДАНИЛОВО|Данилово/i },
   ];
-  const CITY_ORDER = ["ДМД", "ЧШК", "СПБ", "КАЗ", "ЕКБ", "НСК", "РНД"];
+  const CITY_ORDER = ["ДМД", "ЧШК", "ДНЛ", "СПБ", "КАЗ", "ЕКБ", "НСК", "РНД"];
 
   const el = (id) => document.getElementById(id);
   const count = (value) => Math.round(Number(value) || 0).toLocaleString("ru-RU");
@@ -138,12 +142,21 @@
    *  выбранного склада, так что числа на кнопках всегда про то, что увидишь. */
   function cube() {
     const grid = new Map();
+    let total = 0;
     walk(month, (from, to, item, person, group) => {
-      const key = cityOf.get(from) || cityOf.get(to);
-      if (!key) return;
-      const id = `${key}|${group.имя}`;
-      grid.set(id, (grid.get(id) || 0) + item.действий);
+      const here = cityOf.get(from);
+      const there = cityOf.get(to);
+      // Переезд между складами принадлежит обоим концам. Иначе склад, куда
+      // только привозят, выглядит пустым: у Данилова все связи внешние — товар
+      // туда возят из Домодедова, — и кнопки склада просто не появлялось.
+      const keys = here === there ? [here] : [here, there];
+      new Set(keys.filter(Boolean)).forEach((key) => {
+        const id = `${key}|${group.имя}`;
+        grid.set(id, (grid.get(id) || 0) + item.действий);
+      });
+      if (here || there) total += item.действий;
     }, true);
+    grid.total = total;
     return grid;
   }
 
@@ -199,8 +212,12 @@
     const nodes = new Map();
     zones.forEach((value, zone) => {
       const label = name(zone);
-      const node = nodes.get(label) || { zone: label, actions: 0, staff: new Map() };
+      const node = nodes.get(label)
+        || { zone: label, actions: 0, staff: new Map(), inside: new Map() };
       node.actions += value;
+      // «Прочие» — это не одна зона, а мешок: держим состав, иначе непонятно,
+      // что там внутри и куда делись остальные пятьсот зон.
+      if (label !== zone) node.inside.set(zone, (node.inside.get(zone) || 0) + value);
       (staff.get(zone) || new Map()).forEach((actions, who) => {
         node.staff.set(who, (node.staff.get(who) || 0) + actions);
       });
@@ -216,11 +233,13 @@
      и подписи остаются одного размера в любом городе — что в Домодедово с его
      восемью десятками зон, что в Ростове с десятком. */
   const PER_COLUMN = 9;
-  const COL_W = 268;      // ширина колонки этапа
-  const ROW_H = 152;      // шаг между зонами по вертикали
-  const LABEL_H = 70;     // две строки названия и число под кружком
-  const PAD_TOP = 74;     // место под подписи этапов
-  const PAD_BOTTOM = 54;  // место под подпись и число нижней зоны
+  // Карта занимала пол-экрана и заставляла листать до списков; ужимаем шаг и
+  // колонку — связи читаются так же, а под схемой остаётся место.
+  const COL_W = 226;      // ширина колонки этапа
+  const ROW_H = 104;      // шаг между зонами по вертикали
+  const LABEL_H = 56;     // две строки названия и число под кружком
+  const PAD_TOP = 56;     // место под подписи этапов
+  const PAD_BOTTOM = 44;  // место под подпись и число нижней зоны
 
   function layout(nodes) {
     const columns = new Map(STAGES.map((stage) => [stage.key, []]));
@@ -242,9 +261,13 @@
           zone: `· ещё ${rest.length} ${plural(rest.length, "зона", "зоны", "зон")}`,
           actions: rest.reduce((sum, node) => sum + node.actions, 0),
           staff: new Map(),
+          inside: new Map(),
         };
         rest.forEach((node) => {
           merged.set(node.zone, bag.zone);
+          bag.inside.set(node.zone, (bag.inside.get(node.zone) || 0) + node.actions);
+          (node.inside || new Map()).forEach((value, zone) =>
+            bag.inside.set(zone, (bag.inside.get(zone) || 0) + value));
           node.staff.forEach((value, who) => bag.staff.set(who, (bag.staff.get(who) || 0) + value));
         });
         list = list.slice(0, PER_COLUMN - 1).concat(bag);
@@ -489,6 +512,30 @@
 
   const renderSideFromMap = () => renderSide(lastPlaced);
 
+  let sideView = "people";   // что показывать без выбранной зоны: людей или зоны
+
+  /** Все люди текущего разреза — с фамилией, ролью и объёмом за месяц. */
+  function allPeople() {
+    const out = [];
+    payload.группы.forEach((group) => {
+      if (team && group.имя !== team) return;
+      group.люди.forEach((person) => {
+        const total = monthsOf(person).reduce((sum, [, data]) => sum + (data.всего || 0), 0);
+        out.push({ who: person.фио, group: group.имя, role: person.должность || "", total });
+      });
+    });
+    return out.sort((a, b) => b.total - a.total);
+  }
+
+  function bindSideTabs(box, placed) {
+    box.querySelectorAll(".plSideTab").forEach((tab) => {
+      tab.addEventListener("click", () => {
+        sideView = tab.dataset.view;
+        renderSide(placed);
+      });
+    });
+  }
+
   /** Панель справа: поиск человека, люди выбранной зоны или общий расклад. */
   function renderSide(placed) {
     const box = el("plMapSide");
@@ -523,21 +570,75 @@
           + `Клик по пустому месту схемы — снять.</p>${personCard(pinned.who)}`;
         return;
       }
-      const all = [...placed.values()].sort((a, b) => b.actions - a.actions).slice(0, 8);
-      box.innerHTML = '<p class="plMapHint">Клик по зоне — кто в ней работает. '
-        + 'Клик по человеку — где он ходит.</p>'
-        + all.map((node) => `<div class="plMapRow"><span class="plMapDot" style="background:${STAGE_COLORS[node.stage]}"></span>`
-          + `<span class="plMapName">${node.zone}</span><b>${count(node.actions)}</b></div>`).join("");
+
+      // Без выбранной зоны показывали восемь зон — а спрашивают всегда про
+      // людей. Теперь две вкладки, и список людей полный, а не верхушка.
+      const zones = [...placed.values()].sort((a, b) => b.actions - a.actions);
+      const people = allPeople();
+      const tabs = `<div class="plSideTabs">`
+        + `<button class="plSideTab${sideView === "people" ? " is-on" : ""}" data-view="people">`
+        + `Люди · ${people.length}</button>`
+        + `<button class="plSideTab${sideView === "zones" ? " is-on" : ""}" data-view="zones">`
+        + `Зоны · ${zones.length}</button></div>`;
+
+      const body = sideView === "zones"
+        ? zones.map((node) => `<div class="plMapRow"><span class="plMapDot" style="background:${STAGE_COLORS[node.stage]}"></span>`
+          + `<span class="plMapName">${node.zone}</span><b>${count(node.actions)}</b></div>`).join("")
+        : people.map(({ who, group, total, role }) =>
+          `<button class="plMapRow plMapRow--person" data-who="${who}">`
+          + `<span class="plMapName">${who}<em>${role ? role + " · " : ""}${group}</em></span>`
+          + `<b>${total ? count(total) : "—"}</b></button>`).join("");
+
+      box.innerHTML = tabs
+        + '<p class="plMapHint">Клик по человеку — где он ходит; по зоне на схеме — кто в ней работает.</p>'
+        + body;
+      bindSideTabs(box, placed);
+      bindPeople(box, placed);
       return;
     }
     const node = placed.get(picked);
     const people = [...node.staff.entries()].sort((a, b) => b[1] - a[1]).slice(0, 14);
+
+    /* Разрез по подразделениям: в одной зоне обычно работают несколько
+       подразделений сразу, и по списку фамилий это не видно. Здесь сразу
+       понятно, чья это на самом деле зона и кто в неё заходит со стороны. */
+    const byGroup = new Map();
+    node.staff.forEach((actions, who) => {
+      const item = personIndex.get(who);
+      // Ветка департамента почти для всех одна, поэтому режем по участку или
+      // бригаде — по самому глубокому уровню, который знает HR.
+      const name = item ? (item.person.подразделение || item.group.имя) : "—";
+      const found = byGroup.get(name) || { actions: 0, people: 0 };
+      found.actions += actions;
+      found.people += 1;
+      byGroup.set(name, found);
+    });
+    const groupsTotal = [...byGroup.values()].reduce((sum, item) => sum + item.actions, 0) || 1;
+    const groupRows = byGroup.size > 1
+      ? `<div class="plInside"><p class="plMapHint">Кто здесь работает — по подразделениям:</p>`
+        + [...byGroup.entries()].sort((a, b) => b[1].actions - a[1].actions)
+          .map(([name, item]) => `<div class="plMapRow plMapRow--thin">`
+            + `<span class="plMapName">${name}<em>${item.people} `
+            + `${plural(item.people, "человек", "человека", "человек")}</em></span>`
+            + `<b>${Math.round((item.actions / groupsTotal) * 100)}%</b></div>`).join("")
+        + `</div>`
+      : "";
     const total = [...node.staff.values()].reduce((sum, value) => sum + value, 0) || 1;
-    box.innerHTML = `<p class="plMapPicked">${node.zone}<span>${count(node.actions)} действий · ${node.staff.size} человек</span></p>`
+    // Мешок «прочие зоны» без состава — чёрный ящик: показываем, что внутри.
+    const inside = node.inside && node.inside.size
+      ? `<div class="plInside"><p class="plMapHint">Внутри ${node.inside.size} `
+        + `${plural(node.inside.size, "зона", "зоны", "зон")}:</p>`
+        + [...node.inside.entries()].sort((a, b) => b[1] - a[1]).slice(0, 40)
+          .map(([zone, actions]) => `<div class="plMapRow plMapRow--thin">`
+            + `<span class="plMapName">${zone}</span><b>${count(actions)}</b></div>`).join("")
+        + `</div>`
+      : "";
+
+    box.innerHTML = `<p class="plMapPicked">${node.zone}<span>${count(node.actions)} действий · ${node.staff.size} человек</span></p>` + inside
       + people.map(([who, actions]) => `<button class="plMapRow plMapRow--person`
         + `${pinned && pinned.who === who ? " is-on" : ""}" data-who="${who}">`
         + `<span class="plMapName">${who}</span><b>${count(actions)}</b>`
-        + `<i style="--w:${(actions / total) * 100}%"></i></button>`).join("");
+        + `<i style="--w:${(actions / total) * 100}%"></i></button>`).join("") + groupRows;
 
     if (pinned) box.insertAdjacentHTML("beforeend", personCard(pinned.who));
     bindPeople(box, placed);
@@ -834,7 +935,9 @@
     const grid = cube();
     const cities = totalsBy(grid, "city");
     const teams = totalsBy(grid, "team");
-    const total = [...cities.values()].reduce((sum, value) => sum + value, 0);
+    // Итог берём из куба, а не суммой складов: межскладские переезды учтены
+    // на обоих концах и в сумме считались бы дважды.
+    const total = grid.total;
 
     const cityItems = [{ key: "", label: "все склады", note: count(total) }].concat(
       CITY_ORDER.filter((key) => cities.get(key)).map((key) => ({

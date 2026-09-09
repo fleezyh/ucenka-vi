@@ -217,7 +217,19 @@ body[data-mode="people"] .shell {
 .plSeg--teams .plSeg__item { font-size: 13px; padding: 6px 12px; border-radius: 9px; }
 .plSeg--teams .plSeg__item.is-on { border-color: var(--green); background: rgba(39, 196, 107, .14); }
 
-.plMapSide { display: flex; flex-direction: column; gap: 6px; }
+/* Панель справа: список длинный — 271 человек, — поэтому со своей прокруткой,
+   иначе страница уезжает вниз на два экрана. */
+.plMapSide { display: flex; flex-direction: column; gap: 6px; max-height: 620px; overflow: auto; padding-right: 4px; }
+
+/* Две вкладки: люди или зоны. Спрашивают обычно про людей — они и первые. */
+.plSideTabs { position: sticky; top: 0; z-index: 2; display: flex; gap: 4px; margin-bottom: 8px; padding: 4px; border: 1px solid var(--line); border-radius: 11px; background: rgba(8, 13, 20, .92); }
+.plSideTab { flex: 1 1 auto; min-height: 32px; border: 0; border-radius: 8px; background: none; color: var(--muted); font: inherit; font-size: 13px; cursor: pointer; }
+.plSideTab.is-on { color: var(--text); background: #16233a; font-weight: 600; }
+
+/* Состав мешка «прочие зоны». */
+.plInside { margin: 10px 0; padding: 10px; border: 1px dashed var(--line-strong); border-radius: 11px; }
+.plInside .plMapHint { margin-bottom: 6px; }
+.plMapRow--thin { padding: 5px 8px; font-size: 13px; background: none; }
 .plMapHint { margin: 0 0 8px; color: var(--muted); font-size: 13.5px; line-height: 1.5; }
 .plMapPicked { margin: 0 0 10px; font-size: 15px; font-weight: 600; line-height: 1.4; }
 .plMapPicked span { display: block; margin-top: 4px; color: var(--muted); font-size: 13px; font-weight: 500; }
