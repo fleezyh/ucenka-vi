@@ -57,7 +57,7 @@
       box.className = "navAccount";
       const short = String(user.name || user.login).split(" ").slice(0, 2).join(" ");
       box.innerHTML = `<span class="navAccount__who" title="${user.login}">${short}</span>`
-        + '<a class="navAccount__link" href="/__account/password">Пароль</a>'
+        + '<a class="navAccount__link" href="/__account">Кабинет</a>'
         + '<a class="navAccount__link" href="/__logout">Выйти</a>';
       nav.appendChild(box);
     })
