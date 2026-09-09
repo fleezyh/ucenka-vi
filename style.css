@@ -609,7 +609,19 @@ body[data-mode="presort"] .message.ok { color: #8db9ff; }
 
 .answer__info { min-width: 0; }
 .answer__label { color: var(--muted); font-size: 11px; font-weight: 600; letter-spacing: 0.13em; text-transform: uppercase; }
-.answer h3 { margin: 6px 0 11px; font-size: 21px; line-height: 1.4; word-break: break-word; }
+.answer h3 { margin: 0; font-size: 21px; line-height: 1.4; word-break: break-word; }
+.nameRow { display: flex; align-items: flex-start; gap: 12px; margin: 6px 0 11px; }
+.nameRow h3 { flex: 1 1 auto; min-width: 0; }
+
+/* Название переносят в акт руками, поэтому кнопка копирования стоит вплотную к
+ * нему и прижата к первой строке — длинное название не утаскивает её вниз. */
+.copyBtn { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 7px; padding: 7px 12px; border: 1px solid var(--line-strong); border-radius: 9px; background: var(--panel-soft); color: var(--text); font-family: var(--ui); font-size: 12.5px; font-weight: 600; cursor: pointer; transition: border-color .16s ease, background .16s ease, color .16s ease; }
+.copyBtn:hover { border-color: var(--blue); background: rgba(77, 141, 247, 0.14); }
+.copyBtn__icon { position: relative; width: 12px; height: 12px; border: 1.5px solid currentColor; border-radius: 3px; opacity: .85; }
+.copyBtn__icon::before { content: ""; position: absolute; top: -4px; right: -4px; width: 12px; height: 12px; border: 1.5px solid currentColor; border-radius: 3px; border-left: 0; border-bottom: 0; }
+.copyBtn.is-done { border-color: rgba(39, 196, 107, 0.65); background: rgba(39, 196, 107, 0.15); color: #a8f0c6; }
+.copyBtn.is-failed { border-color: rgba(240, 93, 114, 0.6); background: rgba(240, 93, 114, 0.13); color: #ffc0ca; }
+.copyBtn[hidden] { display: none; }
 .secondary { display: inline-block; padding: 7px 12px; border: 1px solid rgba(77, 141, 247, 0.34); border-radius: 9px; background: rgba(77, 141, 247, 0.1); font-size: 15px; font-weight: 600; }
 .secondary.check { color: #ffc0ca; border-color: rgba(240, 93, 114, 0.4); background: rgba(240, 93, 114, 0.11); }
 .code { margin: 11px 0 0; color: var(--muted); font-family: var(--mono); font-size: 13px; word-break: break-all; }

@@ -15,6 +15,7 @@
   const secondary = $("secondary");
   const productName = $("productName");
   const productCode = $("productCode");
+  const copyName = $("copyName");
   const siteLink = $("siteLink");
   const details = $("details");
   const detailsBody = $("detailsBody");
@@ -406,6 +407,7 @@
     // одну, а в базе товар лежит под другой.
     const viaLabel = scannedCode && scannedCode !== code;
     productCode.textContent = viaLabel ? `${scannedCode} → ${code}` : code;
+    showCopyButton(Boolean(fields.name));
     showSiteLink(field(row, "Код сайта"));
     answer.style.display = "flex";
 
@@ -438,6 +440,62 @@
     siteLink.hidden = false;
   }
 
+  /* Копирование наименования.
+   *
+   * Название нужно переносить в акт руками, а выделять его мышью на складском
+   * компьютере неудобно. Кнопка рядом с названием избавляет от клавиатуры
+   * совсем — ровно ради этого Пикалка и заводилась.
+   *
+   * clipboard API есть только на https; на локальной копии и в старых браузерах
+   * его нет, поэтому остаётся старый приём со скрытым полем.
+   */
+  async function copyText(text) {
+    if (navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch { /* нет разрешения — пробуем по-старому */ }
+    }
+    const box = document.createElement("textarea");
+    box.value = text;
+    box.setAttribute("readonly", "");
+    box.style.cssText = "position:fixed;top:-1000px;opacity:0";
+    document.body.appendChild(box);
+    box.select();
+    let ok = false;
+    try { ok = document.execCommand("copy"); } catch { ok = false; }
+    box.remove();
+    return ok;
+  }
+
+  let copyTimer = 0;
+
+  function showCopyButton(visible) {
+    if (!copyName) return;
+    copyName.hidden = !visible;
+    if (!visible) return;
+    clearTimeout(copyTimer);
+    copyName.classList.remove("is-done", "is-failed");
+    copyName.querySelector(".copyBtn__text").textContent = "Копировать";
+  }
+
+  if (copyName) {
+    copyName.addEventListener("click", async () => {
+      const text = productName.textContent.trim();
+      if (!text || text === "—") return;
+      const ok = await copyText(text);
+      const label = copyName.querySelector(".copyBtn__text");
+      copyName.classList.toggle("is-done", ok);
+      copyName.classList.toggle("is-failed", !ok);
+      label.textContent = ok ? "Скопировано" : "Не вышло";
+      clearTimeout(copyTimer);
+      copyTimer = setTimeout(() => {
+        copyName.classList.remove("is-done", "is-failed");
+        label.textContent = "Копировать";
+      }, 1600);
+    });
+  }
+
   function showLoadFailed(code) {
     primaryLabel.textContent = MODES[mode].primary;
     primaryValue.textContent = "НЕ ПРОВЕРЕН";
@@ -445,6 +503,7 @@
     secondary.style.display = "none";
     productName.textContent = "Справочник не ответил — это не значит, что товара нет";
     productCode.textContent = code;
+    showCopyButton(false);
     if (siteLink) siteLink.hidden = true;
     answer.style.display = "flex";
     details.style.display = "none";
@@ -458,6 +517,7 @@
     secondary.style.display = "none";
     productName.textContent = "Штрихкод не найден в справочнике";
     productCode.textContent = code;
+    showCopyButton(false);
     if (siteLink) siteLink.hidden = true;
     answer.style.display = "flex";
     details.style.display = "none";
@@ -828,6 +888,12 @@
       searchByName();
     }
   });
+  /** Выделил ли человек прямо сейчас кусок текста на странице. */
+  function hasSelection() {
+    const selection = window.getSelection();
+    return Boolean(selection && !selection.isCollapsed && String(selection).trim());
+  }
+
   document.addEventListener("click", (event) => {
     // Touch scrolling and navigation must not summon the scanner keyboard.
     if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
@@ -835,11 +901,15 @@
     // В разделе паллет курсор должен оставаться в поле списка, а не убегать
     // обратно в сканер.
     if (MODES[mode].external) return;
+    // Название и штрихкод из карточки переносят в акт мышью. Возврат фокуса в
+    // сканер снимал выделение ровно в тот момент, когда человек отпускал
+    // кнопку, — скопировать было почти невозможно.
+    if (hasSelection()) return;
     const insideNameSearch =
       event.target === nameSearch || event.target === goName || nameResults.contains(event.target);
     const insideTabs = tabs.some((tab) => tab.contains(event.target));
     if (!scan.disabled && event.target !== go && !insideNameSearch && !insideTabs) {
-      setTimeout(() => scan.focus(), 0);
+      setTimeout(() => { if (!hasSelection()) scan.focus(); }, 0);
     }
   });
 

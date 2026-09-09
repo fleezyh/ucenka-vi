@@ -9,11 +9,11 @@
   <link rel="icon" type="image/svg+xml" href="assets/brand/vi-mark.svg?v=20260903-3">
   <link rel="preload" href="assets/fonts/VI_Sans_Regular.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="assets/fonts/VI_Sans_ExtraBold.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="style.css?v=20260907-6">
+  <link rel="stylesheet" href="style.css?v=20260909-3">
   <link rel="stylesheet" href="reeded-bg.css?v=20260907-6">
   <link rel="stylesheet" href="site-header.css?v=20260909-1">
   <script src="reeded-bg.js?v=20260906-7" defer></script>
-  <script src="script.js?v=20260909-2" defer></script>
+  <script src="script.js?v=20260909-3" defer></script>
   <script src="pallets.js?v=20260905-7" defer></script>
   <script src="nav.js?v=20260909-1" defer></script>
 </head>
@@ -36,7 +36,7 @@
           <span class="navGroup__label">Инструменты</span>
           <a class="navLink" href="picker/" aria-current="page">Пикалка</a>
         </span>
-        <a class="navAdmin" href="https://fleezy.tailb770fe.ts.net" target="_blank" rel="noopener">Админка</a>
+        <a class="navAdmin" href="/__admin">Админка</a>
       </nav>
     </header>
 
@@ -119,7 +119,14 @@
           </div>
           <div class="answer__info">
             <span class="answer__label">Наименование</span>
-            <h3 id="productName">—</h3>
+            <div class="nameRow">
+              <h3 id="productName">—</h3>
+              <button class="copyBtn" id="copyName" type="button"
+                      title="Скопировать наименование" hidden>
+                <span class="copyBtn__icon" aria-hidden="true"></span>
+                <span class="copyBtn__text">Копировать</span>
+              </button>
+            </div>
             <span class="secondary" id="secondary">—</span>
             <p class="code" id="productCode"></p>
             <a class="siteLink" id="siteLink" href="#" target="_blank" rel="noopener" hidden>Открыть на сайте</a>
