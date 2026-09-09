@@ -9,11 +9,11 @@
   <link rel="icon" type="image/svg+xml" href="assets/brand/vi-mark.svg?v=20260903-3">
   <link rel="preload" href="assets/fonts/VI_Sans_Regular.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="assets/fonts/VI_Sans_ExtraBold.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="home.css?v=20260909-1">
+  <link rel="stylesheet" href="home.css?v=20260909-2">
   <link rel="stylesheet" href="reeded-bg.css?v=20260907-6">
   <link rel="stylesheet" href="site-header.css?v=20260908-2">
   <script src="reeded-bg.js?v=20260906-7" defer></script>
-  <script src="home.js?v=20260909-1" defer></script>
+  <script src="home.js?v=20260909-2" defer></script>
   <script src="nav.js?v=20260907-2" defer></script>
 </head>
 <body class="homePage">
@@ -42,28 +42,49 @@
       <button type="button" role="tab" data-view="tools" aria-selected="false">Инструменты</button>
     </div>
 
-    <section class="homeAssistant glass" aria-labelledby="homeAssistantTitle">
-      <div class="homeAssistant__head">
-        <span class="homeAssistant__mark" aria-hidden="true">✦</span>
-        <div>
-          <h2 id="homeAssistantTitle">Спросить по данным</h2>
-          <p>Ассистент сам подберёт источники и соберёт запрос под ваш вопрос.</p>
+    <button class="homeAssistantTrigger glass" id="homeAssistantOpen" type="button"
+      aria-haspopup="dialog" aria-controls="homeAssistantModal">
+      <span class="homeAssistantTrigger__mark" aria-hidden="true">✦</span>
+      <span class="homeAssistantTrigger__copy">
+        <strong>Спросить по данным</strong>
+        <small>Брак, продажи, сотрудники и показатели</small>
+      </span>
+      <span class="homeAssistantTrigger__hint">Открыть <i aria-hidden="true">↗</i></span>
+    </button>
+
+    <div class="homeAssistantModal" id="homeAssistantModal" hidden>
+      <button class="homeAssistantModal__backdrop" type="button" data-assistant-close
+        aria-label="Закрыть помощника"></button>
+      <section class="homeAssistant glass" role="dialog" aria-modal="true"
+        aria-labelledby="homeAssistantTitle" tabindex="-1">
+        <div class="homeAssistant__head">
+          <span class="homeAssistant__mark" aria-hidden="true">✦</span>
+          <div>
+            <h2 id="homeAssistantTitle">Спросить по данным</h2>
+            <p>Ассистент сам подберёт источники и соберёт запрос под ваш вопрос.</p>
+          </div>
+          <span class="homeAssistant__badge">скоро</span>
+          <button class="homeAssistant__close" type="button" data-assistant-close
+            aria-label="Закрыть">×</button>
         </div>
-        <span class="homeAssistant__badge">скоро</span>
-      </div>
-      <form class="homeAssistant__form" id="homeAssistantForm">
-        <label class="srOnly" for="homeAssistantInput">Вопрос по данным</label>
-        <textarea id="homeAssistantInput" rows="1" maxlength="800"
-          placeholder="Например: почему вырос брак в ДМД за последнюю неделю?"></textarea>
-        <button type="submit">Спросить <span aria-hidden="true">↑</span></button>
-      </form>
-      <div class="homeAssistant__examples" aria-label="Примеры вопросов">
-        <button type="button">Что изменилось за неделю?</button>
-        <button type="button">Где сейчас больше всего брака?</button>
-        <button type="button">Кто и что делал вчера?</button>
-      </div>
-      <p class="homeAssistant__reply" id="homeAssistantReply" hidden></p>
-    </section>
+        <div class="homeAssistant__welcome">
+          <strong>Что хотите узнать?</strong>
+          <span>Можно спросить простыми словами — период и нужные разрезы помощник уточнит сам.</span>
+        </div>
+        <div class="homeAssistant__examples" aria-label="Примеры вопросов">
+          <button type="button">Что изменилось за неделю?</button>
+          <button type="button">Где сейчас больше всего брака?</button>
+          <button type="button">Кто и что делал вчера?</button>
+        </div>
+        <p class="homeAssistant__reply" id="homeAssistantReply" hidden></p>
+        <form class="homeAssistant__form" id="homeAssistantForm">
+          <label class="srOnly" for="homeAssistantInput">Вопрос по данным</label>
+          <textarea id="homeAssistantInput" rows="1" maxlength="800"
+            placeholder="Напишите вопрос по данным…"></textarea>
+          <button type="submit">Спросить <span aria-hidden="true">↑</span></button>
+        </form>
+      </section>
+    </div>
 
     <section class="homePanel" data-panel="analytics" aria-label="Аналитика">
       <div class="homeGrid">

@@ -34,6 +34,40 @@
   const assistantForm = document.querySelector("#homeAssistantForm");
   const assistantInput = document.querySelector("#homeAssistantInput");
   const assistantReply = document.querySelector("#homeAssistantReply");
+  const assistantModal = document.querySelector("#homeAssistantModal");
+  const assistantOpen = document.querySelector("#homeAssistantOpen");
+  const assistantDialog = assistantModal?.querySelector("[role=dialog]");
+  let assistantReturnFocus = null;
+
+  function openAssistant() {
+    assistantReturnFocus = document.activeElement;
+    assistantModal.hidden = false;
+    document.body.classList.add("hasAssistantOpen");
+    requestAnimationFrame(() => assistantInput?.focus());
+  }
+
+  function closeAssistant() {
+    assistantModal.hidden = true;
+    document.body.classList.remove("hasAssistantOpen");
+    assistantReturnFocus?.focus?.();
+  }
+
+  assistantOpen?.addEventListener("click", openAssistant);
+  assistantModal?.querySelectorAll("[data-assistant-close]").forEach((button) => {
+    button.addEventListener("click", closeAssistant);
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !assistantModal?.hidden) closeAssistant();
+    if (event.key !== "Tab" || assistantModal?.hidden) return;
+    const focusable = [...assistantDialog.querySelectorAll("button, textarea")];
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault(); last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault(); first.focus();
+    }
+  });
 
   document.querySelectorAll(".homeAssistant__examples button").forEach((button) => {
     button.addEventListener("click", () => {
