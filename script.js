@@ -446,26 +446,40 @@
    * компьютере неудобно. Кнопка рядом с названием избавляет от клавиатуры
    * совсем — ровно ради этого Пикалка и заводилась.
    *
-   * clipboard API есть только на https; на локальной копии и в старых браузерах
-   * его нет, поэтому остаётся старый приём со скрытым полем.
+   * Сначала идёт старый приём со скрытым полем, и только потом clipboard API.
+   * Порядок именно такой: старый способ синхронный и укладывается внутрь клика,
+   * а clipboard API асинхронный — после первого же `await` браузер считает, что
+   * пользовательского жеста больше нет, и запись в буфер отклоняет.
    */
-  async function copyText(text) {
-    if (navigator.clipboard?.writeText) {
-      try {
-        await navigator.clipboard.writeText(text);
-        return true;
-      } catch { /* нет разрешения — пробуем по-старому */ }
-    }
+  function copySync(text) {
     const box = document.createElement("textarea");
     box.value = text;
     box.setAttribute("readonly", "");
     box.style.cssText = "position:fixed;top:-1000px;opacity:0";
     document.body.appendChild(box);
+    const kept = window.getSelection().rangeCount ? window.getSelection().getRangeAt(0) : null;
     box.select();
     let ok = false;
     try { ok = document.execCommand("copy"); } catch { ok = false; }
     box.remove();
+    // Скрытое поле забрало выделение себе — возвращаем человеку его.
+    if (kept) {
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(kept);
+    }
     return ok;
+  }
+
+  async function copyText(text) {
+    if (copySync(text)) return true;
+    if (navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch { /* и так не вышло */ }
+    }
+    return false;
   }
 
   let copyTimer = 0;
@@ -893,6 +907,24 @@
     const selection = window.getSelection();
     return Boolean(selection && !selection.isCollapsed && String(selection).trim());
   }
+
+  /* Сканер стреляет цифрами туда, где сейчас курсор.
+   *
+   * Раньше поле сканера держали в фокусе силой — из-за этого нельзя было ни
+   * выделить название, ни нажать кнопку. Теперь наоборот: курсор отпускаем, но
+   * цифры ловим сами. Куда бы человек ни кликнул, отсканированный код всё равно
+   * попадёт в поле и найдётся.
+   */
+  document.addEventListener("keydown", (event) => {
+    if (event.ctrlKey || event.altKey || event.metaKey) return;
+    if (!/^[0-9]$/.test(event.key)) return;
+    if (MODES[mode].external || scan.disabled) return;
+    const target = event.target;
+    if (target.matches("input, textarea, select") || target.isContentEditable) return;
+    event.preventDefault();
+    scan.focus();
+    scan.value += event.key;
+  });
 
   document.addEventListener("click", (event) => {
     // Touch scrolling and navigation must not summon the scanner keyboard.
