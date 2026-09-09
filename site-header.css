@@ -105,6 +105,9 @@ body[data-mode="dashboard"] > header {
   box-shadow: 0 0 0 1px rgba(255,255,255,.08), 0 5px 16px rgba(214,0,0,.22);
 }
 
+/* Вся навигация — одна стеклянная плашка, как переключатель на главной.
+   Раньше это были три отдельные коробки со своими рамками, и ряд выглядел
+   разрозненным. */
 .siteHeaderShell .siteNav,
 .shell > .topbar .siteNav {
   min-width: 0;
@@ -112,14 +115,16 @@ body[data-mode="dashboard"] > header {
   width: auto;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 0;
   flex-wrap: wrap;
   overflow: visible;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
+  padding: 5px;
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 22px;
+  background: rgba(15, 14, 20, .72);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  box-shadow: inset 0 1px rgba(255, 255, 255, .1);
 }
 
 .siteHeaderShell .navGroup,
@@ -127,32 +132,26 @@ body[data-mode="dashboard"] > header {
   display: flex;
   align-items: center;
   flex: 0 0 auto;
-  gap: 4px;
-  /* Справа воздух складывается из отступа группы (5) и собственного поля
-     вкладки (15) — до буквы получается 20. Слева поля вкладки нет, метка
-     прижата к краю сама, поэтому те же 20 задаются здесь целиком. */
-  padding: 5px 5px 5px 20px;
-  border: 1px solid #263345;
-  border-radius: 15px;
-  background: rgba(8,13,20,.6);
+  gap: 2px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
 }
 
-.siteHeaderShell .navGroup__label,
-.shell > .topbar .navGroup__label {
-  display: inline;
-  /* Разрядка добавляет пустоту после последней буквы — вычитаем её из поля,
-     иначе метка отходит от вкладок сильнее, чем нарисовано. */
-  margin: 0 6px 0 0;
-  padding: 0;
-  color: #8f9cad;
-  font-family: inherit;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: .1em;
-  line-height: normal;
-  text-transform: uppercase;
-  white-space: nowrap;
+/* Разделение групп — волосяная черта, а не подпись: смысл читается по самим
+   разделам, а слова «УЦЕНКА» и «ИНСТРУМЕНТЫ» только шумели в ряду. */
+.siteHeaderShell .navGroup + .navGroup,
+.shell > .topbar .navGroup + .navGroup {
+  margin-left: 9px;
+  padding-left: 9px;
+  border-left: 1px solid rgba(255, 255, 255, .13);
 }
+
+/* Метки остаются в разметке ради смысла и мобильного меню, но в строке шапки
+   не показываются. */
+.siteHeaderShell .navGroup__label,
+.shell > .topbar .navGroup__label { display: none; }
 
 .siteHeaderShell .navLink,
 .shell > .topbar .navLink,
@@ -225,25 +224,7 @@ body[data-mode="dashboard"] > header {
   .shell > .topbar .siteNav { width: 100%; }
 }
 
-/* Групп в ряду стало три, и на обычном ноутбуке шапка складывалась в два
-   этажа. Метки — самое лёгкое, чем можно пожертвовать: «Антигенерация» и
-   «Пикалка» и без подписи не путаются. */
-@media (max-width: 1500px) {
-  .siteHeaderShell .navGroup__label,
-  .shell > .topbar .navGroup__label { display: none; }
-  .siteHeaderShell .navGroup,
-  .shell > .topbar .navGroup { padding-left: 5px; }
-}
-
 @media (max-width: 900px) {
-  .siteHeaderShell .siteNav,
-  .shell > .topbar .siteNav { gap: 8px; }
-  /* Метка скрыта, слева стоит сама вкладка со своим полем — значит и отступ
-     группы должен быть таким же, как справа, иначе ряд уезжает вбок. */
-  .siteHeaderShell .navGroup,
-  .shell > .topbar .navGroup { padding-left: 5px; }
-  .siteHeaderShell .navGroup__label,
-  .shell > .topbar .navGroup__label { display: none; }
   .siteHeaderShell .navLink,
   .shell > .topbar .navLink,
   .siteHeaderShell .navAdmin,
@@ -315,6 +296,9 @@ body[data-mode="dashboard"] > header {
     grid-template-columns: repeat(2,minmax(0,1fr));
     gap: 5px;
     width: 100%;
+    /* Разделительная черта — приём горизонтального ряда. В раскрытом меню
+       группы идут строками, и она резала бы блок сбоку. */
+    margin-left: 0;
     padding: 5px;
     border: 0;
     background: rgba(255,255,255,.025);
@@ -451,10 +435,6 @@ body { font-weight: 500; }
   .heroStock h1, .heroFunnel h1, .agHero h1 { font-size: clamp(28px, 8vw, 40px); }
 }
 
-/* Кабинет и выход — такая же группа, как разделы: без метки слева, потому что
-   подписывать эти две кнопки нечем и незачем. */
-.siteHeaderShell .navGroup--account,
-.shell > .topbar .navGroup--account { padding-left: 5px; }
 
 /* Шапка держится за верх окна.
  *
