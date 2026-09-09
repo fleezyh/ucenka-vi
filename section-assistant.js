@@ -79,7 +79,7 @@
     const clone = document.body.cloneNode(true);
     clone.querySelectorAll(".sectionAssistantRoot, script, style, noscript").forEach((node) => node.remove());
     const text = (clone.innerText || clone.textContent || "").replace(/\n{3,}/g, "\n\n").trim();
-    return `Страница: ${document.title}\nАдрес: ${location.pathname}${location.hash}\n\n${text}`.slice(0, 30000);
+    return `Страница: ${document.title}\nАдрес: ${location.pathname}${location.hash}\n\n${text}`.slice(0, 12000);
   }
   function open() {
     modal.hidden = false;
@@ -121,8 +121,7 @@
       thinking.content = data.answer || "Ответ пуст.";
       delete thinking.temporary;
     } catch (error) {
-      thinking.content = error.message === "Помощник выключен администратором"
-        ? error.message : "Не получилось получить ответ. Попробуйте ещё раз через минуту.";
+      thinking.content = `Не получилось: ${error.message || "неизвестная ошибка"}`;
       console.error("section assistant failed", error);
     } finally {
       submit.disabled = input.disabled = false;

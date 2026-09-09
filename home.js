@@ -149,7 +149,7 @@
     assistantInput.disabled = true;
     try {
       const previous = assistantHistory.slice(-8);
-      const pageText = document.body.innerText.replace(/\n{3,}/g, "\n\n").slice(0, 20000);
+      const pageText = document.body.innerText.replace(/\n{3,}/g, "\n\n").slice(0, 10000);
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -168,7 +168,7 @@
       assistantHistory = assistantHistory.slice(-20);
       sessionStorage.setItem("home-assistant-history", JSON.stringify(assistantHistory));
     } catch (error) {
-      assistantReply.textContent = "Не удалось получить ответ. Попробуйте ещё раз через минуту.";
+      assistantReply.textContent = `Не получилось: ${error.message || "неизвестная ошибка"}`;
       console.error("assistant request failed", error);
     } finally {
       assistantReply.classList.remove("is-thinking");
