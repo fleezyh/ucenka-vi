@@ -87,9 +87,11 @@ body[data-mode="dashboard"] > header {
   color: #f2f6fb;
   background: transparent;
   font-family: inherit;
-  font-size: 19px;
+  /* Марка — единственное, что держит левый край шапки; рядом с плашкой
+     навигации она выглядела мелочью. */
+  font-size: 24px;
   font-weight: 600;
-  letter-spacing: -.01em;
+  letter-spacing: -.015em;
   line-height: 1;
   text-decoration: none;
 }
@@ -98,9 +100,9 @@ body[data-mode="dashboard"] > header {
 .shell > .topbar .brand__mark {
   display: block;
   flex: 0 0 auto;
-  width: 27px;
-  height: 27px;
-  border-radius: 6px;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
   box-shadow: 0 0 0 1px rgba(255,255,255,.08), 0 5px 16px rgba(214,0,0,.22);
 }
 
