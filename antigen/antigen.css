@@ -374,7 +374,8 @@ body[data-mode="antigen"] .shell {
 .agTable { display: flex; flex-direction: column; gap: 2px; }
 .agRow {
   display: grid;
-  grid-template-columns: 14px minmax(0, 1fr) 110px 96px 92px;
+  /* Последняя колонка — «убрать из общего числа». */
+  grid-template-columns: 14px minmax(0, 1fr) 110px 96px 92px 26px;
   align-items: center;
   gap: 10px;
   padding: 7px 10px;
@@ -400,6 +401,46 @@ body[data-mode="antigen"] .shell {
 .agRow--head { cursor: default; font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); background: none; }
 .agRow--head:hover { border-color: transparent; }
 .agRow--head .agRow__val, .agRow--head .agRow__delta { font-weight: 500; font-size: 11.5px; }
+
+/* Минус у строки: вычесть её из общего числа и посмотреть, что останется.
+   Держим тихим — это не основное действие, основное здесь провалиться. */
+.agRow__minus {
+  width: 24px; height: 24px; padding: 0;
+  border: 1px solid var(--line); border-radius: 7px;
+  background: none; color: var(--muted);
+  font: inherit; font-size: 16px; line-height: 1;
+  opacity: .45; cursor: pointer;
+  transition: opacity .14s ease, border-color .14s ease, color .14s ease;
+}
+.agRow:hover .agRow__minus { opacity: 1; }
+.agRow__minus:hover { border-color: var(--red); color: #ffc0ca; opacity: 1; }
+.agRow--head .agRow__minus { display: none; }
+
+/* Разрез, в который стоит заглянуть следующим. */
+.agDim--hint { border-style: dashed; border-color: var(--blue); color: var(--blue); }
+.agDimHint { align-self: center; margin-left: 4px; color: var(--muted); font-size: 12.5px; }
+
+.agCrumb--minus { border-color: rgba(240, 93, 114, .42); color: #ffc0ca; background: rgba(240, 93, 114, .08); }
+.agCrumb--minus em { color: rgba(255, 192, 202, .72); }
+.agCrumb--search { border-color: rgba(77, 141, 247, .42); background: rgba(77, 141, 247, .08); }
+.agCrumb--reset { margin-left: auto; border-style: dashed; color: var(--muted); }
+.agCrumb--reset:hover { border-color: var(--blue); color: var(--text); }
+
+/* Поиск по товару: одно поле, влияющее на весь экран. */
+.agSearch {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  margin: 0 0 18px; padding: 12px 16px;
+  border: 1px solid var(--line); border-radius: 14px; background: var(--panel-soft);
+}
+.agSearch__label { color: var(--muted); font-size: 11.5px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; }
+.agSearch__input {
+  flex: 1 1 320px; min-width: 0; min-height: 42px;
+  padding: 8px 14px; border: 1px solid var(--line); border-radius: 11px;
+  background: rgba(7, 12, 18, .72); color: var(--text); font: inherit; font-size: 15px;
+}
+.agSearch__input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 4px rgba(77, 141, 247, .16); }
+.agSearch__note { color: var(--muted); font-size: 12.5px; }
+.agSearch__note--empty { color: #ffc0ca; }
 
 .agEmpty { color: var(--muted); font-size: 14px; padding: 18px 4px; }
 

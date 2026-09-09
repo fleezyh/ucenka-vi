@@ -113,6 +113,11 @@
     step: 'week',
     point: null,       // ключ выбранной точки на оси
     filters: [],
+    // Что выкинуто из общего числа: «если мы решим вот это — как будет
+    // выглядеть остальное». Исключение сильнее фильтра и действует на всё
+    // сразу: динамику, карту и разбор.
+    exclude: [],
+    search: '',        // слово из названия товара, артикула или бренда
     drillDim: null,
     heatDim: null,
   };
@@ -343,9 +348,49 @@
     });
   }
 
+  /* Единственное место, где решается, попадает строка в счёт или нет.
+   *
+   * Через него проходят и динамика, и карта, и разбор — поэтому поиск по
+   * товару и режим исключения достаточно добавить сюда, и подстроится сразу
+   * весь экран, а не одна таблица.
+   */
   function matches(data, row) {
+    if (state.exclude.length && state.exclude.some(({ dim, label }) =>
+      data.labels[dim] && data.labels[dim][row[data.dimAt[dim]]] === label)) return false;
+    if (searchSet && data.dimAt.tovar !== undefined
+      && !searchSet.has(row[data.dimAt.tovar])) return false;
     return state.filters.every(({ dim, label }) =>
       data.labels[dim] && data.labels[dim][row[data.dimAt[dim]]] === label);
+  }
+
+  /* Поиск по товару.
+   *
+   * Строк в контуре сотни тысяч, а названий товара — десятки, поэтому ищем
+   * один раз по справочнику названий и запоминаем номера подошедших. Дальше
+   * проверка каждой строки — это заглядывание в множество.
+   */
+  let searchSet = null;
+  let searchKey = '';
+
+  function buildSearchSet(data) {
+    const words = state.search.trim().toLocaleLowerCase('ru-RU').split(/\s+/).filter(Boolean);
+    const key = `${state.contour}|${words.join(' ')}`;
+    if (key === searchKey) return;
+    searchKey = key;
+    if (!words.length || data.dimAt.tovar === undefined) { searchSet = null; return; }
+
+    const names = data.labels.tovar || [];
+    searchSet = new Set();
+    names.forEach((name, at) => {
+      let hay = name.toLocaleLowerCase('ru-RU');
+      // Артикул и бренд человек тоже вводит как «ключевое слово».
+      const card = data.tovarInfo && data.tovarAt ? data.tovarInfo[data.tovarAt.get(name)] : null;
+      if (card) {
+        const brand = data.tovarBooks && data.tovarBooks.brand ? data.tovarBooks.brand[card[1]] : '';
+        hay += ` ${String(card[0] || '')} ${String(brand || '').toLocaleLowerCase('ru-RU')}`;
+      }
+      if (words.every((word) => hay.includes(word))) searchSet.add(at);
+    });
   }
 
   function total(data, rows, measure) {
@@ -410,6 +455,11 @@
     state.contour = key;
     state.measure = contour.measures[0].key;
     state.filters = filters || [];
+    // Исключения и поиск заданы разрезами прежнего контура — в новом их нет.
+    state.exclude = [];
+    state.search = '';
+    const field = el('agSearchInput');
+    if (field) field.value = '';
     state.drillDim = contour.dims.find((d) => !state.filters.some((f) => f.dim === d.key)).key;
     state.heatDim = contour.dims[0].key;
     render();
@@ -725,6 +775,26 @@
 
   // ----------------------------------------------------------------- провал
 
+  /** Поле поиска: есть только там, где у контура вообще есть номенклатура. */
+  function renderSearch(data) {
+    const box = el('agSearch');
+    if (!box) return;
+    if (data.dimAt.tovar === undefined) { box.hidden = true; return; }
+    box.hidden = false;
+    const note = el('agSearchNote');
+    if (!note) return;
+    if (!state.search.trim()) {
+      note.textContent = `в контуре ${fmtInt((data.labels.tovar || []).length)} позиций`;
+      note.classList.remove('agSearch__note--empty');
+      return;
+    }
+    const found = searchSet ? searchSet.size : 0;
+    note.textContent = found
+      ? `подошло ${fmtInt(found)} ${plural(found, 'позиция', 'позиции', 'позиций')} — весь экран считается по ним`
+      : 'ничего не нашлось — экран пустой, снимите поиск';
+    note.classList.toggle('agSearch__note--empty', !found);
+  }
+
   function renderCrumbs(contour, points) {
     const box = el('agCrumbs');
     box.innerHTML = '';
@@ -747,6 +817,55 @@
       });
       box.appendChild(crumb);
     });
+
+    // Исключения живут отдельной строкой: это не «куда мы провалились», а «что
+    // мы мысленно вычли из общего числа».
+    state.exclude.forEach((item, position) => {
+      const dim = contour.dims.find((d) => d.key === item.dim);
+      const crumb = document.createElement('button');
+      crumb.type = 'button';
+      crumb.className = 'agCrumb agCrumb--minus';
+      crumb.innerHTML = `<em>без · ${dim ? dim.label : item.dim}</em>`
+        + `<b>${escape(item.label)}</b><em>✕</em>`;
+      crumb.title = 'вернуть в общий счёт';
+      crumb.addEventListener('click', () => {
+        state.exclude = state.exclude.filter((_, i) => i !== position);
+        render();
+      });
+      box.appendChild(crumb);
+    });
+
+    if (state.search) {
+      const crumb = document.createElement('button');
+      crumb.type = 'button';
+      crumb.className = 'agCrumb agCrumb--search';
+      crumb.innerHTML = `<em>поиск</em><b>${escape(state.search)}</b><em>✕</em>`;
+      crumb.title = 'снять поиск';
+      crumb.addEventListener('click', () => {
+        state.search = '';
+        const field = el('agSearchInput');
+        if (field) field.value = '';
+        render();
+      });
+      box.appendChild(crumb);
+    }
+
+    if (state.filters.length || state.exclude.length || state.search || state.point) {
+      const reset = document.createElement('button');
+      reset.type = 'button';
+      reset.className = 'agCrumb agCrumb--reset';
+      reset.textContent = 'сбросить всё';
+      reset.addEventListener('click', () => {
+        state.filters = [];
+        state.exclude = [];
+        state.search = '';
+        state.point = null;
+        const field = el('agSearchInput');
+        if (field) field.value = '';
+        render();
+      });
+      box.appendChild(reset);
+    }
   }
 
   function donut(entries, measure, onPick) {
@@ -787,17 +906,51 @@
     dims.innerHTML = '';
     const used = new Set(state.filters.map((f) => f.dim));
     const open = contour.dims.filter((dim) => !used.has(dim.key));
-    if (!open.some((dim) => dim.key === state.drillDim)) state.drillDim = open.length ? open[0].key : null;
+    const measureNow = measureOf(contour);
+    const currentPoint = state.point ? points.find((p) => p.key === state.point) : null;
+    const scopeNow = currentPoint ? currentPoint.rows : points.flatMap((p) => p.rows);
+
+    // Куда осмысленно проваливаться дальше. Раньше после провала брался просто
+    // следующий разрез по списку — часто он оказывался ровным, и человек видел
+    // десяток одинаковых строк вместо причины. Считаем, насколько разрез
+    // расслаивает выбранный кусок: доля самого крупного значения.
+    const ranked = open.map((dim) => {
+      const map = breakdown(src, scopeNow, dim.key, measureNow.key);
+      const values = [...map.values()].sort((a, b) => b - a);
+      const sum = values.reduce((acc, v) => acc + v, 0) || 1;
+      return { dim, size: map.size, share: values.length ? values[0] / sum : 0 };
+    }).filter((item) => item.size > 1);
+    // На два-три значения перекос почти всегда есть — так устроены служебные
+    // поля вроде модели учёта. Подсказывать имеет смысл разрез, где выбор
+    // действительно широкий, а перевес всё равно нашёлся.
+    const best = ranked.filter((item) => item.size >= 4)
+      .sort((a, b) => b.share - a.share)[0] || null;
+
+    if (!open.some((dim) => dim.key === state.drillDim)) {
+      state.drillDim = best ? best.dim.key : (open.length ? open[0].key : null);
+    }
 
     open.forEach((dim) => {
       const chip = document.createElement('button');
       chip.type = 'button';
       chip.className = 'agDim';
       chip.textContent = dim.label;
+      const rank = ranked.find((item) => item.dim.key === dim.key);
+      if (rank) chip.title = `${rank.size} значений, крупнейшее — ${(rank.share * 100).toFixed(0)}%`;
+      if (best && dim.key === best.dim.key && dim.key !== state.drillDim) {
+        chip.classList.add('agDim--hint');
+      }
       chip.setAttribute('aria-selected', String(dim.key === state.drillDim));
       chip.addEventListener('click', () => { state.drillDim = dim.key; render(); });
       dims.appendChild(chip);
     });
+
+    if (best && best.dim.key !== state.drillDim && best.share >= 0.5) {
+      const tip = document.createElement('span');
+      tip.className = 'agDimHint';
+      tip.textContent = `здесь заметнее: ${best.dim.label} — ${(best.share * 100).toFixed(0)}% в одном значении`;
+      dims.appendChild(tip);
+    }
 
 
     const box = el('agTable');
@@ -851,7 +1004,8 @@
     header.innerHTML = `<span></span><span class="agRow__name">${label} · ${rows.length}</span>`
       + '<span class="agRow__bar"></span>'
       + `<span class="agRow__val">${measure.label}</span>`
-      + `<span class="agRow__delta">${current ? 'к медиане' : 'доля'}</span>`;
+      + `<span class="agRow__delta">${current ? 'к медиане' : 'доля'}</span>`
+      + '<span></span>';
     table.appendChild(header);
 
     // Одни названия номенклатуры нечитаемы: половина начинается одинаково.
@@ -870,8 +1024,7 @@
     const sum = rows.reduce((acc, row) => acc + row.value, 0) || 1;
     const peak = rows[0].value || 1;
     rows.slice(0, 40).forEach((row, i) => {
-      const item = document.createElement('button');
-      item.type = 'button';
+      const item = document.createElement('div');
       item.className = 'agRow';
       let right = `${((row.value / sum) * 100).toFixed(1).replace('.', ',')}%`;
       let tone = '';
@@ -886,8 +1039,15 @@
         + `${tovarMeta(row.name)}</span>`
         + `<span class="agRow__bar"><i style="--w:${(row.value / peak) * 100}%"></i></span>`
         + `<span class="agRow__val">${fmt(row.value, measure.kind)}</span>`
-        + `<span class="agRow__delta ${tone}">${right}</span>`;
-      item.addEventListener('click', () => {
+        + `<span class="agRow__delta ${tone}">${right}</span>`
+        // Вычесть строку из общего числа: «допустим, это мы починили».
+        + '<button type="button" class="agRow__minus" title="убрать из общего числа">−</button>';
+      item.addEventListener('click', (event) => {
+        if (event.target.closest('.agRow__minus')) {
+          state.exclude = state.exclude.concat({ dim: state.drillDim, label: row.name });
+          render();
+          return;
+        }
         state.filters = state.filters.concat({ dim: state.drillDim, label: row.name });
         render();
       });
@@ -1025,6 +1185,8 @@
     segment(el('agStep'), STEPS, state.step, (key) => { state.step = key; state.point = null; render(); });
 
     const data = await loadContour(state.contour);
+    buildSearchSet(data);
+    renderSearch(data);
     const points = pointsOf(data, periodMonths(data));
     if (state.point && !points.some((p) => p.key === state.point)) state.point = null;
     const measure = measureOf(contour);
@@ -1044,8 +1206,24 @@
     el('agExport').onclick = () => exportXlsx(data, contour, points);
   }
 
+  function setupSearch() {
+    const field = el('agSearchInput');
+    if (!field) return;
+    let timer = null;
+    field.addEventListener('input', () => {
+      clearTimeout(timer);
+      // Пересчёт задевает весь экран, поэтому ждём, пока человек допечатает.
+      timer = setTimeout(() => {
+        state.search = field.value;
+        state.point = null;
+        render();
+      }, 280);
+    });
+  }
+
   async function start() {
     setupRoadmapToggle();
+    setupSearch();
     renderRoadmap();
     try {
       index = await fetch(DATA_DIR + 'index.json', { cache: 'no-cache' }).then((r) => r.json());
