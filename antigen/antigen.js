@@ -1294,6 +1294,83 @@
     });
   }
 
+  // Компактная витрина для помощника. В модель уходит не 20 МБ строк, а точные
+  // агрегаты из уже загруженного браузером набора: месяцы, регионы, дефекты и
+  // текущий выбранный контур. Поэтому вопросы по скрытым разрезам не зависят от
+  // того, успела ли нужная строка попасть в видимый текст страницы.
+  window.__sectionAssistantContext = async (question = '') => {
+    if (!index) return '';
+    const query = String(question).toLocaleLowerCase('ru-RU');
+    const official = await loadContour('zabr');
+    const dims = official.dimAt;
+    const measures = official.measureAt;
+    const label = (dim, row) => official.labels[dim][row[dims[dim]]];
+    const totals = (rows) => ({
+      строк: rows.reduce((sum, row) => sum + Number(row[measures.strok] || 0), 0),
+      розница_руб: Math.round(rows.reduce((sum, row) => sum + Number(row[measures.rrc] || 0), 0)),
+      себестоимость_руб: Math.round(rows.reduce((sum, row) => sum + Number(row[measures.sebes] || 0), 0)),
+    });
+    const top = (rows, dim, measure = 'strok', limit = 12) => {
+      const map = new Map();
+      rows.forEach((row) => {
+        const name = label(dim, row) || 'BLANK';
+        map.set(name, (map.get(name) || 0) + Number(row[measures[measure]] || 0));
+      });
+      return [...map].sort((a, b) => b[1] - a[1]).slice(0, limit)
+        .map(([name, value]) => `${name}: ${Math.round(value)}`).join('; ');
+    };
+    const monthPatterns = [/январ/, /феврал/, /март/, /апрел/, /(^|\s)ма[йея]?(\s|$)/, /июн/, /июл/, /август/, /сентябр/, /октябр/, /ноябр/, /декабр/];
+    const monthNo = monthPatterns.findIndex((pattern) => pattern.test(query));
+    const explicitYear = query.match(/20\d{2}/)?.[0];
+    const latestYear = official.months.at(-1)?.slice(0, 4) || String(new Date().getFullYear());
+    const targetMonth = monthNo >= 0 ? `${explicitYear || latestYear}-${String(monthNo + 1).padStart(2, '0')}` : '';
+    const targetRegion = (official.labels.region || []).find((name) => query.includes(String(name).toLocaleLowerCase('ru-RU'))) || '';
+    const targetDefect = (official.labels.defekt || []).find((name) => query.includes(String(name).toLocaleLowerCase('ru-RU'))) || '';
+    const filterRows = (month = '', region = '', defect = '') => official.rows.filter((row) =>
+      (!month || label('month', row) === month) &&
+      (!region || label('region', row) === region) &&
+      (!defect || label('defekt', row) === defect));
+    const all = official.rows;
+    const scoped = filterRows(targetMonth, targetRegion, targetDefect);
+    const scopeBase = filterRows(targetMonth, targetRegion, '');
+    const companyBase = filterRows(targetMonth, '', '');
+    const scopedTotals = totals(scoped);
+    const baseTotals = totals(scopeBase);
+    const companyTotals = totals(companyBase);
+    const share = (value, base) => base ? Math.round(value / base * 10000) / 100 : null;
+
+    const current = await loadContour(state.contour);
+    const currentContour = contourDef();
+    const currentMeasure = measureOf(currentContour);
+    const currentPoints = pointsOf(current, periodMonths(current));
+    const currentRows = currentPoints.flatMap((point) => point.rows).filter((row) => matches(current, row));
+    const currentTop = currentContour.dims.slice(0, 5).map((dim) => {
+      const at = current.dimAt[dim.key];
+      const mat = current.measureAt[currentMeasure.key];
+      const map = new Map();
+      currentRows.forEach((row) => {
+        const name = current.labels[dim.key][row[at]] || 'BLANK';
+        map.set(name, (map.get(name) || 0) + Number(row[mat] || 0));
+      });
+      return `${dim.label}: ${[...map].sort((a, b) => b[1] - a[1]).slice(0, 8).map(([name, value]) => `${name}=${Math.round(value)}`).join('; ')}`;
+    });
+
+    return [
+      'Методика: официальный набор содержит только строки признанного брака. Долю брака от всех продаж или операций по региону без отдельного знаменателя считать нельзя. Ниже доли означают долю региона/дефекта внутри официального брака.',
+      `Запрошенный срез: месяц=${targetMonth || 'не указан'}, регион=${targetRegion || 'не указан'}, дефект=${targetDefect || 'не указан'}.`,
+      `Итог запрошенного среза: ${JSON.stringify(scopedTotals)}.`,
+      `Доля среза в базе региона/месяца: строки=${share(scopedTotals.строк, baseTotals.строк)}%, розница=${share(scopedTotals.розница_руб, baseTotals.розница_руб)}%, себестоимость=${share(scopedTotals.себестоимость_руб, baseTotals.себестоимость_руб)}%.`,
+      `Доля среза в общем официальном браке за тот же месяц: строки=${share(scopedTotals.строк, companyTotals.строк)}%, розница=${share(scopedTotals.розница_руб, companyTotals.розница_руб)}%, себестоимость=${share(scopedTotals.себестоимость_руб, companyTotals.себестоимость_руб)}%.`,
+      `Официальный брак — по месяцам, строки: ${top(all, 'month', 'strok', 18)}.`,
+      `Официальный брак — по регионам, строки: ${top(filterRows(targetMonth), 'region')}.`,
+      `Официальный брак — по дефектам, строки: ${top(scopeBase, 'defekt')}.`,
+      `Официальный брак — по дефектам, себестоимость: ${top(scopeBase, 'defekt', 'sebes')}.`,
+      `Официальный брак — топ товаров среза, строки: ${top(scoped, 'tovar', 'strok', 10)}.`,
+      `Текущий экран: контур=${currentContour.name}; показатель=${currentMeasure.label}; период=${periodDef().label}; фильтры=${state.filters.map((item) => item.label).join(', ') || 'нет'}.`,
+      ...currentTop,
+    ].join('\n');
+  };
+
   async function start() {
     setupRoadmapToggle();
     setupSearch();

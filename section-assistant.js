@@ -75,11 +75,19 @@
   });
   render();
 
-  function pageContext() {
+  async function pageContext(question) {
     const clone = document.body.cloneNode(true);
     clone.querySelectorAll(".sectionAssistantRoot, script, style, noscript").forEach((node) => node.remove());
     const text = (clone.innerText || clone.textContent || "").replace(/\n{3,}/g, "\n\n").trim();
-    return `Страница: ${document.title}\nАдрес: ${location.pathname}${location.hash}\n\n${text}`.slice(0, 12000);
+    let structured = "";
+    try {
+      if (typeof window.__sectionAssistantContext === "function") {
+        structured = String(await window.__sectionAssistantContext(question) || "");
+      }
+    } catch (error) {
+      console.warn("structured assistant context unavailable", error);
+    }
+    return `Страница: ${document.title}\nАдрес: ${location.pathname}${location.hash}\n\nСТРУКТУРИРОВАННЫЕ ДАННЫЕ:\n${structured || "нет"}\n\nВИДИМЫЙ ТЕКСТ:\n${text}`.slice(0, 18000);
   }
   function open() {
     modal.hidden = false;
@@ -114,7 +122,7 @@
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question, section: key, context: pageContext(), conversation_id: conversationId, history }),
+        body: JSON.stringify({ question, section: key, context: await pageContext(question), conversation_id: conversationId, history }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.detail || data.error || `HTTP ${response.status}`);
