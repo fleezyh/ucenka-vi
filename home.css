@@ -66,7 +66,7 @@ body.hasAssistantOpen{overflow:hidden}
 .homeAssistant__examples button:last-child{border-bottom:0}
 .homeAssistant__examples button::after{content:'↗';position:absolute;right:4px;color:rgba(255,255,255,.38)}
 .homeAssistant__examples button:hover{color:#fff;border-color:rgba(255,255,255,.2)}
-.homeAssistant__reply{margin:0 0 13px;padding:11px 13px;border-left:2px solid var(--green);border-radius:0 10px 10px 0;color:#cdd4dc;background:rgba(43,209,121,.07);font-size:13px;line-height:1.45}
+.homeAssistant__reply{max-height:210px;margin:0 0 13px;padding:11px 13px;overflow:auto;border-left:2px solid var(--green);border-radius:0 10px 10px 0;color:#cdd4dc;background:rgba(43,209,121,.07);font-size:13px;line-height:1.45;white-space:pre-wrap}
 .homeAssistant__reply.is-thinking{color:#9eabb9}
 .homeAssistant__reply.is-thinking::after{content:"";display:inline-block;width:5px;height:5px;margin-left:7px;border-radius:50%;background:var(--green);animation:assistantThinking .85s ease-in-out infinite alternate}
 .homeAssistant__form button:disabled{opacity:.45;cursor:wait}
