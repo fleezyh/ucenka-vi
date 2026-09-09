@@ -81,18 +81,24 @@ body[data-mode="antigen"] .shell {
 
 /* --------------------------------------------------------------- контуры */
 
+/* Контуры — один переключатель, а не четыре отдельные карточки: рамка общая,
+   как у сегментов в навигации, а выбранный контур подсвечен плашкой внутри. */
 .agContours {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-  gap: 10px;
+  gap: 4px;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(8, 13, 20, .6);
 }
 .agContour {
   appearance: none;
   text-align: left;
   cursor: pointer;
-  border: 1px solid var(--line);
+  border: 1px solid transparent;
   border-radius: 14px;
-  background: #101823;
+  background: none;
   color: var(--text);
   font: inherit;
   padding: 12px 14px;
@@ -101,7 +107,7 @@ body[data-mode="antigen"] .shell {
   gap: 3px;
   transition: border-color .15s, background .15s;
 }
-.agContour:hover { border-color: var(--line-strong); }
+.agContour:hover { background: rgba(255, 255, 255, .05); }
 .agContour[aria-selected="true"] {
   border-color: var(--blue);
   background: #16233a;
