@@ -454,6 +454,13 @@ body { font-weight: 500; }
      просвечивал контент. */
   width: calc(100% + var(--site-gutter) * 2);
   padding: 10px var(--site-gutter);
+  /* Пока страница не прокручена, шапка сливается с фоном раздела — тёмная
+     перекладина поверх бордового градиента выглядела инородной. Затемнение
+     появляется, только когда под шапку заезжает содержимое. */
+  background: transparent;
+  transition: background .2s ease, backdrop-filter .2s ease;
+}
+.shell > .topbar.is-stuck {
   background: rgba(8, 13, 20, .82);
   backdrop-filter: blur(18px) saturate(140%);
   -webkit-backdrop-filter: blur(18px) saturate(140%);

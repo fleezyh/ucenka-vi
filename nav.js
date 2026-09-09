@@ -33,6 +33,15 @@
   matchMedia("(min-width: 641px)").addEventListener("change", (event) => {
     if (event.matches) setOpen(false);
   });
+
+  /* Затемнение под шапкой — только когда под неё заехало содержимое.
+   * Наверху страницы она должна быть частью фона раздела, а не полосой. */
+  const bar = document.querySelector(".shell > .topbar");
+  if (bar) {
+    const sync = () => bar.classList.toggle("is-stuck", window.scrollY > 8);
+    sync();
+    window.addEventListener("scroll", sync, { passive: true });
+  }
 })();
 
 /* Блок входа в шапке.
