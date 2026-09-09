@@ -308,8 +308,44 @@ body[data-mode="dashboard"] > header {
   .shell > .topbar .siteNav.is-open .navGroup__label { display: block; grid-column: 1 / -1; padding: 4px 7px 1px; }
   .siteHeaderShell .siteNav.is-open .navLink,
   .shell > .topbar .siteNav.is-open .navLink { justify-content: center; min-width: 0; padding-inline: 8px; white-space: normal; text-align: center; }
+  /* В группе «Инструменты» одна вкладка. В сетке из двух колонок она занимала
+     левую половину, а правая оставалась дырой. Одиночная вкладка идёт во всю
+     ширину — ряд читается как ряд, а не как обрубок. */
+  .siteHeaderShell .siteNav.is-open .navGroup a:only-of-type,
+  .shell > .topbar .siteNav.is-open .navGroup a:only-of-type { grid-column: 1 / -1; }
   .siteHeaderShell .siteNav.is-open .navAdmin,
   .shell > .topbar .siteNav.is-open .navAdmin { grid-column: 1 / -1; justify-content: center; }
+
+  /* Свой блок в меню, а не приклеенная сбоку рамка: имя сверху, действия под
+     ним — так же, как устроены остальные группы. */
+  .siteHeaderShell .siteNav.is-open .navAccount,
+  .shell > .topbar .siteNav.is-open .navAccount {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(2,minmax(0,1fr));
+    gap: 5px;
+    width: 100%;
+    padding: 5px;
+    border: 0;
+    border-radius: 13px;
+    background: rgba(255,255,255,.025);
+  }
+  .siteHeaderShell .siteNav.is-open .navAccount__who,
+  .shell > .topbar .siteNav.is-open .navAccount__who {
+    display: block;
+    grid-column: 1 / -1;
+    padding: 4px 7px 1px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .siteHeaderShell .siteNav.is-open .navAccount__link,
+  .shell > .topbar .siteNav.is-open .navAccount__link {
+    justify-content: center;
+    min-height: 44px;
+    border-radius: 11px;
+    background: rgba(255,255,255,.06);
+    font-size: 15px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
