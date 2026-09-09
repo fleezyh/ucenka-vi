@@ -465,13 +465,47 @@
       box.dataset.ready = '1';
     }
 
-    box.style.setProperty('--i', at);
     box.querySelectorAll('.agContour').forEach((button) => {
       button.setAttribute('aria-selected', String(button.dataset.key === state.contour));
+    });
+    moveLens(box, at);
+  }
+
+  /** Линза встаёт ровно на выбранную кнопку — где бы та ни оказалась. */
+  function moveLens(box, at) {
+    const lens = box.querySelector('.agContours__lens');
+    const button = box.querySelectorAll('.agContour')[at];
+    if (!lens || !button) return;
+    // Прямые свойства, а не переменные: инлайн-стиль бьёт любой каскад, и
+    // линза не зависит от того, какой файл стилей браузер достал из кэша.
+    lens.style.left = `${button.offsetLeft}px`;
+    lens.style.top = `${button.offsetTop}px`;
+    lens.style.width = `${button.offsetWidth}px`;
+    lens.style.height = `${button.offsetHeight}px`;
+    lens.classList.add('agContours__lens--ready');
+  }
+
+  /* Появление блоков после смены контура.
+   *
+   * Класс снимается и ставится заново через кадр — иначе браузер не считает
+   * анимацию новой и не проигрывает её второй раз подряд.
+   */
+  let pendingEnter = false;
+
+  function playEnter() {
+    const boxes = [el('agGoals'), el('agSearch'), ...document.querySelectorAll('.agPanel')]
+      .filter((box) => box && !box.hidden);
+    boxes.forEach((box) => {
+      box.classList.remove('is-entering');
+      // Заставляем браузер пересчитать стиль прямо сейчас: без этого он не
+      // считает анимацию новой и подряд второй раз её не проигрывает.
+      void box.offsetWidth;
+      box.classList.add('is-entering');
     });
   }
 
   function switchContour(key, filters) {
+    if (key !== state.contour) pendingEnter = true;
     const contour = CONTOURS.find((c) => c.key === key);
     state.contour = key;
     state.measure = contour.measures[0].key;
@@ -1225,6 +1259,11 @@
       + `<br>история: <b>${data.weeks.length} ${plural(data.weeks.length, 'неделя', 'недели', 'недель')}</b>`;
     el('agSuperset').href = `${SUPERSET}/explore/?slice_id=${contour.chart}`;
     el('agExport').onclick = () => exportXlsx(data, contour, points);
+
+    if (pendingEnter) {
+      pendingEnter = false;
+      playEnter();
+    }
   }
 
   function setupSearch() {

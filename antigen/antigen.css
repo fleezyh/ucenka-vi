@@ -97,17 +97,26 @@ body[data-mode="antigen"] .shell {
   background: rgba(15, 14, 20, .88);
   overflow: hidden;
 }
+/* Положение линзы задаёт JS по реальной геометрии выбранной кнопки: контуров
+   четыре, и на узком экране они переносятся во второй ряд — проценты там
+   указывали бы мимо. */
 .agContours__lens {
   position: absolute;
   z-index: -1;
-  inset: 7px auto 7px 7px;
-  width: calc((100% - 14px) / var(--n, 4));
+  top: 7px;
+  left: 7px;
+  width: 0;
+  height: 0;
   border: 1px solid rgba(255, 255, 255, .24);
   border-radius: 18px;
   background: rgba(255, 255, 255, .13);
-  transform: translateX(calc(var(--i, 0) * 100%));
-  transition: transform .42s cubic-bezier(.22, 1, .36, 1), background .3s ease;
+  /* До первого замера размеры нулевые — не показываем огрызок в углу. */
+  opacity: 0;
+  transition: top .42s cubic-bezier(.22, 1, .36, 1), left .42s cubic-bezier(.22, 1, .36, 1),
+              width .42s cubic-bezier(.22, 1, .36, 1), height .42s cubic-bezier(.22, 1, .36, 1),
+              opacity .2s ease;
 }
+.agContours__lens--ready { opacity: 1; }
 .agContour {
   position: relative;
   z-index: 1;
@@ -130,16 +139,21 @@ body[data-mode="antigen"] .shell {
 .agContour[aria-selected="true"] { color: #fff; }
 .agContour[aria-selected="true"] .agContour__note { color: rgba(255, 255, 255, .72); }
 
-/* Узко — колонки переносятся, и линза перестаёт попадать в кнопку. Тогда
-   отмечаем выбранный обычной плашкой. */
+/* Смена контура — это смена всего экрана, поэтому блоки въезжают так же, как
+   панели на главной: снизу, с лёгким масштабом, за ту же долю секунды. */
+.agGoals.is-entering,
+.agSearch.is-entering,
+.agPanel.is-entering { animation: agPanelIn .42s cubic-bezier(.22, 1, .36, 1); }
+@keyframes agPanelIn { from { opacity: 0; transform: translateY(12px) scale(.99); } }
+@media (prefers-reduced-motion: reduce) {
+  .agGoals.is-entering, .agSearch.is-entering, .agPanel.is-entering { animation: none; }
+  .agContours__lens { transition: none; }
+}
+
+/* Узко — колонки переносятся в несколько рядов; линза едет за кнопкой и туда,
+   потому что положение считается по её фактической геометрии. */
 @media (max-width: 900px) {
   .agContours { grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 4px; }
-  .agContours__lens { display: none; }
-  .agContour[aria-selected="true"] {
-    border-radius: 17px;
-    background: rgba(255, 255, 255, .13);
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .24);
-  }
 }
 .agContour__name { font-weight: 600; font-size: 15.5px; }
 .agContour__note { font-size: 12.5px; color: var(--muted); }
