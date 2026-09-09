@@ -503,6 +503,43 @@ body[data-mode="antigen"] .shell {
 @media (max-width: 900px) {
   .agFireRow { grid-template-columns: 104px minmax(0, 1fr) 84px; }
   .agFireRow__bar { display: none; }
-  .agRow { grid-template-columns: 14px minmax(0, 1fr) 92px 78px; }
+  .agRow { grid-template-columns: 14px minmax(0, 1fr) 92px 78px 26px; }
   .agRow__bar { display: none; }
+  /* Наводить нечем — минус виден всегда. */
+  .agRow__minus { opacity: 1; }
+}
+
+/* На телефоне колонка минуса съедала место у названия, и вместо «Центр-ДМД»
+   оставалось «Це…». Поджимаем числа и сам минус, ширина уходит имени. */
+@media (max-width: 560px) {
+  .agRow { grid-template-columns: 12px minmax(0, 1fr) 74px 52px 24px; gap: 8px; padding: 7px 8px; }
+  .agRow__val { font-size: 14px; }
+  .agRow__delta { font-size: 12px; }
+  .agRow__minus { width: 22px; height: 22px; font-size: 15px; }
+}
+
+/* На телефоне отметка о данных и «Старая версия» уезжают вниз страницы: в
+   шапке они висели сбоку от заголовка и ломали ряд. Переносит их скрипт —
+   потому что порядком в CSS элемент из своего блока не вынести. */
+@media (max-width: 860px) {
+  .agHeroSide {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .agStamp { flex: 1 1 220px; text-align: left; }
+}
+
+@media (max-width: 640px) {
+  /* Между маркой и заголовком было под сорок пикселей: собственный отступ
+     шапки складывался с промежутком колонки. Оставляем один. */
+  body[data-mode="antigen"] .shell { gap: 12px; }
+  /* Селектор с .nav-enhanced — не украшение: в site-header.css отступ шапки
+     задан через `body.nav-enhanced .shell > .topbar`, вес тот же, а файл
+     подключён позже. Без этого класса правило ниже просто проигрывало. */
+  body[data-mode="antigen"].nav-enhanced .shell > .topbar,
+  body[data-mode="antigen"] .shell > .topbar { margin-bottom: 4px; }
+  .agHero { gap: 10px; }
 }

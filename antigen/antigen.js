@@ -1266,6 +1266,22 @@
     }
   }
 
+  /* Отметка о данных и «Старая версия».
+   *
+   * На широком экране они стоят справа от заголовка, на телефоне — уезжают в
+   * самый низ, к подписи. В шапке они занимали половину экрана рядом с
+   * названием раздела и разваливали ряд.
+   */
+  function placeHeroSide() {
+    const side = document.querySelector('.agHeroSide');
+    const hero = document.querySelector('.agHero');
+    const foot = document.querySelector('.agFoot');
+    if (!side || !hero || !foot) return;
+    const narrow = window.matchMedia('(max-width: 860px)').matches;
+    if (narrow && side.parentElement !== foot) foot.insertAdjacentElement('afterbegin', side);
+    if (!narrow && side.parentElement !== hero) hero.appendChild(side);
+  }
+
   function setupSearch() {
     const field = el('agSearchInput');
     if (!field) return;
@@ -1284,6 +1300,7 @@
   async function start() {
     setupRoadmapToggle();
     setupSearch();
+    placeHeroSide();
     renderRoadmap();
     try {
       index = await fetch(DATA_DIR + 'index.json', { cache: 'no-cache' }).then((r) => r.json());
@@ -1300,6 +1317,7 @@
     // надо пересобрать — иначе он останется от прежнего размера.
     let timer = null;
     window.addEventListener('resize', () => {
+      placeHeroSide();
       clearTimeout(timer);
       timer = setTimeout(render, 200);
     });
