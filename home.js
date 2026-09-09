@@ -39,6 +39,11 @@
   const assistantDialog = assistantModal?.querySelector("[role=dialog]");
   let assistantReturnFocus = null;
   let assistantCloseTimer = 0;
+  const assistantConversationId = sessionStorage.getItem("home-assistant-id") ||
+    (crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`);
+  sessionStorage.setItem("home-assistant-id", assistantConversationId);
+  let assistantHistory = [];
+  try { assistantHistory = JSON.parse(sessionStorage.getItem("home-assistant-history") || "[]"); } catch {}
 
   function setAssistantOrigin() {
     const source = assistantOpen?.getBoundingClientRect();
@@ -143,14 +148,25 @@
     submit.disabled = true;
     assistantInput.disabled = true;
     try {
+      const previous = assistantHistory.slice(-8);
+      const pageText = document.body.innerText.replace(/\n{3,}/g, "\n\n").slice(0, 20000);
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question }),
+        body: JSON.stringify({
+          question,
+          section: "home",
+          context: `Страница: ${document.title}\n\n${pageText}`,
+          conversation_id: assistantConversationId,
+          history: previous,
+        }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.detail || data.error || `HTTP ${response.status}`);
       assistantReply.textContent = data.answer;
+      assistantHistory.push({ role: "user", content: question }, { role: "assistant", content: data.answer });
+      assistantHistory = assistantHistory.slice(-20);
+      sessionStorage.setItem("home-assistant-history", JSON.stringify(assistantHistory));
     } catch (error) {
       assistantReply.textContent = "Не удалось получить ответ. Попробуйте ещё раз через минуту.";
       console.error("assistant request failed", error);
