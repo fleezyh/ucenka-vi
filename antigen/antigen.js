@@ -434,19 +434,40 @@
     });
   }
 
+  /* Переключатель контуров.
+   *
+   * Кнопки собираются один раз, дальше меняется только положение линзы. Если
+   * перерисовывать блок целиком на каждый render, линза каждый раз рождается
+   * уже на новом месте — переход не успевает случиться, и вместо переезда
+   * получается скачок.
+   */
   function renderContours() {
     const box = el('agContours');
-    box.innerHTML = '';
-    CONTOURS.forEach((contour) => {
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'agContour';
-      button.setAttribute('aria-selected', String(contour.key === state.contour));
-      button.innerHTML = `<span class="agContour__name">${contour.name}</span>`
-        + `<span class="agContour__note">${contour.note}</span>`
-        + `<span class="agContour__id">#${contour.chart}</span>`;
-      button.addEventListener('click', () => switchContour(contour.key, []));
-      box.appendChild(button);
+    const at = Math.max(0, CONTOURS.findIndex((c) => c.key === state.contour));
+
+    if (!box.dataset.ready) {
+      box.style.setProperty('--n', CONTOURS.length);
+      const lens = document.createElement('span');
+      lens.className = 'agContours__lens';
+      lens.setAttribute('aria-hidden', 'true');
+      box.appendChild(lens);
+      CONTOURS.forEach((contour) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'agContour';
+        button.dataset.key = contour.key;
+        button.innerHTML = `<span class="agContour__name">${contour.name}</span>`
+          + `<span class="agContour__note">${contour.note}</span>`
+          + `<span class="agContour__id">#${contour.chart}</span>`;
+        button.addEventListener('click', () => switchContour(contour.key, []));
+        box.appendChild(button);
+      });
+      box.dataset.ready = '1';
+    }
+
+    box.style.setProperty('--i', at);
+    box.querySelectorAll('.agContour').forEach((button) => {
+      button.setAttribute('aria-selected', String(button.dataset.key === state.contour));
     });
   }
 

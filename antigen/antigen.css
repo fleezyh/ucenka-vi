@@ -81,36 +81,65 @@ body[data-mode="antigen"] .shell {
 
 /* --------------------------------------------------------------- контуры */
 
-/* Контуры — один переключатель, а не четыре отдельные карточки: рамка общая,
-   как у сегментов в навигации, а выбранный контур подсвечен плашкой внутри. */
+/* Контуры — один переключатель, устроенный как на главной: общая рамка, а
+   выбранный отмечен «линзой», которая переезжает к нему, а не подсветкой,
+   вспыхивающей на новом месте. Отсюда и разметка: линза лежит отдельным слоем
+   под кнопками и двигается через --i. */
 .agContours {
+  position: relative;
+  isolation: isolate;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-  gap: 4px;
-  padding: 5px;
+  grid-template-columns: repeat(var(--n, 4), 1fr);
+  gap: 0;
+  padding: 7px;
   border: 1px solid var(--line);
+  border-radius: 24px;
+  background: rgba(15, 14, 20, .88);
+  overflow: hidden;
+}
+.agContours__lens {
+  position: absolute;
+  z-index: -1;
+  inset: 7px auto 7px 7px;
+  width: calc((100% - 14px) / var(--n, 4));
+  border: 1px solid rgba(255, 255, 255, .24);
   border-radius: 18px;
-  background: rgba(8, 13, 20, .6);
+  background: rgba(255, 255, 255, .13);
+  transform: translateX(calc(var(--i, 0) * 100%));
+  transition: transform .42s cubic-bezier(.22, 1, .36, 1), background .3s ease;
 }
 .agContour {
+  position: relative;
+  z-index: 1;
   appearance: none;
   text-align: left;
   cursor: pointer;
-  border: 1px solid transparent;
-  border-radius: 14px;
+  border: 0;
+  border-radius: 17px;
   background: none;
-  color: var(--text);
+  color: var(--muted);
   font: inherit;
   padding: 12px 14px;
   display: flex;
   flex-direction: column;
   gap: 3px;
-  transition: border-color .15s, background .15s;
+  transition: color .22s ease, transform .12s ease;
 }
-.agContour:hover { background: rgba(255, 255, 255, .05); }
-.agContour[aria-selected="true"] {
-  border-color: var(--blue);
-  background: #16233a;
+.agContour:hover { color: var(--text); }
+.agContour:active { transform: scale(.985); }
+.agContour[aria-selected="true"] { color: #fff; }
+.agContour[aria-selected="true"] .agContour__note { color: rgba(255, 255, 255, .72); }
+
+/* Узко — колонки переносятся, и линза перестаёт попадать в кнопку. Тогда
+   отмечаем выбранный обычной плашкой. */
+@media (max-width: 900px) {
+  .agContours { grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 4px; }
+  .agContours__lens { display: none; }
+  .agContour[aria-selected="true"] {
+    border-radius: 17px;
+    background: rgba(255, 255, 255, .13);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .24);
+  }
 }
 .agContour__name { font-weight: 600; font-size: 15.5px; }
 .agContour__note { font-size: 12.5px; color: var(--muted); }
