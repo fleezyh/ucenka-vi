@@ -34,3 +34,32 @@
     if (event.matches) setOpen(false);
   });
 })();
+
+/* Блок входа в шапке.
+ *
+ * Сайт закрыт логином, но пока он был открыт, ничего про пользователя на
+ * странице не было: ни кто ты, ни как сменить пароль, ни как выйти. Страница
+ * смены пароля есть, но найти её можно было только по прямому адресу.
+ *
+ * Гейт отвечает на /__me именем и ролью; если ответа нет — блок просто не
+ * появляется, и на локальной копии сайта ничего не меняется.
+ */
+(() => {
+  "use strict";
+  const nav = document.querySelector(".siteNav, .site-nav__actions");
+  if (!nav) return;
+
+  fetch("/__me", { credentials: "same-origin" })
+    .then((response) => (response.ok ? response.json() : null))
+    .then((user) => {
+      if (!user || !user.login) return;
+      const box = document.createElement("span");
+      box.className = "navAccount";
+      const short = String(user.name || user.login).split(" ").slice(0, 2).join(" ");
+      box.innerHTML = `<span class="navAccount__who" title="${user.login}">${short}</span>`
+        + '<a class="navAccount__link" href="/__account/password">Пароль</a>'
+        + '<a class="navAccount__link" href="/__logout">Выйти</a>';
+      nav.appendChild(box);
+    })
+    .catch(() => {});
+})();

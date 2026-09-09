@@ -399,3 +399,20 @@ body { font-weight: 500; }
   .hero h1, .heroHeatmap h1, .heroSales h1, .heroPerf h1,
   .heroStock h1, .heroFunnel h1, .agHero h1 { font-size: clamp(28px, 8vw, 40px); }
 }
+
+/* Кто вошёл, смена пароля и выход — в самой шапке: страница смены пароля
+   существовала, но попасть на неё можно было только по прямому адресу. */
+.navAccount {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+  padding: 5px 12px 5px 14px;
+  border: 1px solid #263345;
+  border-radius: 15px;
+  background: rgba(8,13,20,.6);
+}
+.navAccount__who { color: #8f9cad; font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; }
+.navAccount__link { display: inline-flex; align-items: center; min-height: 34px; padding: 0 10px; border-radius: 10px; color: #f2f6fb; font-size: 13.5px; font-weight: 600; text-decoration: none; }
+.navAccount__link:hover { background: rgba(255,255,255,.08); }
+@media (max-width: 900px) { .navAccount__who { display: none; } }
