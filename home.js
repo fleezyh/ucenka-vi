@@ -31,6 +31,32 @@
 
   show(localStorage.getItem("home-view") || "analytics", false);
 
+  const assistantForm = document.querySelector("#homeAssistantForm");
+  const assistantInput = document.querySelector("#homeAssistantInput");
+  const assistantReply = document.querySelector("#homeAssistantReply");
+
+  document.querySelectorAll(".homeAssistant__examples button").forEach((button) => {
+    button.addEventListener("click", () => {
+      assistantInput.value = button.textContent;
+      assistantInput.focus();
+    });
+  });
+
+  assistantInput?.addEventListener("input", () => {
+    assistantInput.style.height = "auto";
+    assistantInput.style.height = `${Math.min(assistantInput.scrollHeight, 132)}px`;
+  });
+
+  assistantForm?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    if (!assistantInput.value.trim()) {
+      assistantInput.focus();
+      return;
+    }
+    assistantReply.hidden = false;
+    assistantReply.textContent = "Пока это макет: вопрос никуда не отправлен. Подключаем безопасный доступ к данным и аналитический API.";
+  });
+
   fetch("data/analytics.json", { cache: "no-store" })
     .then((response) => {
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
