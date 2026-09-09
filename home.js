@@ -129,14 +129,37 @@
     assistantInput.style.height = `${Math.min(assistantInput.scrollHeight, 132)}px`;
   });
 
-  assistantForm?.addEventListener("submit", (event) => {
+  assistantForm?.addEventListener("submit", async (event) => {
     event.preventDefault();
-    if (!assistantInput.value.trim()) {
+    const question = assistantInput.value.trim();
+    if (!question) {
       assistantInput.focus();
       return;
     }
+    const submit = assistantForm.querySelector("button[type=submit]");
     assistantReply.hidden = false;
-    assistantReply.textContent = "Пока это макет: вопрос никуда не отправлен. Подключаем безопасный доступ к данным и аналитический API.";
+    assistantReply.classList.add("is-thinking");
+    assistantReply.textContent = "Думаю…";
+    submit.disabled = true;
+    assistantInput.disabled = true;
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || data.error || `HTTP ${response.status}`);
+      assistantReply.textContent = data.answer;
+    } catch (error) {
+      assistantReply.textContent = "Не удалось получить ответ. Попробуйте ещё раз через минуту.";
+      console.error("assistant request failed", error);
+    } finally {
+      assistantReply.classList.remove("is-thinking");
+      submit.disabled = false;
+      assistantInput.disabled = false;
+      assistantInput.focus();
+    }
   });
 
   fetch("data/analytics.json", { cache: "no-store" })

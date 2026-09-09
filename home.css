@@ -67,6 +67,11 @@ body.hasAssistantOpen{overflow:hidden}
 .homeAssistant__examples button::after{content:'↗';position:absolute;right:4px;color:rgba(255,255,255,.38)}
 .homeAssistant__examples button:hover{color:#fff;border-color:rgba(255,255,255,.2)}
 .homeAssistant__reply{margin:0 0 13px;padding:11px 13px;border-left:2px solid var(--green);border-radius:0 10px 10px 0;color:#cdd4dc;background:rgba(43,209,121,.07);font-size:13px;line-height:1.45}
+.homeAssistant__reply.is-thinking{color:#9eabb9}
+.homeAssistant__reply.is-thinking::after{content:"";display:inline-block;width:5px;height:5px;margin-left:7px;border-radius:50%;background:var(--green);animation:assistantThinking .85s ease-in-out infinite alternate}
+.homeAssistant__form button:disabled{opacity:.45;cursor:wait}
+.homeAssistant textarea:disabled{opacity:.72}
+@keyframes assistantThinking{to{opacity:.22;transform:translateY(-3px)}}
 @keyframes assistantVeilIn{from{opacity:0;backdrop-filter:blur(0) saturate(1);-webkit-backdrop-filter:blur(0) saturate(1)}to{opacity:1}}
 @keyframes assistantVeilOut{from{opacity:1}to{opacity:0;backdrop-filter:blur(0) saturate(1);-webkit-backdrop-filter:blur(0) saturate(1)}}
 @keyframes assistantOpen{0%{opacity:0;transform:translate3d(var(--assistant-from-x),var(--assistant-from-y),0) scale(.62,.22);filter:blur(12px);border-radius:999px}55%{opacity:1;filter:blur(0);border-radius:36px}78%{transform:translate3d(0,-7px,0) scale(1.012)}100%{opacity:1;transform:none;filter:none;border-radius:30px}}
