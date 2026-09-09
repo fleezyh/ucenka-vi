@@ -1266,20 +1266,17 @@
     }
   }
 
-  /* Отметка о данных и «Старая версия».
+  /* Отметка о данных и «Старая версия» живут внизу страницы, а не в шапке.
    *
-   * На широком экране они стоят справа от заголовка, на телефоне — уезжают в
-   * самый низ, к подписи. В шапке они занимали половину экрана рядом с
-   * названием раздела и разваливали ряд.
+   * Это справочная мелочь: когда собраны данные и где лежит прежний дашборд.
+   * Рядом с названием раздела она занимала половину ряда и тянула взгляд на
+   * себя — при том, что смотрят туда раз в неделю.
    */
   function placeHeroSide() {
     const side = document.querySelector('.agHeroSide');
-    const hero = document.querySelector('.agHero');
     const foot = document.querySelector('.agFoot');
-    if (!side || !hero || !foot) return;
-    const narrow = window.matchMedia('(max-width: 860px)').matches;
-    if (narrow && side.parentElement !== foot) foot.insertAdjacentElement('afterbegin', side);
-    if (!narrow && side.parentElement !== hero) hero.appendChild(side);
+    if (!side || !foot || side.parentElement === foot) return;
+    foot.insertAdjacentElement('afterbegin', side);
   }
 
   function setupSearch() {

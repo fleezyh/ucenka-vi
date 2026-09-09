@@ -518,19 +518,17 @@ body[data-mode="antigen"] .shell {
   .agRow__minus { width: 22px; height: 22px; font-size: 15px; }
 }
 
-/* На телефоне отметка о данных и «Старая версия» уезжают вниз страницы: в
-   шапке они висели сбоку от заголовка и ломали ряд. Переносит их скрипт —
-   потому что порядком в CSS элемент из своего блока не вынести. */
-@media (max-width: 860px) {
-  .agHeroSide {
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-  }
-  .agStamp { flex: 1 1 220px; text-align: left; }
+/* Отметка о данных и «Старая версия» стоят внизу страницы, перед подписью, —
+   переносит их скрипт, потому что порядком в CSS элемент из своего блока не
+   вынести. Здесь они лежат строкой, а не столбиком у правого края. */
+.agHeroSide {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
 }
+.agStamp { text-align: left; }
 
 @media (max-width: 640px) {
   /* Между маркой и заголовком было под сорок пикселей: собственный отступ
