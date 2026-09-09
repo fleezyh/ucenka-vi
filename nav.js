@@ -53,12 +53,14 @@
     .then((response) => (response.ok ? response.json() : null))
     .then((user) => {
       if (!user || !user.login) return;
+      // Ровно такая же группа, как «Уценка» и «Инструменты»: имя человека тут
+      // ничего не решает — он и так знает, кто он, — а блок из-за него выпадал
+      // из общего ряда. Админка живёт в кабинете, отдельной кнопки не нужно.
       const box = document.createElement("span");
-      box.className = "navAccount";
-      const short = String(user.name || user.login).split(" ").slice(0, 2).join(" ");
-      box.innerHTML = `<span class="navAccount__who" title="${user.login}">${short}</span>`
-        + '<a class="navAccount__link" href="/__account">Кабинет</a>'
-        + '<a class="navAccount__link" href="/__logout">Выйти</a>';
+      box.className = "navGroup navGroup--account";
+      box.title = String(user.name || user.login);
+      box.innerHTML = '<a class="navLink" href="/__account">Кабинет</a>'
+        + '<a class="navLink" href="/__logout">Выйти</a>';
       nav.appendChild(box);
     })
     .catch(() => {});
