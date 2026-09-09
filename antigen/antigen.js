@@ -20,7 +20,9 @@
     {
       key: 'zabr', name: 'Официальный брак', note: 'акты приёмки — что признали браком', chart: 2656,
       measures: [
-        { key: 'rrc', label: '₽ розница', kind: 'money' },
+        // Розничную цену убрали со стратсовета 09.09.2026: коммитимся в
+        // количестве актов и доле от стока, розница ни во что не считается и
+        // только путала — оценка в себестоимости, а брак был в рознице.
         { key: 'sebes', label: '₽ себестоимость', kind: 'money' },
         { key: 'strok', label: 'строк', kind: 'int' },
       ],
@@ -108,7 +110,7 @@
 
   const state = {
     contour: 'zabr',
-    measure: 'rrc',
+    measure: 'sebes',
     period: 'quarter',
     step: 'week',
     point: null,       // ключ выбранной точки на оси
@@ -124,6 +126,9 @@
 
   const cache = new Map();
   let index = null;
+  // Мероприятия по сокращению брака: их вписывают руками в админке, а здесь
+  // они становятся засечками на оси времени.
+  let events = [];
   const el = (id) => document.getElementById(id);
 
   // ------------------------------------------------------------- формат
@@ -341,6 +346,9 @@
           ? `${MONTHS[Number(key.slice(5)) - 1]} ${key.slice(0, 4)}`
           : `${ROMAN[Number(key.slice(6)) - 1]} квартал ${key.slice(0, 4)}`,
         rows: bucket.rows,
+        // Какие месяцы попали в точку — по ним засечки мероприятий находят
+        // свой столбец на оси.
+        months: [...bucket.months],
         // Текущий месяц или квартал ещё не дожит: без пометки он выглядит
         // обвалом, хотя это просто неполный период.
         partial: [...bucket.months].some(monthRunning),
@@ -590,12 +598,37 @@
         + ` data-i="${i}" cx="${x(i)}" cy="${y(v)}" r="${on ? 6 : 3.5}"></circle>`;
     }).join('');
 
+    /* Мероприятия: вертикальная засечка в той точке, куда попадает дата.
+       Смысл в том, чтобы на графике было видно не только «стало меньше», но и
+       «после чего стало меньше» — иначе связь действий и результата держится
+       только в голове у того, кто их проводил. */
+    const marks = (events || []).map((event) => {
+      const day = String(event.дата || '').slice(0, 10);
+      const at = points.findIndex((point) => {
+        if (state.step === 'week') {
+          // Ключ недели — понедельник; мероприятие принадлежит ей, если
+          // попадает в семь дней от него.
+          const to = new Date(new Date(point.key).getTime() + 7 * 864e5)
+            .toISOString().slice(0, 10);
+          return day >= point.key && day < to;
+        }
+        return (point.months || []).includes(day.slice(0, 7));
+      });
+      if (at < 0) return '';
+      const label = String(event.название || '').slice(0, 34);
+      return `<line class="agEvent" x1="${x(at)}" y1="${pad.top - 8}" x2="${x(at)}" y2="${pad.top + innerH}"></line>`
+        + `<circle class="agEventDot" cx="${x(at)}" cy="${pad.top - 8}" r="4">`
+        + `<title>${escape(event.дата)} · ${escape(event.название)}`
+        + `${event.что ? ' — ' + escape(event.что) : ''}</title></circle>`
+        + `<text class="agEventLabel" x="${x(at) + 6}" y="${pad.top + 6}">${escape(label)}</text>`;
+    }).join('');
+
     box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Динамика периода">`
       + '<defs><linearGradient id="agFill" x1="0" y1="0" x2="0" y2="1">'
       + '<stop offset="0%" stop-color="#4d8df7" stop-opacity=".26"></stop>'
       + '<stop offset="100%" stop-color="#4d8df7" stop-opacity="0"></stop></linearGradient></defs>'
       + ticks + `<path class="agArea" d="${area}"></path><path class="agLine" d="${line}"></path>`
-      + trend + dots + labels + axis + '</svg>';
+      + trend + marks + dots + labels + axis + '</svg>';
 
     box.querySelectorAll('[data-i]').forEach((node) => {
       node.addEventListener('click', () => {
@@ -693,10 +726,46 @@
     const covered = built.getDate() - 1 + (built.getHours() * 60 + built.getMinutes()) / 1440;
     const daysInMonth = new Date(built.getFullYear(), built.getMonth() + 1, 0).getDate();
     return {
-      month, fact: sum, daysInMonth,
+      month, fact: sum, daysInMonth, covered,
       day: `${String(built.getDate()).padStart(2, '0')} ${MONTHS_SHORT[built.getMonth()]}`,
       forecast: covered > 0.5 ? Math.round((sum / covered) * daysInMonth) : null,
     };
+  }
+
+  /* План на текущий месяц.
+   *
+   * В траектории план стоит с октября, а живём мы в сентябре — между последним
+   * фактом и первым планом дыра. Тянем прямую: иначе на вопрос «где мы должны
+   * быть сегодня» ответить нечем, а именно его и задают.
+   */
+  function planFor(month, trajectory) {
+    const exact = trajectory.find((row) => row.month === month && row.point_b);
+    if (exact) return { value: exact.point_b, exact: true };
+
+    const before = [...trajectory].reverse().find((row) => row.month < month && row.fact);
+    const after = trajectory.find((row) => row.month > month && row.point_b);
+    if (!before || !after) return null;
+
+    const months = (key) => Number(key.slice(0, 4)) * 12 + Number(key.slice(5));
+    const span = months(after.month) - months(before.month);
+    const step = span ? (after.point_b - before.fact) / span : 0;
+    return { value: Math.round(before.fact + step * (months(month) - months(before.month))),
+             exact: false };
+  }
+
+  /* Светофор: идём ли мы к цели.
+   *
+   * Сравниваем не «сколько уже есть» с месячным планом — так до конца месяца
+   * всё всегда зелёное, — а прогноз конца месяца с планом на этот месяц.
+   * Пять процентов запаса: месяц идёт неровно, и дёргать людей из-за случайной
+   * недели незачем.
+   */
+  function trafficLight(forecast, plan) {
+    if (!forecast || !plan) return null;
+    const over = (forecast - plan.value) / plan.value;
+    if (over <= 0) return { key: 'ok', label: 'идём к цели' };
+    if (over <= 0.05) return { key: 'warn', label: 'на грани' };
+    return { key: 'bad', label: 'не укладываемся' };
   }
 
   function renderGoals(data) {
@@ -716,8 +785,16 @@
     const done = Math.min(Math.max((start - at) / span, 0), 1);
     const gap = at - target.point_b;
 
+    // Где мы должны быть сегодня и куда придём к концу месяца.
+    const plan = running ? planFor(running.month, trajectory) : null;
+    const light = running ? trafficLight(running.forecast, plan) : null;
+    const dueToday = plan && running
+      ? Math.round(plan.value * ((running.covered || 0) / running.daysInMonth))
+      : null;
+
     const monthName = (key) => `${MONTHS_SHORT[Number(key.slice(5)) - 1]} ${key.slice(0, 4)}`;
     box.hidden = false;
+    box.className = 'agGoals' + (light ? ` agGoals--${light.key}` : '');
     box.innerHTML = '<span class="agGoals__label">зафиксировано</span>'
       + `<span class="agGoals__item"><b>${fmtInt(start)}</b>`
         + `<span>актов · ${monthName(fact.month)}</span></span>`
@@ -734,7 +811,15 @@
       + '<i></i><u></u></span>'
       + `<span class="agGoals__item"><b>${fmtInt(target.point_b)}</b><span>Точка Б · 31.12</span></span>`
       + `<span class="agGoals__item"><b>${fmtInt(target.goal)}</b><span>цель года</span></span>`
-      + `<span class="agGoals__gap">до Точки Б <b>${fmtSigned(gap, 'int')}</b></span>`;
+      + `<span class="agGoals__gap">до Точки Б <b>${fmtSigned(gap, 'int')}</b></span>`
+      + (light
+        ? `<span class="agGoals__light agGoals__light--${light.key}"><i></i>${light.label}`
+          + (dueToday !== null
+            ? `<em>по плану к ${running.day} — ${fmtInt(dueToday)}, сейчас ${fmtInt(running.fact)}`
+              + `${plan.exact ? '' : ' · план на месяц выведен между августом и октябрём'}</em>`
+            : '')
+          + '</span>'
+        : '');
   }
 
   // ---------------------------------------------------------------- карта
@@ -1382,6 +1467,13 @@
       el('agStamp').textContent = 'не удалось загрузить данные';
       return;
     }
+    // Мероприятия живут отдельным файлом: их правят руками в админке, а данные
+    // контуров пересобираются по расписанию — смешивать эти два ритма незачем.
+    try {
+      const answer = await fetch(DATA_DIR + 'events.json', { cache: 'no-cache' });
+      if (answer.ok) events = (await answer.json()).мероприятия || [];
+    } catch { events = []; }
+
     const contour = contourDef();
     state.drillDim = contour.dims[0].key;
     state.heatDim = contour.dims[0].key;

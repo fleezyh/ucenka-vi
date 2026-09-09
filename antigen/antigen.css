@@ -54,6 +54,28 @@ body[data-mode="antigen"] .shell {
 .agGoals__item--now b { color: #f5ad32; }
 .agGoals__item--forecast b { color: var(--red); }
 .agGoals__gap { margin-left: auto; font-size: 14px; color: var(--muted); }
+
+/* Светофор: не «сколько уже набежало», а придём ли мы к плану по нынешнему
+   темпу. Рядом — сколько должно быть на сегодняшнее число, чтобы вопрос
+   «мы в графике?» не требовал считать в уме. */
+.agGoals__light {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  width: 100%; margin-top: 4px; padding-top: 10px;
+  border-top: 1px solid var(--line);
+  font-size: 14px; font-weight: 600;
+}
+.agGoals__light i { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); }
+.agGoals__light em { color: var(--muted); font-size: 12.5px; font-style: normal; font-weight: 500; }
+.agGoals__light--ok { color: #a8f0c6; }
+.agGoals__light--ok i { background: var(--green); box-shadow: 0 0 0 4px rgba(39, 196, 107, .16); }
+.agGoals__light--warn { color: #ffd79a; }
+.agGoals__light--warn i { background: var(--amber); box-shadow: 0 0 0 4px rgba(245, 173, 50, .16); }
+.agGoals__light--bad { color: #ffc0ca; }
+.agGoals__light--bad i { background: var(--red); box-shadow: 0 0 0 4px rgba(240, 93, 114, .16); }
+
+/* Рамка плашки подсказывает состояние ещё до чтения. */
+.agGoals--warn { border-color: rgba(245, 173, 50, .42); }
+.agGoals--bad { border-color: rgba(240, 93, 114, .42); }
 .agGoals__gap b { color: var(--red); font-weight: 600; }
 .agGoals__track {
   flex: 1 1 160px;
@@ -490,6 +512,12 @@ body[data-mode="antigen"] .shell {
 .agSearch__input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 4px rgba(77, 141, 247, .16); }
 .agSearch__note { color: var(--muted); font-size: 12.5px; }
 .agSearch__note--empty { color: #ffc0ca; }
+
+/* Засечка мероприятия на оси времени: пунктир до низа и подпись сверху.
+   Не кричит, но видно, после чего кривая пошла вниз или вверх. */
+.agEvent { stroke: rgba(39, 196, 107, .5); stroke-width: 1.5; stroke-dasharray: 4 4; }
+.agEventDot { fill: var(--green); }
+.agEventLabel { fill: #a8f0c6; font-size: 11px; font-weight: 600; }
 
 .agEmpty { color: var(--muted); font-size: 14px; padding: 18px 4px; }
 
