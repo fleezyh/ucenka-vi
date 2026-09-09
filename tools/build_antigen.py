@@ -350,6 +350,21 @@ def build_control(metrics: list[dict[str, Any]], plan: list[dict[str, Any]]) -> 
         })
     trajectory = []
     for row in plan:
+        # План приходит из двух мест. Из Superset — сырой строкой датасета с
+        # русскими заголовками; с сервера — из /etc/ucenka/antigen_plan.json,
+        # где он лежит уже разобранным. Второй случай раньше отбраковывался
+        # целиком: даты в поле report_month нет, и траектория выходила пустой —
+        # вместе с ней с экрана пропадала плашка цели.
+        if norm(row.get("month")):
+            trajectory.append({
+                "month": norm(row["month"])[:7],
+                # Пустое значение оставляем пустым: ноль здесь означал бы
+                # «цель ноль актов», а не «цели на этот месяц нет».
+                "fact": row.get("fact"),
+                "point_b": row.get("point_b"),
+                "goal": row.get("goal"),
+            })
+            continue
         month = to_date(row.get("report_month") or row.get("__timestamp"))
         if month is None:
             continue
