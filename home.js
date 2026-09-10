@@ -94,6 +94,14 @@
   const empty = document.querySelector("#newsEmpty");
 
   if (pick && feed) {
+    // Линза едет за выбором, как во вкладках сверху: без неё переключение
+    // выглядит другим механизмом, хотя это тот же самый жест.
+    const lens = document.createElement("span");
+    lens.className = "newsPick__lens";
+    lens.setAttribute("aria-hidden", "true");
+    pick.append(lens);
+    pick.style.setProperty("--count", String(CONTOURS.length));
+
     CONTOURS.forEach((contour, index) => {
       const button = document.createElement("button");
       button.type = "button";
@@ -102,10 +110,12 @@
       button.addEventListener("click", () => {
         pick.querySelectorAll(".newsPick__item").forEach((item) => item.classList.remove("is-on"));
         button.classList.add("is-on");
+        pick.style.setProperty("--active", String(index));
         loadContour(contour);
       });
       pick.append(button);
     });
+    pick.style.setProperty("--active", "0");
     loadContour(CONTOURS[0]);
   }
 
