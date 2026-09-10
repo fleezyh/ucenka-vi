@@ -12,9 +12,11 @@
   <link rel="stylesheet" href="../reeded-bg.css?v=20260907-6">
   <link rel="stylesheet" href="../site-header.css?v=20260909-7">
   <link rel="stylesheet" href="../section-assistant.css?v=20260910-2">
+  <link rel="stylesheet" href="../news-feed.css?v=20260910-1">
   <script src="../reeded-bg.js?v=20260906-7" defer></script>
   <script src="antigen.js?v=20260910-1" defer></script>
   <script src="../nav.js?v=20260910-1" defer></script>
+  <script src="../news-feed.js?v=20260910-1" defer></script>
 </head>
 <body data-mode="antigen">
   <main class="shell">
@@ -120,6 +122,20 @@
       <div class="agCrumbs" id="agCrumbs"></div>
       <div class="agDims" id="agDims" role="tablist" aria-label="Разрезы"></div>
       <div class="agTable" id="agTable"></div>
+    </section>
+
+    <!-- Сводка с рабочей группы: что решили, какие числа звучали и чьими словами.
+         До неё узнать это можно было только из расшифровки встречи. -->
+    <section class="feed" id="agNews" data-src="../data/news-antigen.json" data-limit="6"
+             aria-label="Что нового по контуру" hidden>
+      <div class="feed__head">
+        <div>
+          <p class="feed__kicker">что нового</p>
+          <h2>Сводка с рабочей группы</h2>
+        </div>
+        <span class="feed__stamp" data-feed-stamp></span>
+      </div>
+      <div class="feed__list" data-feed-list></div>
     </section>
 
     <footer class="agFoot">

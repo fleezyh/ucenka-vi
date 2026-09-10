@@ -1,0 +1,45 @@
+/* Лента новостей контура — те же карточки, что на главной, но пригодные для
+   любого раздела. Классы независимы от home.css: страница подключает только
+   этот файл и news-feed.js. */
+
+.feed { margin-top: 34px; }
+.feed[hidden] { display: none; }
+.feed__head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
+.feed__head h2 { margin: 0; font-size: 23px; font-weight: 600; letter-spacing: -.01em; }
+.feed__kicker { margin: 0 0 4px; color: var(--muted); font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; }
+.feed__stamp { color: var(--muted); font-size: 12px; text-align: right; }
+.feed__list { display: grid; gap: 10px; }
+
+.feedItem { border: 1px solid var(--line); border-radius: 20px; background: rgba(15, 14, 20, .72); overflow: hidden; transition: border-color .2s ease, background .2s ease; }
+.feedItem:hover { border-color: rgba(255, 255, 255, .28); }
+.feedItem[open] { background: rgba(22, 20, 28, .9); }
+.feedItem__head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 16px; padding: 17px 20px; cursor: pointer; list-style: none; }
+.feedItem__head::-webkit-details-marker { display: none; }
+.feedItem__date { display: grid; justify-items: center; min-width: 46px; color: var(--muted); }
+.feedItem__date b { color: #fff; font-size: 19px; font-weight: 600; line-height: 1.1; }
+.feedItem__date span { font-size: 11px; }
+.feedItem__title { min-width: 0; font-size: 16px; font-weight: 600; line-height: 1.35; }
+.feedItem__tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 7px; }
+.feedItem__tag { padding: 3px 9px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); font-size: 11px; font-weight: 600; }
+.feedItem__chevron { color: var(--muted); font-size: 13px; transition: transform .2s ease; }
+.feedItem[open] .feedItem__chevron { transform: rotate(180deg); }
+.feedItem__body { padding: 2px 20px 20px 82px; }
+
+/* Цифры с доклада — плотный блок сверху: их читают отдельно от обсуждения. */
+.feedNums { margin-bottom: 16px; padding: 13px 16px; border: 1px solid var(--line); border-radius: 15px; background: rgba(255, 255, 255, .02); }
+.feedNums__label { margin: 0 0 4px; color: #54d795; font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+.feedNums ul { margin: 0; padding-left: 17px; }
+.feedNums li { margin-top: 6px; color: #d5dde8; font-size: 13.5px; line-height: 1.5; }
+.feedNums li::marker { color: rgba(84, 215, 149, .5); }
+
+.feedItem__points { margin: 0; padding: 0; list-style: none; }
+.feedPoint { margin-top: 15px; padding-left: 14px; border-left: 1px solid rgba(255, 255, 255, .09); }
+.feedPoint__who { display: block; margin-bottom: 5px; color: #c9d5e4; font-size: 12px; font-weight: 700; letter-spacing: .04em; }
+.feedPoint__quote { display: block; margin-bottom: 5px; color: #e8eef7; font-size: 14px; font-style: italic; line-height: 1.5; }
+.feedPoint__text { display: block; color: var(--muted); font-size: 14px; line-height: 1.55; }
+
+@media (max-width: 640px) {
+  .feedItem__head { grid-template-columns: auto minmax(0, 1fr); gap: 13px; padding: 15px 16px; }
+  .feedItem__chevron { display: none; }
+  .feedItem__body { padding: 2px 16px 17px 16px; }
+}
