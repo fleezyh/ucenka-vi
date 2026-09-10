@@ -1,21 +1,20 @@
 (() => {
   "use strict";
 
-  // Данные считает task_danilovo.py: зоны ФБ Данилово, сколько ячеек нарезано
-  // и что через них прошло. Здесь только отрисовка карты.
+  // Данные считает task_danilovo.py: зоны ФБ Данилово, сколько ячеек нарезано,
+  // что через них прошло и чего не хватает до запуска. Здесь только карта.
   const DATA_URL = "../data/danilovo.json";
 
   const $ = (id) => document.getElementById(id);
   const message = $("message");
   const mapBox = $("map");
   const readyBox = $("ready");
-  const extraBox = $("extra");
+  const todoBox = $("todo");
   const stamp = $("stamp");
 
   let payload = null;
-  let opened = null;   // zone_id раскрытого узла
+  let picked = null;   // zone_id выделенного узла
 
-  const PIECE_WORDS = ["штука", "штуки", "штук"];
   const CELL_WORDS = ["ячейка", "ячейки", "ячеек"];
   const NODE_WORDS = ["узел", "узла", "узлов"];
 
@@ -37,84 +36,104 @@
   const escape = (text) => String(text ?? "").replace(/[&<>"]/g,
     (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
 
-  /* Что показывает плитка. Пока склад не запущен, главное число — не объём,
-     а готовность: сколько ячеек нарезано. Как только по узлу пойдёт товар,
-     на первый план выходят штуки, а ячейки уходят в подпись. Так карта
-     переживает запуск без переделки. */
-  function nodeFigure(node) {
-    if (node.статус === "работает") {
-      return {
-        big: nice(node.штук_месяц),
-        small: `${plural(node.штук_месяц, PIECE_WORDS)} за 30 дней`,
-      };
-    }
-    if (node.статус === "готово") {
-      return {
-        big: nice(node.ячеек),
-        small: plural(node.ячеек, CELL_WORDS),
-      };
-    }
-    return { big: "—", small: "ячеек нет" };
-  }
-
+  /* Одна плитка карты держит всё, что нужно знать про зону: имя, id в WMS,
+     сколько ячеек, чем питается и чего не хватает. Клик ничего не раскрывает
+     — раскрывать нечего, он только подсвечивает узел и его строку в списке
+     работ, чтобы не искать глазами. */
   function nodeTile(node) {
-    const figure = nodeFigure(node);
-    const isOpen = opened === node.зона;
-    return (
-      `<button class="mapNode is-${node.статус}${isOpen ? " is-open" : ""}" type="button" ` +
-        `data-zone="${node.зона}" aria-expanded="${isOpen}">` +
-        `<span class="mapNode__name">${escape(node.название)}</span>` +
-        `<span class="mapNode__big">${figure.big}</span>` +
-        `<span class="mapNode__small">${escape(figure.small)}</span>` +
-      `</button>`
-    );
-  }
+    const isPicked = picked === node.зона;
+    const parts = [];
 
-  /* Развёрнутая карточка узла. Живёт прямо в строке контура под плитками —
-     как раскрытие ряда в хитмапе, чтобы не уводить внимание в сторону. */
-  function nodeCard(node) {
-    const rows = [
-      ["Зона WMS", `${escape(node.полное)} · id ${node.зона}`],
-      ["Ячеек нарезано", node.ячеек ? nice(node.ячеек) : "ни одной"],
-      ["Чем питается", escape(node.пояснение)],
-    ];
-    if (node.штук_месяц) rows.push(["За 30 дней", `${nice(node.штук_месяц)} шт`]);
-    if (node.штук_сутки) rows.push(["За сутки", `${nice(node.штук_сутки)} шт`]);
-    if (node.первое) rows.push(["Первое движение", niceDate(node.первое)]);
-    if (!node.ячеек) {
-      rows.push(["Что мешает",
-        "Зона создана, но ячеек в ней нет — перемещение в неё сканер не примет"]);
+    parts.push(`<span class="tile__head">` +
+      `<span class="tile__name">${escape(node.название)}</span>` +
+      `<span class="tile__zone">id ${node.зона}</span>` +
+    `</span>`);
+
+    if (node.статус === "работает") {
+      parts.push(`<span class="tile__value">${nice(node.штук_месяц)}</span>` +
+        `<span class="tile__unit">штук за 30 дней</span>`);
+    } else if (node.статус === "готово") {
+      parts.push(`<span class="tile__value">${nice(node.ячеек)}</span>` +
+        `<span class="tile__unit">${plural(node.ячеек, CELL_WORDS)} · товара нет</span>`);
+    } else {
+      parts.push(`<span class="tile__value tile__value--empty">нет</span>` +
+        `<span class="tile__unit">ячеек не заведено</span>`);
     }
+
+    parts.push(`<span class="tile__full">${escape(node.полное)}</span>`);
+    parts.push(`<span class="tile__hint">${escape(node.пояснение)}</span>`);
+
+    if (node.надо) {
+      const reference = node.надо.эталон
+        ? ` · на ДМД ${nice(node.надо.эталон)}`
+        : "";
+      parts.push(`<span class="tile__need">Завести: ${escape(node.надо.что)}${reference}</span>`);
+    } else if (node.статус === "готово" && node.эталон) {
+      parts.push(`<span class="tile__ref">на ДМД ${nice(node.эталон)} ` +
+        `${plural(node.эталон, CELL_WORDS)}</span>`);
+    }
+
+    if (node.первое) {
+      parts.push(`<span class="tile__ref">первое движение ${niceDate(node.первое)}</span>`);
+    }
+
     return (
-      `<div class="mapCard">` +
-        `<p class="mapCard__title">${escape(node.название)}</p>` +
-        `<dl class="mapCard__list">` +
-          rows.map(([term, value]) =>
-            `<div><dt>${term}</dt><dd>${value}</dd></div>`).join("") +
-        `</dl>` +
-      `</div>`
+      `<button class="tile is-${node.статус}${isPicked ? " is-picked" : ""}" type="button" ` +
+        `data-zone="${node.зона}" aria-pressed="${isPicked}">${parts.join("")}</button>`
     );
   }
 
-  function contourRow(contour) {
-    const tiles = contour.узлы.map((node, index) =>
-      (index ? `<span class="mapArrow" aria-hidden="true">→</span>` : "") + nodeTile(node)
-    ).join("");
-    const open = contour.узлы.find((node) => node.зона === opened);
+  /* Ряд контура. Узлы стоят по колонкам карты, а не подряд: если у контура
+     нет узла в колонке — там остаётся пустое место со стрелкой, и видно, что
+     этап пропущен, а не просто «короткий контур». */
+  function contourRow(contour, columns) {
+    const byColumn = new Map();
+    contour.узлы.forEach((node) => {
+      if (node.колонка === "приёмка") return;      // приёмка стоит отдельно, слева
+      byColumn.set(node.колонка, node);
+    });
+
+    const cells = columns.map((column, index) => {
+      const node = byColumn.get(column.ключ);
+      const link = index ? `<span class="link" aria-hidden="true"></span>` : "";
+      if (!node) return `<div class="slot is-blank">${link}</div>`;
+      return `<div class="slot">${link}${nodeTile(node)}</div>`;
+    }).join("");
+
     const done = contour.узлы.filter((node) => node.статус !== "пусто").length;
+    return (
+      `<div class="rowLabel">` +
+        `<b>${escape(contour.название)}</b>` +
+        `<span>${escape(contour.пояснение)}</span>` +
+        `<em>${done} из ${contour.узлы.length}</em>` +
+      `</div>` +
+      cells
+    );
+  }
+
+  function mapBlock(data) {
+    // Приёмка общая для всех контуров: она одна, и от неё товар расходится.
+    // Поэтому стоит слева отдельной колонкой во всю высоту карты.
+    const priemka = (data.контуры || []).find((c) => c.ключ === "priemka");
+    const flows = (data.контуры || []).filter((c) => c.ключ !== "priemka");
+    const columns = (data.колонки || []).filter((c) => c.ключ !== "приёмка");
+
+    const heads = `<div class="head head--label"></div>` +
+      `<div class="head head--in">Приёмка</div>` +
+      columns.map((column) => `<div class="head">${escape(column.название)}</div>`).join("");
+
+    const entry = priemka ? (
+      `<div class="entry">` +
+        priemka.узлы.map(nodeTile).join("") +
+      `</div>`
+    ) : `<div class="entry"></div>`;
+
+    const rows = flows.map((contour) => contourRow(contour, columns)).join("");
 
     return (
-      `<section class="mapRow">` +
-        `<header class="mapRow__head">` +
-          `<div>` +
-            `<h2>${escape(contour.название)}</h2>` +
-            `<p>${escape(contour.пояснение)}</p>` +
-          `</div>` +
-          `<span class="mapRow__score">${done} из ${contour.узлы.length}</span>` +
-        `</header>` +
-        `<div class="mapRow__flow">${tiles}</div>` +
-        (open ? nodeCard(open) : "") +
-      `</section>`
+      `<div class="mapGrid" style="--flows:${flows.length};--cols:${columns.length}">` +
+        heads + entry + rows +
+      `</div>`
     );
   }
 
@@ -139,19 +158,45 @@
     );
   }
 
-  function extraBlock(data) {
-    const list = data.инвентаризация || [];
-    if (!list.length) return "";
+  /* Список работ и замечаний — то, ради чего карта и нужна: не «посмотреть»,
+     а «пойти и завести». Порядок тот же, что на карте, слева направо. */
+  function todoBlock(data) {
+    const list = data.создать || [];
+    const notes = data.заметки || [];
+    if (!list.length && !notes.length) return "";
+
+    const rows = list.map((item) => {
+      const isPicked = picked === item.зона;
+      return (
+        `<li class="todoRow${isPicked ? " is-picked" : ""}" data-zone="${item.зона}">` +
+          `<span class="todoRow__where">${escape(item.контур)} · ${escape(item.узел)}</span>` +
+          `<span class="todoRow__what">${escape(item.что)}</span>` +
+          `<span class="todoRow__ref">${item.эталон ? `на ДМД ${nice(item.эталон)}` : ""}</span>` +
+          `<span class="todoRow__zone">${escape(item.полное)}</span>` +
+        `</li>`
+      );
+    }).join("");
+
+    const inventory = (data.инвентаризация || []).map((zone) =>
+      `<li>${escape(zone.название)} — ${zone.ячеек
+        ? `${nice(zone.ячеек)} ${plural(zone.ячеек, CELL_WORDS)}`
+        : "ячеек нет"}</li>`).join("");
+
     return (
-      `<h2 class="extraTitle">Вне потока</h2>` +
-      `<p class="extraNote">Инвентаризационные зоны товар не обрабатывают, но без них ` +
-        `склад не закроет месяц.</p>` +
-      `<div class="extraGrid">` +
-        list.map((zone) =>
-          `<div class="extraCard is-${zone.статус}">` +
-            `<strong>${escape(zone.название)}</strong>` +
-            `<span>${zone.ячеек ? `${nice(zone.ячеек)} ${plural(zone.ячеек, CELL_WORDS)}` : "ячеек нет"}</span>` +
-          `</div>`).join("") +
+      `<div class="todoWrap">` +
+        `<section class="todoBox">` +
+          `<h2>Что завести в WMS</h2>` +
+          `<p class="todoBox__note">Пустых узлов — ${list.length}. Столбец справа — сколько таких ` +
+            `ячеек работает на ДМД: это ориентир по размеру, а не норма.</p>` +
+          `<ol class="todoList">${rows}</ol>` +
+        `</section>` +
+        `<section class="todoBox todoBox--notes">` +
+          `<h2>На заметку</h2>` +
+          `<ul class="noteList">` +
+            notes.map((note) => `<li>${escape(note)}</li>`).join("") +
+          `</ul>` +
+          (inventory ? `<h3>Вне потока</h3><ul class="noteList noteList--plain">${inventory}</ul>` : "") +
+        `</section>` +
       `</div>`
     );
   }
@@ -160,25 +205,29 @@
     if (!payload) return;
     readyBox.innerHTML = readyBlock(payload);
     readyBox.hidden = false;
-    mapBox.innerHTML = (payload.контуры || []).map(contourRow).join("");
-    extraBox.innerHTML = extraBlock(payload);
-    extraBox.hidden = !extraBox.innerHTML;
+    mapBox.innerHTML = mapBlock(payload);
+    todoBox.innerHTML = todoBlock(payload);
+    todoBox.hidden = !todoBox.innerHTML;
   }
 
-  // Клик по любой плитке раскрывает узел, повторный — закрывает.
-  mapBox.addEventListener("click", (event) => {
-    const tile = event.target.closest(".mapNode");
-    if (!tile) return;
-    const zone = Number(tile.dataset.zone);
-    opened = opened === zone ? null : zone;
+  // Клик по плитке или по строке работ подсвечивает пару «узел ↔ задача».
+  function pick(zone) {
+    picked = picked === zone ? null : zone;
     render();
+  }
+
+  mapBox.addEventListener("click", (event) => {
+    const tile = event.target.closest(".tile");
+    if (tile) pick(Number(tile.dataset.zone));
+  });
+
+  todoBox.addEventListener("click", (event) => {
+    const row = event.target.closest(".todoRow");
+    if (row) pick(Number(row.dataset.zone));
   });
 
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && opened !== null) {
-      opened = null;
-      render();
-    }
+    if (event.key === "Escape" && picked !== null) pick(picked);
   });
 
   fetch(DATA_URL, { cache: "no-store" })

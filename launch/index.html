@@ -8,11 +8,11 @@
   <link rel="icon" type="image/svg+xml" href="../assets/brand/vi-mark.svg">
   <link rel="preload" href="../assets/fonts/VI_Sans_Regular.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="../style.css?v=20260907-6">
-  <link rel="stylesheet" href="launch.css?v=20260910-1">
+  <link rel="stylesheet" href="launch.css?v=20260910-2">
   <link rel="stylesheet" href="../reeded-bg.css?v=20260907-6">
   <link rel="stylesheet" href="../site-header.css?v=20260909-7">
   <script src="../reeded-bg.js?v=20260906-7" defer></script>
-  <script src="launch.js?v=20260910-1" defer></script>
+  <script src="launch.js?v=20260910-2" defer></script>
   <script src="../nav.js?v=20260910-4" defer></script>
 </head>
 <body data-mode="launch">
@@ -59,13 +59,14 @@
 
     <section class="launchReady" id="ready" hidden></section>
     <section class="launchMap" id="map" aria-live="polite"></section>
-    <section class="launchExtra" id="extra" hidden></section>
+    <section class="launchTodo" id="todo" hidden></section>
 
     <p class="stockNote">
       Зона в WMS без ячеек существует только на бумаге: стол — это ячейка, и без неё
-      сканер не примет перемещение. Поэтому «пусто» на плитке значит не «нет товара»,
-      а «работать пока негде». Клик по плитке раскрывает, что за узел и чем он питается.
-      Считается вместе с утренней выгрузкой, движения — за последние 30 дней и за сутки.
+      сканер не примет перемещение. Поэтому красный узел значит не «нет товара», а
+      «работать негде». Пустая клетка со штриховой стрелкой — этапа у контура нет вовсе.
+      Клик по узлу подсвечивает его строку в списке работ и наоборот.
+      Считается вместе с утренней выгрузкой, движения — за 30 дней и за сутки.
     </p>
   </main>
   <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token":"907d91d4e2e044f682da0d451e684f83"}'></script>
