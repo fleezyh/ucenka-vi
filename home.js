@@ -45,6 +45,7 @@
   const CARD_SECTION = [
     ["antigen", "antigen"], ["heatmap", "heatmap"], ["sales", "sales"], ["perf", "perf"],
     ["picker", "picker"], ["dashboard", "dashboard"], ["funnel", "funnel"], ["people", "people"],
+    ["stock", "pallets"], ["__inbox", "inbox"],
   ];
 
   fetch("/__me", { credentials: "same-origin" })
