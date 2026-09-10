@@ -72,6 +72,7 @@
         + '<a class="navLink" href="/__logout">Выйти</a>';
       nav.appendChild(box);
       hideClosed(user["права"]);
+      if (user["примерка"]) showPreview(user);
     })
     .catch(() => {});
 
@@ -103,5 +104,24 @@
     document.querySelectorAll(".navGroup").forEach((group) => {
       if (!group.querySelector("a")) group.remove();
     });
+  }
+
+  /* Примерка роли.
+   *
+   * Понять, что видит человек из операций, раньше можно было только заведя
+   * себе вторую учётку. Теперь админ переключает роль и ходит по сайту как
+   * он — а чтобы не забыть, что вид не настоящий, сверху висит полоса.
+   */
+  function showPreview(user) {
+    const bar = document.createElement("div");
+    bar.className = "viewAs";
+    const back = encodeURIComponent(location.pathname + location.search);
+    const options = (user["роли"] || [])
+      .map((role) => `<a class="viewAs__role${role["ключ"] === user.role ? " is-on" : ""}"`
+        + ` href="/__view?role=${role["ключ"]}&back=${back}">${role["название"]}</a>`).join("");
+    bar.innerHTML = `<span class="viewAs__label">Смотрите как <b>${user["роль"]}</b></span>`
+      + `<span class="viewAs__roles">${options}</span>`
+      + `<a class="viewAs__exit" href="/__view?role=&back=${back}">Вернуться к своей роли</a>`;
+    document.body.prepend(bar);
   }
 })();

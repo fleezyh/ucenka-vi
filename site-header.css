@@ -467,3 +467,16 @@ body { font-weight: 500; }
   backdrop-filter: blur(18px) saturate(140%);
   -webkit-backdrop-filter: blur(18px) saturate(140%);
 }
+
+/* Полоса примерки роли: админ смотрит сайт чужими глазами, и об этом должно
+   быть видно на каждой странице — иначе легко решить, что раздел пропал. */
+.viewAs { position: sticky; top: 0; z-index: 60; display: flex; align-items: center; gap: 14px;
+  flex-wrap: wrap; padding: 9px 18px; background: linear-gradient(90deg, #4a2330, #2a1a24);
+  border-bottom: 1px solid rgba(240, 93, 114, .45); color: #ffd9de; font-size: 13px; }
+.viewAs__label b { color: #fff; font-weight: 600; }
+.viewAs__roles { display: flex; gap: 8px; flex-wrap: wrap; }
+.viewAs__role { padding: 4px 11px; border: 1px solid rgba(255, 255, 255, .22); border-radius: 999px;
+  color: #ffd9de; text-decoration: none; font-size: 12px; }
+.viewAs__role:hover { border-color: rgba(255, 255, 255, .5); }
+.viewAs__role.is-on { background: rgba(255, 255, 255, .16); color: #fff; }
+.viewAs__exit { margin-left: auto; color: #fff; text-decoration: underline; font-size: 12px; }

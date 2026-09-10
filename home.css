@@ -19,8 +19,9 @@ a{text-decoration:none;color:inherit}
 .homeHero h1{margin:0;font-size:clamp(49px,9vw,88px);font-weight:600;line-height:.96;letter-spacing:-.055em}
 .homeHero>p:last-child{margin:20px auto 0;color:var(--muted);font-size:17px;line-height:1.55}
 .homeSwitch{isolation:isolate;display:grid;grid-template-columns:1fr 1fr;width:min(560px,100%);margin:0 auto 28px;padding:7px;border-radius:24px;overflow:hidden}
-.homeSwitch__lens{position:absolute;z-index:-1;inset:7px auto 7px 7px;width:calc(50% - 7px);border:1px solid rgba(255,255,255,.24);border-radius:18px;background:rgba(255,255,255,.13);transition:transform .42s cubic-bezier(.22,1,.36,1),background .3s ease}
+.homeSwitch__lens{position:absolute;z-index:-1;inset:7px auto 7px 7px;width:calc(33.333% - 5px);border:1px solid rgba(255,255,255,.24);border-radius:18px;background:rgba(255,255,255,.13);transition:transform .42s cubic-bezier(.22,1,.36,1),background .3s ease}
 .homeSwitch[data-active="tools"] .homeSwitch__lens{transform:translateX(100%);background:rgba(80,227,151,.18)}
+.homeSwitch[data-active="news"] .homeSwitch__lens{transform:translateX(200%);background:rgba(240,173,50,.18)}
 .homeSwitch button{position:relative;z-index:1;min-height:62px;border:0;border-radius:17px;color:var(--muted);background:transparent;font-size:17px;font-weight:600;cursor:pointer;transition:color .22s ease,transform .12s ease}
 .homeSwitch button[aria-selected="true"]{color:#fff}
 .homeSwitch button:active{transform:scale(.97)}
@@ -181,7 +182,7 @@ footer{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap
   .homeHero h1{font-size:clamp(42px,13.5vw,56px);letter-spacing:-.06em}
   .homeHero>p:last-child{font-size:15px;line-height:1.48}
   .homeSwitch{padding:5px}
-  .homeSwitch__lens{inset:5px auto 5px 5px;width:calc(50% - 5px)}
+  .homeSwitch__lens{inset:5px auto 5px 5px;width:calc(33.333% - 3px)}
   .homeSwitch button{min-width:0;min-height:52px;padding-inline:6px;font-size:14px}
   .homeCard{grid-template-columns:auto minmax(0,1fr) 32px}
   .homeCard__copy strong{font-size:18px;overflow-wrap:anywhere}
@@ -192,3 +193,11 @@ footer{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap
   .homeCard{gap:10px;padding:14px}
   .homeCard__icon{width:44px;height:44px}
 }
+
+/* Новости: выбор контура и заглушка, когда сводок ещё нет. */
+.newsPick{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.newsPick__item{padding:9px 16px;border:1px solid var(--line);border-radius:999px;background:transparent;color:var(--muted);font:inherit;font-size:13.5px;cursor:pointer}
+.newsPick__item:hover{color:var(--text);border-color:rgba(255,255,255,.28)}
+.newsPick__item.is-on{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.3);color:#fff;font-weight:600}
+.homePanel--news .feed{margin-top:0}
+.newsEmpty{margin:0;padding:26px;border:1px dashed var(--line);border-radius:18px;color:var(--muted);text-align:center;font-size:14px}

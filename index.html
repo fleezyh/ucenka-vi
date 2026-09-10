@@ -9,6 +9,7 @@
   <link rel="icon" type="image/svg+xml" href="assets/brand/vi-mark.svg?v=20260903-3">
   <link rel="preload" href="assets/fonts/VI_Sans_Regular.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="assets/fonts/VI_Sans_ExtraBold.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="news-feed.css?v=20260910-1">
   <link rel="stylesheet" href="home.css?v=20260910-3">
   <link rel="stylesheet" href="reeded-bg.css?v=20260907-6">
   <link rel="stylesheet" href="site-header.css?v=20260909-7">
@@ -39,6 +40,7 @@
       <span class="homeSwitch__lens" aria-hidden="true"></span>
       <button type="button" role="tab" data-view="analytics" aria-selected="true">Аналитика</button>
       <button type="button" role="tab" data-view="tools" aria-selected="false">Инструменты</button>
+      <button type="button" role="tab" data-view="news" aria-selected="false">Новости</button>
     </div>
 
     <button class="homeAssistantTrigger glass" id="homeAssistantOpen" type="button"
@@ -152,6 +154,23 @@
           <span class="homeCard__arrow" aria-hidden="true">↗</span>
         </a>
       </div>
+    </section>
+
+    <!-- Новости контуров. Лента РНП ниже осталась общей, а здесь читаются
+         сводки рабочих групп: у каждого контура своя. -->
+    <section class="homePanel homePanel--news" data-panel="news" aria-label="Новости" hidden>
+      <nav class="newsPick" id="newsPick" aria-label="Контур"></nav>
+      <section class="feed" id="newsFeed" data-limit="8" aria-label="Сводка контура" hidden>
+        <div class="feed__head">
+          <div>
+            <p class="feed__kicker">сводка</p>
+            <h2 id="newsFeedTitle">Антигенерация брака</h2>
+          </div>
+          <span class="feed__stamp" data-feed-stamp></span>
+        </div>
+        <div class="feed__list" data-feed-list></div>
+      </section>
+      <p class="newsEmpty" id="newsEmpty" hidden>По этому контуру сводок пока нет.</p>
     </section>
 
     <!-- Лента апдейтов. Наполняется выжимками с утренних РНП: до неё узнать,

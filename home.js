@@ -4,8 +4,10 @@
   const panels = [...document.querySelectorAll("[data-panel]")];
   const switcher = document.querySelector(".homeSwitch");
 
+  const VIEWS = ["analytics", "tools", "news"];
+
   function show(view, remember = true) {
-    const selected = view === "tools" ? "tools" : "analytics";
+    const selected = VIEWS.includes(view) ? view : "analytics";
     switcher.dataset.active = selected;
     tabs.forEach((tab) => tab.setAttribute("aria-selected", String(tab.dataset.view === selected)));
     panels.forEach((panel) => {
@@ -23,13 +25,73 @@
     tab.addEventListener("keydown", (event) => {
       if (!["ArrowLeft", "ArrowRight"].includes(event.key)) return;
       event.preventDefault();
-      const next = tab.dataset.view === "analytics" ? "tools" : "analytics";
+      const step = event.key === "ArrowRight" ? 1 : -1;
+      const now = VIEWS.indexOf(tab.dataset.view);
+      const next = VIEWS[(now + step + VIEWS.length) % VIEWS.length];
       show(next);
       tabs.find((item) => item.dataset.view === next)?.focus();
     });
   });
 
   show(localStorage.getItem("home-view") || "analytics", false);
+
+  /* Новости контуров.
+   *
+   * Сводки рабочих групп лежат по файлу на контур. Список здесь, а не в
+   * данных: контур без файла — обычное дело, лента просто скажет, что сводок
+   * ещё нет, и не будет светить пустой раздел.
+   */
+  const CONTOURS = [
+    { key: "antigen", name: "Антигенерация", src: "data/news-antigen.json" },
+    { key: "sales", name: "Продажи", src: "data/news-sales.json" },
+    { key: "ucenka", name: "Уценка", src: "data/news-ucenka.json" },
+    { key: "rnp", name: "Утренние РНП", src: "data/news.json" },
+  ];
+
+  const pick = document.querySelector("#newsPick");
+  const feed = document.querySelector("#newsFeed");
+  const empty = document.querySelector("#newsEmpty");
+
+  if (pick && feed) {
+    CONTOURS.forEach((contour, index) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "newsPick__item" + (index === 0 ? " is-on" : "");
+      button.textContent = contour.name;
+      button.addEventListener("click", () => {
+        pick.querySelectorAll(".newsPick__item").forEach((item) => item.classList.remove("is-on"));
+        button.classList.add("is-on");
+        loadContour(contour);
+      });
+      pick.append(button);
+    });
+    loadContour(CONTOURS[0]);
+  }
+
+  function loadContour(contour) {
+    const list = feed.querySelector("[data-feed-list]");
+    const stamp = feed.querySelector("[data-feed-stamp]");
+    const title = document.querySelector("#newsFeedTitle");
+    list.replaceChildren();
+    feed.hidden = true;
+    empty.hidden = true;
+    if (title) title.textContent = contour.name;
+
+    fetch(contour.src, { cache: "no-store" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data) => {
+        const records = data && data["записи"];
+        if (!records || !records.length) {
+          empty.hidden = false;
+          return;
+        }
+        // Рисуем теми же карточками, что и на страницах разделов.
+        records.slice(0, 8).forEach((record, index) => list.append(newsItem(record, index)));
+        if (stamp) stamp.textContent = data["источник"] || `обновлено ${data["обновлено"] || ""}`;
+        feed.hidden = false;
+      })
+      .catch(() => { empty.hidden = false; });
+  }
 
   const assistantForm = document.querySelector("#homeAssistantForm");
   const assistantInput = document.querySelector("#homeAssistantInput");
