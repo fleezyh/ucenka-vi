@@ -52,6 +52,15 @@
     .then((user) => {
       const rights = user && user["права"];
       if (!Array.isArray(rights) || rights.includes("*")) return;
+
+      // Если у роли открыт ровно один рабочий раздел, навигация ей не нужна:
+      // выбирать не из чего, а лишний экран между человеком и работой мешает.
+      const WORK = ["antigen", "heatmap", "sales", "perf", "picker", "dashboard", "funnel", "people"];
+      const mine = WORK.filter((section) => rights.includes(section));
+      if (mine.length === 1 && mine[0] === "picker") {
+        location.replace("/picker/");
+        return;
+      }
       document.querySelectorAll(".homeCard").forEach((card) => {
         const href = card.getAttribute("href") || "";
         const found = CARD_SECTION.find(([prefix]) => href.replace(/^\//, "").startsWith(prefix));
