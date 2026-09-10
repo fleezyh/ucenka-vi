@@ -84,9 +84,9 @@
    */
   const CONTOURS = [
     { key: "antigen", name: "Антигенерация", src: "data/news-antigen.json" },
+    // Уценка — это и есть утренние РНП: отдельного контура для них нет.
+    { key: "ucenka", name: "Уценка", src: "data/news.json" },
     { key: "sales", name: "Продажи", src: "data/news-sales.json" },
-    { key: "ucenka", name: "Уценка", src: "data/news-ucenka.json" },
-    { key: "rnp", name: "Утренние РНП", src: "data/news.json" },
   ];
 
   const pick = document.querySelector("#newsPick");
