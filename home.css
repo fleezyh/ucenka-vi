@@ -115,13 +115,22 @@ body.hasAssistantOpen{overflow:hidden}
 .homeNewsItem__tag{padding:3px 9px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:11px;font-weight:600}
 .homeNewsItem__chevron{color:var(--muted);font-size:13px;transition:transform .2s ease}
 .homeNewsItem[open] .homeNewsItem__chevron{transform:rotate(180deg)}
-.homeNewsItem__body{margin:0;padding:2px 20px 20px 82px}
-.homeNewsItem__body li{margin-top:11px;color:var(--muted);font-size:14px;line-height:1.55}
-.homeNewsItem__body li::marker{color:rgba(255,255,255,.28)}
+.homeNewsItem__body{padding:2px 20px 20px 82px}
+/* Цифры с доклада — плотный блок сверху: их читают отдельно от обсуждения. */
+.homeNewsNums{margin-bottom:16px;padding:13px 16px;border:1px solid var(--line);border-radius:15px;background:rgba(255,255,255,.02)}
+.homeNewsNums__label{margin:0 0 4px;color:#54d795;font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+.homeNewsNums ul{margin:0;padding-left:17px}
+.homeNewsNums li{margin-top:6px;color:#d5dde8;font-size:13.5px;line-height:1.5}
+.homeNewsNums li::marker{color:rgba(84,215,149,.5)}
+.homeNewsItem__points{margin:0;padding:0;list-style:none}
+.homeNewsPoint{margin-top:15px;padding-left:14px;border-left:1px solid rgba(255,255,255,.09)}
+.homeNewsPoint__who{display:block;margin-bottom:5px;color:#c9d5e4;font-size:12px;font-weight:700;letter-spacing:.04em}
+.homeNewsPoint__quote{display:block;margin-bottom:5px;color:#e8eef7;font-size:14px;font-style:italic;line-height:1.5}
+.homeNewsPoint__text{display:block;color:var(--muted);font-size:14px;line-height:1.55}
 @media(max-width:640px){
 .homeNewsItem__head{grid-template-columns:auto minmax(0,1fr);gap:13px;padding:15px 16px}
 .homeNewsItem__chevron{display:none}
-.homeNewsItem__body{padding:2px 16px 17px 22px}
+.homeNewsItem__body{padding:2px 16px 17px 16px}
 }
 footer{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:26px;color:var(--muted);font-size:13px}
 .homeFooterItem{display:inline-flex;align-items:center;gap:9px}.homeFooterSep{width:1px;height:14px;background:rgba(255,255,255,.16)}

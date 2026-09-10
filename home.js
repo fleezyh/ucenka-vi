@@ -195,8 +195,25 @@
     const day = new Date(record["дата"]);
     const tags = (record["теги"] || [])
       .map((tag) => `<span class="homeNewsItem__tag">${tag}</span>`).join("");
-    const points = (record["пункты"] || [])
-      .map((point) => `<li>${point}</li>`).join("");
+
+    // Цифры с доклада идут отдельным блоком: это единственная часть встречи,
+    // где числа звучат дословно, и искать их вперемешку с обсуждением неудобно.
+    const numbers = (record["цифры"] || []).map((line) => `<li>${line}</li>`).join("");
+    const numbersBlock = numbers
+      ? `<div class="homeNewsNums">
+           <p class="homeNewsNums__label">Цифры с доклада</p>
+           <ul>${numbers}</ul>
+         </div>`
+      : "";
+
+    // В пунктах — кто говорил и, где есть, его слова. Пересказ своими словами
+    // легко превращает «обсудили» в «договорились», а это разные вещи.
+    const points = (record["пункты"] || []).map((point) => `
+      <li class="homeNewsPoint">
+        <span class="homeNewsPoint__who">${point["кто"] || ""}</span>
+        ${point["цитата"] ? `<q class="homeNewsPoint__quote">${point["цитата"]}</q>` : ""}
+        ${point["текст"] ? `<span class="homeNewsPoint__text">${point["текст"]}</span>` : ""}
+      </li>`).join("");
 
     item.innerHTML = `
       <summary class="homeNewsItem__head">
@@ -208,7 +225,10 @@
         </span>
         <span class="homeNewsItem__chevron" aria-hidden="true">▾</span>
       </summary>
-      <ul class="homeNewsItem__body">${points}</ul>`;
+      <div class="homeNewsItem__body">
+        ${numbersBlock}
+        <ul class="homeNewsItem__points">${points}</ul>
+      </div>`;
     return item;
   }
 
