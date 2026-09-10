@@ -222,3 +222,7 @@ footer{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap
 .homeAssistantTrigger__copy small{display:none}
 .homeAssistantTrigger__hint{display:none}
 @media(max-width:700px){.homeAssistantTrigger{right:14px;bottom:14px;padding:10px 14px}}
+
+/* Лента внутри «Новостей» появляется тем же движением, что и панели вкладок. */
+.feed.is-entering,
+.newsEmpty.is-entering{animation:panelIn .42s cubic-bezier(.22,1,.36,1)}

@@ -134,12 +134,18 @@
         const records = data && data["записи"];
         if (!records || !records.length) {
           empty.hidden = false;
+          empty.classList.remove("is-entering");
+          requestAnimationFrame(() => empty.classList.add("is-entering"));
           return;
         }
         // Рисуем теми же карточками, что и на страницах разделов.
         records.slice(0, 8).forEach((record, index) => list.append(newsItem(record, index)));
         if (stamp) stamp.textContent = data["источник"] || `обновлено ${data["обновлено"] || ""}`;
         feed.hidden = false;
+        // Появление — тем же движением, что и переключение вкладок: иначе лента
+        // возникает рывком там, где рядом всё едет плавно.
+        feed.classList.remove("is-entering");
+        requestAnimationFrame(() => feed.classList.add("is-entering"));
       })
       .catch(() => { empty.hidden = false; });
   }
