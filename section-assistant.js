@@ -87,7 +87,12 @@
     } catch (error) {
       console.warn("structured assistant context unavailable", error);
     }
-    return `Страница: ${document.title}\nАдрес: ${location.pathname}${location.hash}\n\nСТРУКТУРИРОВАННЫЕ ДАННЫЕ:\n${structured || "нет"}\n\nВИДИМЫЙ ТЕКСТ:\n${text}`.slice(0, 18000);
+    // Если раздел умеет готовить точные агрегаты, они важнее большого дампа
+    // интерфейса. Короткий видимый фрагмент оставляем только для подписей и
+    // выбранных фильтров. Так 120B получает меньше шума и реже упирается в
+    // ограничение времени генерации.
+    const visible = text.slice(0, structured ? 2500 : 10000);
+    return `Страница: ${document.title}\nАдрес: ${location.pathname}${location.hash}\n\nСТРУКТУРИРОВАННЫЕ ДАННЫЕ:\n${structured || "нет"}\n\nВИДИМЫЙ ТЕКСТ:\n${visible}`.slice(0, 12000);
   }
   function open() {
     modal.hidden = false;
