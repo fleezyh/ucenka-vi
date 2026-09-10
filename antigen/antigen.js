@@ -122,6 +122,7 @@
     search: '',        // слово из названия товара, артикула или бренда
     drillDim: null,
     heatDim: null,
+    share: null,       // какая доля раскрыта в разбор
   };
 
   const cache = new Map();
@@ -843,28 +844,42 @@
     const yearAgo = closed.find((row) => row.month === shiftYear(last.month));
     const cena = (row) => (row.prodano ? row.vyruchka / row.prodano : 0);
 
+    // Доля — это дробь, и смотреть на неё без числителя и знаменателя нельзя:
+    // она падает и когда брака стало меньше, и когда просто выросли продажи.
+    // Поэтому каждая карточка раскрывается в помесячный разбор.
     const cards = [
       { key: 'pct_vyr', label: 'от выручки', kind: 'pct',
-        note: 'брак в рублях к выручке компании' },
+        note: 'брак в рублях к выручке компании',
+        verh: { key: 'rub', label: 'брак, ₽', kind: 'money' },
+        niz: { key: 'vyruchka', label: 'выручка, ₽', kind: 'money' } },
       { key: 'pct_sht', label: 'от проданных штук', kind: 'pct',
-        note: 'акты к проданным штукам' },
+        note: 'акты к проданным штукам',
+        verh: { key: 'akty', label: 'актов', kind: 'int' },
+        niz: { key: 'prodano', label: 'продано, шт', kind: 'int' } },
       { key: 'pct_ost', label: 'от хранимых штук', kind: 'pct',
-        note: 'акты к остатку на складах' },
+        note: 'акты к остатку на складах',
+        verh: { key: 'akty', label: 'актов', kind: 'int' },
+        niz: { key: 'ostatok', label: 'остаток, шт', kind: 'int' } },
       { key: 'cena', label: 'цена штуки компании', kind: 'money',
-        note: 'выручка на проданную штуку', value: cena },
+        note: 'выручка на проданную штуку', value: cena,
+        verh: { key: 'vyruchka', label: 'выручка, ₽', kind: 'money' },
+        niz: { key: 'prodano', label: 'продано, шт', kind: 'int' } },
     ];
 
     const monthName = (key) => `${MONTHS_SHORT[Number(key.slice(5)) - 1]} ${key.slice(0, 4)}`;
+    const znachenie = (card, row) => (card.value ? card.value(row) : row[card.key]);
     const items = cards.map((card) => {
       // pct() ставит знак, а доля сама по себе не «плюс» и не «минус».
-      const now = card.value ? card.value(last) : last[card.key];
-      const was = yearAgo ? (card.value ? card.value(yearAgo) : yearAgo[card.key]) : null;
+      const now = znachenie(card, last);
+      const was = yearAgo ? znachenie(card, yearAgo) : null;
       const delta = was ? ((now - was) / was) * 100 : null;
       // «Меньше» для доли и для цены штуки значит разное: доля вниз — хорошо,
       // цена вниз — тревожно, потому что штук на тот же рубль становится больше.
       const good = card.kind === 'pct' ? delta < 0 : delta > 0;
-      const spark = closed.slice(-13).map((row) => (card.value ? card.value(row) : row[card.key]));
-      return '<span class="agShare">'
+      const spark = closed.slice(-13).map((row) => znachenie(card, row));
+      const open = state.share === card.key;
+      return `<button class="agShare${open ? ' is-open' : ''}" type="button"`
+        + ` data-share="${card.key}" aria-expanded="${open}">`
         + `<b>${card.kind === 'pct' ? pctPlain(now) : fmtMoney(now)}</b>`
         + `<span class="agShare__label">${card.label}</span>`
         + sparkline(spark)
@@ -872,11 +887,47 @@
           ? '<em class="agShare__delta">год назад данных нет</em>'
           : `<em class="agShare__delta agShare__delta--${good ? 'down' : 'up'}">`
             + `${pct(delta)} к ${monthName(yearAgo.month)}</em>`)
-        + `<small>${card.note}</small></span>`;
+        + `<small>${card.note}</small></button>`;
     }).join('');
 
+    const open = cards.find((card) => card.key === state.share);
     box.hidden = false;
-    box.innerHTML = `<span class="agShares__label">доли · ${monthName(last.month)}</span>${items}`;
+    box.innerHTML = `<span class="agShares__label">доли · ${monthName(last.month)}</span>${items}`
+      + (open ? shareBreakdown(open, closed, znachenie, monthName) : '');
+
+    box.querySelectorAll('[data-share]').forEach((button) => {
+      button.addEventListener('click', () => {
+        state.share = state.share === button.dataset.share ? null : button.dataset.share;
+        renderShares();
+      });
+    });
+  }
+
+  /** Разбор доли: числитель, знаменатель и она сама по месяцам плюс год назад. */
+  function shareBreakdown(card, closed, znachenie, monthName) {
+    const rows = closed.slice(-13).reverse().map((row) => {
+      const back = closed.find((item) => item.month === shiftYear(row.month));
+      const now = znachenie(card, row);
+      const was = back ? znachenie(card, back) : null;
+      const delta = was ? ((now - was) / was) * 100 : null;
+      const good = card.kind === 'pct' ? delta < 0 : delta > 0;
+      return '<tr>'
+        + `<td>${monthName(row.month)}</td>`
+        + `<td>${fmt(row[card.verh.key], card.verh.kind)}</td>`
+        + `<td>${fmt(row[card.niz.key], card.niz.kind)}</td>`
+        + `<td><b>${card.kind === 'pct' ? pctPlain(now) : fmtMoney(now)}</b></td>`
+        + `<td class="${delta === null ? '' : `agShare__delta--${good ? 'down' : 'up'}`}">`
+          + `${delta === null ? '—' : pct(delta)}</td>`
+        + '</tr>';
+    }).join('');
+
+    return '<div class="agShareOpen">'
+      + `<p class="agShareOpen__head">${card.label} · из чего складывается`
+        + '<span>год к году — тот же месяц прошлого года</span></p>'
+      + '<table class="agShareOpen__table"><thead><tr>'
+        + `<th>месяц</th><th>${card.verh.label}</th><th>${card.niz.label}</th>`
+        + '<th>значение</th><th>ГкГ</th></tr></thead>'
+      + `<tbody>${rows}</tbody></table></div>`;
   }
 
   function shiftYear(month) {
