@@ -110,7 +110,7 @@
     button.addEventListener("click", closeAssistant);
   });
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && !assistantModal?.hidden) closeAssistant();
+    if (event.key === "Escape" && assistantModal && !assistantModal.hidden) closeAssistant();
     if (event.key !== "Tab" || assistantModal?.hidden) return;
     const focusable = [...assistantDialog.querySelectorAll("button, textarea")];
     const first = focusable[0];
