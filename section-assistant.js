@@ -33,7 +33,7 @@
         <div class="sectionAssistantMessages" aria-live="polite"></div>
         <div class="sectionAssistantPrompts"></div>
         <form><textarea rows="1" maxlength="800" placeholder="Напишите вопрос по текущим данным…"></textarea><button type="submit">Спросить <b>↑</b></button></form>
-        <small class="sectionAssistantDisclaimer">Пока помощник анализирует только готовые данные этой страницы, без запросов в DWH.</small>
+        <small class="sectionAssistantDisclaimer">GPT-OSS 120B работает локально и использует только выгрузки, загруженные для текущего раздела. Прямого доступа к DWH нет.</small>
       </section>
     </div>`;
   document.body.append(root);
