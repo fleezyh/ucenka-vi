@@ -257,6 +257,13 @@ body[data-mode="people"] .shell {
 .plMapRow--person.is-on { border-color: var(--blue); background: #16233a; }
 .plMapDot { flex: none; width: 9px; height: 9px; border-radius: 50%; }
 .plMapName { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Должность и подразделение — второй строкой под именем. Без блочности они
+   вылезали за высоту строки, и соседние строки налезали друг на друга. */
+.plMapName em {
+  display: block; margin-top: 2px;
+  color: var(--muted); font-size: 11.5px; font-style: normal; line-height: 1.3;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 .plMapRow b { flex: none; font-weight: 600; }
 /* Полоска доли — фоном под строкой, а не отдельным элементом рядом. */
 .plMapRow i { position: absolute; left: 0; bottom: 0; height: 2px; width: var(--w, 0%); background: var(--blue); }
