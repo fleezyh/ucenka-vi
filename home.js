@@ -294,19 +294,6 @@
     return item;
   }
 
-  fetch("data/news.json", { cache: "no-store" })
-    .then((response) => (response.ok ? response.json() : null))
-    .then((data) => {
-      const records = data && data["записи"];
-      if (!records || !records.length) return;
-      const list = document.querySelector("#homeNewsList");
-      records.slice(0, 6).forEach((record, index) => list.append(newsItem(record, index)));
-      const stamp = document.querySelector("#homeNewsStamp");
-      if (stamp) stamp.textContent = `обновлено ${data["обновлено"] || ""}`;
-      document.querySelector("#homeNews").hidden = false;
-    })
-    .catch(() => {});
-
   fetch("data/analytics.json", { cache: "no-store" })
     .then((response) => {
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
