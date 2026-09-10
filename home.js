@@ -35,6 +35,38 @@
 
   show(localStorage.getItem("home-view") || "analytics", false);
 
+  /* Карточки разделов по правам роли.
+   *
+   * Шапку по правам уже подчищает nav.js, а карточки на главной оставались:
+   * человек из операций видел четыре плитки аналитики и на каждой получал
+   * отказ. Теперь остаются только свои разделы, а пустая вкладка не
+   * показывается вовсе — вместо неё короткая строчка.
+   */
+  const CARD_SECTION = [
+    ["antigen", "antigen"], ["heatmap", "heatmap"], ["sales", "sales"], ["perf", "perf"],
+    ["picker", "picker"], ["dashboard", "dashboard"], ["funnel", "funnel"], ["people", "people"],
+  ];
+
+  fetch("/__me", { credentials: "same-origin" })
+    .then((response) => (response.ok ? response.json() : null))
+    .then((user) => {
+      const rights = user && user["права"];
+      if (!Array.isArray(rights) || rights.includes("*")) return;
+      document.querySelectorAll(".homeCard").forEach((card) => {
+        const href = card.getAttribute("href") || "";
+        const found = CARD_SECTION.find(([prefix]) => href.replace(/^\//, "").startsWith(prefix));
+        if (found && !rights.includes(found[1])) card.remove();
+      });
+      panels.forEach((panel) => {
+        if (panel.querySelector(".homeCard") || !panel.querySelector(".homeGrid")) return;
+        const note = document.createElement("p");
+        note.className = "newsEmpty";
+        note.textContent = "В вашей роли здесь пока ничего нет.";
+        panel.append(note);
+      });
+    })
+    .catch(() => {});
+
   /* Новости контуров.
    *
    * Сводки рабочих групп лежат по файлу на контур. Список здесь, а не в
