@@ -119,35 +119,58 @@
     loadContour(CONTOURS[0]);
   }
 
-  function loadContour(contour) {
-    const list = feed.querySelector("[data-feed-list]");
-    const stamp = feed.querySelector("[data-feed-stamp]");
-    const title = document.querySelector("#newsFeedTitle");
-    list.replaceChildren();
-    feed.hidden = true;
-    empty.hidden = true;
-    if (title) title.textContent = contour.name;
+  // Уже загруженные ленты держим в памяти: обратное переключение должно быть
+  // мгновенным, а не ещё одним запросом.
+  const loaded = new Map();
+  let current = null;
 
+  function loadContour(contour) {
+    current = contour.key;
+    if (loaded.has(contour.key)) {
+      drawContour(contour, loaded.get(contour.key));
+      return;
+    }
     fetch(contour.src, { cache: "no-store" })
       .then((response) => (response.ok ? response.json() : null))
       .then((data) => {
-        const records = data && data["записи"];
-        if (!records || !records.length) {
-          empty.hidden = false;
-          empty.classList.remove("is-entering");
-          requestAnimationFrame(() => empty.classList.add("is-entering"));
-          return;
-        }
-        // Рисуем теми же карточками, что и на страницах разделов.
-        records.slice(0, 8).forEach((record, index) => list.append(newsItem(record, index)));
-        if (stamp) stamp.textContent = data["источник"] || `обновлено ${data["обновлено"] || ""}`;
-        feed.hidden = false;
-        // Появление — тем же движением, что и переключение вкладок: иначе лента
-        // возникает рывком там, где рядом всё едет плавно.
-        feed.classList.remove("is-entering");
-        requestAnimationFrame(() => feed.classList.add("is-entering"));
+        loaded.set(contour.key, data);
+        // Пока ходили за данными, человек мог переключиться дальше — рисуем
+        // только то, что выбрано сейчас.
+        if (current === contour.key) drawContour(contour, data);
       })
-      .catch(() => { empty.hidden = false; });
+      .catch(() => { if (current === contour.key) drawContour(contour, null); });
+  }
+
+  /* Прошлую ленту не убираем заранее.
+   *
+   * Раньше список чистился сразу, а данные приезжали через запрос — и между
+   * ними на секунду зияла пустота. Теперь старое стоит на экране до тех пор,
+   * пока не готово новое. */
+  function drawContour(contour, data) {
+    const list = feed.querySelector("[data-feed-list]");
+    const stamp = feed.querySelector("[data-feed-stamp]");
+    const title = document.querySelector("#newsFeedTitle");
+    const records = data && data["записи"];
+
+    if (title) title.textContent = contour.name;
+
+    if (!records || !records.length) {
+      feed.hidden = true;
+      list.replaceChildren();
+      empty.hidden = false;
+      empty.classList.remove("is-entering");
+      requestAnimationFrame(() => empty.classList.add("is-entering"));
+      return;
+    }
+
+    const fresh = document.createDocumentFragment();
+    records.slice(0, 8).forEach((record, index) => fresh.append(newsItem(record, index)));
+    list.replaceChildren(fresh);
+    if (stamp) stamp.textContent = data["источник"] || `обновлено ${data["обновлено"] || ""}`;
+    empty.hidden = true;
+    feed.hidden = false;
+    feed.classList.remove("is-entering");
+    requestAnimationFrame(() => feed.classList.add("is-entering"));
   }
 
   const assistantForm = document.querySelector("#homeAssistantForm");
