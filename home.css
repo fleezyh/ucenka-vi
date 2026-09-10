@@ -95,6 +95,34 @@ body.hasAssistantOpen{overflow:hidden}
 .homeCard__copy strong{display:block;font-size:22px;line-height:1.15;letter-spacing:-.025em}
 .homeCard__copy small{display:block;margin-top:8px;color:var(--muted);font-size:14px;line-height:1.45}
 .homeCard__arrow{position:relative;z-index:1;display:grid;place-items:center;width:36px;height:36px;border:1px solid rgba(255,255,255,.1);border-radius:50%;color:#d9e4f2;background:rgba(4,9,15,.28);font-size:17px}
+/* Лента апдейтов с утренних РНП. Держится тише карточек разделов: это не
+   навигация, а справка «что изменилось», и перетягивать взгляд она не должна. */
+.homeNews{margin-top:34px}
+.homeNews__head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:14px}
+.homeNews__head h2{margin:0;font-size:23px;font-weight:600;letter-spacing:-.01em}
+.homeNews__stamp{color:var(--muted);font-size:12px}
+.homeNews__list{display:grid;gap:10px}
+.homeNewsItem{border:1px solid var(--line);border-radius:20px;background:rgba(15,14,20,.72);overflow:hidden;transition:border-color .2s ease,background .2s ease}
+.homeNewsItem:hover{border-color:rgba(255,255,255,.28)}
+.homeNewsItem[open]{background:rgba(22,20,28,.9)}
+.homeNewsItem__head{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:16px;padding:17px 20px;cursor:pointer;list-style:none}
+.homeNewsItem__head::-webkit-details-marker{display:none}
+.homeNewsItem__date{display:grid;justify-items:center;min-width:46px;color:var(--muted)}
+.homeNewsItem__date b{color:#fff;font-size:19px;font-weight:600;line-height:1.1}
+.homeNewsItem__date span{font-size:11px}
+.homeNewsItem__title{min-width:0;font-size:16px;font-weight:600;line-height:1.35}
+.homeNewsItem__tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}
+.homeNewsItem__tag{padding:3px 9px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:11px;font-weight:600}
+.homeNewsItem__chevron{color:var(--muted);font-size:13px;transition:transform .2s ease}
+.homeNewsItem[open] .homeNewsItem__chevron{transform:rotate(180deg)}
+.homeNewsItem__body{margin:0;padding:2px 20px 20px 82px}
+.homeNewsItem__body li{margin-top:11px;color:var(--muted);font-size:14px;line-height:1.55}
+.homeNewsItem__body li::marker{color:rgba(255,255,255,.28)}
+@media(max-width:640px){
+.homeNewsItem__head{grid-template-columns:auto minmax(0,1fr);gap:13px;padding:15px 16px}
+.homeNewsItem__chevron{display:none}
+.homeNewsItem__body{padding:2px 16px 17px 22px}
+}
 footer{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:26px;color:var(--muted);font-size:13px}
 .homeFooterItem{display:inline-flex;align-items:center;gap:9px}.homeFooterSep{width:1px;height:14px;background:rgba(255,255,255,.16)}
 .homePulse{width:7px;height:7px;border-radius:50%;background:var(--green);}

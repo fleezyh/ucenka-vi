@@ -178,6 +178,53 @@
     }
   });
 
+  /* Апдейты с утренних РНП.
+   *
+   * Раньше единственным следом встречи была расшифровка на пятьсот строк: что
+   * решили по Данилову или по актированию, знали только те, кто был на созвоне.
+   * Здесь выжимка по дням — свежая раскрыта, остальные под кликом, чтобы лента
+   * не забивала главную. */
+  const MESYACY = ["янв", "фев", "мар", "апр", "мая", "июн",
+                   "июл", "авг", "сен", "окт", "ноя", "дек"];
+
+  function newsItem(record, index) {
+    const item = document.createElement("details");
+    item.className = "homeNewsItem";
+    if (index === 0) item.open = true;
+
+    const day = new Date(record["дата"]);
+    const tags = (record["теги"] || [])
+      .map((tag) => `<span class="homeNewsItem__tag">${tag}</span>`).join("");
+    const points = (record["пункты"] || [])
+      .map((point) => `<li>${point}</li>`).join("");
+
+    item.innerHTML = `
+      <summary class="homeNewsItem__head">
+        <span class="homeNewsItem__date">
+          <b>${day.getDate()}</b><span>${MESYACY[day.getMonth()]}</span>
+        </span>
+        <span class="homeNewsItem__title">${record["заголовок"] || ""}
+          ${tags ? `<span class="homeNewsItem__tags">${tags}</span>` : ""}
+        </span>
+        <span class="homeNewsItem__chevron" aria-hidden="true">▾</span>
+      </summary>
+      <ul class="homeNewsItem__body">${points}</ul>`;
+    return item;
+  }
+
+  fetch("data/news.json", { cache: "no-store" })
+    .then((response) => (response.ok ? response.json() : null))
+    .then((data) => {
+      const records = data && data["записи"];
+      if (!records || !records.length) return;
+      const list = document.querySelector("#homeNewsList");
+      records.slice(0, 6).forEach((record, index) => list.append(newsItem(record, index)));
+      const stamp = document.querySelector("#homeNewsStamp");
+      if (stamp) stamp.textContent = `обновлено ${data["обновлено"] || ""}`;
+      document.querySelector("#homeNews").hidden = false;
+    })
+    .catch(() => {});
+
   fetch("data/analytics.json", { cache: "no-store" })
     .then((response) => {
       if (!response.ok) throw new Error(`HTTP ${response.status}`);

@@ -9,11 +9,11 @@
   <link rel="icon" type="image/svg+xml" href="assets/brand/vi-mark.svg?v=20260903-3">
   <link rel="preload" href="assets/fonts/VI_Sans_Regular.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="assets/fonts/VI_Sans_ExtraBold.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="home.css?v=20260909-6">
+  <link rel="stylesheet" href="home.css?v=20260910-2">
   <link rel="stylesheet" href="reeded-bg.css?v=20260907-6">
   <link rel="stylesheet" href="site-header.css?v=20260909-7">
   <script src="reeded-bg.js?v=20260906-7" defer></script>
-  <script src="home.js?v=20260910-1" defer></script>
+  <script src="home.js?v=20260910-2" defer></script>
   <script src="nav.js?v=20260910-1" defer></script>
 </head>
 <body class="homePage">
@@ -118,8 +118,8 @@
     </section>
 
     <section class="homePanel" data-panel="tools" aria-label="Инструменты" hidden>
-      <div class="homeGrid homeGrid--tools">
-        <a class="homeCard homeCard--picker glass" href="picker/">
+      <div class="homeGrid">
+        <a class="homeCard homeCard--primary glass" href="picker/">
           <span class="homeCard__icon homeCard__icon--green">П</span>
           <span class="homeCard__copy">
             <strong>Пикалка</strong>
@@ -127,15 +127,44 @@
           </span>
           <span class="homeCard__arrow" aria-hidden="true">↗</span>
         </a>
-        <a class="homeCard glass" href="/__admin">
-          <span class="homeCard__icon homeCard__icon--red">03</span>
+        <a class="homeCard glass" href="dashboard/">
+          <span class="homeCard__icon homeCard__icon--amber">Д</span>
           <span class="homeCard__copy">
-            <strong>Панель управления</strong>
-            <small>Обновление данных и служебные сценарии</small>
+            <strong>Паллеты</strong>
+            <small>Остатки по складам, выгрузка в Excel</small>
+          </span>
+          <span class="homeCard__arrow" aria-hidden="true">↗</span>
+        </a>
+        <a class="homeCard glass" href="funnel/">
+          <span class="homeCard__icon homeCard__icon--violet">В</span>
+          <span class="homeCard__copy">
+            <strong>Воронка</strong>
+            <small>Путь товара от входа до отгрузки</small>
+          </span>
+          <span class="homeCard__arrow" aria-hidden="true">↗</span>
+        </a>
+        <a class="homeCard glass" href="/__account">
+          <span class="homeCard__icon homeCard__icon--red">К</span>
+          <span class="homeCard__copy">
+            <strong>Кабинет</strong>
+            <small>Смена пароля и доступ к панели управления</small>
           </span>
           <span class="homeCard__arrow" aria-hidden="true">↗</span>
         </a>
       </div>
+    </section>
+
+    <!-- Лента апдейтов. Наполняется выжимками с утренних РНП: до неё узнать,
+         что вчера решили, можно было только из расшифровки на 500 строк. -->
+    <section class="homeNews" id="homeNews" aria-label="Что нового" hidden>
+      <div class="homeNews__head">
+        <div>
+          <p class="homeEyebrow">Что нового</p>
+          <h2>Апдейты с РНП</h2>
+        </div>
+        <span class="homeNews__stamp" id="homeNewsStamp"></span>
+      </div>
+      <div class="homeNews__list" id="homeNewsList"></div>
     </section>
 
     <footer>
