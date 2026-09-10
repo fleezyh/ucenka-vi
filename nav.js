@@ -71,6 +71,37 @@
       box.innerHTML = '<a class="navLink" href="/__account">Кабинет</a>'
         + '<a class="navLink" href="/__logout">Выйти</a>';
       nav.appendChild(box);
+      hideClosed(user["права"]);
     })
     .catch(() => {});
+
+  /* Разделы, которые роли закрыты, убираем из шапки.
+   *
+   * Гейт всё равно не пустит — он отдаст 403, — но тыкать в ссылку, которая
+   * отвечает отказом, человек не должен: это выглядит как поломка сайта.
+   * Ключи здесь те же, что в таблице разделов на сервере. */
+  const SECTION_BY_HREF = [
+    ["/picker", "picker"],
+    ["/antigen", "antigen"],
+    ["/heatmap", "heatmap"],
+    ["/sales", "sales"],
+    ["/perf", "perf"],
+    ["/funnel", "funnel"],
+    ["/dashboard", "dashboard"],
+    ["/panopticum", "panopticum"],
+    ["/people", "people"],
+  ];
+
+  function hideClosed(rights) {
+    if (!Array.isArray(rights) || rights.includes("*")) return;
+    document.querySelectorAll(".siteNav a, .site-nav__actions a").forEach((link) => {
+      const path = new URL(link.getAttribute("href"), location.origin).pathname;
+      const found = SECTION_BY_HREF.find(([prefix]) => path.startsWith(prefix));
+      if (found && !rights.includes(found[1])) link.remove();
+    });
+    // Опустевшая группа оставляет в плашке пустую перегородку.
+    document.querySelectorAll(".navGroup").forEach((group) => {
+      if (!group.querySelector("a")) group.remove();
+    });
+  }
 })();
