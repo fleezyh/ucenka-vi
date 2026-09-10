@@ -25,6 +25,13 @@
         // только путала — оценка в себестоимости, а брак был в рознице.
         { key: 'sebes', label: '₽ себестоимость', kind: 'money' },
         { key: 'strok', label: 'строк', kind: 'int' },
+        // Доли считаются по месяцам из control: числитель тот же — акты
+        // приёмки, знаменатель берётся из масштаба компании. Своих строк у
+        // них нет, поэтому карта и разбор остаются на основной мере.
+        { key: 'pct_vyr', label: '% от выручки', kind: 'pct', control: true },
+        { key: 'pct_sht', label: '% от штук', kind: 'pct', control: true },
+        { key: 'pct_ost', label: '% от остатка', kind: 'pct', control: true },
+        { key: 'cena', label: '₽/шт компании', kind: 'money', control: true },
       ],
       dims: [
         { key: 'vid', label: 'место обнаружения' },
@@ -145,7 +152,9 @@
   }
 
   const measureOf = (contour) => contour.measures.find((m) => m.key === state.measure) || contour.measures[0];
-  const fmt = (value, kind) => (kind === 'money' ? fmtMoney(value) : fmtInt(value));
+  // Доли форматируются как проценты: без этого 0,53 % показывалось как «1».
+  const fmt = (value, kind) => (kind === 'money' ? fmtMoney(value)
+    : kind === 'pct' ? pctPlain(value) : fmtInt(value));
   const fmtSigned = (value, kind) =>
     (value > 0 ? '+' : value < 0 ? '−' : '') + fmt(Math.abs(value), kind);
   const pctPlain = (value) => Math.abs(value).toFixed(2).replace('.', ',') + '%';
@@ -661,10 +670,15 @@
     const delta = base ? value - base : 0;
 
     const period = periodDef();
-    const now = values.reduce((a, b) => a + b, 0);
+    // Доли и цены не складываются: сумма процентов за квартал бессмысленна,
+    // поэтому за период берём среднее, а не итог.
+    const srednee = (ryad) => (ryad.length ? ryad.reduce((a, b) => a + b, 0) / ryad.length : 0);
+    const now = measure.control ? srednee(values) : values.reduce((a, b) => a + b, 0);
     const beforeMonths = period.months ? periodMonths(data, 1) : [];
-    const before = beforeMonths.length
-      ? total(data, pointsOf(data, beforeMonths).flatMap((p) => p.rows), measure.key) : 0;
+    const before = !beforeMonths.length ? 0
+      : measure.control
+        ? srednee(controlPoints(data, measure, beforeMonths).map((point) => point.value))
+        : total(data, pointsOf(data, beforeMonths).flatMap((p) => p.rows), measure.key);
     // Незакрытый месяц в периоде делает сравнение неравным: без оговорки
     // «−40%» читается как обвал, хотя месяц просто ещё идёт.
     const unevenNote = before && points.some((p) => p.partial) ? ' · период ещё не закрыт' : '';
@@ -686,7 +700,7 @@
         tone: before && now > before ? 'up' : before && now < before ? 'down' : '',
       },
       {
-        label: 'за период',
+        label: measure.control ? 'в среднем за период' : 'за период',
         value: fmt(now, measure.kind),
         note: `${points.length} ${plural(points.length, 'точка', 'точки', 'точек')}`
           + ` · пик ${fmt(Math.max(...values), measure.kind)}`,
@@ -873,6 +887,28 @@
 
   const monthName = (key) => MONTHS_SHORT[Number(key.slice(5)) - 1] + ' ' + key.slice(0, 4);
   const shareValue = (card, row) => (card.value ? card.value(row) : row[card.key]);
+
+  /** Точки для мер-долей: месяцы периода со своим значением.
+   *
+   * Форма та же, что у обычных точек, поэтому график, засечки мероприятий и
+   * карточки работают без оговорок. Строк внутри нет — по доле не
+   * проваливаются, она характеристика месяца целиком.
+   */
+  function controlPoints(data, measure, months) {
+    const card = SHARES.find((item) => item.key === measure.key);
+    const inside = new Set(months || periodMonths(data));
+    return ((index.control && index.control.months) || [])
+      .filter((row) => row.akty && inside.has(row.month))
+      .map((row) => ({
+        key: row.month,
+        label: MONTHS_SHORT[Number(row.month.slice(5)) - 1] + ' ' + row.month.slice(2, 4),
+        title: MONTHS[Number(row.month.slice(5)) - 1] + ' ' + row.month.slice(0, 4),
+        rows: [],
+        months: [row.month],
+        partial: monthRunning(row.month),
+        value: shareValue(card, row),
+      }));
+  }
 
   /** Карточки долей для блока фактов: значение за последний закрытый месяц и ГкГ. */
   function shareCards() {
@@ -1428,10 +1464,21 @@
   async function render() {
     const contour = contourDef();
     renderContours();
-    segment(el('agMeasure'), contour.measures, state.measure, (key) => { state.measure = key; render(); });
+    segment(el('agMeasure'), contour.measures, state.measure, (key) => {
+      state.measure = key;
+      // Знаменатель у долей месячный, по неделям его не разложить. Переводим
+      // ось на месяцы сами, чтобы выбранный шаг не обещал того, чего нет.
+      const picked = contour.measures.find((item) => item.key === key);
+      if (picked && picked.control && state.step === 'week') {
+        state.step = 'month';
+        state.point = null;
+      }
+      render();
+    });
 
     segment(el('agPeriod'), PERIODS, state.period, (key) => { state.period = key; state.point = null; render(); });
-    segment(el('agStep'), STEPS, state.step, (key) => { state.step = key; state.point = null; render(); });
+    const stepsAllowed = measureOf(contour).control ? STEPS.filter((item) => item.key !== 'week') : STEPS;
+    segment(el('agStep'), stepsAllowed, state.step, (key) => { state.step = key; state.point = null; render(); });
 
     const data = await loadContour(state.contour);
     buildSearchSet(data);
@@ -1441,10 +1488,16 @@
     const measure = measureOf(contour);
     const values = points.map((point) => total(data, point.rows, measure.key));
 
+    // У долей своя ось времени — месячная: знаменатель считается по месяцу и
+    // на недели не делится. Карта и разбор при этом остаются на обычных
+    // точках, иначе провалиться в срез было бы не во что.
+    const shown = measure.control ? controlPoints(data, measure) : points;
+    const shownValues = measure.control ? shown.map((point) => point.value) : values;
+
     el('agTimeTitle').textContent = contour.name;
     renderGoals(data);
-    renderChart(data, contour, points, values);
-    renderFacts(data, contour, points, values);
+    renderChart(data, contour, shown, shownValues);
+    renderFacts(data, contour, shown, shownValues);
     renderHeat(data, contour, points);
     renderCrumbs(contour, points);
     renderTable(data, contour, points);
