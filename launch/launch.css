@@ -1,0 +1,172 @@
+/* Карта ФБ Данилово. Сетка не абсолютная: узлы стоят в потоке строки контура,
+   стрелки между ними — обычные символы. Так карта переживает и телефон, и
+   контур из трёх узлов, и контур из пяти, без пересчёта координат. */
+
+.heroLaunch {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin-bottom: 22px;
+}
+.heroLaunch h1 { margin: 6px 0 10px; font-size: 30px; font-weight: 800; letter-spacing: -0.02em; }
+.heroLaunch .lead { max-width: 640px; color: var(--muted); line-height: 1.55; }
+
+.launchTools { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+
+/* ---- Полоса готовности ------------------------------------------------------ */
+
+.launchReady { margin-bottom: 26px; }
+
+.readyBar {
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--panel-soft);
+}
+.readyBar__line {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  overflow: hidden;
+}
+.readyBar__fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--green-deep), var(--green));
+}
+.readyBar__facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.readyBar__facts strong { color: var(--text); font-weight: 700; font-size: 15px; }
+
+/* ---- Строка контура --------------------------------------------------------- */
+
+.launchMap { display: grid; gap: 16px; }
+
+.mapRow {
+  padding: 18px 20px 20px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+.mapRow__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.mapRow__head h2 { margin: 0; font-size: 17px; font-weight: 700; }
+.mapRow__head p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+.mapRow__score {
+  flex: none;
+  padding: 4px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.mapRow__flow {
+  display: flex;
+  align-items: stretch;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.mapArrow {
+  align-self: center;
+  color: var(--line-strong);
+  font-size: 16px;
+}
+
+/* ---- Узел ------------------------------------------------------------------- */
+
+.mapNode {
+  flex: 1 1 150px;
+  min-width: 140px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(8, 13, 20, 0.6);
+  color: var(--text);
+  font-family: var(--ui);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s, transform 0.15s, background 0.15s;
+}
+.mapNode:hover { border-color: var(--line-strong); transform: translateY(-1px); }
+.mapNode.is-open { border-color: var(--blue); background: rgba(77, 141, 247, 0.1); }
+
+.mapNode__name { font-size: 13px; font-weight: 600; line-height: 1.3; }
+.mapNode__big { font-size: 24px; font-weight: 800; letter-spacing: -0.02em; }
+.mapNode__small { color: var(--muted); font-size: 11px; }
+
+/* Три состояния узла цветом: пусто — работать негде, готово — ждём товар,
+   работает — уже пошло. Цвет несёт смысл, поэтому дублируется подписью. */
+.mapNode.is-пусто { opacity: 0.72; border-style: dashed; }
+.mapNode.is-пусто .mapNode__big { color: var(--muted); }
+.mapNode.is-готово { border-color: rgba(245, 173, 50, 0.42); }
+.mapNode.is-готово .mapNode__big { color: var(--amber); }
+.mapNode.is-работает { border-color: rgba(39, 196, 107, 0.5); }
+.mapNode.is-работает .mapNode__big { color: var(--green); }
+
+/* ---- Раскрытый узел --------------------------------------------------------- */
+
+.mapCard {
+  margin-top: 14px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(8, 13, 20, 0.55);
+}
+.mapCard__title { margin: 0 0 10px; font-size: 14px; font-weight: 700; }
+.mapCard__list { display: grid; gap: 8px; margin: 0; }
+.mapCard__list > div {
+  display: grid;
+  grid-template-columns: 170px minmax(0, 1fr);
+  gap: 12px;
+}
+.mapCard__list dt { color: var(--muted); font-size: 13px; }
+.mapCard__list dd { margin: 0; font-size: 13px; line-height: 1.5; }
+
+/* ---- Вне потока ------------------------------------------------------------- */
+
+.launchExtra { margin-top: 26px; }
+.extraTitle { margin: 0 0 6px; font-size: 16px; font-weight: 700; }
+.extraNote { margin: 0 0 14px; color: var(--muted); font-size: 13px; }
+.extraGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+.extraCard {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel-soft);
+  font-size: 13px;
+}
+.extraCard span { color: var(--muted); font-size: 12px; }
+.extraCard.is-пусто { border-style: dashed; opacity: 0.72; }
+
+@media (max-width: 720px) {
+  .heroLaunch h1 { font-size: 24px; }
+  .launchTools { align-items: flex-start; }
+  .mapArrow { display: none; }
+  .mapNode { flex: 1 1 100%; }
+  .mapCard__list > div { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+}
