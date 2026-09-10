@@ -146,6 +146,22 @@
 .slot.is-blank .link { border-top-style: dashed; opacity: 0.45; }
 .slot.is-blank .link::after { display: none; }
 
+/* Число на стрелке — сколько прошло по связи за 30 дней. Сидит над линией,
+   чтобы не разрывать её: линия показывает маршрут, число — нагрузку. */
+.link__num {
+  position: absolute;
+  left: 50%;
+  bottom: 3px;
+  transform: translateX(-50%);
+  padding: 0 3px;
+  background: var(--panel);
+  color: var(--text);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
 /* ---- Плитка узла ------------------------------------------------------------ */
 
 .tile {
@@ -247,6 +263,22 @@
 
 .noteList { margin: 0; padding-left: 18px; display: grid; gap: 10px; color: var(--muted); font-size: 12.5px; line-height: 1.55; }
 .noteList--plain { gap: 4px; }
+
+.crossList { margin: 0; padding: 0; list-style: none; display: grid; gap: 2px; }
+.crossList li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  color: var(--muted);
+  font-size: 12px;
+}
+.crossList b { flex: none; color: var(--text); font-variant-numeric: tabular-nums; }
+
+/* Поток через узел — вторая по важности строка после остатка. */
+.tile__flow { color: var(--muted); font-size: 10.5px; }
 
 @media (max-width: 1100px) {
   .todoWrap { grid-template-columns: minmax(0, 1fr); }

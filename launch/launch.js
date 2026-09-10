@@ -14,6 +14,15 @@
 
   let payload = null;
   let picked = null;   // zone_id выделенного узла
+  let links = new Map();   // «зона→зона» → сколько прошло за 30 дней
+  let entryZone = null;    // буфер приёмки: от него начинается каждый ряд
+
+  /** Сколько прошло по связи за 30 дней. Ноль и отсутствие связи — одно и то
+      же: рисовать на стрелке ноль незачем, линия и так пустая. */
+  function flowBetween(from, to) {
+    if (from === null || to === null) return 0;
+    return links.get(`${from}→${to}`) || 0;
+  }
 
   const CELL_WORDS = ["ячейка", "ячейки", "ячеек"];
   const NODE_WORDS = ["узел", "узла", "узлов"];
@@ -49,15 +58,24 @@
       `<span class="tile__zone">id ${node.зона}</span>` +
     `</span>`);
 
-    if (node.статус === "работает") {
-      parts.push(`<span class="tile__value">${nice(node.штук_месяц)}</span>` +
-        `<span class="tile__unit">штук за 30 дней</span>`);
-    } else if (node.статус === "готово") {
+    /* Главное число узла — остаток: сколько лежит в зоне прямо сейчас. Так же
+       устроена карта в Superset, и это правильно: узел — место хранения, а не
+       счётчик прихода. Пока склад не запущен, остатка нигде нет, и на первый
+       план выходит готовность — сколько ячеек нарезано. */
+    if (node.остаток > 0) {
+      parts.push(`<span class="tile__value">${nice(node.остаток)}</span>` +
+        `<span class="tile__unit">штук лежит · ${nice(node.ячеек)} ` +
+        `${plural(node.ячеек, CELL_WORDS)}</span>`);
+    } else if (node.статус !== "пусто") {
       parts.push(`<span class="tile__value">${nice(node.ячеек)}</span>` +
-        `<span class="tile__unit">${plural(node.ячеек, CELL_WORDS)} · товара нет</span>`);
+        `<span class="tile__unit">${plural(node.ячеек, CELL_WORDS)} · пусто</span>`);
     } else {
       parts.push(`<span class="tile__value tile__value--empty">нет</span>` +
         `<span class="tile__unit">ячеек не заведено</span>`);
+    }
+
+    if (node.штук_месяц) {
+      parts.push(`<span class="tile__flow">прошло за 30 дней: ${nice(node.штук_месяц)}</span>`);
     }
 
     parts.push(`<span class="tile__full">${escape(node.полное)}</span>`);
@@ -93,11 +111,18 @@
       byColumn.set(node.колонка, node);
     });
 
-    const cells = columns.map((column, index) => {
+    /* Стрелка между узлами несёт число: сколько прошло по этой связи за 30
+       дней. Это второй слой карты — узлы говорят, где лежит, связи говорят,
+       куда течёт. Связь ищем по паре зон, а не по позиции: если этап
+       пропущен, стрелка всё равно свяжет соседей по факту. */
+    let previous = entryZone;      // слева от первой колонки стоит приёмка
+    const cells = columns.map((column) => {
       const node = byColumn.get(column.ключ);
-      const link = index ? `<span class="link" aria-hidden="true"></span>` : "";
-      if (!node) return `<div class="slot is-blank">${link}</div>`;
-      return `<div class="slot">${link}${nodeTile(node)}</div>`;
+      if (!node) return `<div class="slot is-blank"><span class="link" aria-hidden="true"></span></div>`;
+      const flow = flowBetween(previous, node.зона);
+      const label = flow ? `<span class="link__num">${nice(flow)}</span>` : "";
+      previous = node.зона;
+      return `<div class="slot"><span class="link">${label}</span>${nodeTile(node)}</div>`;
     }).join("");
 
     const done = contour.узлы.filter((node) => node.статус !== "пусто").length;
@@ -121,6 +146,11 @@
     const heads = `<div class="head head--label"></div>` +
       `<div class="head head--in">Приёмка</div>` +
       columns.map((column) => `<div class="head">${escape(column.название)}</div>`).join("");
+
+    // Ряды начинаются от буфера приёмки: он и есть общий вход площадки.
+    entryZone = priemka
+      ? (priemka.узлы.find((node) => node.колонка === "приёмка") || {}).зона ?? null
+      : null;
 
     const entry = priemka ? (
       `<div class="entry">` +
@@ -194,15 +224,43 @@
           `<h2>На заметку</h2>` +
           `<ul class="noteList">` +
             notes.map((note) => `<li>${escape(note)}</li>`).join("") +
+            strayNotes(data) +
           `</ul>` +
+          crossBlock(data) +
           (inventory ? `<h3>Вне потока</h3><ul class="noteList noteList--plain">${inventory}</ul>` : "") +
         `</section>` +
       `</div>`
     );
   }
 
+  /* Переходы между контурами. Стрелкой через всю карту их не нарисовать —
+     они идут наискось, — но именно ради них заводили буфер на каждый
+     источник: попадание в такой буфер значит, что на прошлом шаге ошиблись.
+     Поэтому список, а не картинка. */
+  function crossBlock(data) {
+    const cross = (data.связи || []).filter((link) => link.вид === "перекрёстно");
+    if (!cross.length) return "";
+    const rows = cross.map((link) =>
+      `<li><span>${escape(link.от_имя)} → ${escape(link.до_имя)}</span>` +
+      `<b>${link.штук_месяц ? nice(link.штук_месяц) : "—"}</b></li>`).join("");
+    return `<h3>Переходы между контурами</h3>` +
+      `<ul class="crossList">${rows}</ul>`;
+  }
+
+  /* Движения, которых в схеме нет. Пока такое одно — тестовая штука, приехавшая
+     24.08 из разноски товара. Дальше здесь будут вылезать живые нарушения
+     маршрута, и это самое ценное, что карта умеет показывать. */
+  function strayNotes(data) {
+    return (data.лишние || []).map((link) =>
+      `<li>Движение мимо схемы: ${escape(link.от_имя)} → ${escape(link.до_имя)}, ` +
+      `${nice(link.штук_месяц)} шт за 30 дней` +
+      (link.снаружи ? " (источник вне карты ФБ)" : "") + `.</li>`).join("");
+  }
+
   function render() {
     if (!payload) return;
+    links = new Map((payload.связи || []).map((link) =>
+      [`${link.от}→${link.до}`, link.штук_месяц]));
     readyBox.innerHTML = readyBlock(payload);
     readyBox.hidden = false;
     mapBox.innerHTML = mapBlock(payload);
