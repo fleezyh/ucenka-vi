@@ -147,6 +147,7 @@
   const fmt = (value, kind) => (kind === 'money' ? fmtMoney(value) : fmtInt(value));
   const fmtSigned = (value, kind) =>
     (value > 0 ? '+' : value < 0 ? '−' : '') + fmt(Math.abs(value), kind);
+  const pctPlain = (value) => Math.abs(value).toFixed(2).replace('.', ',') + '%';
   const pct = (value) => (value > 0 ? '+' : '−') + Math.abs(value).toFixed(1).replace('.', ',') + '%';
   function plural(count, one, few, many) {
     const n = Math.abs(count) % 100;
@@ -822,6 +823,80 @@
         : '');
   }
 
+  /* Доли брака в масштабе компании.
+   *
+   * Просьба Жени: на борде не хватало долей от выручки и от хранимых штук.
+   * Резон простой — компания растёт, и брак в штуках растёт вместе с ней, но
+   * это ещё не значит, что стало хуже. Доля отвечает честно, а цена штуки
+   * рядом показывает, дорожает товар или мельчает: работа считается в штуках,
+   * а не в рублях, и от этого зависят трудозатраты.
+   *
+   * Числитель везде один и тот же — акты приёмки, как у точки А.
+   */
+  function renderShares() {
+    const box = el('agShares');
+    const months = (index.control && index.control.months) || [];
+    const closed = months.filter((row) => row.akty);
+    if (closed.length < 2) { box.hidden = true; return; }
+
+    const last = closed[closed.length - 1];
+    const yearAgo = closed.find((row) => row.month === shiftYear(last.month));
+    const cena = (row) => (row.prodano ? row.vyruchka / row.prodano : 0);
+
+    const cards = [
+      { key: 'pct_vyr', label: 'от выручки', kind: 'pct',
+        note: 'брак в рублях к выручке компании' },
+      { key: 'pct_sht', label: 'от проданных штук', kind: 'pct',
+        note: 'акты к проданным штукам' },
+      { key: 'pct_ost', label: 'от хранимых штук', kind: 'pct',
+        note: 'акты к остатку на складах' },
+      { key: 'cena', label: 'цена штуки компании', kind: 'money',
+        note: 'выручка на проданную штуку', value: cena },
+    ];
+
+    const monthName = (key) => `${MONTHS_SHORT[Number(key.slice(5)) - 1]} ${key.slice(0, 4)}`;
+    const items = cards.map((card) => {
+      // pct() ставит знак, а доля сама по себе не «плюс» и не «минус».
+      const now = card.value ? card.value(last) : last[card.key];
+      const was = yearAgo ? (card.value ? card.value(yearAgo) : yearAgo[card.key]) : null;
+      const delta = was ? ((now - was) / was) * 100 : null;
+      // «Меньше» для доли и для цены штуки значит разное: доля вниз — хорошо,
+      // цена вниз — тревожно, потому что штук на тот же рубль становится больше.
+      const good = card.kind === 'pct' ? delta < 0 : delta > 0;
+      const spark = closed.slice(-13).map((row) => (card.value ? card.value(row) : row[card.key]));
+      return '<span class="agShare">'
+        + `<b>${card.kind === 'pct' ? pctPlain(now) : fmtMoney(now)}</b>`
+        + `<span class="agShare__label">${card.label}</span>`
+        + sparkline(spark)
+        + (delta === null
+          ? '<em class="agShare__delta">год назад данных нет</em>'
+          : `<em class="agShare__delta agShare__delta--${good ? 'down' : 'up'}">`
+            + `${pct(delta)} к ${monthName(yearAgo.month)}</em>`)
+        + `<small>${card.note}</small></span>`;
+    }).join('');
+
+    box.hidden = false;
+    box.innerHTML = `<span class="agShares__label">доли · ${monthName(last.month)}</span>${items}`;
+  }
+
+  function shiftYear(month) {
+    return `${Number(month.slice(0, 4)) - 1}-${month.slice(5)}`;
+  }
+
+  /** Мини-график на двенадцать точек: тренд виден, места занимает строку. */
+  function sparkline(values) {
+    const clean = values.filter((value) => Number.isFinite(value));
+    if (clean.length < 3) return '';
+    const low = Math.min(...clean);
+    const span = Math.max(...clean) - low || 1;
+    const step = 100 / (clean.length - 1);
+    const points = clean
+      .map((value, i) => `${(i * step).toFixed(1)},${(26 - ((value - low) / span) * 22).toFixed(1)}`)
+      .join(' ');
+    return `<svg class="agShare__spark" viewBox="0 0 100 28" preserveAspectRatio="none"`
+      + ` aria-hidden="true"><polyline points="${points}"/></svg>`;
+  }
+
   // ---------------------------------------------------------------- карта
 
   function heatColor(share) {
@@ -1334,6 +1409,7 @@
 
     el('agTimeTitle').textContent = contour.name;
     renderGoals(data);
+    renderShares();
     renderChart(data, contour, points, values);
     renderFacts(data, contour, points, values);
     renderHeat(data, contour, points);
