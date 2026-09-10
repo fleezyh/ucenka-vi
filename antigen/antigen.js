@@ -693,12 +693,31 @@
       },
     ];
 
+    // Доли к масштабу компании живут здесь же, среди прочих фактов: отдельной
+    // полосой они наслаивались на цель и читались как ещё один блок, хотя это
+    // такая же характеристика периода, как медиана или пик.
+    shareCards().forEach((card) => cards.push(card));
+
     cards.forEach((card) => {
-      const item = document.createElement('div');
-      item.className = 'agFact' + (card.tone ? ` agFact--${card.tone}` : '');
-      item.innerHTML = `<span>${escape(card.label)}</span><strong>${card.value}</strong><small>${escape(card.note)}</small>`;
+      const item = document.createElement(card.share ? 'button' : 'div');
+      item.className = 'agFact' + (card.tone ? ` agFact--${card.tone}` : '')
+        + (card.share ? ' agFact--share' : '') + (card.share === state.share ? ' is-open' : '');
+      if (card.share) {
+        item.type = 'button';
+        item.dataset.share = card.share;
+        item.addEventListener('click', () => {
+          state.share = state.share === card.share ? null : card.share;
+          render();
+        });
+      }
+      item.innerHTML = `<span>${escape(card.label)}</span><strong>${card.value}</strong>`
+        + `<small>${escape(card.note)}</small>`;
       box.appendChild(item);
     });
+
+    const open = SHARES.find((card) => card.key === state.share);
+    const months = ((index.control && index.control.months) || []).filter((row) => row.akty);
+    if (open && months.length > 1) box.insertAdjacentHTML('beforeend', shareBreakdown(open, months));
   }
 
   // ------------------------------------------------------------- цели
@@ -832,83 +851,60 @@
    * рядом показывает, дорожает товар или мельчает: работа считается в штуках,
    * а не в рублях, и от этого зависят трудозатраты.
    *
-   * Числитель везде один и тот же — акты приёмки, как у точки А.
+   * Числитель везде один и тот же — акты приёмки, как у точки А. Живут эти
+   * метрики среди карточек периода, отдельного блока для них нет.
    */
-  function renderShares() {
-    const box = el('agShares');
-    const months = (index.control && index.control.months) || [];
-    const closed = months.filter((row) => row.akty);
-    if (closed.length < 2) { box.hidden = true; return; }
+  const CENA_SHTUKI = (row) => (row.prodano ? row.vyruchka / row.prodano : 0);
 
-    const last = closed[closed.length - 1];
-    const yearAgo = closed.find((row) => row.month === shiftYear(last.month));
-    const cena = (row) => (row.prodano ? row.vyruchka / row.prodano : 0);
+  const SHARES = [
+    { key: 'pct_vyr', label: 'доля от выручки', kind: 'pct',
+      verh: { key: 'rub', label: 'брак, ₽', kind: 'money' },
+      niz: { key: 'vyruchka', label: 'выручка, ₽', kind: 'money' } },
+    { key: 'pct_sht', label: 'доля от проданных штук', kind: 'pct',
+      verh: { key: 'akty', label: 'актов', kind: 'int' },
+      niz: { key: 'prodano', label: 'продано, шт', kind: 'int' } },
+    { key: 'pct_ost', label: 'доля от хранимых штук', kind: 'pct',
+      verh: { key: 'akty', label: 'актов', kind: 'int' },
+      niz: { key: 'ostatok', label: 'остаток, шт', kind: 'int' } },
+    { key: 'cena', label: 'цена штуки компании', kind: 'money', value: CENA_SHTUKI,
+      verh: { key: 'vyruchka', label: 'выручка, ₽', kind: 'money' },
+      niz: { key: 'prodano', label: 'продано, шт', kind: 'int' } },
+  ];
 
-    // Доля — это дробь, и смотреть на неё без числителя и знаменателя нельзя:
-    // она падает и когда брака стало меньше, и когда просто выросли продажи.
-    // Поэтому каждая карточка раскрывается в помесячный разбор.
-    const cards = [
-      { key: 'pct_vyr', label: 'от выручки', kind: 'pct',
-        note: 'брак в рублях к выручке компании',
-        verh: { key: 'rub', label: 'брак, ₽', kind: 'money' },
-        niz: { key: 'vyruchka', label: 'выручка, ₽', kind: 'money' } },
-      { key: 'pct_sht', label: 'от проданных штук', kind: 'pct',
-        note: 'акты к проданным штукам',
-        verh: { key: 'akty', label: 'актов', kind: 'int' },
-        niz: { key: 'prodano', label: 'продано, шт', kind: 'int' } },
-      { key: 'pct_ost', label: 'от хранимых штук', kind: 'pct',
-        note: 'акты к остатку на складах',
-        verh: { key: 'akty', label: 'актов', kind: 'int' },
-        niz: { key: 'ostatok', label: 'остаток, шт', kind: 'int' } },
-      { key: 'cena', label: 'цена штуки компании', kind: 'money',
-        note: 'выручка на проданную штуку', value: cena,
-        verh: { key: 'vyruchka', label: 'выручка, ₽', kind: 'money' },
-        niz: { key: 'prodano', label: 'продано, шт', kind: 'int' } },
-    ];
+  const monthName = (key) => MONTHS_SHORT[Number(key.slice(5)) - 1] + ' ' + key.slice(0, 4);
+  const shareValue = (card, row) => (card.value ? card.value(row) : row[card.key]);
 
-    const monthName = (key) => `${MONTHS_SHORT[Number(key.slice(5)) - 1]} ${key.slice(0, 4)}`;
-    const znachenie = (card, row) => (card.value ? card.value(row) : row[card.key]);
-    const items = cards.map((card) => {
-      // pct() ставит знак, а доля сама по себе не «плюс» и не «минус».
-      const now = znachenie(card, last);
-      const was = yearAgo ? znachenie(card, yearAgo) : null;
+  /** Карточки долей для блока фактов: значение за последний закрытый месяц и ГкГ. */
+  function shareCards() {
+    const months = ((index.control && index.control.months) || []).filter((row) => row.akty);
+    if (months.length < 2) return [];
+    const last = months[months.length - 1];
+    const yearAgo = months.find((row) => row.month === shiftYear(last.month));
+
+    return SHARES.map((card) => {
+      const now = shareValue(card, last);
+      const was = yearAgo ? shareValue(card, yearAgo) : null;
       const delta = was ? ((now - was) / was) * 100 : null;
       // «Меньше» для доли и для цены штуки значит разное: доля вниз — хорошо,
-      // цена вниз — тревожно, потому что штук на тот же рубль становится больше.
+      // цена вниз — тревожно, штук на тот же рубль становится больше.
       const good = card.kind === 'pct' ? delta < 0 : delta > 0;
-      const spark = closed.slice(-13).map((row) => znachenie(card, row));
-      const open = state.share === card.key;
-      return `<button class="agShare${open ? ' is-open' : ''}" type="button"`
-        + ` data-share="${card.key}" aria-expanded="${open}">`
-        + `<b>${card.kind === 'pct' ? pctPlain(now) : fmtMoney(now)}</b>`
-        + `<span class="agShare__label">${card.label}</span>`
-        + sparkline(spark)
-        + (delta === null
-          ? '<em class="agShare__delta">год назад данных нет</em>'
-          : `<em class="agShare__delta agShare__delta--${good ? 'down' : 'up'}">`
-            + `${pct(delta)} к ${monthName(yearAgo.month)}</em>`)
-        + `<small>${card.note}</small></button>`;
-    }).join('');
-
-    const open = cards.find((card) => card.key === state.share);
-    box.hidden = false;
-    box.innerHTML = `<span class="agShares__label">доли · ${monthName(last.month)}</span>${items}`
-      + (open ? shareBreakdown(open, closed, znachenie, monthName) : '');
-
-    box.querySelectorAll('[data-share]').forEach((button) => {
-      button.addEventListener('click', () => {
-        state.share = state.share === button.dataset.share ? null : button.dataset.share;
-        renderShares();
-      });
+      return {
+        share: card.key,
+        label: card.label,
+        value: card.kind === 'pct' ? pctPlain(now) : fmtMoney(now),
+        note: monthName(last.month) + (delta === null ? ' · года назад нет в данных'
+          : ' · ' + pct(delta) + ' к ' + monthName(yearAgo.month)),
+        tone: delta === null ? '' : (good ? 'down' : 'up'),
+      };
     });
   }
 
   /** Разбор доли: числитель, знаменатель и она сама по месяцам плюс год назад. */
-  function shareBreakdown(card, closed, znachenie, monthName) {
+  function shareBreakdown(card, closed) {
     const rows = closed.slice(-13).reverse().map((row) => {
       const back = closed.find((item) => item.month === shiftYear(row.month));
-      const now = znachenie(card, row);
-      const was = back ? znachenie(card, back) : null;
+      const now = shareValue(card, row);
+      const was = back ? shareValue(card, back) : null;
       const delta = was ? ((now - was) / was) * 100 : null;
       const good = card.kind === 'pct' ? delta < 0 : delta > 0;
       return '<tr>'
@@ -934,19 +930,6 @@
     return `${Number(month.slice(0, 4)) - 1}-${month.slice(5)}`;
   }
 
-  /** Мини-график на двенадцать точек: тренд виден, места занимает строку. */
-  function sparkline(values) {
-    const clean = values.filter((value) => Number.isFinite(value));
-    if (clean.length < 3) return '';
-    const low = Math.min(...clean);
-    const span = Math.max(...clean) - low || 1;
-    const step = 100 / (clean.length - 1);
-    const points = clean
-      .map((value, i) => `${(i * step).toFixed(1)},${(26 - ((value - low) / span) * 22).toFixed(1)}`)
-      .join(' ');
-    return `<svg class="agShare__spark" viewBox="0 0 100 28" preserveAspectRatio="none"`
-      + ` aria-hidden="true"><polyline points="${points}"/></svg>`;
-  }
 
   // ---------------------------------------------------------------- карта
 
@@ -1460,7 +1443,6 @@
 
     el('agTimeTitle').textContent = contour.name;
     renderGoals(data);
-    renderShares();
     renderChart(data, contour, points, values);
     renderFacts(data, contour, points, values);
     renderHeat(data, contour, points);
