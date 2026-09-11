@@ -54,6 +54,38 @@
     return box;
   }
 
+  /* Сводка поверх всех встреч. Лента отвечает на вопрос «что было в четверг»,
+     сводка — на другой: куда всё это едет. Стоит над записями, свёрнутой её
+     держать незачем — это самое короткое, что здесь есть. */
+  function summary(data) {
+    const s = data["сводка"];
+    if (!s || !s["итог"]) return null;
+
+    const box = document.createElement("section");
+    box.className = "feedSummary";
+
+    const block = (title, items, kind) => {
+      if (!items || !items.length) return "";
+      return `<div class="feedSummary__block feedSummary__block--${kind}">
+        <p class="feedSummary__label">${title}</p>
+        <ul>${items.map((line) => `<li>${line}</li>`).join("")}</ul>
+      </div>`;
+    };
+
+    box.innerHTML = `
+      <div class="feedSummary__head">
+        <p class="feedSummary__kicker">Итог периода</p>
+        <span class="feedSummary__meta">${s["период"] || ""} · ${s["встреч"] || 0} встреч</span>
+      </div>
+      <p class="feedSummary__text">${s["итог"]}</p>
+      <div class="feedSummary__grid">
+        ${block("Тянется", s["тянется"], "stuck")}
+        ${block("Сделано", s["сделано"], "done")}
+        ${block("Цифры", s["цифры"], "nums")}
+      </div>`;
+    return box;
+  }
+
   document.querySelectorAll("[data-src]").forEach((section) => {
     const source = section.dataset.src;
     if (!source || !section.classList.contains("feed")) return;
@@ -65,6 +97,8 @@
         if (!records || !records.length) return;
         const list = section.querySelector("[data-feed-list]");
         const limit = Number(section.dataset.limit || 6);
+        const svodka = summary(data);
+        if (svodka) list.append(svodka);
         records.slice(0, limit).forEach((record, index) => list.append(item(record, index)));
         const stamp = section.querySelector("[data-feed-stamp]");
         if (stamp) {

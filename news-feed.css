@@ -43,3 +43,23 @@
   .feedItem__chevron { display: none; }
   .feedItem__body { padding: 2px 16px 17px 16px; }
 }
+
+/* Сводка поверх всех встреч. Отдельный вид от записей: она не про день, а про
+   период, и читается как вывод, а не как протокол. Поэтому не сворачивается и
+   стоит первой. */
+.feedSummary { margin-bottom: 14px; padding: 20px 22px 22px; border: 1px solid var(--line); border-radius: 18px; background: linear-gradient(180deg, rgba(84, 215, 149, .06), rgba(255, 255, 255, .015)); }
+.feedSummary__head { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.feedSummary__kicker { margin: 0; color: #54d795; font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+.feedSummary__meta { color: var(--muted); font-size: 12px; }
+.feedSummary__text { margin: 10px 0 18px; color: #e8eef7; font-size: 15px; line-height: 1.6; }
+.feedSummary__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; }
+.feedSummary__block { min-width: 0; }
+.feedSummary__label { margin: 0 0 6px; font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.feedSummary__block--stuck .feedSummary__label { color: #f0857a; }
+.feedSummary__block--done .feedSummary__label { color: #54d795; }
+.feedSummary__block--nums .feedSummary__label { color: #7fb0f5; }
+.feedSummary__block ul { margin: 0; padding-left: 16px; }
+.feedSummary__block li { margin-top: 7px; color: var(--muted); font-size: 13px; line-height: 1.55; }
+.feedSummary__block--stuck li::marker { color: rgba(240, 133, 122, .55); }
+.feedSummary__block--done li::marker { color: rgba(84, 215, 149, .55); }
+.feedSummary__block--nums li::marker { color: rgba(127, 176, 245, .55); }

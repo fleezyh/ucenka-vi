@@ -167,6 +167,8 @@
     }
 
     const fresh = document.createDocumentFragment();
+    const svodka = newsSummary(data);
+    if (svodka) fresh.append(svodka);
     records.slice(0, 8).forEach((record, index) => fresh.append(newsItem(record, index)));
     list.replaceChildren(fresh);
     if (stamp) stamp.textContent = data["источник"] || `обновлено ${data["обновлено"] || ""}`;
@@ -331,6 +333,38 @@
    * не забивала главную. */
   const MESYACY = ["янв", "фев", "мар", "апр", "мая", "июн",
                    "июл", "авг", "сен", "окт", "ноя", "дек"];
+
+  /* Сводка поверх всех встреч контура. Записи ниже отвечают на вопрос «что было
+     в четверг», сводка — на другой: куда всё это едет. Поэтому стоит первой и
+     не сворачивается: это самое короткое, что здесь есть. */
+  function newsSummary(data) {
+    const s = data && data["сводка"];
+    if (!s || !s["итог"]) return null;
+
+    const box = document.createElement("section");
+    box.className = "homeNewsSummary";
+
+    const block = (title, items, kind) => {
+      if (!items || !items.length) return "";
+      return `<div class="homeNewsSummary__block homeNewsSummary__block--${kind}">
+        <p class="homeNewsSummary__label">${title}</p>
+        <ul>${items.map((line) => `<li>${line}</li>`).join("")}</ul>
+      </div>`;
+    };
+
+    box.innerHTML = `
+      <div class="homeNewsSummary__head">
+        <p class="homeNewsSummary__kicker">Итог периода</p>
+        <span class="homeNewsSummary__meta">${s["период"] || ""} · ${s["встреч"] || 0} встреч</span>
+      </div>
+      <p class="homeNewsSummary__text">${s["итог"]}</p>
+      <div class="homeNewsSummary__grid">
+        ${block("Тянется", s["тянется"], "stuck")}
+        ${block("Сделано", s["сделано"], "done")}
+        ${block("Цифры", s["цифры"], "nums")}
+      </div>`;
+    return box;
+  }
 
   function newsItem(record, index) {
     const item = document.createElement("details");

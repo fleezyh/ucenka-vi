@@ -226,3 +226,21 @@ footer{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap
 /* Лента внутри «Новостей» появляется тем же движением, что и панели вкладок. */
 .feed.is-entering,
 .newsEmpty.is-entering{animation:panelIn .42s cubic-bezier(.22,1,.36,1)}
+
+/* Сводка над лентой контура: вывод за период, а не протокол дня. */
+.homeNewsSummary { margin-bottom: 14px; padding: 20px 22px 22px; border: 1px solid var(--line); border-radius: 18px; background: linear-gradient(180deg, rgba(84, 215, 149, .06), rgba(255, 255, 255, .015)); }
+.homeNewsSummary__head { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.homeNewsSummary__kicker { margin: 0; color: #54d795; font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+.homeNewsSummary__meta { color: var(--muted); font-size: 12px; }
+.homeNewsSummary__text { margin: 10px 0 18px; color: #e8eef7; font-size: 15px; line-height: 1.6; }
+.homeNewsSummary__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; }
+.homeNewsSummary__block { min-width: 0; }
+.homeNewsSummary__label { margin: 0 0 6px; font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.homeNewsSummary__block--stuck .homeNewsSummary__label { color: #f0857a; }
+.homeNewsSummary__block--done .homeNewsSummary__label { color: #54d795; }
+.homeNewsSummary__block--nums .homeNewsSummary__label { color: #7fb0f5; }
+.homeNewsSummary__block ul { margin: 0; padding-left: 16px; }
+.homeNewsSummary__block li { margin-top: 7px; color: var(--muted); font-size: 13px; line-height: 1.55; }
+.homeNewsSummary__block--stuck li::marker { color: rgba(240, 133, 122, .55); }
+.homeNewsSummary__block--done li::marker { color: rgba(84, 215, 149, .55); }
+.homeNewsSummary__block--nums li::marker { color: rgba(127, 176, 245, .55); }
