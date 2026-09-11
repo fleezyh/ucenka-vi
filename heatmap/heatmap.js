@@ -387,8 +387,8 @@
     // значения из неё убраны: они подписаны прямо под своими точками, и
     // дублировать их в тултипе значило топить принцип в перечислении.
     const method = methodOf(tile.metric_key);
-    const hint = [tile.metric, method?.кратко, tile.meta_txt,
-                  "клик — история по дням и откуда число"]
+    const hint = [tile.metric, method?.формула, tile.meta_txt,
+                  "клик — история по дням и как считается"]
       .filter(Boolean).join(" — ");
     if (hint) cell.title = hint;
     return cell;
@@ -620,12 +620,11 @@
   // Откуда цифра берётся: это первое, что надо знать про плитку.
   const KIND_LABEL = { "система": "считает система", "руками": "заводят вручную", "расчёт": "расчёт" };
   const KIND_CLASS = { "система": "sys", "руками": "hand", "расчёт": "calc" };
-  const ROW_LABEL = { "что": "что считаем", "периметр": "периметр", "формула": "формула" };
 
-  /** «Откуда число»: источник, периметр, формула и где цифра условна.
+  /** «Как считается»: формула одной строкой и, если надо, одна оговорка.
    *
-   * Главный блок панели, а не сноска: на разборах первым делом спрашивают не
-   * «сколько», а «чем это посчитано».
+   * Ровно столько, сколько человек прочитает у плитки. Всё длиннее он
+   * пролистывает — проверено на первой версии этого блока.
    */
   function methodBlock(metricKey) {
     const method = methodOf(metricKey);
@@ -636,9 +635,7 @@
 
     const title = document.createElement("h4");
     title.className = "how__title";
-    title.textContent = "Откуда число";
-    // Первым делом — считает это система или заводит человек: от ответа
-    // зависит, можно ли на цифру опираться сегодня же.
+    title.textContent = "Как считается";
     if (method.тип) {
       const kind = document.createElement("span");
       kind.className = `how__kind how__kind--${KIND_CLASS[method.тип] || "calc"}`;
@@ -647,44 +644,17 @@
     }
     box.append(title);
 
-    if (method.кратко) {
+    if (method.формула) {
       const lead = document.createElement("p");
       lead.className = "how__lead";
-      lead.textContent = method.кратко;
+      lead.textContent = method.формула;
       box.append(lead);
     }
 
-    const rows = document.createElement("dl");
-    rows.className = "how__rows";
-    for (const name of ["что", "периметр", "формула"]) {
-      if (!method[name]) continue;
-      const label = document.createElement("dt");
-      label.textContent = ROW_LABEL[name] || name;
-      const value = document.createElement("dd");
-      value.textContent = method[name];
-      rows.append(label, value);
-    }
-    if (rows.children.length) box.append(rows);
-
-    if (method.оговорки?.length) {
-      const label = document.createElement("p");
-      label.className = "how__caveatsLabel";
-      label.textContent = "где цифра условна";
-      const list = document.createElement("ul");
-      list.className = "how__caveats";
-      for (const text of method.оговорки) {
-        const item = document.createElement("li");
-        item.textContent = text;
-        list.append(item);
-      }
-      box.append(label, list);
-    }
-
-    const common = window.HEATMAP_METHOD_COMMON;
-    if (common) {
+    if (method.оговорка) {
       const note = document.createElement("p");
-      note.className = "how__common";
-      note.textContent = [common.цели, common.обновление].filter(Boolean).join(" ");
+      note.className = "how__caveat";
+      note.textContent = method.оговорка;
       box.append(note);
     }
     return box;
@@ -696,7 +666,9 @@
   // цену каждого рычага: снизить списание вдвое и поднять окупаемость на пять
   // пунктов — разные по силе ходы, и теперь это видно, а не обсуждается.
 
-  const RESERVE_FACTOR = 0.97;   // к изменению резерва, как в отчётности
+  // Изменение резерва входит в финрез целиком: 0,97 сидит внутри самого
+  // расчёта резерва, второй раз его накладывать нельзя. Так же считает плитка.
+  const RESERVE_FACTOR = 1;
 
   /** Сколько миллионов дала метрика за показанный период. */
   function tileMillions(metricKey) {
@@ -722,9 +694,11 @@
     if (!vyruchka) return null;
 
     // Резерв — остаток: в финрез идёт изменение за период, а не сам остаток.
+    // База — снимок на первое число, как в мастер-отчёте: если взять
+    // последний снимок прошлого месяца, результат разойдётся с плиткой.
     const snapshots = payload.ряды?.reserve_now?.точки || [];
     const [from, to] = periodRange(period);
-    const before = snapshots.filter((point) => point.день < from);
+    const before = snapshots.filter((point) => point.день <= from);
     const within = snapshots.filter((point) => point.день >= from && point.день <= to);
     const rezervDelta = before.length && within.length
       ? (within[within.length - 1].значение - before[before.length - 1].значение) / 1e6
@@ -781,10 +755,8 @@
 
     const note = document.createElement("p");
     note.className = "lab__note";
-    note.textContent = "Расчёт по составу финансовой отчётности за показанный период: "
-      + "уценка, списание, хранение и изменение резерва делятся на выручку компании. "
-      + "Двигайте части — результат пересчитывается. Это прикидка для разговора, а не отчёт."
-      + (base.rezervKnown ? "" : " Снимка резерва на начало периода нет — его движение принято нулевым.");
+    note.textContent = "Двигайте части — процент пересчитывается. Прикидка, а не отчёт."
+      + (base.rezervKnown ? "" : " Снимка резерва на начало периода нет, движение принято нулевым.");
     box.append(note);
 
     const out = document.createElement("div");

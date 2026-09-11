@@ -384,25 +384,10 @@ body[data-mode="heatmap"] .shell {
 .how__kind--hand { border-color: rgba(240, 173, 50, 0.45); color: #f0ad32; }
 .how__kind--calc { border-color: rgba(255, 255, 255, 0.2); color: rgba(255, 255, 255, 0.7); }
 
-.how__lead { margin: 0 0 12px; color: var(--text); font-size: 14.5px; line-height: 1.45; }
+/* Формула — главное в блоке, поэтому крупнее остального текста панели. */
+.how__lead { margin: 0; color: var(--text); font-size: 16px; line-height: 1.45; }
 
-/* Две колонки: слева ярлык, справа текст. На узком экране складываются. */
-.how__rows { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 7px 16px; margin: 0; }
-.how__rows dt { color: var(--muted); font: 600 12px var(--ui); letter-spacing: 0.02em; }
-.how__rows dd { margin: 0; color: rgba(255, 255, 255, 0.84); font-size: 13.5px; line-height: 1.5; }
-
-.how__caveatsLabel {
-  margin: 14px 0 6px;
-  color: #f0ad32;
-  font: 700 10.5px/1 var(--ui);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-.how__caveats { margin: 0; padding-left: 17px; }
-.how__caveats li { margin-top: 5px; color: rgba(255, 255, 255, 0.78); font-size: 13px; line-height: 1.5; }
-.how__caveats li::marker { color: rgba(240, 173, 50, 0.6); }
-
-.how__common { margin: 14px 0 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.how__caveat { margin: 8px 0 0; color: var(--muted); font-size: 12.5px; line-height: 1.5; }
 
 /* Панель без графика: методика в ней единственное содержимое, линия сверху
    ни от чего не отделяет. */
@@ -487,7 +472,5 @@ body[data-mode="heatmap"] .shell {
 }
 
 @media (max-width: 760px) {
-  .how__rows { grid-template-columns: minmax(0, 1fr); gap: 2px; }
-  .how__rows dd { margin-bottom: 8px; font-size: 13px; }
-  .how__lead { font-size: 13.5px; }
+  .how__lead { font-size: 14.5px; }
 }
