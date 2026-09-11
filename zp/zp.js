@@ -56,75 +56,66 @@ function vyplata(year, month, day) {
  * Внутри смены сумма растёт от «базы» со скоростью «в_секунду». Вне смены
  * счётчик стоит: капающие деньги в законный выходной — это враньё, а не
  * красивая анимация. */
-function schetchik(tik) {
+function schetchik(tik, schitano) {
   const rubliEl = document.getElementById("tickRub");
   const kopeykiEl = document.getElementById("tickKop");
   const stateEl = document.getElementById("tickState");
   if (!rubliEl) return;
 
-  const [nachalo, konec] = tik["окно"] || [9, 18];
-
+  // Счётчик идёт от уже заработанного к прогнозу на конец месяца. В момент
+  // расчёта он показывает ровно ту сумму, что стоит в разборе ниже, к концу
+  // месяца доходит до прогноза, и при этом не замирает ни на секунду.
   function summa() {
-    let itogo = Number(tik["база"]) || 0;
-    if (!tik["работает"]) return itogo;
-    const now = new Date();
-    const start = new Date(now); start.setHours(nachalo, 0, 0, 0);
-    const stop = new Date(now); stop.setHours(konec, 0, 0, 0);
-    const secunds = Math.max(0, (Math.min(now, stop) - start) / 1000);
-    return itogo + secunds * (Number(tik["в_секунду"]) || 0);
+    const fakt = Number(tik["факт"]) || 0;
+    const vsego = Number(tik["за_месяц"]) || fakt;
+    const proshlo = Math.max(0, Date.now() / 1000 - (schitano || Date.now() / 1000));
+    return Math.min(vsego, fakt + proshlo * (Number(tik["в_секунду"]) || 0));
+  }
+
+  /* Цифры перекатываются, а не подменяются.
+   *
+   * Каждый разряд — колонка из десяти цифр, которая сдвигается вверх. Когда
+   * копейки тикают раз в секунду, младший разряд крутится непрерывно, и
+   * число выглядит живым, а не мигающим. */
+  function lenta(el, simvol) {
+    if (!/\d/.test(simvol)) {
+      el.className = "zpDigit zpDigit--fix";
+      el.textContent = simvol;
+      return;
+    }
+    if (!el.firstChild || !el.classList.contains("zpDigit--roll")) {
+      el.className = "zpDigit zpDigit--roll";
+      el.innerHTML = '<span class="zpDigit__strip">'
+        + "0123456789".split("").map((d) => `<i>${d}</i>`).join("") + "</span>";
+    }
+    const strip = el.firstChild;
+    const nado = Number(simvol);
+    if (strip.dataset.n === String(nado)) return;
+    strip.dataset.n = String(nado);
+    strip.style.transform = `translateY(${-nado * 10}%)`;
+  }
+
+  function napisat(el, text) {
+    const simvoly = text.split("");
+    while (el.children.length > simvoly.length) el.lastChild.remove();
+    while (el.children.length < simvoly.length) {
+      el.appendChild(document.createElement("span"));
+    }
+    simvoly.forEach((simvol, i) => lenta(el.children[i], simvol));
   }
 
   function risovat() {
     const value = summa();
     const celye = Math.floor(value);
     const kop = Math.round((value - celye) * 100);
-    rubliEl.textContent = celye.toLocaleString("ru-RU");
-    kopeykiEl.textContent = "," + String(kop).padStart(2, "0") + " ₽";
+    napisat(rubliEl, celye.toLocaleString("ru-RU").replace(/ /g, " "));
+    napisat(kopeykiEl, "," + String(kop).padStart(2, "0"));
   }
 
-  // Когда начнётся следующее начисление: сегодня в начало окна, если ещё не
-  // дошли, иначе завтра. Выходные не считаем — у сменных графиков их нет,
-  // а у пятидневки цифра всё равно оживёт в понедельник.
-  function do_nachala() {
-    const now = new Date();
-    const start = new Date(now);
-    start.setHours(nachalo, 0, 0, 0);
-    if (start <= now) start.setDate(start.getDate() + 1);
-    return Math.max(0, Math.floor((start - now) / 1000));
-  }
-
-  function ostalos(secunds) {
-    const chasy = Math.floor(secunds / 3600);
-    const minuty = Math.floor((secunds % 3600) / 60);
-    const sek = secunds % 60;
-    if (chasy) return chasy + " ч " + String(minuty).padStart(2, "0") + " мин";
-    if (minuty) return minuty + " мин " + String(sek).padStart(2, "0") + " с";
-    return sek + " с";
-  }
-
-  // Цифра обновляется раз в секунду всегда. Когда смена идёт — растёт сумма,
-  // когда нет — идёт отсчёт до следующего начисления: мёртвый экран выглядит
-  // как сломанная страница, даже если число на нём верное.
-  function takt() {
-    const now = new Date();
-    const idet = tik["работает"] && now.getHours() >= nachalo && now.getHours() < konec;
-    risovat();
-    if (idet) {
-      stateEl.innerHTML = '<i class="zpTick__dot"></i>Начисляется прямо сейчас';
-      stateEl.className = "zpTick__state is-live";
-    } else if (!tik["работает"]) {
-      stateEl.innerHTML = "Сегодня начисления нет — следующее через <b>"
-        + ostalos(do_nachala()) + "</b>";
-      stateEl.className = "zpTick__state";
-    } else {
-      stateEl.innerHTML = "За сегодня всё начислено · дальше через <b>"
-        + ostalos(do_nachala()) + "</b>";
-      stateEl.className = "zpTick__state";
-    }
-  }
-
-  takt();
-  setInterval(takt, 1000);
+  risovat();
+  stateEl.innerHTML = '<i class="zpTick__dot"></i>Начисляется прямо сейчас';
+  stateEl.className = "zpTick__state is-live";
+  setInterval(risovat, 1000);
 }
 
 function karta(data, kto) {
@@ -173,7 +164,7 @@ function karta(data, kto) {
     <div class="zpTick">
       ${chey}
       <p class="zpTick__label">Заработано в ${V_MESYACE[now.getMonth()]}, на руки</p>
-      <p class="zpTick__value"><span id="tickRub">0</span><small id="tickKop">,00 ₽</small></p>
+      <p class="zpTick__value"><span class="zpRoll" id="tickRub"></span><small class="zpRoll" id="tickKop"></small><span class="zpTick__rub">₽</span></p>
       <p class="zpTick__state" id="tickState"></p>
       ${otsutstvie}
       <div class="zpTick__bar"><span style="width:${(dolya * 100).toFixed(1)}%"></span></div>
@@ -183,35 +174,31 @@ function karta(data, kto) {
 
     <div class="zpGrid">
       <div class="zpRow">
-        <span>Оклад за полный месяц<small>${ya["должность"] || ""}${ya["подразделение"] ? " · " + ya["подразделение"] : ""}</small></span>
+        <span>Оклад за месяц</span>
         <b>${rubli(ya["оклад_на_руки"])}</b>
       </div>
       <div class="zpRow">
-        <span>Окладная часть за отработанное<small>${otrabotano} из ${ya["план_дней"]} дней</small></span>
+        <span>Отработано</span>
         <b>${rubli(ya["окладная_часть"] * 0.87)}</b>
       </div>
       <div class="zpRow zpRow--soft">
-        <span>Премия, ожидаемая<small>точную сумму ставит руководитель при подаче</small></span>
+        <span>Премия</span>
         <b>${rubli(ya["премия_ожидаемая"] * 0.87)}</b>
       </div>
       <div class="zpPay">
         <div class="zpPay__item">
           <p class="zpPay__when">Аванс · ${avansKogda}</p>
           <p class="zpPay__sum">${rubli(ya["аванс"])}</p>
-          <p class="zpPay__note">Окладная часть за первую половину месяца${avansKak},
-            премия в аванс не входит.</p>
         </div>
         <div class="zpPay__item">
-          <p class="zpPay__when">Остаток · ${zpKogda}</p>
+          <p class="zpPay__when">Зарплата · ${zpKogda}</p>
           <p class="zpPay__sum">${rubli(ya["остаток"])}</p>
-          <p class="zpPay__note">Если доработаете месяц по графику: всего выйдет
-            ${rubli(ya["прогноз_месяца"])}, из них аванс уже ушёл.</p>
         </div>
       </div>
     </div>`;
   blockMe.hidden = false;
   note.hidden = false;
-  if (ya["тик"]) schetchik(ya["тик"]);
+  if (ya["тик"]) schetchik(ya["тик"], Number(data["посчитано_в"]) || 0);
 }
 
 /* Панель управления ФОТ.

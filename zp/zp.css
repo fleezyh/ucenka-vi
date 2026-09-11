@@ -103,6 +103,55 @@
   letter-spacing: -0.02em;
 }
 
+.zpTick__rub {
+  margin-left: 8px;
+  font-size: clamp(22px, 4vw, 46px);
+  font-weight: 500;
+  color: var(--muted);
+}
+
+/* Перекатывающиеся разряды.
+   Каждая цифра — окно высотой в строку, внутри лента из десяти цифр; смена
+   разряда сдвигает ленту. Подменять текст напрямую нельзя: число мигает и
+   дёргается по ширине, а так оно едет. */
+.zpRoll { display: inline-flex; align-items: baseline; }
+
+.zpDigit {
+  display: inline-block;
+  line-height: 1;
+}
+
+.zpDigit--roll {
+  position: relative;
+  overflow: hidden;
+  width: 0.62em;
+  height: 1em;
+  vertical-align: baseline;
+}
+
+.zpDigit__strip {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  transition: transform 620ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+.zpDigit__strip i {
+  height: 1em;
+  font-style: normal;
+  text-align: center;
+  line-height: 1;
+}
+
+/* Пробел-разделитель тысяч и запятая не должны занимать ширину цифры. */
+.zpDigit--fix { width: auto; padding: 0 0.02em; }
+
+@media (prefers-reduced-motion: reduce) {
+  .zpDigit__strip { transition: none; }
+}
+
 .zpTick__state {
   display: inline-flex;
   align-items: center;
