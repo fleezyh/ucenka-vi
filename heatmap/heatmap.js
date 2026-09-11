@@ -369,28 +369,26 @@
 
     cell.append(head, value, chart, foot);
 
-    // Клик раскрывает дневную историю. Ряд есть не у всех: коэффициенты и доли
-    // считаются из двух показателей сразу, и по дням такое число только шумит.
-    const daily = payload.ряды?.[tile.metric_key];
-    if (daily?.точки?.length) {
-      cell.classList.add("tile--clickable");
-      cell.tabIndex = 0;
-      cell.setAttribute("role", "button");
-      cell.addEventListener("click", () => openDaily(tile.metric_key, cell));
-      cell.addEventListener("keydown", (event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          openDaily(tile.metric_key, cell);
-        }
-      });
-    }
-    // Подсказка собирает то, что не поместилось: цель, отклонение и всю динамику.
-    // Про накопление приходится говорить прямо: одна и та же неделя в соседних
-    // месяцах даёт разные числа (в августе W36 — пятая точка ряда, в сентябре —
-    // первая), и без пояснения это выглядит как ошибка в данных.
-    const hint = [tile.metric, tile.meta_txt,
-                  list.map((p) => `${p.period}: ${p.label}`).join(" · "),
-                  list.length > 1 ? "недели полные, значения накопительные с начала периода" : ""]
+    // Клик раскрывает панель: дневную историю, а под ней — откуда взялось
+    // число. Раскрытие даём всегда, даже когда дневного ряда нет: вопрос
+    // «а это откуда» задают чаще, чем просят график.
+    cell.classList.add("tile--clickable");
+    cell.tabIndex = 0;
+    cell.setAttribute("role", "button");
+    cell.addEventListener("click", () => openDaily(tile.metric_key, cell));
+    cell.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        openDaily(tile.metric_key, cell);
+      }
+    });
+
+    // Подсказка отвечает на главный вопрос — чем это считается. Недельные
+    // значения из неё убраны: они подписаны прямо под своими точками, и
+    // дублировать их в тултипе значило топить принцип в перечислении.
+    const method = methodOf(tile.metric_key);
+    const hint = [tile.metric, method?.кратко, tile.meta_txt,
+                  "клик — история по дням и откуда число"]
       .filter(Boolean).join(" — ");
     if (hint) cell.title = hint;
     return cell;
@@ -607,6 +605,78 @@
     if (window.location.hash !== hash) history.replaceState(null, "", hash);
   }
 
+  /** Плитка метрики в показанном периоде — за названием и единицами. */
+  function tileOf(metricKey) {
+    const list = payload.поПериодам?.[periodSelect.value] || payload.плитки || [];
+    return list.find((row) => row.metric_key === metricKey) || null;
+  }
+
+  /** Описание расчёта из metodika.js. Файл может не подключиться — тогда
+   *  панель просто останется без блока, а не свалится вся страница. */
+  function methodOf(metricKey) {
+    return (window.HEATMAP_METHOD || {})[metricKey] || null;
+  }
+
+  /** «Откуда число»: источник, периметр, формула и где цифра условна.
+   *
+   * Главный блок панели, а не сноска: на разборах первым делом спрашивают не
+   * «сколько», а «чем это посчитано».
+   */
+  function methodBlock(metricKey) {
+    const method = methodOf(metricKey);
+    if (!method) return null;
+
+    const box = document.createElement("section");
+    box.className = "how";
+
+    const title = document.createElement("h4");
+    title.className = "how__title";
+    title.textContent = "Откуда число";
+    box.append(title);
+
+    if (method.кратко) {
+      const lead = document.createElement("p");
+      lead.className = "how__lead";
+      lead.textContent = method.кратко;
+      box.append(lead);
+    }
+
+    const rows = document.createElement("dl");
+    rows.className = "how__rows";
+    for (const name of ["источник", "периметр", "формула"]) {
+      if (!method[name]) continue;
+      const label = document.createElement("dt");
+      label.textContent = name;
+      const value = document.createElement("dd");
+      value.textContent = method[name];
+      rows.append(label, value);
+    }
+    if (rows.children.length) box.append(rows);
+
+    if (method.оговорки?.length) {
+      const label = document.createElement("p");
+      label.className = "how__caveatsLabel";
+      label.textContent = "где цифра условна";
+      const list = document.createElement("ul");
+      list.className = "how__caveats";
+      for (const text of method.оговорки) {
+        const item = document.createElement("li");
+        item.textContent = text;
+        list.append(item);
+      }
+      box.append(label, list);
+    }
+
+    const common = window.HEATMAP_METHOD_COMMON;
+    if (common) {
+      const note = document.createElement("p");
+      note.className = "how__common";
+      note.textContent = [common.цели, common.обновление].filter(Boolean).join(" ");
+      box.append(note);
+    }
+    return box;
+  }
+
   function openDaily(metricKey, cell, options = {}) {
     // Повторный клик по той же плитке закрывает — иначе панель некуда деть.
     if (openMetric === metricKey) { closeDaily(); return; }
@@ -615,6 +685,39 @@
     cell.classList.add("tile--open");
 
     const entry = payload.ряды[metricKey];
+
+    // Дневного ряда может не быть вовсе — панель тогда про одну методику.
+    if (!entry?.точки?.length) {
+      const bare = document.createElement("section");
+      bare.className = "daily daily--bare";
+      bare.id = "daily";
+
+      const bareHead = document.createElement("header");
+      bareHead.className = "daily__head";
+      const bareTitle = document.createElement("h3");
+      bareTitle.className = "daily__title";
+      bareTitle.textContent = tileOf(metricKey)?.metric || metricKey;
+      const bareSub = document.createElement("p");
+      bareSub.className = "daily__sub";
+      bareSub.textContent = "дневного ряда нет — показываю только расчёт";
+      const bareClose = document.createElement("button");
+      bareClose.className = "daily__close";
+      bareClose.type = "button";
+      bareClose.textContent = "Закрыть";
+      bareClose.addEventListener("click", closeDaily);
+      const bareHeading = document.createElement("div");
+      bareHeading.append(bareTitle, bareSub);
+      bareHead.append(bareHeading, bareClose);
+
+      bare.append(bareHead);
+      const how = methodBlock(metricKey);
+      if (how) bare.append(how);
+      placeDaily(bare, cell);
+      writeHash(periodSelect.value);
+      if (!options.silent) bare.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      return;
+    }
+
     const unit = entry.единица || "";
     const all = entry.точки;
     const list = materialize(entry, sliceDaily(all, periodSelect.value));
@@ -793,6 +896,8 @@
     }
 
     box.append(head, plot, axis, facts);
+    const how = methodBlock(metricKey);
+    if (how) box.append(how);
     placeDaily(box, cell);
     writeHash(periodSelect.value);
     // При восстановлении вида из адреса или после смены периода страницу не
