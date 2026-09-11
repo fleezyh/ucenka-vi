@@ -509,7 +509,9 @@
   function showKgtButton(row, fields) {
     if (!kgtMark) return;
     const cluster = String(field(row, "Кластер") || "").trim();
-    const isBig = cluster === "4";
+    // Только в предсорте: там кластер и есть предмет работы. В уценке человек
+    // смотрит себестоимость, и кнопка про габариты там не к месту.
+    const isBig = mode === "presort" && cluster === "4";
     kgtMark.hidden = !isBig;
     kgtMark.disabled = false;
     kgtMark.textContent = "Это не КГТ";
@@ -634,8 +636,20 @@
     if (!response.ok) throw new Error(String(response.status));
   }
 
-  function recordPick(barcode, found) {
+  /* Цена и наименование идут в историю вместе со сканированием.
+   *
+   * Раньше в журнале был только штрихкод, и вопрос «дорогое что-нибудь
+   * попадалось?» ответа не имел: по голому коду не понять, стеллаж это за
+   * двадцать пять тысяч или саморез. Теперь всё, что дороже порога, само
+   * встаёт в отдельный список в админке — искать и отмечать руками не нужно. */
+  function recordPick(barcode, found, row = null) {
     const pick = { barcode, found, mode, at: new Date().toISOString() };
+    if (row) {
+      const raw = String(field(row, "Себес") || "").replace(/\s/g, "").replace(",", ".");
+      const price = Number(raw);
+      if (Number.isFinite(price) && price > 0) pick.price = price;
+      pick.name = field(row, "Наименование") || "";
+    }
     sendPick(pick).catch(() => queuePick(pick));
   }
 
@@ -691,7 +705,7 @@
 
       if (hit) showHit(hit, code);
       else showNotFound(code);
-      recordPick(code, Boolean(hit));
+      recordPick(code, Boolean(hit), hit);
     } catch (error) {
       if (operationVersion !== version) return;
       say("Не получилось скачать кусочек справочника — товар не проверен. "
