@@ -9,12 +9,13 @@
   <link rel="icon" type="image/svg+xml" href="assets/brand/vi-mark.svg?v=20260903-3">
   <link rel="preload" href="assets/fonts/VI_Sans_Regular.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="assets/fonts/VI_Sans_ExtraBold.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="style.css?v=20260909-3">
+  <link rel="stylesheet" href="style.css?v=20260911-1">
   <link rel="stylesheet" href="reeded-bg.css?v=20260907-6">
   <link rel="stylesheet" href="site-header.css?v=20260909-7">
   <script src="reeded-bg.js?v=20260906-7" defer></script>
-  <script src="script.js?v=20260909-5" defer></script>
+  <script src="script.js?v=20260911-1" defer></script>
   <script src="pallets.js?v=20260905-7" defer></script>
+  <script src="dorogie.js?v=20260911-1" defer></script>
   <script src="nav.js?v=20260910-1" defer></script>
 </head>
 <body data-mode="ucenka">
@@ -51,6 +52,7 @@
         <button class="tab" type="button" role="tab" data-mode="ucenka" aria-selected="true">Уценка</button>
         <button class="tab" type="button" role="tab" data-mode="presort" aria-selected="false">Предсорт</button>
         <button class="tab" type="button" role="tab" data-mode="pallets" aria-selected="false">Паллеты</button>
+        <button class="tab" type="button" role="tab" data-mode="dorogie" aria-selected="false">Дорогие</button>
       </div>
     </section>
 
@@ -129,6 +131,10 @@
             <span class="secondary" id="secondary">—</span>
             <p class="code" id="productCode"></p>
             <a class="siteLink" id="siteLink" href="#" target="_blank" rel="noopener" hidden>Открыть на сайте</a>
+            <!-- Пикалка говорит про товар «КГТ» по справочнику, а кладовщик
+                 видит коробку и понимает, что это не он. Кнопка отправляет
+                 расхождение: по нему потом правят габариты в карточке. -->
+            <button class="kgtBtn" id="kgtMark" type="button" hidden>Это не КГТ</button>
           </div>
         </article>
 
@@ -202,6 +208,46 @@
         </div>
 
         <p class="scannerNote" id="palletStamp"></p>
+      </section>
+
+      <!-- Отбор дорогого товара: что стоит вынуть из паллет и продать поштучно
+           на Авито и маркетплейсах. Считается ночью, здесь только показ. -->
+      <section class="card searchCard dorogieCard" id="dorogieCard">
+        <div class="cardHeading searchHeading">
+          <div>
+            <p class="overline">Отбор</p>
+            <h2>Дорогой товар</h2>
+          </div>
+          <span class="readyPill"><i></i>Список</span>
+        </div>
+
+        <div class="dorogieTotals" id="dorogieTotals"></div>
+
+        <label class="fieldLabel" for="dorogieSearch">Найти в списке</label>
+        <div class="searchRow">
+          <input id="dorogieSearch" type="search" autocomplete="off" spellcheck="false"
+                 placeholder="Название, бренд, категория или паллета">
+          <button class="action action--secondary" id="dorogieExport" type="button" hidden>Скачать Excel</button>
+        </div>
+
+        <p class="message" id="dorogieMessage" hidden></p>
+
+        <div class="results" id="dorogieResults">
+          <table>
+            <thead>
+              <tr>
+                <th class="num">Цена</th>
+                <th>Товар</th>
+                <th class="num">Штук</th>
+                <th>Где лежит</th>
+                <th>Состояние</th>
+              </tr>
+            </thead>
+            <tbody id="dorogieBody"></tbody>
+          </table>
+        </div>
+
+        <p class="scannerNote" id="dorogieStamp"></p>
       </section>
     </section>
   </main>

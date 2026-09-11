@@ -48,6 +48,15 @@
     },
     // Отдельный сценарий: не сканирование по одному, а список паллет разом.
     // Поиск живёт в pallets.js, здесь раздел нужен только ради вкладки.
+    dorogie: {
+      title: "Дорогие",
+      eyebrow: "Отбор для площадок",
+      description: "Что стоит вынуть из паллет и продать поштучно: товар дороже порога и место, где он лежит.",
+      primary: "",
+      extra1: "",
+      extra2: "",
+      external: true,
+    },
     pallets: {
       title: "Паллеты",
       eyebrow: "Где сейчас паллета",
@@ -408,6 +417,7 @@
     const viaLabel = scannedCode && scannedCode !== code;
     productCode.textContent = viaLabel ? `${scannedCode} → ${code}` : code;
     showCopyButton(Boolean(fields.name));
+    showKgtButton(row, fields);
     showSiteLink(field(row, "Код сайта"));
     answer.style.display = "flex";
 
@@ -484,6 +494,57 @@
 
   let copyTimer = 0;
 
+  /* Кнопка «Это не КГТ».
+   *
+   * Справочник относит товар к четвёртому кластеру — крупногабаритным, — а
+   * кладовщик держит коробку в руках и видит, что она обычная. Раньше сказать
+   * об этом было некуда: ручка на сервере есть с самого начала, а кнопки в
+   * пикалке не было, и за всё время не пришло ни одной отметки.
+   *
+   * Показываем только там, где расхождение имеет смысл: на товаре из кластера
+   * крупногабаритных. */
+  const kgtMark = document.getElementById("kgtMark");
+  let kgtPayload = null;
+
+  function showKgtButton(row, fields) {
+    if (!kgtMark) return;
+    const cluster = String(field(row, "Кластер") || "").trim();
+    const isBig = cluster === "4";
+    kgtMark.hidden = !isBig;
+    kgtMark.disabled = false;
+    kgtMark.textContent = "Это не КГТ";
+    kgtMark.classList.remove("is-done");
+    kgtPayload = isBig ? {
+      barcode: field(row, "Штрихкод"),
+      name: fields.name,
+      rubric: fields.rubric,
+      cluster,
+      says: "КГТ",
+      human: "не КГТ",
+      at: new Date().toISOString(),
+    } : null;
+  }
+
+  if (kgtMark) {
+    kgtMark.addEventListener("click", async () => {
+      if (!kgtPayload) return;
+      kgtMark.disabled = true;
+      try {
+        const response = await fetch("/__kgt", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(kgtPayload),
+        });
+        if (!response.ok) throw new Error(String(response.status));
+        kgtMark.textContent = "Отметка отправлена";
+        kgtMark.classList.add("is-done");
+      } catch {
+        kgtMark.textContent = "Не отправилось, попробуйте ещё раз";
+        kgtMark.disabled = false;
+      }
+    });
+  }
+
   function showCopyButton(visible) {
     if (!copyName) return;
     copyName.hidden = !visible;
@@ -518,6 +579,7 @@
     productName.textContent = "Справочник не ответил — это не значит, что товара нет";
     productCode.textContent = code;
     showCopyButton(false);
+    if (kgtMark) kgtMark.hidden = true;
     if (siteLink) siteLink.hidden = true;
     answer.style.display = "flex";
     details.style.display = "none";
@@ -532,6 +594,7 @@
     productName.textContent = "Штрихкод не найден в справочнике";
     productCode.textContent = code;
     showCopyButton(false);
+    if (kgtMark) kgtMark.hidden = true;
     if (siteLink) siteLink.hidden = true;
     answer.style.display = "flex";
     details.style.display = "none";
