@@ -417,6 +417,7 @@
     const viaLabel = scannedCode && scannedCode !== code;
     productCode.textContent = viaLabel ? `${scannedCode} → ${code}` : code;
     showCopyButton(Boolean(fields.name));
+    lastOtbor = showOtbor(row, fields);
     showKgtButton(row, fields);
     showSiteLink(field(row, "Код сайта"));
     answer.style.display = "flex";
@@ -493,6 +494,55 @@
   }
 
   let copyTimer = 0;
+
+  /* Подходит ли товар под отбор на площадки.
+   *
+   * Критерии собраны из встреч по продажам: дорогая штука идёт поштучно на
+   * Авито и окупается там на 70–90% против 12–14% в опте; на маркетплейс
+   * отбирают от десяти тысяч, лучше от двадцати; крупногабарит маркетплейс не
+   * берёт — товар должен быть до двух метров по стороне, — поэтому КГТ
+   * остаётся Авито. Дешевле десяти тысяч возня с карточкой, фото и проверкой
+   * ДВК не окупается.
+   *
+   * Габаритов в справочнике пикалки нет, поэтому про размер судим по кластеру:
+   * четвёртый — крупногабаритные. */
+  const OTBOR_AVITO = 50000;
+  const OTBOR_MP = 10000;
+  const OTBOR_HOROSHO = 20000;
+
+  function otbor(row, fields) {
+    const cluster = String(field(row, "Кластер") || "").trim();
+    const raw = String(field(row, "Себес") || "").replace(/\s/g, "").replace(",", ".");
+    const price = Number(raw);
+    if (!Number.isFinite(price) || price <= 0) {
+      return { вид: "нет", текст: "Цены нет — отбор не оценить" };
+    }
+    if (price >= OTBOR_AVITO) {
+      return { вид: "авито", текст: "Дорогой товар — отбирать на Авито поштучно" };
+    }
+    if (cluster === "4") {
+      return { вид: "кгт", текст: "Крупногабарит — маркетплейс не возьмёт, только Авито" };
+    }
+    if (price >= OTBOR_HOROSHO) {
+      return { вид: "мп", текст: "Подходит на маркетплейс" };
+    }
+    if (price >= OTBOR_MP) {
+      return { вид: "мп-слабо", текст: "Проходит по нижней границе — на маркетплейс с оговоркой" };
+    }
+    return { вид: "нет", текст: "Дешевле десяти тысяч — отбирать невыгодно" };
+  }
+
+  const otborBox = document.getElementById("otborMark");
+  let lastOtbor = null;
+
+  function showOtbor(row, fields) {
+    if (!otborBox) return null;
+    const итог = otbor(row, fields);
+    otborBox.textContent = итог.текст;
+    otborBox.className = `otborMark is-${итог.вид}`;
+    otborBox.hidden = false;
+    return итог;
+  }
 
   /* Кнопка «Это не КГТ».
    *
@@ -582,6 +632,7 @@
     productCode.textContent = code;
     showCopyButton(false);
     if (kgtMark) kgtMark.hidden = true;
+    if (otborBox) otborBox.hidden = true;
     if (siteLink) siteLink.hidden = true;
     answer.style.display = "flex";
     details.style.display = "none";
@@ -597,6 +648,7 @@
     productCode.textContent = code;
     showCopyButton(false);
     if (kgtMark) kgtMark.hidden = true;
+    if (otborBox) otborBox.hidden = true;
     if (siteLink) siteLink.hidden = true;
     answer.style.display = "flex";
     details.style.display = "none";
@@ -649,6 +701,10 @@
       const price = Number(raw);
       if (Number.isFinite(price) && price > 0) pick.price = price;
       pick.name = field(row, "Наименование") || "";
+      // Вердикт по отбору пишем вместе со сканом: потом видно не только «что
+      // смотрели», но и «что из этого стоило вынуть на площадку».
+      const вердикт = otbor(row, {});
+      if (вердикт) pick.otbor = вердикт.вид;
     }
     sendPick(pick).catch(() => queuePick(pick));
   }

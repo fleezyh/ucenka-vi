@@ -9,11 +9,11 @@
   <link rel="icon" type="image/svg+xml" href="assets/brand/vi-mark.svg?v=20260903-3">
   <link rel="preload" href="assets/fonts/VI_Sans_Regular.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="assets/fonts/VI_Sans_ExtraBold.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="style.css?v=20260911-1">
+  <link rel="stylesheet" href="style.css?v=20260911-2">
   <link rel="stylesheet" href="reeded-bg.css?v=20260907-6">
   <link rel="stylesheet" href="site-header.css?v=20260909-7">
   <script src="reeded-bg.js?v=20260906-7" defer></script>
-  <script src="script.js?v=20260911-2" defer></script>
+  <script src="script.js?v=20260911-3" defer></script>
   <script src="pallets.js?v=20260905-7" defer></script>
   <script src="dorogie.js?v=20260911-1" defer></script>
   <script src="nav.js?v=20260910-1" defer></script>
@@ -130,6 +130,11 @@
             </div>
             <span class="secondary" id="secondary">—</span>
             <p class="code" id="productCode"></p>
+            <!-- Подходит ли товар под отбор на площадки: дорогое идёт поштучно
+                 на Авито, среднее — на маркетплейс, крупногабарит маркетплейс
+                 не берёт. Стоит над ссылкой, потому что это первое, что нужно
+                 решить по товару. -->
+            <p class="otborMark" id="otborMark" hidden></p>
             <a class="siteLink" id="siteLink" href="#" target="_blank" rel="noopener" hidden>Открыть на сайте</a>
             <!-- Пикалка говорит про товар «КГТ» по справочнику, а кладовщик
                  видит коробку и понимает, что это не он. Кнопка отправляет
