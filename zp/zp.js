@@ -79,8 +79,11 @@ function schetchik(tik, schitano) {
    * число выглядит живым, а не мигающим. */
   function lenta(el, simvol) {
     if (!/\d/.test(simvol)) {
-      el.className = "zpDigit zpDigit--fix";
-      el.textContent = simvol;
+      // Разделитель тысяч — неразрывный пробел: внутри inline-block он
+      // схлопывается в ноль, поэтому ширину задаём классом, а не текстом.
+      const probel = /\s/.test(simvol);
+      el.className = "zpDigit zpDigit--fix" + (probel ? " zpDigit--space" : "");
+      el.textContent = probel ? "" : simvol;
       return;
     }
     if (!el.firstChild || !el.classList.contains("zpDigit--roll")) {
