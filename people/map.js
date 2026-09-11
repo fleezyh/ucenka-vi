@@ -55,6 +55,8 @@
 
   let payload = null;
   let month = "";
+  let day = "";            // выбранная смена; пусто — смотрим месяцами
+  let dayStaff = null;     // кто в какой зоне работал в этот день
   let city = "ДМД";
   let team = "";          // отдел или смена; пусто — все
   let query = "";         // поиск человека по фамилии
@@ -178,6 +180,35 @@
     const zones = new Map();
     const staff = new Map();   // зона -> Map(фио -> действий)
 
+    /* Режим смены. Рёбра за день лежат отдельно и уже без привязки к людям:
+       иначе файл карты раздувается в разы. Состав людей по зонам подгружается
+       лениво из паноптикума — он нужен только когда день выбран. */
+    if (day) {
+      const zoneNames = payload.зоны || [];
+      (payload["рёбра_дня"]?.[day] || []).forEach(([fromIndex, toIndex, actions]) => {
+        const from = zoneNames[fromIndex];
+        const to = zoneNames[toIndex];
+        if (!from || !to) return;
+        if (city && cityOf.get(from) !== city && cityOf.get(to) !== city) return;
+        const key = `${from}\u0000${to}`;
+        const edge = edges.get(key) || { from, to, actions: 0, items: 0 };
+        edge.actions += actions;
+        edges.set(key, edge);
+        [from, to].forEach((zone) => {
+          if (city && cityOf.get(zone) !== city) return;
+          zones.set(zone, (zones.get(zone) || 0) + actions);
+          if (!staff.has(zone)) staff.set(zone, new Map());
+        });
+      });
+      (dayStaff || []).forEach(({ who, zone, actions }) => {
+        if (!zones.has(zone)) return;
+        const people = staff.get(zone) || new Map();
+        people.set(who, (people.get(who) || 0) + actions);
+        staff.set(zone, people);
+      });
+      return pack(edges, zones, staff);
+    }
+
     walk(month, (from, to, item, person) => {
       if (city && cityOf.get(from) !== city && cityOf.get(to) !== city) return;
       const key = `${from}\u0000${to}`;
@@ -194,6 +225,11 @@
       });
     });
 
+    return pack(edges, zones, staff);
+  }
+
+  /** Общий хвост: свернуть мелкие зоны в «прочие» и собрать узлы. */
+  function pack(edges, zones, staff) {
     const top = [...zones.entries()].sort((a, b) => b[1] - a[1]).slice(0, TOP_ZONES);
     const keep = new Set(top.map(([zone]) => zone));
     const name = (zone) => (keep.has(zone) ? zone : "· прочие зоны");
@@ -516,6 +552,27 @@
 
   /** Все люди текущего разреза — с фамилией, ролью и объёмом за месяц. */
   function allPeople() {
+    /* В режиме смены список — это те, кто в этот день вообще работал. Держать
+       здесь всех двести семьдесят бессмысленно: вопрос «кто был в четверг»
+       подразумевает короткий ответ. */
+    if (day) {
+      const byWho = new Map();
+      (dayStaff || []).forEach(({ who, actions }) => {
+        byWho.set(who, (byWho.get(who) || 0) + actions);
+      });
+      const roles = new Map();
+      payload.группы.forEach((group) => {
+        if (team && group.имя !== team) return;
+        group.люди.forEach((person) => {
+          roles.set(person.фио, { group: group.имя, role: person.должность || "" });
+        });
+      });
+      return [...byWho.entries()]
+        .filter(([who]) => roles.has(who))
+        .map(([who, total]) => ({ who, total, ...roles.get(who) }))
+        .sort((a, b) => b.total - a.total);
+    }
+
     const out = [];
     payload.группы.forEach((group) => {
       if (team && group.имя !== team) return;
@@ -924,9 +981,72 @@
       month,
       (key) => {
         month = key;
+        day = "";
         pick(null);
       },
     );
+    renderDays();
+  }
+
+  const DAY_MONTHS = ["янв", "фев", "мар", "апр", "мая", "июн",
+                      "июл", "авг", "сен", "окт", "ноя", "дек"];
+
+  function dayLabel(iso) {
+    const date = new Date(iso + "T00:00:00");
+    return `${date.getDate()} ${DAY_MONTHS[date.getMonth()]}`;
+  }
+
+  /* Линейка смен. Дней держим две недели — карту за конкретную смену смотрят
+     по свежим дням, а хранить все сто на каждой загрузке страницы незачем. */
+  function renderDays() {
+    const box = el("plMapDays");
+    if (!box) return;
+    const days = payload.дни || [];
+    if (!days.length) {
+      box.hidden = true;
+      return;
+    }
+    box.hidden = false;
+    segment(
+      box,
+      [{ key: "", label: "за месяц" },
+       ...days.slice().reverse().map((key) => ({ key, label: dayLabel(key) }))],
+      day,
+      (key) => {
+        day = key;
+        if (!day) {
+          pick(null);
+          return;
+        }
+        // Состав людей по зонам нужен только в режиме смены, поэтому
+        // подгружаем его один раз и по факту выбора дня.
+        loadDayStaff(day).then(() => pick(null));
+      },
+    );
+  }
+
+  let panopticum = null;
+
+  function loadDayStaff(which) {
+    const build = () => {
+      const zoneNames = panopticum?.зоны || [];
+      const byLogin = panopticum?.["по_дням"]?.[which] || {};
+      const names = new Map((panopticum?.люди || []).map((p) => [p.логин, p.фио]));
+      dayStaff = Object.entries(byLogin).flatMap(([login, pairs]) =>
+        pairs.map(([index, actions]) => ({
+          who: names.get(login) || login,
+          zone: zoneNames[index],
+          actions,
+        })).filter((item) => item.zone));
+    };
+    if (panopticum) {
+      build();
+      return Promise.resolve();
+    }
+    return fetch("../data/panopticum.json", { cache: "no-cache" })
+      .then((response) => response.json())
+      .then((data) => { panopticum = data; build(); })
+      .catch(() => { dayStaff = []; });
   }
 
   /** Обе линейки и схема пересчитываются вместе: числа на кнопках должны

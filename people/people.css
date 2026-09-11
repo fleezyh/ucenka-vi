@@ -240,6 +240,10 @@ body[data-mode="people"] .shell {
   align-items: center;
   gap: 10px;
   width: 100%;
+  /* Панель — flex-колонка с max-height, и без этого браузер ужимает строки,
+     чтобы уместить все девяносто в 620 пикселей: имя остаётся, должность
+     обрезается снизу, соседние строки выглядят слипшимися. */
+  flex: none;
   padding: 9px 11px;
   border: 1px solid var(--line);
   border-radius: 10px;
@@ -339,3 +343,8 @@ body[data-mode="people"] .shell {
 .plPulse__key i { width: 8px; height: 8px; border-radius: 2px; }
 .plPulse__draw { display: block; width: 100%; height: 108px; }
 .plCard__nums em { font-style: normal; font-size: 10.5px; color: var(--muted); }
+
+/* Линейка смен. Дней четырнадцать — прокрутка по горизонтали лучше переноса:
+   даты читаются как лента, а не как сетка. */
+.plSeg--days { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; padding-bottom: 2px; }
+.plSeg--days .plSeg__item { flex: none; }
