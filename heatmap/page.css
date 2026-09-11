@@ -368,6 +368,22 @@ body[data-mode="heatmap"] .shell {
   text-transform: uppercase;
 }
 
+/* Чип у заголовка: считает система или заводит человек. Это первое, что
+   решает, можно ли на цифру опираться сегодня же. */
+.how__kind {
+  margin-left: 10px;
+  padding: 3px 9px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font: 600 10px var(--ui);
+  letter-spacing: 0.06em;
+  text-transform: none;
+  vertical-align: 1px;
+}
+.how__kind--sys { border-color: rgba(39, 196, 107, 0.45); color: #54d795; }
+.how__kind--hand { border-color: rgba(240, 173, 50, 0.45); color: #f0ad32; }
+.how__kind--calc { border-color: rgba(255, 255, 255, 0.2); color: rgba(255, 255, 255, 0.7); }
+
 .how__lead { margin: 0 0 12px; color: var(--text); font-size: 14.5px; line-height: 1.45; }
 
 /* Две колонки: слева ярлык, справа текст. На узком экране складываются. */
@@ -391,6 +407,84 @@ body[data-mode="heatmap"] .shell {
 /* Панель без графика: методика в ней единственное содержимое, линия сверху
    ни от чего не отделяет. */
 .daily--bare .how { margin-top: 0; padding-top: 0; border-top: 0; }
+
+/* «Что будет, если» — ползунки по частям финреза. */
+.lab { margin-top: 18px; padding-top: 15px; border-top: 1px solid var(--line); }
+.lab__note { margin: 0 0 14px; color: var(--muted); font-size: 12.5px; line-height: 1.5; }
+
+.lab__out {
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+}
+.lab__big { font-size: 30px; font-weight: 600; letter-spacing: -0.02em; color: #ff8f7a; }
+.lab__big.is-good { color: #54d795; }
+.lab__delta { margin-left: 12px; color: var(--muted); font-size: 13px; }
+.lab__delta.is-good { color: #54d795; }
+.lab__delta.is-bad { color: #ff8f7a; }
+.lab__breakdown { margin: 8px 0 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+
+/* Строка ползунка: название, текущее значение, сам ползунок и пояснение. */
+.lab__rows { display: grid; gap: 12px; }
+.lab__row {
+  display: grid;
+  grid-template-columns: minmax(0, 200px) minmax(0, 190px) minmax(0, 1fr);
+  grid-template-areas: "name value slider" "hint hint hint";
+  align-items: center;
+  gap: 4px 14px;
+}
+.lab__name { grid-area: name; color: rgba(255, 255, 255, 0.86); font-size: 13.5px; }
+.lab__value { grid-area: value; color: #fff; font-size: 13.5px; font-weight: 600; }
+.lab__hint { grid-area: hint; color: var(--muted); font-size: 11.5px; }
+
+.lab__slider {
+  grid-area: slider;
+  width: 100%;
+  height: 4px;
+  appearance: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  cursor: pointer;
+}
+.lab__slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 0;
+  border-radius: 50%;
+  background: #eafff3;
+  box-shadow: 0 0 0 3px rgba(39, 196, 107, 0.35);
+  cursor: pointer;
+}
+.lab__slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border: 0;
+  border-radius: 50%;
+  background: #eafff3;
+  box-shadow: 0 0 0 3px rgba(39, 196, 107, 0.35);
+  cursor: pointer;
+}
+
+.lab__reset {
+  margin-top: 16px;
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  font: 600 12.5px var(--ui);
+  cursor: pointer;
+}
+.lab__reset:hover { color: var(--text); border-color: var(--line-strong); }
+
+@media (max-width: 760px) {
+  .lab__row { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "name value" "slider slider" "hint hint"; gap: 6px 10px; }
+  .lab__big { font-size: 25px; }
+  .lab__delta { display: block; margin: 4px 0 0; }
+}
 
 @media (max-width: 760px) {
   .how__rows { grid-template-columns: minmax(0, 1fr); gap: 2px; }

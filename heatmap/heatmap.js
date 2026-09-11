@@ -617,6 +617,11 @@
     return (window.HEATMAP_METHOD || {})[metricKey] || null;
   }
 
+  // Откуда цифра берётся: это первое, что надо знать про плитку.
+  const KIND_LABEL = { "система": "считает система", "руками": "заводят вручную", "расчёт": "расчёт" };
+  const KIND_CLASS = { "система": "sys", "руками": "hand", "расчёт": "calc" };
+  const ROW_LABEL = { "что": "что считаем", "периметр": "периметр", "формула": "формула" };
+
   /** «Откуда число»: источник, периметр, формула и где цифра условна.
    *
    * Главный блок панели, а не сноска: на разборах первым делом спрашивают не
@@ -632,6 +637,14 @@
     const title = document.createElement("h4");
     title.className = "how__title";
     title.textContent = "Откуда число";
+    // Первым делом — считает это система или заводит человек: от ответа
+    // зависит, можно ли на цифру опираться сегодня же.
+    if (method.тип) {
+      const kind = document.createElement("span");
+      kind.className = `how__kind how__kind--${KIND_CLASS[method.тип] || "calc"}`;
+      kind.textContent = KIND_LABEL[method.тип] || method.тип;
+      title.append(kind);
+    }
     box.append(title);
 
     if (method.кратко) {
@@ -643,10 +656,10 @@
 
     const rows = document.createElement("dl");
     rows.className = "how__rows";
-    for (const name of ["источник", "периметр", "формула"]) {
+    for (const name of ["что", "периметр", "формула"]) {
       if (!method[name]) continue;
       const label = document.createElement("dt");
-      label.textContent = name;
+      label.textContent = ROW_LABEL[name] || name;
       const value = document.createElement("dd");
       value.textContent = method[name];
       rows.append(label, value);
@@ -674,6 +687,219 @@
       note.textContent = [common.цели, common.обновление].filter(Boolean).join(" ");
       box.append(note);
     }
+    return box;
+  }
+
+  // --- «Что будет, если» для финреза ----------------------------------------
+  // Финрез собирается из четырёх кусков и делится на выручку компании. Пока
+  // это формула на бумаге, спорить о ней можно бесконечно; с ползунками видно
+  // цену каждого рычага: снизить списание вдвое и поднять окупаемость на пять
+  // пунктов — разные по силе ходы, и теперь это видно, а не обсуждается.
+
+  const RESERVE_FACTOR = 0.97;   // к изменению резерва, как в отчётности
+
+  /** Сколько миллионов дала метрика за показанный период. */
+  function tileMillions(metricKey) {
+    const tile = tileOf(metricKey);
+    return tile && typeof tile.fact_num === "number" ? tile.fact_num : null;
+  }
+
+  /** Факт по всем частям финреза, в миллионах рублей.
+   *
+   * Берём ровно то, что человек видит на плитках, а выручку компании и
+   * движение резерва — из дневных рядов: своих плиток у них нет.
+   */
+  function finresBase(period) {
+    const sebes = tileMillions("otgr_sebes");
+    const otgruzheno = tileMillions("otgr_rub");
+    const spisanie = tileMillions("spisanie_rub");
+    const hranenie = tileMillions("rent_rub");
+    if ([sebes, otgruzheno, spisanie, hranenie].some((value) => value === null)) return null;
+
+    const ratio = payload.ряды?.finres_pct;
+    const inside = ratio ? daysOfPeriod(ratio.точки, period) : [];
+    const vyruchka = inside.reduce((sum, point) => sum + (point.знаменатель || 0), 0) / 1e6;
+    if (!vyruchka) return null;
+
+    // Резерв — остаток: в финрез идёт изменение за период, а не сам остаток.
+    const snapshots = payload.ряды?.reserve_now?.точки || [];
+    const [from, to] = periodRange(period);
+    const before = snapshots.filter((point) => point.день < from);
+    const within = snapshots.filter((point) => point.день >= from && point.день <= to);
+    const rezervDelta = before.length && within.length
+      ? (within[within.length - 1].значение - before[before.length - 1].значение) / 1e6
+      : null;
+
+    return {
+      sebes, spisanie, hranenie, vyruchka,
+      rezervDelta: rezervDelta ?? 0,
+      rezervKnown: rezervDelta !== null,
+      payback: sebes ? (otgruzheno / sebes) * 100 : 0,
+    };
+  }
+
+  /** Финрез при заданных ползунках. Всё в миллионах рублей. */
+  function finresValue(base, state) {
+    const sebes = base.sebes * state.sebes;
+    const ucenka = sebes * (state.payback / 100) - sebes;
+    const parts = {
+      ucenka,
+      spisanie: -base.spisanie * state.spisanie,
+      hranenie: -base.hranenie * state.hranenie,
+      rezerv: -base.rezervDelta * state.rezerv * RESERVE_FACTOR,
+    };
+    const sum = parts.ucenka + parts.spisanie + parts.hranenie + parts.rezerv;
+    const vyruchka = base.vyruchka * state.vyruchka;
+    return { parts, sum, vyruchka, percent: vyruchka ? (sum / vyruchka) * 100 : 0 };
+  }
+
+  // Минус берём типографский: рядом с крупной цифрой дефис читается как
+  // перенос, а не как знак.
+  const NUMBER_TEXT = (value, digits = 2) =>
+    value.toFixed(digits).replace(".", ",").replace("-", "−");
+  const PERCENT_TEXT = (value, digits = 2) => `${NUMBER_TEXT(value, digits)}%`;
+  const SIGNED_POINTS = (value) =>
+    `${value >= 0 ? "+" : "−"}${Math.abs(value).toFixed(2).replace(".", ",")} п.п.`;
+
+  /** Панель ползунков под финрезом. */
+  function finresLab(period) {
+    const base = finresBase(period);
+    const parts = window.HEATMAP_FINRES_PARTS;
+    if (!base || !parts) return null;
+
+    const start = { sebes: 1, payback: base.payback, spisanie: 1, hranenie: 1, rezerv: 1, vyruchka: 1 };
+    const state = { ...start };
+    const zero = finresValue(base, start);
+
+    const box = document.createElement("section");
+    box.className = "lab";
+
+    const title = document.createElement("h4");
+    title.className = "how__title";
+    title.textContent = "Что будет, если";
+    box.append(title);
+
+    const note = document.createElement("p");
+    note.className = "lab__note";
+    note.textContent = "Расчёт по составу финансовой отчётности за показанный период: "
+      + "уценка, списание, хранение и изменение резерва делятся на выручку компании. "
+      + "Двигайте части — результат пересчитывается. Это прикидка для разговора, а не отчёт."
+      + (base.rezervKnown ? "" : " Снимка резерва на начало периода нет — его движение принято нулевым.");
+    box.append(note);
+
+    const out = document.createElement("div");
+    out.className = "lab__out";
+    const big = document.createElement("b");
+    big.className = "lab__big";
+    const delta = document.createElement("span");
+    delta.className = "lab__delta";
+    const breakdown = document.createElement("p");
+    breakdown.className = "lab__breakdown";
+    const headline = document.createElement("div");
+    headline.append(big, delta);
+    out.append(headline, breakdown);
+
+    const rows = document.createElement("div");
+    rows.className = "lab__rows";
+    const controls = [];
+
+    for (const part of parts) {
+      const row = document.createElement("label");
+      row.className = "lab__row";
+
+      const name = document.createElement("span");
+      name.className = "lab__name";
+      name.textContent = part.name;
+      if (part.hint) name.title = part.hint;
+
+      const value = document.createElement("b");
+      value.className = "lab__value";
+
+      const slider = document.createElement("input");
+      slider.type = "range";
+      slider.className = "lab__slider";
+      if (part.key === "payback") {
+        slider.min = 0; slider.max = Math.max(120, Math.ceil(base.payback * 2)); slider.step = 1;
+        slider.value = String(Math.round(base.payback));
+      } else {
+        slider.min = 0; slider.max = 200; slider.step = 5; slider.value = "100";
+      }
+
+      const hint = document.createElement("span");
+      hint.className = "lab__hint";
+      hint.textContent = part.hint || "";
+
+      row.append(name, value, slider, hint);
+      rows.append(row);
+      controls.push({ part, slider, value });
+
+      slider.addEventListener("input", () => {
+        state[part.key] = part.key === "payback"
+          ? Number(slider.value)
+          : Number(slider.value) / 100;
+        redraw();
+      });
+      // Ползунок внутри панели — клик по нему не должен закрывать плитку.
+      slider.addEventListener("click", (event) => event.stopPropagation());
+    }
+
+    const reset = document.createElement("button");
+    reset.type = "button";
+    reset.className = "lab__reset";
+    reset.textContent = "Вернуть как есть";
+    reset.addEventListener("click", (event) => {
+      event.stopPropagation();
+      Object.assign(state, start);
+      for (const control of controls) {
+        control.slider.value = control.part.key === "payback"
+          ? String(Math.round(base.payback)) : "100";
+      }
+      redraw();
+    });
+
+    function millions(value) {
+      return `${NUMBER_TEXT(value)} млн`;
+    }
+
+    function redraw() {
+      const now = finresValue(base, state);
+      big.textContent = PERCENT_TEXT(now.percent);
+      big.className = "lab__big" + (now.percent >= 0 ? " is-good" : "");
+      const move = now.percent - zero.percent;
+      delta.textContent = Math.abs(move) < 0.005
+        ? `как есть · ${millions(now.sum)} ₽`
+        : `${SIGNED_POINTS(move)} к факту · ${millions(now.sum)} ₽`;
+      delta.className = "lab__delta" + (move > 0.005 ? " is-good" : move < -0.005 ? " is-bad" : "");
+
+      const share = (value) => now.vyruchka ? (value / now.vyruchka) * 100 : 0;
+      breakdown.textContent = [
+        `уценка ${SIGNED_POINTS(share(now.parts.ucenka))}`,
+        `списание ${SIGNED_POINTS(share(now.parts.spisanie))}`,
+        `хранение ${SIGNED_POINTS(share(now.parts.hranenie))}`,
+        `резерв ${SIGNED_POINTS(share(now.parts.rezerv))}`,
+        `выручка компании ${millions(now.vyruchka)} ₽`,
+      ].join(" · ");
+
+      for (const { part, value } of controls) {
+        if (part.key === "payback") {
+          const sebes = base.sebes * state.sebes;
+          value.textContent = `${PERCENT_TEXT(state.payback, 1)} · выручка ${millions(sebes * state.payback / 100)}`;
+        } else if (part.key === "sebes") {
+          value.textContent = millions(base.sebes * state.sebes);
+        } else if (part.key === "spisanie") {
+          value.textContent = millions(base.spisanie * state.spisanie);
+        } else if (part.key === "hranenie") {
+          value.textContent = millions(base.hranenie * state.hranenie);
+        } else if (part.key === "rezerv") {
+          value.textContent = millions(base.rezervDelta * state.rezerv);
+        } else {
+          value.textContent = millions(base.vyruchka * state.vyruchka);
+        }
+      }
+    }
+
+    redraw();
+    box.append(out, rows, reset);
     return box;
   }
 
@@ -712,6 +938,10 @@
       bare.append(bareHead);
       const how = methodBlock(metricKey);
       if (how) bare.append(how);
+      if (metricKey === "finres_pct") {
+        const lab = finresLab(periodSelect.value);
+        if (lab) bare.append(lab);
+      }
       placeDaily(bare, cell);
       writeHash(periodSelect.value);
       if (!options.silent) bare.scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -898,6 +1128,10 @@
     box.append(head, plot, axis, facts);
     const how = methodBlock(metricKey);
     if (how) box.append(how);
+    if (metricKey === "finres_pct") {
+      const lab = finresLab(periodSelect.value);
+      if (lab) box.append(lab);
+    }
     placeDaily(box, cell);
     writeHash(periodSelect.value);
     // При восстановлении вида из адреса или после смены периода страницу не
