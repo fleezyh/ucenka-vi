@@ -106,8 +106,9 @@ function schetchik(tik) {
   setInterval(risovat, 100);
 }
 
-function karta(data) {
-  const ya = data["я"];
+function karta(data, kto) {
+  const ya = kto || data["я"];
+  if (!ya) return;
   const norma = Number(data["норма_дней"]) || 0;
   const proshlo = Number(data["прошло_дней"]) || 0;
   const dolya = norma ? Math.min(1, proshlo / norma) : 0;
@@ -141,9 +142,15 @@ function karta(data) {
         Если видите расхождение — напишите, разберёмся.</span>
     </div>`;
 
+  // Своя карточка подписи не требует, чужая — обязана: иначе непонятно, чьи
+  // это деньги на экране.
+  const chey = kto && kto !== data["я"]
+    ? `<p class="zpTick__who">${ya["фио"]}</p>` : "";
+
   blockMe.innerHTML = `
     ${beta}
     <div class="zpTick">
+      ${chey}
       <p class="zpTick__label">Заработано в ${V_MESYACE[now.getMonth()]}, на руки</p>
       <p class="zpTick__value"><span id="tickRub">0</span><small id="tickKop">,00 ₽</small></p>
       <p class="zpTick__state" id="tickState"></p>
@@ -188,8 +195,8 @@ function karta(data) {
 
 function tablica(data) {
   const lyudi = data["люди"] || [];
-  const rows = lyudi.map((c) => `
-    <tr>
+  const rows = lyudi.map((c, index) => `
+    <tr class="hit" data-nomer="${index}" title="Открыть карточку">
       <td><b>${c["фио"]}</b><div class="src">${c["должность"] || ""}${c["подразделение"] ? " · " + c["подразделение"] : ""}</div></td>
       <td class="num">${rubli(c["оклад_на_руки"])}</td>
       <td class="num">${c["источник_факта"] === "СКУД" ? c["отработано"] : Math.round(c["отработано"])} / ${c["план_дней"]}<div class="src">${c["источник_факта"]}</div></td>
@@ -217,6 +224,21 @@ function tablica(data) {
         <tbody>${rows}</tbody>
       </table></div>
     </div>`;
+
+  // Строка таблицы открывает карточку человека — со счётчиком и выплатами.
+  // Смотреть на цифру в ячейке и гадать, из чего она сложилась, никто не должен.
+  blockTeam.addEventListener("click", (event) => {
+    const row = event.target.closest("tr.hit");
+    if (!row) return;
+    const chelovek = lyudi[Number(row.dataset.nomer)];
+    if (!chelovek) return;
+    karta(data, chelovek);
+    blockTeam.hidden = true;
+    views.querySelectorAll(".zpView").forEach((item) => item.classList.remove("is-on"));
+    const svoya = views.querySelector('[data-view="me"]');
+    if (svoya) svoya.classList.add("is-on");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
 }
 
 async function start() {
@@ -246,6 +268,11 @@ async function start() {
     karta(moya);
   }
 
+  // Свою строку видят не все: часть отделов ещё не подключена к расчёту, и
+  // у самого руководства ФБ её нет. Показывать им пустой экран нельзя —
+  // если доступ к списку есть, сразу открываем его.
+  const svoeyNet = !moya["я"];
+
   // Вкладка «по отделу» появляется, только если ручка её отдаёт: право на
   // чужие деньги проверяется на сервере, а не прячется в интерфейсе.
   try {
@@ -262,8 +289,20 @@ async function start() {
       button.classList.add("is-on");
       const team = button.dataset.view === "team";
       blockTeam.hidden = !team;
-      blockMe.hidden = team || !moya["я"];
+      blockMe.hidden = team;
+      // Своей записи нет — «Моя» возвращает к тому, что открывали последним.
+      if (!team && !blockMe.innerHTML) {
+        blockMe.hidden = true;
+        message.textContent = moya["почему_пусто"] || "По вам расчёта пока нет.";
+      }
     });
+    if (svoeyNet) {
+      message.textContent = (moya["почему_пусто"] || "По вам расчёта пока нет.")
+        + " Ниже — расчёт по тем, кто подключён; строка открывает карточку.";
+      blockTeam.hidden = false;
+      views.querySelector('[data-view="me"]').classList.remove("is-on");
+      views.querySelector('[data-view="team"]').classList.add("is-on");
+    }
   } catch (error) {
     // Нет права — вкладки просто не будет, это не ошибка страницы.
   }
