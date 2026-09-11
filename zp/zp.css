@@ -57,14 +57,11 @@
 
 /* ------------------------------------------------------------- счётчик */
 
+/* Никакой карточки: цифра стоит прямо на фоне страницы. В рамке она читалась
+   как ещё один виджет, а это главное, ради чего сюда заходят. */
 .zpTick {
-  padding: 46px 28px 34px;
-  border: 1px solid var(--line);
-  border-radius: 26px;
+  padding: 40px 12px 30px;
   text-align: center;
-  background:
-    radial-gradient(620px 260px at 50% 0%, rgba(39, 196, 107, 0.18), transparent 70%),
-    rgba(16, 24, 34, 0.95);
 }
 
 .zpTick__label {

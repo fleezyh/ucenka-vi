@@ -82,28 +82,49 @@ function schetchik(tik) {
     kopeykiEl.textContent = "," + String(kop).padStart(2, "0") + " ₽";
   }
 
-  risovat();
-  if (!tik["работает"]) {
-    stateEl.textContent = "Смена не идёт — начисление продолжится на следующей";
-    stateEl.className = "zpTick__state";
-    return;
+  // Когда начнётся следующее начисление: сегодня в начало окна, если ещё не
+  // дошли, иначе завтра. Выходные не считаем — у сменных графиков их нет,
+  // а у пятидневки цифра всё равно оживёт в понедельник.
+  function do_nachala() {
+    const now = new Date();
+    const start = new Date(now);
+    start.setHours(nachalo, 0, 0, 0);
+    if (start <= now) start.setDate(start.getDate() + 1);
+    return Math.max(0, Math.floor((start - now) / 1000));
   }
-  const now = new Date();
-  if (now.getHours() >= konec) {
-    stateEl.textContent = "Смена закончилась, за сегодня всё начислено";
-    stateEl.className = "zpTick__state";
-    return;
+
+  function ostalos(secunds) {
+    const chasy = Math.floor(secunds / 3600);
+    const minuty = Math.floor((secunds % 3600) / 60);
+    const sek = secunds % 60;
+    if (chasy) return chasy + " ч " + String(minuty).padStart(2, "0") + " мин";
+    if (minuty) return minuty + " мин " + String(sek).padStart(2, "0") + " с";
+    return sek + " с";
   }
-  if (now.getHours() < nachalo) {
-    stateEl.textContent = "Смена ещё не началась — начисление с " + nachalo + ":00";
-    stateEl.className = "zpTick__state";
-    return;
+
+  // Цифра обновляется раз в секунду всегда. Когда смена идёт — растёт сумма,
+  // когда нет — идёт отсчёт до следующего начисления: мёртвый экран выглядит
+  // как сломанная страница, даже если число на нём верное.
+  function takt() {
+    const now = new Date();
+    const idet = tik["работает"] && now.getHours() >= nachalo && now.getHours() < konec;
+    risovat();
+    if (idet) {
+      stateEl.innerHTML = '<i class="zpTick__dot"></i>Начисляется прямо сейчас';
+      stateEl.className = "zpTick__state is-live";
+    } else if (!tik["работает"]) {
+      stateEl.innerHTML = "Сегодня начисления нет — следующее через <b>"
+        + ostalos(do_nachala()) + "</b>";
+      stateEl.className = "zpTick__state";
+    } else {
+      stateEl.innerHTML = "За сегодня всё начислено · дальше через <b>"
+        + ostalos(do_nachala()) + "</b>";
+      stateEl.className = "zpTick__state";
+    }
   }
-  stateEl.innerHTML = '<i class="zpTick__dot"></i>Идёт смена, деньги капают прямо сейчас';
-  stateEl.className = "zpTick__state is-live";
-  // Десять раз в секунду: копейки успевают меняться заметно, а процессор
-  // телефона на это не жалуется.
-  setInterval(risovat, 100);
+
+  takt();
+  setInterval(takt, 1000);
 }
 
 function karta(data, kto) {
