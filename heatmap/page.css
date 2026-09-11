@@ -393,6 +393,45 @@ body[data-mode="heatmap"] .shell {
    ни от чего не отделяет. */
 .daily--bare .how { margin-top: 0; padding-top: 0; border-top: 0; }
 
+/* Цель у плитки — её видит только админ. */
+.goal { margin-top: 18px; padding-top: 15px; border-top: 1px solid var(--line); }
+.goal__row { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.goal__field {
+  width: 130px;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(7, 12, 18, 0.72);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  text-align: right;
+}
+.goal__field:focus { outline: none; border-color: rgba(39, 196, 107, 0.6); }
+.goal__unit { color: var(--muted); font-size: 13px; }
+.goal__pick {
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(7, 12, 18, 0.72);
+  color: var(--text);
+  font: inherit;
+  font-size: 13.5px;
+}
+.goal__save {
+  padding: 9px 15px;
+  border: 1px solid rgba(39, 196, 107, 0.45);
+  border-radius: 10px;
+  background: rgba(39, 196, 107, 0.14);
+  color: #eafff3;
+  font: 600 13px var(--ui);
+  cursor: pointer;
+}
+.goal__save:hover { background: rgba(39, 196, 107, 0.22); }
+.goal__save[disabled] { opacity: 0.6; cursor: default; }
+.goal__state { color: var(--muted); font-size: 12.5px; }
+.goal__note { margin: 8px 0 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+
 /* «Что будет, если» — ползунки по частям финреза. */
 .lab { margin-top: 18px; padding-top: 15px; border-top: 1px solid var(--line); }
 .lab__note { margin: 0 0 14px; color: var(--muted); font-size: 12.5px; line-height: 1.5; }

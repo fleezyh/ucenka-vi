@@ -204,6 +204,28 @@
     return number <= current;
   }
 
+  /** Даты ISO-недели: «W36» → «31.08–06.09».
+   *
+   * Ряд идёт полными неделями, и первая неделя месяца почти всегда начинается
+   * в прошлом — из-за этого недельные точки и расходятся с плиткой.
+   */
+  function weekDates(label) {
+    const digits = String(label || "").match(/\d+/);
+    if (!digits) return "";
+    const year = Number((periodSelect.value || "").slice(0, 4));
+    if (!year) return "";
+    // Четвёртое января всегда в первой ISO-неделе — от него и отсчитываем.
+    const fourth = new Date(Date.UTC(year, 0, 4));
+    const monday = new Date(fourth);
+    monday.setUTCDate(fourth.getUTCDate() - ((fourth.getUTCDay() + 6) % 7)
+      + (Number(digits[0]) - 1) * 7);
+    const sunday = new Date(monday);
+    sunday.setUTCDate(monday.getUTCDate() + 6);
+    const short = (date) => `${String(date.getUTCDate()).padStart(2, "0")}.`
+      + `${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
+    return `${short(monday)}–${short(sunday)}`;
+  }
+
   /** Точки динамики: приходят из запроса в процентах от поля графика. */
   function points(tile) {
     const result = [];
@@ -345,6 +367,11 @@
       week.className = last ? "tile__week tile__week--now" : "tile__week";
       week.style.left = `${point.x}%`;
       week.textContent = point.period;
+      // Неделя берётся целиком, поэтому первая точка месяца обычно захватывает
+      // хвост прошлого: W36 — это 31.08–06.09. Без дат это выглядит как
+      // ошибка в данных, а объясняет разницу с плиткой именно она.
+      const span = weekDates(point.period);
+      if (span) week.title = `${point.period} · ${span}`;
       weeks.appendChild(week);
     }
 
@@ -660,6 +687,151 @@
     return box;
   }
 
+  // --- Цель прямо у плитки ---------------------------------------------------
+  // Раньше цель правилась только в книге или в админке: увидел на плитке, что
+  // цель не та, — иди в другое место и ищи строку среди двух сотен. Теперь она
+  // ставится там же, где видна. Ручка открыта только админу, остальные блока
+  // не увидят вовсе.
+
+  const GOAL_SCALE = { mln_rub: 1e6, thousand_pcs: 1e3 };
+  const GOAL_UNIT = { mln_rub: "млн ₽", thousand_pcs: "тыс шт",
+                      percent: "%", ratio: "коэф.", count: "шт" };
+  const GOAL_DIRECTIONS = [["higher", "больше — лучше"], ["lower", "меньше — лучше"],
+                           ["ref", "справочно"]];
+
+  let iAmAdmin = null;     // null — ещё не спрашивали
+  let goalsCache = null;   // цели показанного месяца
+
+  async function adminHere() {
+    if (iAmAdmin !== null) return iAmAdmin;
+    try {
+      const about = await fetch("/__me", { cache: "no-store" }).then((r) => r.json());
+      // Примеряя чужую роль, админ смотрит сайт её глазами — значит и поля
+      // цели видеть не должен.
+      iAmAdmin = about?.роль === "Администратор" && !about?.примерка;
+    } catch { iAmAdmin = false; }
+    return iAmAdmin;
+  }
+
+  async function goalsOf(month) {
+    if (goalsCache?.месяц === month) return goalsCache.цели;
+    const answer = await fetch(`/__goals?month=${encodeURIComponent(month)}`, { cache: "no-store" });
+    if (!answer.ok) throw new Error("нет доступа к целям");
+    const data = await answer.json();
+    goalsCache = { месяц: month, цели: data.цели || {} };
+    return goalsCache.цели;
+  }
+
+  /** Поле цели под панелью метрики. Появляется, только когда смотрит админ. */
+  function goalBox(metricKey) {
+    const period = periodSelect.value;
+    const tile = tileOf(metricKey);
+    if (!tile) return null;
+
+    const box = document.createElement("section");
+    box.className = "goal";
+    box.hidden = true;
+
+    adminHere().then(async (yes) => {
+      if (!yes) return;
+      const unit = tile.unit_code;
+      const scale = GOAL_SCALE[unit] || 1;
+
+      const title = document.createElement("h4");
+      title.className = "how__title";
+      title.textContent = "Цель";
+
+      // Цель задаётся на месяц: у квартала и года своей строки в книге нет.
+      if (!/^\d{4}-\d{2}$/.test(period)) {
+        const note = document.createElement("p");
+        note.className = "goal__note";
+        note.textContent = "Цель ставится на месяц — переключите период на месяц.";
+        box.append(title, note);
+        box.hidden = false;
+        return;
+      }
+
+      let current = null;
+      try {
+        current = (await goalsOf(period))[metricKey] || null;
+      } catch {
+        return;                                  // не админ или книга молчит
+      }
+
+      const field = document.createElement("input");
+      field.className = "goal__field";
+      field.inputMode = "decimal";
+      field.placeholder = "без цели";
+      field.value = current?.target === null || current?.target === undefined
+        ? "" : String(current.target / scale).replace(".", ",");
+
+      const pick = document.createElement("select");
+      pick.className = "goal__pick";
+      for (const [code, label] of GOAL_DIRECTIONS) {
+        const option = document.createElement("option");
+        option.value = code;
+        option.textContent = label;
+        if ((current?.direction || "higher") === code) option.selected = true;
+        pick.append(option);
+      }
+
+      const unitMark = document.createElement("span");
+      unitMark.className = "goal__unit";
+      unitMark.textContent = GOAL_UNIT[unit] || "";
+
+      const save = document.createElement("button");
+      save.type = "button";
+      save.className = "goal__save";
+      save.textContent = "Поставить цель";
+
+      const state = document.createElement("span");
+      state.className = "goal__state";
+      state.textContent = `на ${periodLabel(period)}`;
+
+      const row = document.createElement("div");
+      row.className = "goal__row";
+      row.append(field, unitMark, pick, save, state);
+
+      const hint = document.createElement("p");
+      hint.className = "goal__note";
+      hint.textContent = "Пустое поле снимает цель — плитка станет серой. "
+        + "Месячная цель делится по прожитым дням периода.";
+
+      save.addEventListener("click", async (event) => {
+        event.stopPropagation();
+        save.disabled = true;
+        state.textContent = "сохраняю…";
+        const raw = field.value.trim().replace(",", ".");
+        const target = raw === "" ? null : Number(raw) * scale;
+        try {
+          if (raw !== "" && !Number.isFinite(target)) throw new Error("не число");
+          const answer = await fetch("/__goals", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ metric: metricKey, month: period,
+                                   target, direction: pick.value }),
+          });
+          const data = await answer.json();
+          if (!answer.ok) throw new Error(data.error || "не сохранилось");
+          goalsCache = null;
+          state.textContent = "сохранено · хитмап пересчитывается, обновите через полминуты";
+        } catch (error) {
+          state.textContent = `не сохранил: ${error.message}`;
+        }
+        save.disabled = false;
+      });
+      // Клики внутри блока не должны закрывать плитку.
+      for (const element of [field, pick, row]) {
+        element.addEventListener("click", (event) => event.stopPropagation());
+      }
+
+      box.append(title, row, hint);
+      box.hidden = false;
+    });
+
+    return box;
+  }
+
   // --- «Что будет, если» для финреза ----------------------------------------
   // Финрез собирается из четырёх кусков и делится на выручку компании. Пока
   // это формула на бумаге, спорить о ней можно бесконечно; с ползунками видно
@@ -910,6 +1082,8 @@
       bare.append(bareHead);
       const how = methodBlock(metricKey);
       if (how) bare.append(how);
+      const bareGoal = goalBox(metricKey);
+      if (bareGoal) bare.append(bareGoal);
       if (metricKey === "finres_pct") {
         const lab = finresLab(periodSelect.value);
         if (lab) bare.append(lab);
@@ -1100,6 +1274,8 @@
     box.append(head, plot, axis, facts);
     const how = methodBlock(metricKey);
     if (how) box.append(how);
+    const goal = goalBox(metricKey);
+    if (goal) box.append(goal);
     if (metricKey === "finres_pct") {
       const lab = finresLab(periodSelect.value);
       if (lab) box.append(lab);
