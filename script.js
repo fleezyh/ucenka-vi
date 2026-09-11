@@ -417,7 +417,7 @@
     const viaLabel = scannedCode && scannedCode !== code;
     productCode.textContent = viaLabel ? `${scannedCode} → ${code}` : code;
     showCopyButton(Boolean(fields.name));
-    lastOtbor = showOtbor(row, fields);
+    lastOtbor = showOtbor(row);
     showKgtButton(row, fields);
     showSiteLink(field(row, "Код сайта"));
     answer.style.display = "flex";
@@ -497,50 +497,31 @@
 
   /* Подходит ли товар под отбор на площадки.
    *
-   * Критерии собраны из встреч по продажам: дорогая штука идёт поштучно на
-   * Авито и окупается там на 70–90% против 12–14% в опте; на маркетплейс
-   * отбирают от десяти тысяч, лучше от двадцати; крупногабарит маркетплейс не
-   * берёт — товар должен быть до двух метров по стороне, — поэтому КГТ
-   * остаётся Авито. Дешевле десяти тысяч возня с карточкой, фото и проверкой
-   * ДВК не окупается.
-   *
-   * Габаритов в справочнике пикалки нет, поэтому про размер судим по кластеру:
-   * четвёртый — крупногабаритные. */
-  const OTBOR_AVITO = 50000;
-  const OTBOR_MP = 10000;
-  const OTBOR_HOROSHO = 20000;
+   * Пока критерий один: себестоимость от пятидесяти тысяч. Такая штука на
+   * Авито окупается на 70–90%, а внутри паллеты уходит оптом за 12–14%.
+   * Остальные условия — габариты, проверка ДВК, нижняя граница для
+   * маркетплейса — ещё не устоялись, и городить из них светофор рано.
+   */
+  const OTBOR_PORT = 50000;
 
-  function otbor(row, fields) {
-    const cluster = String(field(row, "Кластер") || "").trim();
+  function otbor(row) {
     const raw = String(field(row, "Себес") || "").replace(/\s/g, "").replace(",", ".");
     const price = Number(raw);
-    if (!Number.isFinite(price) || price <= 0) {
-      return { вид: "нет", текст: "Цены нет — отбор не оценить" };
-    }
-    if (price >= OTBOR_AVITO) {
-      return { вид: "авито", текст: "Дорогой товар — отбирать на Авито поштучно" };
-    }
-    if (cluster === "4") {
-      return { вид: "кгт", текст: "Крупногабарит — маркетплейс не возьмёт, только Авито" };
-    }
-    if (price >= OTBOR_HOROSHO) {
-      return { вид: "мп", текст: "Подходит на маркетплейс" };
-    }
-    if (price >= OTBOR_MP) {
-      return { вид: "мп-слабо", текст: "Проходит по нижней границе — на маркетплейс с оговоркой" };
-    }
-    return { вид: "нет", текст: "Дешевле десяти тысяч — отбирать невыгодно" };
+    if (!Number.isFinite(price) || price <= 0) return null;
+    if (price < OTBOR_PORT) return null;
+    return { вид: "авито", текст: "Дороже 50 тысяч — отбирать на площадку поштучно" };
   }
 
   const otborBox = document.getElementById("otborMark");
   let lastOtbor = null;
 
-  function showOtbor(row, fields) {
+  function showOtbor(row) {
     if (!otborBox) return null;
-    const итог = otbor(row, fields);
+    const итог = otbor(row);
+    otborBox.hidden = !итог;
+    if (!итог) return null;
     otborBox.textContent = итог.текст;
     otborBox.className = `otborMark is-${итог.вид}`;
-    otborBox.hidden = false;
     return итог;
   }
 
@@ -703,7 +684,7 @@
       pick.name = field(row, "Наименование") || "";
       // Вердикт по отбору пишем вместе со сканом: потом видно не только «что
       // смотрели», но и «что из этого стоило вынуть на площадку».
-      const вердикт = otbor(row, {});
+      const вердикт = otbor(row);
       if (вердикт) pick.otbor = вердикт.вид;
     }
     sendPick(pick).catch(() => queuePick(pick));

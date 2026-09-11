@@ -948,9 +948,8 @@ body[data-mode="dorogie"] .dorogieCard { display: block; }
 .kgtBtn.is-done { color: var(--green); border-color: rgba(39, 196, 107, .5); cursor: default; }
 .kgtBtn[disabled] { opacity: .6; cursor: default; }
 
-/* Вердикт по отбору на площадки. Цвет несёт смысл: зелёное — брать, янтарное —
-   с оговоркой, серое — не стоит. Текст дублирует цвет, чтобы решение читалось
-   и без него. */
+/* Вердикт по отбору на площадки: показывается только на товаре дороже порога,
+   поэтому вариант один. Текст дублирует цвет, чтобы решение читалось и без него. */
 .otborMark {
   margin: 10px 0 0;
   padding: 8px 12px;
@@ -961,7 +960,3 @@ body[data-mode="dorogie"] .dorogieCard { display: block; }
   line-height: 1.4;
 }
 .otborMark.is-авито { border-color: rgba(39, 196, 107, .55); background: rgba(39, 196, 107, .12); color: #7ee2a8; }
-.otborMark.is-мп { border-color: rgba(39, 196, 107, .4); background: rgba(39, 196, 107, .08); color: #7ee2a8; }
-.otborMark.is-мп-слабо { border-color: rgba(245, 173, 50, .45); background: rgba(245, 173, 50, .1); color: #f5c877; }
-.otborMark.is-кгт { border-color: rgba(245, 173, 50, .45); background: rgba(245, 173, 50, .1); color: #f5c877; }
-.otborMark.is-нет { color: var(--muted); }
