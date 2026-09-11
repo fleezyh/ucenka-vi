@@ -409,7 +409,8 @@ body[data-mode="heatmap"] .shell {
 }
 .goal__field:focus { outline: none; border-color: rgba(39, 196, 107, 0.6); }
 .goal__unit { color: var(--muted); font-size: 13px; }
-.goal__pick {
+.goal__pick,
+.goal__month {
   padding: 9px 11px;
   border: 1px solid var(--line);
   border-radius: 10px;

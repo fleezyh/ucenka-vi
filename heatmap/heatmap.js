@@ -741,29 +741,43 @@
       title.className = "how__title";
       title.textContent = "Цель";
 
-      // Цель задаётся на месяц: у квартала и года своей строки в книге нет.
-      if (!/^\d{4}-\d{2}$/.test(period)) {
-        const note = document.createElement("p");
-        note.className = "goal__note";
-        note.textContent = "Цель ставится на месяц — переключите период на месяц.";
-        box.append(title, note);
-        box.hidden = false;
-        return;
+      // Месяц выбирается прямо здесь: цель на ноябрь ставят в сентябре, и
+      // ради этого переключать весь хитмап на ноябрь незачем.
+      const month = document.createElement("select");
+      month.className = "goal__month";
+      const startYear = Number(period.slice(0, 4)) || new Date().getFullYear();
+      for (const year of [startYear - 1, startYear, startYear + 1]) {
+        for (let number = 1; number <= 12; number += 1) {
+          const key = `${year}-${String(number).padStart(2, "0")}`;
+          const option = document.createElement("option");
+          option.value = key;
+          option.textContent = periodLabel(key);
+          month.append(option);
+        }
       }
-
-      let current = null;
-      try {
-        current = (await goalsOf(period))[metricKey] || null;
-      } catch {
-        return;                                  // не админ или книга молчит
-      }
+      month.value = /^\d{4}-\d{2}$/.test(period) ? period : `${startYear}-01`;
 
       const field = document.createElement("input");
       field.className = "goal__field";
       field.inputMode = "decimal";
       field.placeholder = "без цели";
-      field.value = current?.target === null || current?.target === undefined
-        ? "" : String(current.target / scale).replace(".", ",");
+
+      let current = null;
+      /** Подставляет то, что сейчас стоит на выбранном месяце. */
+      async function pull() {
+        field.disabled = true;
+        try {
+          current = (await goalsOf(month.value))[metricKey] || null;
+          field.value = current?.target === null || current?.target === undefined
+            ? "" : String(current.target / scale).replace(".", ",");
+          if (current?.direction) pick.value = current.direction;
+          state.textContent = current?.target === undefined || current?.target === null
+            ? "цели нет" : "сейчас стоит";
+        } catch {
+          state.textContent = "не смог прочитать цель";
+        }
+        field.disabled = false;
+      }
 
       const pick = document.createElement("select");
       pick.className = "goal__pick";
@@ -786,16 +800,19 @@
 
       const state = document.createElement("span");
       state.className = "goal__state";
-      state.textContent = `на ${periodLabel(period)}`;
+      state.textContent = "";
 
       const row = document.createElement("div");
       row.className = "goal__row";
-      row.append(field, unitMark, pick, save, state);
+      row.append(month, field, unitMark, pick, save, state);
 
       const hint = document.createElement("p");
       hint.className = "goal__note";
-      hint.textContent = "Пустое поле снимает цель — плитка станет серой. "
+      hint.textContent = "Месяц выбирается здесь же — период хитмапа переключать не нужно. "
+        + "Пустое поле снимает цель, плитка станет серой. "
         + "Месячная цель делится по прожитым дням периода.";
+
+      month.addEventListener("change", (event) => { event.stopPropagation(); pull(); });
 
       save.addEventListener("click", async (event) => {
         event.stopPropagation();
@@ -803,30 +820,34 @@
         state.textContent = "сохраняю…";
         const raw = field.value.trim().replace(",", ".");
         const target = raw === "" ? null : Number(raw) * scale;
+        const chosen = month.value;
         try {
           if (raw !== "" && !Number.isFinite(target)) throw new Error("не число");
           const answer = await fetch("/__goals", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ metric: metricKey, month: period,
+            body: JSON.stringify({ metric: metricKey, month: chosen,
                                    target, direction: pick.value }),
           });
           const data = await answer.json();
           if (!answer.ok) throw new Error(data.error || "не сохранилось");
           goalsCache = null;
-          state.textContent = "сохранено · хитмап пересчитывается, обновите через полминуты";
+          state.textContent = chosen === periodSelect.value
+            ? "сохранено · хитмап пересчитывается, обновите через полминуты"
+            : `сохранено на ${periodLabel(chosen)}`;
         } catch (error) {
           state.textContent = `не сохранил: ${error.message}`;
         }
         save.disabled = false;
       });
       // Клики внутри блока не должны закрывать плитку.
-      for (const element of [field, pick, row]) {
+      for (const element of [field, pick, month, row]) {
         element.addEventListener("click", (event) => event.stopPropagation());
       }
 
       box.append(title, row, hint);
       box.hidden = false;
+      await pull();
     });
 
     return box;
