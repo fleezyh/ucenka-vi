@@ -202,6 +202,52 @@
 .zpPay__sum { margin: 6px 0 0; font-size: 26px; font-weight: 600; letter-spacing: -0.02em; }
 .zpPay__note { margin: 6px 0 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
 
+/* ---------------------------------------------------------- панель ФОТ */
+
+.zpPlitki {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.zpPlitka {
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--panel);
+}
+
+.zpPlitka small { display: block; color: var(--muted); font-size: 12px; }
+.zpPlitka b {
+  display: block;
+  margin-top: 6px;
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.zpPlitka i { display: block; margin-top: 3px; color: var(--muted); font-size: 11px; font-style: normal; }
+
+.zpFiltr { display: flex; gap: 8px; align-items: center; }
+
+.zpFiltr input {
+  width: 280px;
+  max-width: 44vw;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  background: var(--panel-soft);
+}
+
+.zpFiltr input:focus {
+  outline: none;
+  border-color: var(--green);
+  box-shadow: 0 0 0 4px rgba(39, 196, 107, 0.12);
+}
+
 .zpTeam { margin-top: 18px; }
 
 .zpTeam .scroll {

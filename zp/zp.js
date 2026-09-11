@@ -193,10 +193,14 @@ function karta(data, kto) {
   if (ya["тик"]) schetchik(ya["тик"]);
 }
 
-function tablica(data) {
-  const lyudi = data["люди"] || [];
-  const rows = lyudi.map((c, index) => `
-    <tr class="hit" data-nomer="${index}" title="Открыть карточку">
+/* Панель управления ФОТ.
+ *
+ * Смысл не в том, чтобы показать сумму, а в том, чтобы её можно было разобрать:
+ * плитка → подразделение → человек → из чего сложилась его цифра. Поэтому
+ * кликается всё, а не только последняя таблица. */
+function stroki(lyudi, otkuda) {
+  return lyudi.map((c) => `
+    <tr class="hit" data-nomer="${otkuda.indexOf(c)}" title="Открыть карточку">
       <td><b>${c["фио"]}</b><div class="src">${c["должность"] || ""}${c["подразделение"] ? " · " + c["подразделение"] : ""}</div></td>
       <td class="num">${rubli(c["оклад_на_руки"])}</td>
       <td class="num">${c["источник_факта"] === "СКУД" ? c["отработано"] : Math.round(c["отработано"])} / ${c["план_дней"]}<div class="src">${c["источник_факта"]}</div></td>
@@ -204,31 +208,124 @@ function tablica(data) {
       <td class="num">${rubli(c["премия_ожидаемая"] * 0.87)}</td>
       <td class="num"><b>${rubli(c["на_руки"])}</b></td>
       <td class="num">${rubli(c["аванс"])}</td>
+      <td class="num">${rubli(c["прогноз_месяца"])}</td>
       <td>${c["отсутствие"] || ""}</td>
     </tr>`).join("");
+}
 
+function tablica(data) {
+  const lyudi = data["люди"] || [];
   const itogo = data["итого"] || {};
+  const podrazdeleniya = data["подразделения"] || [];
+  const nepodklyucheny = data["не_подключены"] || [];
+
+  const plitki = [
+    ["Человек в расчёте", itogo["человек"] || 0, ""],
+    ["Начислено на сегодня", rubli(itogo["на_руки"]), "на руки"],
+    ["Прогноз за месяц", rubli(itogo["прогноз_месяца"]), "если все доработают"],
+    ["Фонд окладов", rubli(itogo["фонд_окладов"]), "без премий"],
+    ["В отпуске и на больничном", itogo["с_отсутствиями"] || 0, "по данным 1С"],
+    ["Не подключены", itogo["не_подключено"] || 0, "нет в формах подачи"],
+  ].map(([name, value, note]) => `
+    <div class="zpPlitka">
+      <small>${name}</small><b>${value}</b>${note ? `<i>${note}</i>` : ""}
+    </div>`).join("");
+
+  const podr = podrazdeleniya.map((p, index) => `
+    <tr class="hit" data-podr="${index}">
+      <td><b>${p["подразделение"]}</b></td>
+      <td class="num">${p["человек"]}</td>
+      <td class="num">${rubli(p["фонд_окладов"])}</td>
+      <td class="num"><b>${rubli(p["начислено"])}</b></td>
+      <td class="num">${rubli(p["прогноз"])}</td>
+      <td class="num">${p["в_отсутствии"] || "—"}</td>
+      <td class="num">${p["по_скуд"]} / ${p["человек"]}</td>
+    </tr>`).join("");
+
+  const net = nepodklyucheny.map((c) => `
+    <tr>
+      <td><b>${c["фио"]}</b><div class="src">${c["должность"] || ""}</div></td>
+      <td>${c["подразделение"]}</td>
+      <td class="src">${c["принят"] || ""}</td>
+    </tr>`).join("");
+
   blockTeam.innerHTML = `
-    <div class="card" style="padding:22px">
+    <div class="zpPlitki">${plitki}</div>
+
+    <div class="card" style="padding:22px;margin-top:14px">
       <div class="cardHeading">
-        <h2>По отделу · ${itogo["человек"] || 0} человек</h2>
-        <p class="stamp">${rubli(itogo["на_руки"])} на руки на сегодня ·
-          факт из СКУД у ${itogo["по_скуд"] || 0}, по графику у ${itogo["по_графику"] || 0}
-          ${itogo["с_отсутствиями"] ? " · с отпусками и больничными " + itogo["с_отсутствиями"] : ""}</p>
+        <h2>По подразделениям</h2>
+        <p class="stamp">Клик по строке — показать только этих людей</p>
+      </div>
+      <div class="scroll" style="max-height:340px"><table>
+        <thead><tr>
+          <th>Подразделение</th><th>Человек</th><th>Фонд окладов</th>
+          <th>На сегодня</th><th>Прогноз месяца</th><th>Отсутствуют</th><th>Факт из СКУД</th>
+        </tr></thead>
+        <tbody>${podr}</tbody>
+      </table></div>
+    </div>
+
+    <div class="card" style="padding:22px;margin-top:14px">
+      <div class="cardHeading">
+        <h2 id="ktoZagolovok">Люди · ${lyudi.length}</h2>
+        <div class="zpFiltr">
+          <input id="poisk" type="search" placeholder="Фамилия, должность, подразделение"
+                 autocomplete="off">
+          <button class="zpView" type="button" id="sbros" hidden>Показать всех</button>
+        </div>
       </div>
       <div class="scroll"><table>
         <thead><tr>
           <th>Человек</th><th>Оклад</th><th>Отработано</th><th>Окладная</th>
-          <th>Премия</th><th>На сегодня</th><th>Аванс</th><th>Отсутствие</th>
+          <th>Премия</th><th>На сегодня</th><th>Аванс</th><th>Прогноз</th><th>Отсутствие</th>
         </tr></thead>
-        <tbody>${rows}</tbody>
+        <tbody id="ktoTelo">${stroki(lyudi, lyudi)}</tbody>
       </table></div>
-    </div>`;
+    </div>
 
-  // Строка таблицы открывает карточку человека — со счётчиком и выплатами.
-  // Смотреть на цифру в ячейке и гадать, из чего она сложилась, никто не должен.
+    ${nepodklyucheny.length ? `
+    <div class="card" style="padding:22px;margin-top:14px">
+      <div class="cardHeading">
+        <h2>Не подключены к расчёту · ${nepodklyucheny.length}</h2>
+        <p class="stamp">Числятся в департаменте, но не попали ни в одну форму подачи</p>
+      </div>
+      <div class="scroll" style="max-height:300px"><table>
+        <thead><tr><th>Человек</th><th>Подразделение</th><th>Принят</th></tr></thead>
+        <tbody>${net}</tbody>
+      </table></div>
+    </div>` : ""}`;
+
+  const telo = blockTeam.querySelector("#ktoTelo");
+  const zagolovok = blockTeam.querySelector("#ktoZagolovok");
+  const poisk = blockTeam.querySelector("#poisk");
+  const sbros = blockTeam.querySelector("#sbros");
+
+  function pokazat(spisok, podpis) {
+    telo.innerHTML = stroki(spisok, lyudi);
+    zagolovok.textContent = "Люди · " + spisok.length + (podpis ? " · " + podpis : "");
+    sbros.hidden = spisok.length === lyudi.length;
+  }
+
+  poisk.addEventListener("input", () => {
+    const slovo = poisk.value.trim().toLowerCase();
+    if (!slovo) return pokazat(lyudi, "");
+    pokazat(lyudi.filter((c) => [c["фио"], c["должность"], c["подразделение"]]
+      .join(" ").toLowerCase().includes(slovo)), "поиск «" + poisk.value.trim() + "»");
+  });
+  sbros.addEventListener("click", () => { poisk.value = ""; pokazat(lyudi, ""); });
+
   blockTeam.addEventListener("click", (event) => {
-    const row = event.target.closest("tr.hit");
+    // Строка подразделения — фильтр списка людей.
+    const podrRow = event.target.closest("tr.hit[data-podr]");
+    if (podrRow) {
+      const name = podrazdeleniya[Number(podrRow.dataset.podr)]["подразделение"];
+      pokazat(lyudi.filter((c) => (c["подразделение"] || "—") === name), name);
+      telo.closest(".card").scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+    // Строка человека — его карточка со счётчиком и выплатами.
+    const row = event.target.closest("tr.hit[data-nomer]");
     if (!row) return;
     const chelovek = lyudi[Number(row.dataset.nomer)];
     if (!chelovek) return;
