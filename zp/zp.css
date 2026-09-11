@@ -1,0 +1,216 @@
+/* Моя зарплата. Всё, что задаёт ритм страницы, живёт в общих файлах —
+   здесь только то, чего нет в других разделах: тикающий счётчик и разбор. */
+
+.zpTools {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.zpViews {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel-soft);
+}
+
+.zpView {
+  padding: 7px 14px;
+  border: 0;
+  border-radius: 10px;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.zpView.is-on { color: var(--text); background: rgba(39, 196, 107, 0.16); }
+
+.zpMe { display: block; margin-top: 18px; }
+
+/* Собственный display перебивает браузерное [hidden] — без этой строки
+   скрытый блок остаётся на экране. */
+.zpMe[hidden], .zpTeam[hidden], .zpViews[hidden] { display: none; }
+
+/* Пометка о предварительности. Не прячется мелким шрифтом внизу: человек
+   должен прочитать её раньше, чем увидит сумму. */
+.zpBeta {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 13px 18px;
+  margin-bottom: 12px;
+  border: 1px solid rgba(245, 173, 50, 0.34);
+  border-radius: 16px;
+  background: rgba(245, 173, 50, 0.08);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.zpBeta b { color: var(--amber); font-weight: 600; white-space: nowrap; }
+.zpBeta span { color: var(--muted); }
+
+/* ------------------------------------------------------------- счётчик */
+
+.zpTick {
+  padding: 46px 28px 34px;
+  border: 1px solid var(--line);
+  border-radius: 26px;
+  text-align: center;
+  background:
+    radial-gradient(620px 260px at 50% 0%, rgba(39, 196, 107, 0.18), transparent 70%),
+    rgba(16, 24, 34, 0.95);
+}
+
+.zpTick__label {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  letter-spacing: 0.01em;
+}
+
+/* Цифры не должны дёргаться при каждой смене копеек, поэтому моноширинные
+   цифры обязательны: иначе строка прыгает десять раз в секунду. */
+.zpTick__value {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 2px;
+  margin: 12px 0 0;
+  font-size: clamp(52px, 11vw, 128px);
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  text-shadow: 0 0 60px rgba(39, 196, 107, 0.28);
+}
+
+.zpTick__value small {
+  font-size: clamp(22px, 4vw, 46px);
+  font-weight: 500;
+  color: var(--muted);
+  letter-spacing: -0.02em;
+}
+
+.zpTick__state {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 18px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.zpTick__state.is-live { color: var(--green); }
+
+.zpTick__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 0 0 rgba(39, 196, 107, 0.55);
+  animation: zpPulse 1.6s ease-out infinite;
+}
+
+@keyframes zpPulse {
+  70% { box-shadow: 0 0 0 11px rgba(39, 196, 107, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(39, 196, 107, 0); }
+}
+
+.zpTick__away {
+  max-width: 540px;
+  margin: 12px auto 0;
+  color: var(--amber);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.zpTick__bar {
+  max-width: 520px;
+  height: 6px;
+  margin: 22px auto 0;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.07);
+  overflow: hidden;
+}
+
+.zpTick__bar span { display: block; height: 100%; border-radius: 99px; background: var(--green); }
+
+.zpTick__hint {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* --------------------------------------------------------------- разбор */
+
+.zpGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.zpRow {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  gap: 14px;
+  padding: 16px 20px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--panel);
+}
+
+.zpRow b { font-size: 19px; font-weight: 600; letter-spacing: -0.02em; white-space: nowrap; }
+.zpRow small { display: block; margin-top: 3px; color: var(--muted); font-size: 12px; }
+.zpRow--soft { background: var(--panel-soft); }
+.zpRow--soft b { color: var(--muted); }
+
+/* Две ближайшие выплаты. Именно здесь у людей рвётся логика: аванс считается
+   от оклада, остаток — от всего начисления, и суммы выглядят несвязанными. */
+.zpPay {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.zpPay__item {
+  padding: 16px 20px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--panel-soft);
+}
+
+.zpPay__when { margin: 0; color: var(--muted); font-size: 12px; }
+.zpPay__sum { margin: 6px 0 0; font-size: 26px; font-weight: 600; letter-spacing: -0.02em; }
+.zpPay__note { margin: 6px 0 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
+
+.zpTeam { margin-top: 18px; }
+
+.zpTeam .scroll {
+  max-height: 620px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--panel);
+}
+
+.zpTeam td b { font-weight: 600; }
+.zpTeam td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.zpTeam .src { color: var(--muted); font-size: 11px; }
+
+@media (max-width: 860px) {
+  .zpGrid { grid-template-columns: 1fr; }
+  .zpPay { grid-template-columns: 1fr; }
+  .zpTick { padding: 34px 18px 26px; }
+  .zpTools { align-items: flex-start; }
+}

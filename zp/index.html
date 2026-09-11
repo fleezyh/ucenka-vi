@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0a1018">
+  <title>Уценка · Моя зарплата</title>
+  <link rel="icon" type="image/svg+xml" href="../assets/brand/vi-mark.svg">
+  <link rel="preload" href="../assets/fonts/VI_Sans_Medium.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="../style.css?v=20260907-6">
+  <link rel="stylesheet" href="zp.css?v=20260911-3">
+  <link rel="stylesheet" href="../reeded-bg.css?v=20260907-6">
+  <link rel="stylesheet" href="../site-header.css?v=20260909-7">
+  <script src="../reeded-bg.js?v=20260906-7" defer></script>
+  <script src="zp.js?v=20260911-3" defer></script>
+  <script src="../nav.js?v=20260910-4" defer></script>
+</head>
+<body data-mode="zp">
+  <main class="shell">
+    <header class="topbar">
+      <a class="brand" href="../" aria-label="Уценка — главная">
+        <img class="brand__mark" src="../assets/brand/vi-mark.svg" alt="" width="36" height="36">
+        <span>Уценка</span>
+      </a>
+      <nav class="siteNav" aria-label="Разделы сайта">
+        <span class="navGroup">
+          <span class="navGroup__label">Уценка</span>
+          <a class="navLink" href="../antigen/">Антигенерация</a>
+          <a class="navLink" href="../heatmap/">Хитмап</a>
+          <a class="navLink" href="../sales/">Продажи</a>
+          <a class="navLink" href="../perf/">Производительность</a>
+        </span>
+        <span class="navGroup">
+          <span class="navGroup__label">Инструменты</span>
+          <a class="navLink" href="../picker/">Пикалка</a>
+        </span>
+      </nav>
+    </header>
+
+    <section class="hero">
+      <div>
+        <p class="eyebrow">Кабинет</p>
+        <h1>Моя зарплата</h1>
+        <p class="lead">Сколько заработано на сегодня и когда это придёт. Считается
+          каждый день по вашему окладу и фактическим выходам — не нужно ждать конца
+          месяца, чтобы понять, что получится.</p>
+      </div>
+      <div class="zpTools">
+        <nav class="zpViews" id="views" aria-label="Что показать" hidden>
+          <button class="zpView is-on" type="button" data-view="me">Моя</button>
+          <button class="zpView" type="button" data-view="team">По отделу</button>
+        </nav>
+        <p class="stamp" id="stamp"></p>
+      </div>
+    </section>
+
+    <p class="message" id="message">Считаю…</p>
+
+    <section class="zpMe" id="me" hidden></section>
+    <section class="zpTeam" id="team" hidden></section>
+
+    <p class="stockNote" id="note" hidden>
+      Оклад берётся из формы, которой ваш руководитель подаёт зарплату в 1С, —
+      это та же цифра, что уйдёт в расчёт. Премия здесь плановая: её точный
+      размер ставит руководитель при подаче в начале следующего месяца, поэтому
+      итог может отличаться. Выходы по сменным графикам берутся из СКУД,
+      по пятидневке — по графику: отсутствие считается только тогда, когда
+      оформлен больничный или отпуск.
+    </p>
+  </main>
+</body>
+</html>

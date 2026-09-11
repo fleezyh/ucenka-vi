@@ -68,7 +68,12 @@
       const box = document.createElement("span");
       box.className = "navGroup navGroup--account";
       box.title = String(user.name || user.login);
-      box.innerHTML = '<a class="navLink" href="/__account">Кабинет</a>'
+      // Зарплата — часть кабинета, а не отдельный раздел сайта: это личные
+      // деньги человека, а не общая витрина.
+      const prava = user["права"] || [];
+      const zp = prava.includes("*") || prava.includes("salary")
+        ? '<a class="navLink" href="/zp/">Зарплата</a>' : "";
+      box.innerHTML = zp + '<a class="navLink" href="/__account">Кабинет</a>'
         + '<a class="navLink" href="/__logout">Выйти</a>';
       nav.appendChild(box);
       hideClosed(user["права"]);
