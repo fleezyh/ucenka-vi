@@ -225,11 +225,22 @@ function tablica(data) {
     ["Прогноз за месяц", rubli(itogo["прогноз_месяца"]), "если все доработают"],
     ["Фонд окладов", rubli(itogo["фонд_окладов"]), "без премий"],
     ["В отпуске и на больничном", itogo["с_отсутствиями"] || 0, "по данным 1С"],
-    ["Не подключены", itogo["не_подключено"] || 0, "нет в формах подачи"],
+    ["Оклад из штатки", itogo["оклад_из_штатки"] || 0, "нет в формах подачи"],
+    ["Разошлись с формой", itogo["расхождений"] || 0, "штатка против подачи"],
+    ["Не подключены", itogo["не_подключено"] || 0, "оклада нет нигде"],
   ].map(([name, value, note]) => `
     <div class="zpPlitka">
       <small>${name}</small><b>${value}</b>${note ? `<i>${note}</i>` : ""}
     </div>`).join("");
+
+  const sporne = lyudi.filter((c) => c["расхождение"]);
+  const sporneRows = sporne.map((c) => `
+    <tr>
+      <td><b>${c["фио"]}</b><div class="src">${c["должность"] || ""}${c["подразделение"] ? " · " + c["подразделение"] : ""}</div></td>
+      <td class="num">${rubli(c["оклад"])}</td>
+      <td class="num">${rubli(c["оклад_по_штатке"] * 0.87)}</td>
+      <td class="num">${rubli((c["оклад_по_штатке"] - c["оклад"] / 0.87) * 0.87)}</td>
+    </tr>`).join("");
 
   const podr = podrazdeleniya.map((p, index) => `
     <tr class="hit" data-podr="${index}">
@@ -283,6 +294,19 @@ function tablica(data) {
         <tbody id="ktoTelo">${stroki(lyudi, lyudi)}</tbody>
       </table></div>
     </div>
+
+    ${sporne.length ? `
+    <div class="card" style="padding:22px;margin-top:14px">
+      <div class="cardHeading">
+        <h2>Оклад спорит со штаткой · ${sporne.length}</h2>
+        <p class="stamp">Считаем по форме подачи — это то, что уходит в 1С.
+          Штатка показана для сверки</p>
+      </div>
+      <div class="scroll" style="max-height:280px"><table>
+        <thead><tr><th>Человек</th><th>По форме подачи</th><th>По штатке</th><th>Разница</th></tr></thead>
+        <tbody>${sporneRows}</tbody>
+      </table></div>
+    </div>` : ""}
 
     ${nepodklyucheny.length ? `
     <div class="card" style="padding:22px;margin-top:14px">
