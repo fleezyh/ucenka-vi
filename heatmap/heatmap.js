@@ -702,13 +702,13 @@
   let iAmAdmin = null;     // null — ещё не спрашивали
   let goalsCache = null;   // цели показанного месяца
 
+  /** Право ставить цели спрашиваем у самой ручки, а не по названию роли:
+   *  название в справочнике меняют, и сверка по нему тихо ломается. */
   async function adminHere() {
     if (iAmAdmin !== null) return iAmAdmin;
     try {
-      const about = await fetch("/__me", { cache: "no-store" }).then((r) => r.json());
-      // Примеряя чужую роль, админ смотрит сайт её глазами — значит и поля
-      // цели видеть не должен.
-      iAmAdmin = about?.роль === "Администратор" && !about?.примерка;
+      const answer = await fetch("/__goals", { cache: "no-store" });
+      iAmAdmin = answer.ok;
     } catch { iAmAdmin = false; }
     return iAmAdmin;
   }
