@@ -181,11 +181,11 @@ function karta(data, kto) {
         <b>${rubli(ya["оклад_на_руки"])}</b>
       </div>
       <div class="zpRow">
-        <span>Отработано</span>
+        <span>Отработано ${otrabotano} из ${ya["план_дней"]}</span>
         <b>${rubli(ya["окладная_часть"] * 0.87)}</b>
       </div>
       <div class="zpRow zpRow--soft">
-        <span>Премия</span>
+        <span>Премия, ожидаемая</span>
         <b>${rubli(ya["премия_ожидаемая"] * 0.87)}</b>
       </div>
       <div class="zpPay">
