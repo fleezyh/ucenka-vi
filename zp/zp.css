@@ -594,6 +594,9 @@
   text-align: right;
 }
 .zpPrem:focus { border-color: rgba(39, 196, 107, 0.6); outline: none; }
+/* Сохранилось на сервер или нет — видно по рамке, без лишних сообщений. */
+.zpPrem.is-ok { border-color: rgba(39, 196, 107, 0.75); }
+.zpPrem.is-plohо { border-color: rgba(224, 112, 90, 0.85); }
 
 .zpTeam tfoot td { border-top: 1px solid var(--line-strong); padding-top: 12px; font-size: 15px; }
 

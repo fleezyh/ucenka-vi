@@ -683,12 +683,20 @@ function tablica(data) {
   const sbros = blockTeam.querySelector("#sbros");
   const limit = blockTeam.querySelector("#limit");
 
-  /* Введённые премии держим в браузере: подача идёт раз в месяц, а бегать
-     за ними к серверу пока некуда. Ключ месяца — чтобы в новом месяце
-     начинать с чистого листа, а не с прошлых сумм. */
-  const KLYUCH = "zp-premii-" + (data["месяц"] || "");
-  let premii = {};
-  try { premii = JSON.parse(localStorage.getItem(KLYUCH) || "{}"); } catch (e) { premii = {}; }
+  /* Премии приходят с сервера уже внутри расчёта: их ставит подающий, а
+     видят все, кто смотрит панель. Здесь только отправляем изменение. */
+  function sohranitPremiyu(chelovek) {
+    return fetch("/__zp/premiya", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        "логин": chelovek["логин"],
+        "премия": chelovek["премия_план"] || 0,
+        "месяц": data["месяц"] || "",
+      }),
+    }).then((r) => r.ok);
+  }
 
   // Доля месяца, прошедшая на сегодня: месячная премия набегает вместе с ней.
   const dolya = (data["норма_дней"] || 0)
@@ -704,11 +712,7 @@ function tablica(data) {
       - (c["премия_план_ishodno"] - c["премия_план"]) * 0.87;
   }
 
-  lyudi.forEach((c) => {
-    c["премия_план_ishodno"] = c["премия_план"] || 0;
-    const svoya = premii[c["логин"] || c["фио"]];
-    if (svoya !== undefined) postavitPremiyu(c, svoya);
-  });
+  lyudi.forEach((c) => { c["премия_план_ishodno"] = c["премия_план"] || 0; });
 
   let baza = "Поснова";
   let vidno = [];
@@ -905,8 +909,14 @@ function tablica(data) {
     const chelovek = lyudi[Number(stroka.dataset.nomer)];
     if (!chelovek) return;
     postavitPremiyu(chelovek, pole.value.replace(/\s/g, ""));
-    premii[chelovek["логин"] || chelovek["фио"]] = chelovek["премия_план"];
-    try { localStorage.setItem(KLYUCH, JSON.stringify(premii)); } catch (e) { /* приват-режим */ }
+    // Сохраняем не на каждый набранный символ, а когда человек остановился.
+    clearTimeout(pole.pauza);
+    pole.pauza = setTimeout(() => {
+      pole.classList.remove("is-ok", "is-plohо");
+      sohranitPremiyu(chelovek)
+        .then((ladno) => pole.classList.add(ladno ? "is-ok" : "is-plohо"))
+        .catch(() => pole.classList.add("is-plohо"));
+    }, 700);
     stroka.querySelector("[data-seychas]").textContent = rubli(chelovek["на_руки"]);
     stroka.querySelector("[data-prognoz]").textContent = rubli(chelovek["прогноз_месяца"]);
     const s = svodka(vidno);
