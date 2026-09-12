@@ -537,6 +537,18 @@
   cursor: pointer;
 }
 .zpOtdel:hover { background: rgba(255, 255, 255, 0.04); }
+
+/* Три уровня: общий итог, направление, подразделение внутри него. */
+.zpOtdel--vsego { margin-top: 14px; padding: 14px 12px; border: 1px solid var(--line-strong); background: rgba(255, 255, 255, 0.03); cursor: default; }
+.zpOtdel--vsego:hover { background: rgba(255, 255, 255, 0.03); }
+.zpOtdel--vsego .zpOtdel__imya b { font-size: 16px; }
+.zpOtdel__polosa--krupno, .zpOtdel__polosa--krupno .zpOtdel__shr { height: 34px; }
+.zpOtdel__polosa--krupno .zpOtdel__fakt { top: 10px; height: 14px; }
+.zpOtdel--napr.is-open { background: rgba(255, 255, 255, 0.04); }
+.zpVnutri { margin: 2px 0 10px 22px; padding-left: 14px; border-left: 2px solid var(--line); }
+.zpOtdel--podr .zpOtdel__imya b { font-weight: 500; }
+.zpOtdel--podr .zpOtdel__polosa, .zpOtdel--podr .zpOtdel__shr { height: 18px; }
+.zpOtdel--podr .zpOtdel__fakt { top: 5px; height: 8px; }
 .zpOtdel__imya b { display: block; font-size: 14px; font-weight: 600; }
 .zpOtdel__imya span { color: var(--muted); font-size: 11.5px; }
 .zpOtdel__polosa { position: relative; height: 26px; }

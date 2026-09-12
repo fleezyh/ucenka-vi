@@ -746,13 +746,11 @@ function tablica(data) {
       </div>`;
   }
 
-  /* Куда уходит перерасход: по каждому отделу видно, сколько заложено
-     окладами и что сверх них добавили премии, надбавки и переработки.
-     Полоса — доля отдела в фонде выбранной базы. */
-  function narisovatOtdely(spisok) {
+  /* Свод по любому срезу: сколько заложено окладами и что вышло сверх. */
+  function svesti(spisok, klyuch) {
     const po = new Map();
     spisok.forEach((c) => {
-      const imya = c["подразделение"] || "—";
+      const imya = c[klyuch] || "—";
       const o = po.get(imya) || { imya, lyudey: 0, fond: 0, prognoz: 0,
                                   premii: 0, nadbavki: 0, otsutstvie: 0 };
       o.lyudey += 1;
@@ -763,37 +761,71 @@ function tablica(data) {
       if (c["отсутствие"]) o.otsutstvie += 1;
       po.set(imya, o);
     });
-    const spisokOtdelov = [...po.values()]
-      .map((o) => ({ ...o, raznica: o.prognoz - o.fond }))
-      .sort((a, b) => b.raznica - a.raznica);
-    const maks = Math.max(...spisokOtdelov.map((o) => Math.max(o.fond, o.prognoz)), 1);
+    return [...po.values()].map((o) => ({ ...o, raznica: o.prognoz - o.fond }))
+      .sort((a, b) => b.prognoz - a.prognoz);
+  }
+
+  function polosa(o, maks, krupno) {
+    const sverh = o.raznica > 0;
+    return `
+      <div class="zpOtdel__polosa${krupno ? " zpOtdel__polosa--krupno" : ""}">
+        <div class="zpOtdel__shr" style="width:${(100 * o.fond / maks).toFixed(1)}%"></div>
+        <div class="zpOtdel__fakt ${sverh ? "is-over" : ""}"
+             style="width:${(100 * o.prognoz / maks).toFixed(1)}%"></div>
+      </div>
+      <div class="zpOtdel__cifry">
+        <span>${rubli(o.fond)}<i>по ШР</i></span>
+        <span>${rubli(o.prognoz)}<i>выйдет</i></span>
+        <span class="${sverh ? "zpNad" : "zpPod"}"><b>${sverh ? "+" : ""}${rubli(o.raznica)}</b>
+          <i>${prichina(o)}</i></span>
+      </div>`;
+  }
+
+  /* Иерархия: сначала направления, внутри — их подразделения. Разворачивать
+     всё сразу незачем: сверху нужен масштаб, детали открываются по клику. */
+  let raskryto = "";
+
+  function narisovatOtdely(spisok) {
+    const napr = svesti(spisok, "направление");
+    const vsego = svesti(spisok, "_")[0] || { fond: 0, prognoz: 0, premii: 0,
+                                              nadbavki: 0, raznica: 0, lyudey: 0 };
+    const maks = Math.max(...napr.map((o) => Math.max(o.fond, o.prognoz)), 1);
 
     otdely.innerHTML = `
       <div class="cardHeading">
-        <h2>Сколько заложено на отдел и что сверх</h2>
-        <p class="stamp">Серая полоса — оклады по ШР, зелёная — что выйдет за месяц.
-          Красная часть справа от серой и есть перерасход. Клик по отделу — его люди</p>
+        <h2>Сколько заложено и что выйдет</h2>
+        <p class="stamp">Серая полоса — оклады по ШР, зелёная — прогноз месяца;
+          красный хвост и есть перерасход. Клик по направлению разворачивает
+          его подразделения, клик по подразделению — его людей</p>
       </div>
+
+      <div class="zpOtdel zpOtdel--vsego">
+        <div class="zpOtdel__imya"><b>Всего ${baza ? "· " + baza : "по обоим контурам"}</b>
+          <span>${vsego.lyudey} чел. · ${napr.length} направлений</span></div>
+        ${polosa(vsego, Math.max(vsego.fond, vsego.prognoz), true)}
+      </div>
+
       <div class="zpOtdely__spisok">
-        ${spisokOtdelov.map((o) => {
-          const dolyaF = (100 * o.fond / maks).toFixed(1);
-          const dolyaP = (100 * o.prognoz / maks).toFixed(1);
-          const sverh = o.raznica > 0;
+        ${napr.map((o) => {
+          const vnutri = svesti(spisok.filter((c) => (c["направление"] || "—") === o.imya),
+                                "подразделение");
+          const otkryt = raskryto === o.imya;
+          const maksV = Math.max(...vnutri.map((v) => Math.max(v.fond, v.prognoz)), 1);
           return `
-          <div class="zpOtdel hit" data-otdel="${o.imya.replace(/"/g, "&quot;")}">
-            <div class="zpOtdel__imya"><b>${o.imya}</b>
-              <span>${o.lyudey} чел.${o.otsutstvie ? " · " + o.otsutstvie + " отсутствуют" : ""}</span></div>
-            <div class="zpOtdel__polosa">
-              <div class="zpOtdel__shr" style="width:${dolyaF}%"></div>
-              <div class="zpOtdel__fakt ${sverh ? "is-over" : ""}" style="width:${dolyaP}%"></div>
-            </div>
-            <div class="zpOtdel__cifry">
-              <span>${rubli(o.fond)}<i>по ШР</i></span>
-              <span>${rubli(o.prognoz)}<i>выйдет</i></span>
-              <span class="${sverh ? "zpNad" : "zpPod"}"><b>${sverh ? "+" : ""}${rubli(o.raznica)}</b>
-                <i>${prichina(o)}</i></span>
-            </div>
-          </div>`;
+          <div class="zpOtdel zpOtdel--napr${otkryt ? " is-open" : ""}"
+               data-napr="${o.imya.replace(/"/g, "&quot;")}">
+            <div class="zpOtdel__imya"><b>${vnutri.length > 1
+              ? (otkryt ? "▾ " : "▸ ") : ""}${o.imya}</b>
+              <span>${o.lyudey} чел.${vnutri.length > 1 ? " · " + vnutri.length + " подразделений" : ""}${
+                o.otsutstvie ? " · " + o.otsutstvie + " отсутствуют" : ""}</span></div>
+            ${polosa(o, maks)}
+          </div>
+          ${otkryt ? `<div class="zpVnutri">${vnutri.map((v) => `
+            <div class="zpOtdel zpOtdel--podr" data-otdel="${v.imya.replace(/"/g, "&quot;")}">
+              <div class="zpOtdel__imya"><b>${v.imya}</b>
+                <span>${v.lyudey} чел.${v.otsutstvie ? " · " + v.otsutstvie + " отсутствуют" : ""}</span></div>
+              ${polosa(v, maksV)}
+            </div>`).join("")}</div>` : ""}`;
         }).join("")}
       </div>`;
   }
@@ -832,9 +864,16 @@ function tablica(data) {
   }
 
   otdely.addEventListener("click", (event) => {
-    const stroka = event.target.closest(".zpOtdel");
-    if (!stroka) return;
-    const imya = stroka.dataset.otdel;
+    // Направление разворачиваем, подразделение открываем списком людей.
+    const napr = event.target.closest(".zpOtdel--napr");
+    if (napr) {
+      raskryto = raskryto === napr.dataset.napr ? "" : napr.dataset.napr;
+      narisovatOtdely(vBaze(baza));
+      return;
+    }
+    const podr = event.target.closest(".zpOtdel--podr");
+    if (!podr) return;
+    const imya = podr.dataset.otdel;
     poisk.value = "";
     pokazat(vBaze(baza).filter((c) => (c["подразделение"] || "—") === imya), imya);
     document.querySelector("#ktoZagolovok").scrollIntoView({ behavior: "smooth", block: "start" });
