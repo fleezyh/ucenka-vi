@@ -485,10 +485,10 @@ function stroki(lyudi, otkuda) {
       <td class="num">${c["источник_факта"] === "СКУД" ? c["отработано"] : Math.round(c["отработано"])} / ${c["план_дней"]}<div class="src">${c["источник_факта"]}</div></td>
       <td class="num">${rubli(c["окладная_часть"] * 0.87)}</td>
       <td class="num"><input class="zpPrem" type="number" min="0" step="1000"
-        inputmode="numeric" value="${c["премия_ожидаемая"] || ""}" placeholder="0"
-        aria-label="Премия, ${c["фио"]}"><div class="src">до НДФЛ</div></td>
-      <td class="num"><b>${rubli(c["на_руки"])}</b></td>
-      <td class="num">${rubli(c["прогноз_месяца"])}</td>
+        inputmode="numeric" value="${c["премия_план"] || ""}" placeholder="0"
+        aria-label="Премия за месяц, ${c["фио"]}"><div class="src">за месяц, до НДФЛ</div></td>
+      <td class="num"><b data-seychas>${rubli(c["на_руки"])}</b></td>
+      <td class="num" data-prognoz>${rubli(c["прогноз_месяца"])}</td>
       <td class="num">${vyrabotkaYacheyka(c["выработка"])}</td>
       <td class="num">${mestoYacheyka(c["выработка"])}</td>
       <td>${c["отсутствие"] || ""}</td>
@@ -515,7 +515,7 @@ const STOLBCY_PODACHI = [
   ["Штук за смену", (c) => (c["выработка"] || {})["на_смену"] ?? ""],
   ["Контур", (c) => (c["выработка"] || {})["контур"] || ""],
   ["Место в контуре", (c) => (c["выработка"] || {})["место"] ?? ""],
-  ["Факт Ежемесячная премия", (c) => c["премия_ожидаемая"] || ""],
+  ["Факт Ежемесячная премия", (c) => c["премия_план"] || ""],
   ["Разовая премия", () => ""],
   ["Прочие штрафы", () => ""],
   ["Комментарий", () => ""],
@@ -560,18 +560,18 @@ function mestoYacheyka(rab) {
 }
 
 function tablica(data) {
-  const lyudi = data["люди"] || [];
+  // ВИ Сервис в панель не берём вовсе: третий контур пока не наш.
+  const lyudi = (data["люди"] || []).filter((c) => c["подаёт"] !== "ВИ Сервис");
   const itogo = data["итого"] || {};
   const podrazdeleniya = data["подразделения"] || [];
   const nepodklyucheny = data["не_подключены"] || [];
 
-  // Базы подачи: у Посновой своя выгрузка, у Широких всё остальное по браку,
-  // «ВИ Сервис» — третий контур, его пока не ведём.
+  // Базы подачи: у Посновой своя выгрузка, у Широких всё остальное по браку.
+  // «ВИ Сервис» — третий контур, его пока не ведём и в панели не показываем.
   const BAZY = [
-    { klyuch: "Поснова", imya: "Поснова", chto: "её выгрузка" },
-    { klyuch: "Широких", imya: "Широких", chto: "остальные по браку" },
-    { klyuch: "ВИ Сервис", imya: "ВИ Сервис", chto: "пока не подаём" },
-    { klyuch: "", imya: "Все", chto: "департамент целиком" },
+    { klyuch: "Поснова", imya: "Поснова", bukva: "П", chto: "её выгрузка" },
+    { klyuch: "Широких", imya: "Широких", bukva: "Ш", chto: "остальные по браку" },
+    { klyuch: "", imya: "Оба контура", bukva: "Σ", chto: "всё, что подаём" },
   ];
   const vBaze = (b) => b ? lyudi.filter((c) => c["подаёт"] === b) : lyudi;
 
@@ -606,11 +606,17 @@ function tablica(data) {
     <nav class="zpBazy" id="bazy" aria-label="Чья база">
       ${BAZY.map((b, i) => `
         <button class="zpBaza${i ? "" : " is-on"}" type="button" data-baza="${b.klyuch}">
-          <b>${b.imya}</b><span>${vBaze(b.klyuch).length} · ${b.chto}</span>
+          <span class="zpBaza__znak">${b.bukva}</span>
+          <span class="zpBaza__copy">
+            <strong>${b.imya}</strong>
+            <span class="zpBaza__note">${b.chto}</span>
+          </span>
+          <span class="zpBaza__skolko">${vBaze(b.klyuch).length}</span>
         </button>`).join("")}
     </nav>
 
     <div class="card zpLimit" id="limit"></div>
+    <div class="card zpOtdely" id="otdely"></div>
 
     <div class="card" style="padding:22px;margin-top:14px">
       <div class="cardHeading">
@@ -676,28 +682,39 @@ function tablica(data) {
   const KLYUCH = "zp-premii-" + (data["месяц"] || "");
   let premii = {};
   try { premii = JSON.parse(localStorage.getItem(KLYUCH) || "{}"); } catch (e) { premii = {}; }
+
+  // Доля месяца, прошедшая на сегодня: месячная премия набегает вместе с ней.
+  const dolya = (data["норма_дней"] || 0)
+    ? (data["прошло_дней"] || 0) / data["норма_дней"] : 0;
+
+  function postavitPremiyu(c, mesyachnaya) {
+    const bylo = c["премия_ожидаемая"] || 0;
+    c["премия_план"] = Math.max(0, Math.round(Number(mesyachnaya) || 0));
+    c["премия_ожидаемая"] = Math.round(c["премия_план"] * dolya);
+    const delta = (c["премия_ожидаемая"] - bylo) * 0.87;
+    c["на_руки"] = (c["на_руки"] || 0) + delta;
+    c["прогноз_месяца"] = (c["прогноз_месяца"] || 0)
+      - (c["премия_план_ishodno"] - c["премия_план"]) * 0.87;
+  }
+
   lyudi.forEach((c) => {
+    c["премия_план_ishodno"] = c["премия_план"] || 0;
     const svoya = premii[c["логин"] || c["фио"]];
-    if (svoya !== undefined) c["премия_ожидаемая"] = Number(svoya) || 0;
+    if (svoya !== undefined) postavitPremiyu(c, svoya);
   });
 
   let baza = "Поснова";
   let vidno = [];
   let chto = "";
 
-  // Прогноз считаем сами: премия могла поменяться прямо здесь, а сервер про
-  // это ещё не знает.
-  const prognozS = (c) => (c["прогноз_месяца"] || 0)
-    - (c["премия_ожидаемая_ishodno"] ?? c["премия_база"] ?? 0) * 0.87
-    + (c["премия_ожидаемая"] || 0) * 0.87;
-  lyudi.forEach((c) => { c["премия_база"] = c["премия_база"] ?? (c["премия_ожидаемая"] || 0); });
+  const prognozS = (c) => c["прогноз_месяца"] || 0;
 
   function svodka(spisok) {
     const summa = (f) => spisok.reduce((s, c) => s + (Number(f(c)) || 0), 0);
     return {
       lyudey: spisok.length,
       fond: summa((c) => c["оклад_на_руки"]),
-      premii: summa((c) => (c["премия_ожидаемая"] || 0) * 0.87),
+      premii: summa((c) => (c["премия_план"] || 0) * 0.87),
       segodnya: summa((c) => c["на_руки"]),
       prognoz: summa(prognozS),
     };
@@ -718,8 +735,8 @@ function tablica(data) {
       </div>
       <div class="zpLimit__row">
         <div><small>Оклады по ШР</small><b>${rubli(s.fond)}</b><i>на руки, при полной отработке</i></div>
-        <div><small>Премии проставлены</small><b>${rubli(s.premii)}</b><i>${
-          spisok.filter((c) => c["премия_ожидаемая"]).length} из ${s.lyudey} человек</i></div>
+        <div><small>Премии за месяц</small><b>${rubli(s.premii)}</b><i>${
+          spisok.filter((c) => c["премия_план"]).length} из ${s.lyudey} человек</i></div>
         <div><small>Начислено на сегодня</small><b>${rubli(s.segodnya)}</b><i>${
           data["прошло_дней"]} из ${data["норма_дней"]} дней</i></div>
         <div><small>Выйдет за месяц</small><b>${rubli(s.prognoz)}</b><i>оклады по факту выходов плюс премии</i></div>
@@ -727,6 +744,71 @@ function tablica(data) {
           (pereli ? "+" : "") + rubli(raznica)}</b><i>${pereli
             ? "премии и надбавки сверх окладов" : "недовыходы съели больше, чем добавили премии"}</i></div>
       </div>`;
+  }
+
+  /* Куда уходит перерасход: по каждому отделу видно, сколько заложено
+     окладами и что сверх них добавили премии, надбавки и переработки.
+     Полоса — доля отдела в фонде выбранной базы. */
+  function narisovatOtdely(spisok) {
+    const po = new Map();
+    spisok.forEach((c) => {
+      const imya = c["подразделение"] || "—";
+      const o = po.get(imya) || { imya, lyudey: 0, fond: 0, prognoz: 0,
+                                  premii: 0, nadbavki: 0, otsutstvie: 0 };
+      o.lyudey += 1;
+      o.fond += c["оклад_на_руки"] || 0;
+      o.prognoz += prognozS(c);
+      o.premii += (c["премия_план"] || 0) * 0.87;
+      o.nadbavki += (c["надбавка"] || 0) * 0.87;
+      if (c["отсутствие"]) o.otsutstvie += 1;
+      po.set(imya, o);
+    });
+    const spisokOtdelov = [...po.values()]
+      .map((o) => ({ ...o, raznica: o.prognoz - o.fond }))
+      .sort((a, b) => b.raznica - a.raznica);
+    const maks = Math.max(...spisokOtdelov.map((o) => Math.max(o.fond, o.prognoz)), 1);
+
+    otdely.innerHTML = `
+      <div class="cardHeading">
+        <h2>Сколько заложено на отдел и что сверх</h2>
+        <p class="stamp">Серая полоса — оклады по ШР, зелёная — что выйдет за месяц.
+          Красная часть справа от серой и есть перерасход. Клик по отделу — его люди</p>
+      </div>
+      <div class="zpOtdely__spisok">
+        ${spisokOtdelov.map((o) => {
+          const dolyaF = (100 * o.fond / maks).toFixed(1);
+          const dolyaP = (100 * o.prognoz / maks).toFixed(1);
+          const sverh = o.raznica > 0;
+          return `
+          <div class="zpOtdel hit" data-otdel="${o.imya.replace(/"/g, "&quot;")}">
+            <div class="zpOtdel__imya"><b>${o.imya}</b>
+              <span>${o.lyudey} чел.${o.otsutstvie ? " · " + o.otsutstvie + " отсутствуют" : ""}</span></div>
+            <div class="zpOtdel__polosa">
+              <div class="zpOtdel__shr" style="width:${dolyaF}%"></div>
+              <div class="zpOtdel__fakt ${sverh ? "is-over" : ""}" style="width:${dolyaP}%"></div>
+            </div>
+            <div class="zpOtdel__cifry">
+              <span>${rubli(o.fond)}<i>по ШР</i></span>
+              <span>${rubli(o.prognoz)}<i>выйдет</i></span>
+              <span class="${sverh ? "zpNad" : "zpPod"}"><b>${sverh ? "+" : ""}${rubli(o.raznica)}</b>
+                <i>${prichina(o)}</i></span>
+            </div>
+          </div>`;
+        }).join("")}
+      </div>`;
+  }
+
+  /* Отчего разница: премии и надбавки тянут вверх, недовыходы — вниз.
+     Показываем ту причину, которая больше весит. */
+  function prichina(o) {
+    const chasti = [];
+    if (o.premii) chasti.push("премии " + rubli(o.premii));
+    if (o.nadbavki) chasti.push("надбавки " + rubli(o.nadbavki));
+    const bez = o.raznica - o.premii - o.nadbavki;
+    if (Math.abs(bez) > 1000) {
+      chasti.push((bez > 0 ? "переработки " : "недовыходы ") + rubli(Math.abs(bez)));
+    }
+    return chasti.length ? chasti.join(" · ") : "ровно по окладам";
   }
 
   function pokazat(spisok, podpis) {
@@ -745,8 +827,18 @@ function tablica(data) {
       </tr>`;
     zagolovok.textContent = "Люди · " + spisok.length + (podpis ? " · " + podpis : "");
     sbros.hidden = spisok.length === vBaze(baza).length;
-    narisovatLimit(spisok, podpis || (baza || "департамента"));
+    narisovatLimit(spisok, podpis || (baza || "обоих контуров"));
+    narisovatOtdely(vBaze(baza));
   }
+
+  otdely.addEventListener("click", (event) => {
+    const stroka = event.target.closest(".zpOtdel");
+    if (!stroka) return;
+    const imya = stroka.dataset.otdel;
+    poisk.value = "";
+    pokazat(vBaze(baza).filter((c) => (c["подразделение"] || "—") === imya), imya);
+    document.querySelector("#ktoZagolovok").scrollIntoView({ behavior: "smooth", block: "start" });
+  });
 
   blockTeam.querySelector("#bazy").addEventListener("click", (event) => {
     const knopka = event.target.closest(".zpBaza");
@@ -763,15 +855,20 @@ function tablica(data) {
   telo.addEventListener("input", (event) => {
     const pole = event.target.closest(".zpPrem");
     if (!pole) return;
-    const chelovek = lyudi[Number(pole.closest("tr").dataset.nomer)];
+    const stroka = pole.closest("tr");
+    const chelovek = lyudi[Number(stroka.dataset.nomer)];
     if (!chelovek) return;
-    chelovek["премия_ожидаемая"] = Math.max(0, Number(pole.value.replace(/\s/g, "")) || 0);
-    premii[chelovek["логин"] || chelovek["фио"]] = chelovek["премия_ожидаемая"];
+    postavitPremiyu(chelovek, pole.value.replace(/\s/g, ""));
+    premii[chelovek["логин"] || chelovek["фио"]] = chelovek["премия_план"];
     try { localStorage.setItem(KLYUCH, JSON.stringify(premii)); } catch (e) { /* приват-режим */ }
+    stroka.querySelector("[data-seychas]").textContent = rubli(chelovek["на_руки"]);
+    stroka.querySelector("[data-prognoz]").textContent = rubli(chelovek["прогноз_месяца"]);
     const s = svodka(vidno);
     podval.querySelector("td:nth-child(5) b").textContent = rubli(s.premii);
+    podval.querySelector("td:nth-child(6) b").textContent = rubli(s.segodnya);
     podval.querySelector("td:nth-child(7)").textContent = rubli(s.prognoz);
     narisovatLimit(vidno, chto === baza ? baza : chto);
+    narisovatOtdely(vBaze(baza));
   });
 
   blockTeam.querySelector("#vygruzka")

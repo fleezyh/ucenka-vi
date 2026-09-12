@@ -485,24 +485,69 @@
 .zpTeam tr.hit, .zpTeam td.hit { cursor: pointer; }
 .zpTeam tr.hit:hover, .zpTeam tr:hover td.hit { background: rgba(39, 196, 107, 0.07); }
 
-/* Чья база: первое, что выбирает подающий зарплату. */
-.zpBazy { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
+/* Чья база — первое, что выбирает подающий. Плашка та же, что на главной:
+   иконка, название, подпись, число справа. */
+.zpBazy { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
 .zpBaza {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  padding: 13px 16px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 17px;
+  min-height: 104px;
+  padding: 22px;
   border: 1px solid var(--line);
-  border-radius: 14px;
-  background: #121a25;
-  color: var(--muted);
+  border-radius: 25px;
+  background: rgba(15, 14, 20, 0.88);
+  color: var(--text);
   font-family: var(--ui);
   text-align: left;
   cursor: pointer;
+  transition: transform .2s cubic-bezier(.22,1,.36,1), border-color .2s ease, background .2s ease;
 }
-.zpBaza b { color: var(--text); font-size: 15px; }
-.zpBaza span { font-size: 12px; }
-.zpBaza.is-on { border-color: rgba(39, 196, 107, 0.55); background: rgba(39, 196, 107, 0.1); }
+.zpBaza:hover { border-color: rgba(255, 255, 255, 0.42); background: rgba(28, 26, 36, 0.92); }
+.zpBaza:active { transform: scale(.985); }
+.zpBaza__znak {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 17px;
+  background: #d4362c;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 600;
+}
+.zpBaza__copy { min-width: 0; }
+.zpBaza__copy strong { display: block; font-size: 22px; line-height: 1.15; letter-spacing: -.025em; }
+.zpBaza__note { display: block; margin-top: 3px; color: var(--muted); font-size: 13px; }
+.zpBaza__skolko { font-size: 26px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -.03em; }
+.zpBaza.is-on { border-color: rgba(43, 209, 121, .45); background: rgba(28, 26, 36, 0.92); }
+.zpBaza.is-on .zpBaza__znak { background: #27c46b; }
+
+/* Сколько заложено на отдел и что сверх. */
+.zpOtdely { padding: 20px 22px; margin-top: 14px; }
+.zpOtdely__spisok { display: grid; gap: 10px; margin-top: 12px; }
+.zpOtdel {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.1fr) minmax(160px, 2fr) minmax(280px, 1.2fr);
+  align-items: center;
+  gap: 16px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+}
+.zpOtdel:hover { background: rgba(255, 255, 255, 0.04); }
+.zpOtdel__imya b { display: block; font-size: 14px; font-weight: 600; }
+.zpOtdel__imya span { color: var(--muted); font-size: 11.5px; }
+.zpOtdel__polosa { position: relative; height: 26px; }
+.zpOtdel__shr, .zpOtdel__fakt { position: absolute; top: 0; left: 0; border-radius: 6px; }
+.zpOtdel__shr { height: 26px; background: rgba(255, 255, 255, 0.13); }
+.zpOtdel__fakt { top: 7px; height: 12px; background: #27c46b; }
+.zpOtdel__fakt.is-over { background: linear-gradient(90deg, #27c46b 0 62%, #e0705a 100%); }
+.zpOtdel__cifry { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; text-align: right; font-variant-numeric: tabular-nums; }
+.zpOtdel__cifry span { font-size: 13px; }
+.zpOtdel__cifry b { font-size: 14px; font-weight: 600; }
+.zpOtdel__cifry i { display: block; margin-top: 2px; color: var(--muted); font-size: 11px; font-style: normal; }
 
 /* Фонд и перелимит. */
 .zpLimit { padding: 18px 22px; margin-top: 14px; }
