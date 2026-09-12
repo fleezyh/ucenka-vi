@@ -479,14 +479,15 @@ function karta(data, kto) {
  * кликается всё, а не только последняя таблица. */
 function stroki(lyudi, otkuda) {
   return lyudi.map((c) => `
-    <tr class="hit" data-nomer="${otkuda.indexOf(c)}" title="Открыть карточку">
-      <td><b>${c["фио"]}</b><div class="src">${c["должность"] || ""}${c["подразделение"] ? " · " + c["подразделение"] : ""}</div></td>
+    <tr data-nomer="${otkuda.indexOf(c)}">
+      <td class="hit" title="Открыть карточку"><b>${c["фио"]}</b><div class="src">${c["должность"] || ""}${c["подразделение"] ? " · " + c["подразделение"] : ""}</div></td>
       <td class="num">${rubli(c["оклад_на_руки"])}</td>
       <td class="num">${c["источник_факта"] === "СКУД" ? c["отработано"] : Math.round(c["отработано"])} / ${c["план_дней"]}<div class="src">${c["источник_факта"]}</div></td>
       <td class="num">${rubli(c["окладная_часть"] * 0.87)}</td>
-      <td class="num">${rubli(c["премия_ожидаемая"] * 0.87)}</td>
+      <td class="num"><input class="zpPrem" type="number" min="0" step="1000"
+        inputmode="numeric" value="${c["премия_ожидаемая"] || ""}" placeholder="0"
+        aria-label="Премия, ${c["фио"]}"><div class="src">до НДФЛ</div></td>
       <td class="num"><b>${rubli(c["на_руки"])}</b></td>
-      <td class="num">${rubli(c["аванс"])}</td>
       <td class="num">${rubli(c["прогноз_месяца"])}</td>
       <td class="num">${vyrabotkaYacheyka(c["выработка"])}</td>
       <td class="num">${mestoYacheyka(c["выработка"])}</td>
@@ -498,6 +499,7 @@ function stroki(lyudi, otkuda) {
    столбцы вставлялись как есть. Заполняем то, что знаем сами — дни по СКУД и
    отсутствия; премию и штрафы ставит руководитель. */
 const STOLBCY_PODACHI = [
+  ["Подаёт", (c) => c["подаёт"] || ""],
   ["Подразделение", (c) => c["подразделение"] || ""],
   ["Должность", (c) => c["должность"] || ""],
   ["ФИО", (c) => c["фио"] || ""],
@@ -513,7 +515,7 @@ const STOLBCY_PODACHI = [
   ["Штук за смену", (c) => (c["выработка"] || {})["на_смену"] ?? ""],
   ["Контур", (c) => (c["выработка"] || {})["контур"] || ""],
   ["Место в контуре", (c) => (c["выработка"] || {})["место"] ?? ""],
-  ["Факт Ежемесячная премия", () => ""],
+  ["Факт Ежемесячная премия", (c) => c["премия_ожидаемая"] || ""],
   ["Разовая премия", () => ""],
   ["Прочие штрафы", () => ""],
   ["Комментарий", () => ""],
@@ -563,19 +565,15 @@ function tablica(data) {
   const podrazdeleniya = data["подразделения"] || [];
   const nepodklyucheny = data["не_подключены"] || [];
 
-  const plitki = [
-    ["Человек в расчёте", itogo["человек"] || 0, ""],
-    ["Начислено на сегодня", rubli(itogo["на_руки"]), "на руки"],
-    ["Прогноз за месяц", rubli(itogo["прогноз_месяца"]), "если все доработают"],
-    ["Фонд окладов", rubli(itogo["фонд_окладов"]), "без премий"],
-    ["В отпуске и на больничном", itogo["с_отсутствиями"] || 0, "по данным 1С"],
-    ["Оклад из штатки", itogo["оклад_из_штатки"] || 0, "нет в формах подачи"],
-    ["Разошлись с формой", itogo["расхождений"] || 0, "штатка против подачи"],
-    ["Не подключены", itogo["не_подключено"] || 0, "оклада нет нигде"],
-  ].map(([name, value, note]) => `
-    <div class="zpPlitka">
-      <small>${name}</small><b>${value}</b>${note ? `<i>${note}</i>` : ""}
-    </div>`).join("");
+  // Базы подачи: у Посновой своя выгрузка, у Широких всё остальное по браку,
+  // «ВИ Сервис» — третий контур, его пока не ведём.
+  const BAZY = [
+    { klyuch: "Поснова", imya: "Поснова", chto: "её выгрузка" },
+    { klyuch: "Широких", imya: "Широких", chto: "остальные по браку" },
+    { klyuch: "ВИ Сервис", imya: "ВИ Сервис", chto: "пока не подаём" },
+    { klyuch: "", imya: "Все", chto: "департамент целиком" },
+  ];
+  const vBaze = (b) => b ? lyudi.filter((c) => c["подаёт"] === b) : lyudi;
 
   const sporne = lyudi.filter((c) => c["расхождение"]);
   const sporneRows = sporne.map((c) => `
@@ -605,97 +603,191 @@ function tablica(data) {
     </tr>`).join("");
 
   blockTeam.innerHTML = `
-    <div class="zpPlitki">${plitki}</div>
+    <nav class="zpBazy" id="bazy" aria-label="Чья база">
+      ${BAZY.map((b, i) => `
+        <button class="zpBaza${i ? "" : " is-on"}" type="button" data-baza="${b.klyuch}">
+          <b>${b.imya}</b><span>${vBaze(b.klyuch).length} · ${b.chto}</span>
+        </button>`).join("")}
+    </nav>
+
+    <div class="card zpLimit" id="limit"></div>
 
     <div class="card" style="padding:22px;margin-top:14px">
       <div class="cardHeading">
-        <h2>По подразделениям</h2>
-        <p class="stamp">Клик по строке — показать только этих людей</p>
+        <h2 id="ktoZagolovok">Люди</h2>
+        <div class="zpFiltr">
+          <input id="poisk" type="search" placeholder="Фамилия, должность, подразделение, контур"
+                 autocomplete="off">
+          <button class="zpView" type="button" id="sbros" hidden>Сбросить</button>
+          <button class="zpView zpView--glavnaya" type="button" id="vygruzka"
+                  title="CSV с колонками формы подачи: дни по СКУД, отсутствия, премии, выработка">Выгрузить для подачи</button>
+        </div>
       </div>
-      <div class="scroll" style="max-height:340px"><table>
+      <p class="stamp">Премию впишите в столбце «Премия» — она сразу попадёт
+        в итог, в прогноз и в выгрузку. Рядом основание: выработка и место
+        в контуре. Клик по фамилии — карточка человека</p>
+      <div class="scroll"><table>
+        <thead><tr>
+          <th>Человек</th><th>Оклад</th><th>Дни</th><th>Окладная</th>
+          <th>Премия</th><th>На сегодня</th><th>Прогноз</th>
+          <th>Штук за смену</th><th>Место</th><th>Отсутствие</th>
+        </tr></thead>
+        <tbody id="ktoTelo"></tbody>
+        <tfoot id="ktoItog"></tfoot>
+      </table></div>
+    </div>
+
+    <details class="card zpSvorka">
+      <summary>Что просить уточнить · спорные оклады ${sporne.length}, без оклада ${nepodklyucheny.length}</summary>
+      ${sporne.length ? `
+      <h3>Оклад спорит со штаткой · ${sporne.length}</h3>
+      <p class="stamp">Считаем по форме подачи — это то, что уходит в 1С. Штатка показана для сверки</p>
+      <div class="scroll" style="max-height:260px"><table>
+        <thead><tr><th>Человек</th><th>По форме подачи</th><th>По штатке</th><th>Разница</th></tr></thead>
+        <tbody>${sporneRows}</tbody>
+      </table></div>` : ""}
+      ${nepodklyucheny.length ? `
+      <h3>Оклада нет нигде · ${nepodklyucheny.length}</h3>
+      <p class="stamp">Числятся в департаменте, но не попали ни в одну форму подачи</p>
+      <div class="scroll" style="max-height:240px"><table>
+        <thead><tr><th>Человек</th><th>Подразделение</th><th>Принят</th></tr></thead>
+        <tbody>${net}</tbody>
+      </table></div>` : ""}
+      <h3>По подразделениям</h3>
+      <div class="scroll" style="max-height:300px"><table>
         <thead><tr>
           <th>Подразделение</th><th>Человек</th><th>Фонд окладов</th>
           <th>На сегодня</th><th>Прогноз месяца</th><th>Отсутствуют</th><th>Факт из СКУД</th>
         </tr></thead>
         <tbody>${podr}</tbody>
       </table></div>
-    </div>
-
-    <div class="card" style="padding:22px;margin-top:14px">
-      <div class="cardHeading">
-        <h2 id="ktoZagolovok">Люди · ${lyudi.length}</h2>
-        <div class="zpFiltr">
-          <input id="poisk" type="search" placeholder="Фамилия, должность, подразделение, контур"
-                 autocomplete="off">
-          <button class="zpView" type="button" id="sbros" hidden>Показать всех</button>
-          <button class="zpView zpView--glavnaya" type="button" id="vygruzka"
-                  title="CSV с колонками формы подачи: дни по СКУД, отсутствия, выработка">Выгрузить для подачи</button>
-        </div>
-      </div>
-      <div class="scroll"><table>
-        <thead><tr>
-          <th>Человек</th><th>Оклад</th><th>Отработано</th><th>Окладная</th>
-          <th>Премия</th><th>На сегодня</th><th>Аванс</th><th>Прогноз</th>
-          <th>Штук за смену</th><th>Место</th><th>Отсутствие</th>
-        </tr></thead>
-        <tbody id="ktoTelo">${stroki(lyudi, lyudi)}</tbody>
-      </table></div>
-    </div>
-
-    ${sporne.length ? `
-    <div class="card" style="padding:22px;margin-top:14px">
-      <div class="cardHeading">
-        <h2>Оклад спорит со штаткой · ${sporne.length}</h2>
-        <p class="stamp">Считаем по форме подачи — это то, что уходит в 1С.
-          Штатка показана для сверки</p>
-      </div>
-      <div class="scroll" style="max-height:280px"><table>
-        <thead><tr><th>Человек</th><th>По форме подачи</th><th>По штатке</th><th>Разница</th></tr></thead>
-        <tbody>${sporneRows}</tbody>
-      </table></div>
-    </div>` : ""}
-
-    ${nepodklyucheny.length ? `
-    <div class="card" style="padding:22px;margin-top:14px">
-      <div class="cardHeading">
-        <h2>Не подключены к расчёту · ${nepodklyucheny.length}</h2>
-        <p class="stamp">Числятся в департаменте, но не попали ни в одну форму подачи</p>
-      </div>
-      <div class="scroll" style="max-height:300px"><table>
-        <thead><tr><th>Человек</th><th>Подразделение</th><th>Принят</th></tr></thead>
-        <tbody>${net}</tbody>
-      </table></div>
-    </div>` : ""}`;
+    </details>`;
 
   const telo = blockTeam.querySelector("#ktoTelo");
+  const podval = blockTeam.querySelector("#ktoItog");
   const zagolovok = blockTeam.querySelector("#ktoZagolovok");
   const poisk = blockTeam.querySelector("#poisk");
   const sbros = blockTeam.querySelector("#sbros");
+  const limit = blockTeam.querySelector("#limit");
 
-  // Что сейчас на экране — то и уйдёт в выгрузку: отфильтровал подразделение,
-  // нажал кнопку, получил файл ровно по нему.
-  let vidno = lyudi;
+  /* Введённые премии держим в браузере: подача идёт раз в месяц, а бегать
+     за ними к серверу пока некуда. Ключ месяца — чтобы в новом месяце
+     начинать с чистого листа, а не с прошлых сумм. */
+  const KLYUCH = "zp-premii-" + (data["месяц"] || "");
+  let premii = {};
+  try { premii = JSON.parse(localStorage.getItem(KLYUCH) || "{}"); } catch (e) { premii = {}; }
+  lyudi.forEach((c) => {
+    const svoya = premii[c["логин"] || c["фио"]];
+    if (svoya !== undefined) c["премия_ожидаемая"] = Number(svoya) || 0;
+  });
+
+  let baza = "Поснова";
+  let vidno = [];
   let chto = "";
+
+  // Прогноз считаем сами: премия могла поменяться прямо здесь, а сервер про
+  // это ещё не знает.
+  const prognozS = (c) => (c["прогноз_месяца"] || 0)
+    - (c["премия_ожидаемая_ishodno"] ?? c["премия_база"] ?? 0) * 0.87
+    + (c["премия_ожидаемая"] || 0) * 0.87;
+  lyudi.forEach((c) => { c["премия_база"] = c["премия_база"] ?? (c["премия_ожидаемая"] || 0); });
+
+  function svodka(spisok) {
+    const summa = (f) => spisok.reduce((s, c) => s + (Number(f(c)) || 0), 0);
+    return {
+      lyudey: spisok.length,
+      fond: summa((c) => c["оклад_на_руки"]),
+      premii: summa((c) => (c["премия_ожидаемая"] || 0) * 0.87),
+      segodnya: summa((c) => c["на_руки"]),
+      prognoz: summa(prognozS),
+    };
+  }
+
+  /* Перелимит: штатное расписание — это оклады. Всё, что сверх них (премии,
+     надбавки), и есть превышение. Поэтому премии считаем только в прогнозе,
+     а в план не кладём — иначе они входили бы в обе части и гасили сами себя. */
+  function narisovatLimit(spisok, podpis) {
+    const s = svodka(spisok);
+    const raznica = s.prognoz - s.fond;
+    const pereli = raznica > 0;
+    limit.innerHTML = `
+      <div class="zpLimit__head">
+        <h2>Фонд ${podpis || "департамента"} · ${s.lyudey} чел.</h2>
+        <span class="zpLimit__znak ${pereli ? "is-over" : "is-ok"}">${pereli
+          ? "сверх окладов " + rubli(raznica) : "в пределах окладов, запас " + rubli(-raznica)}</span>
+      </div>
+      <div class="zpLimit__row">
+        <div><small>Оклады по ШР</small><b>${rubli(s.fond)}</b><i>на руки, при полной отработке</i></div>
+        <div><small>Премии проставлены</small><b>${rubli(s.premii)}</b><i>${
+          spisok.filter((c) => c["премия_ожидаемая"]).length} из ${s.lyudey} человек</i></div>
+        <div><small>Начислено на сегодня</small><b>${rubli(s.segodnya)}</b><i>${
+          data["прошло_дней"]} из ${data["норма_дней"]} дней</i></div>
+        <div><small>Выйдет за месяц</small><b>${rubli(s.prognoz)}</b><i>оклады по факту выходов плюс премии</i></div>
+        <div><small>Против ШР</small><b class="${pereli ? "zpNad" : "zpPod"}">${
+          (pereli ? "+" : "") + rubli(raznica)}</b><i>${pereli
+            ? "премии и надбавки сверх окладов" : "недовыходы съели больше, чем добавили премии"}</i></div>
+      </div>`;
+  }
 
   function pokazat(spisok, podpis) {
     vidno = spisok;
-    chto = podpis || "";
+    chto = podpis || baza || "все";
     telo.innerHTML = stroki(spisok, lyudi);
+    const s = svodka(spisok);
+    podval.innerHTML = `
+      <tr>
+        <td><b>Итого · ${s.lyudey}</b></td>
+        <td class="num">${rubli(s.fond)}</td><td></td><td></td>
+        <td class="num"><b>${rubli(s.premii)}</b></td>
+        <td class="num"><b>${rubli(s.segodnya)}</b></td>
+        <td class="num">${rubli(s.prognoz)}</td>
+        <td colspan="3"></td>
+      </tr>`;
     zagolovok.textContent = "Люди · " + spisok.length + (podpis ? " · " + podpis : "");
-    sbros.hidden = spisok.length === lyudi.length;
+    sbros.hidden = spisok.length === vBaze(baza).length;
+    narisovatLimit(spisok, podpis || (baza || "департамента"));
   }
+
+  blockTeam.querySelector("#bazy").addEventListener("click", (event) => {
+    const knopka = event.target.closest(".zpBaza");
+    if (!knopka) return;
+    blockTeam.querySelectorAll(".zpBaza")
+      .forEach((b) => b.classList.toggle("is-on", b === knopka));
+    baza = knopka.dataset.baza;
+    poisk.value = "";
+    pokazat(vBaze(baza), "");
+  });
+
+  // Премия вводится прямо в строке: вбил — итог, прогноз и выгрузка сразу
+  // пересчитались, ничего сохранять отдельно не надо.
+  telo.addEventListener("input", (event) => {
+    const pole = event.target.closest(".zpPrem");
+    if (!pole) return;
+    const chelovek = lyudi[Number(pole.closest("tr").dataset.nomer)];
+    if (!chelovek) return;
+    chelovek["премия_ожидаемая"] = Math.max(0, Number(pole.value.replace(/\s/g, "")) || 0);
+    premii[chelovek["логин"] || chelovek["фио"]] = chelovek["премия_ожидаемая"];
+    try { localStorage.setItem(KLYUCH, JSON.stringify(premii)); } catch (e) { /* приват-режим */ }
+    const s = svodka(vidno);
+    podval.querySelector("td:nth-child(5) b").textContent = rubli(s.premii);
+    podval.querySelector("td:nth-child(7)").textContent = rubli(s.prognoz);
+    narisovatLimit(vidno, chto === baza ? baza : chto);
+  });
 
   blockTeam.querySelector("#vygruzka")
     .addEventListener("click", () => vygruzkaPodachi(vidno, chto));
 
   poisk.addEventListener("input", () => {
     const slovo = poisk.value.trim().toLowerCase();
-    if (!slovo) return pokazat(lyudi, "");
-    pokazat(lyudi.filter((c) => [c["фио"], c["должность"], c["подразделение"],
+    const gde = vBaze(baza);
+    if (!slovo) return pokazat(gde, "");
+    pokazat(gde.filter((c) => [c["фио"], c["должность"], c["подразделение"],
       (c["выработка"] || {})["контур"] || ""]
       .join(" ").toLowerCase().includes(slovo)), "поиск «" + poisk.value.trim() + "»");
   });
-  sbros.addEventListener("click", () => { poisk.value = ""; pokazat(lyudi, ""); });
+  sbros.addEventListener("click", () => { poisk.value = ""; pokazat(vBaze(baza), ""); });
+
+  pokazat(vBaze(baza), "");
 
   blockTeam.addEventListener("click", (event) => {
     // Строка подразделения — фильтр списка людей.
@@ -706,8 +798,9 @@ function tablica(data) {
       telo.closest(".card").scrollIntoView({ behavior: "smooth", block: "start" });
       return;
     }
-    // Строка человека — его карточка со счётчиком и выплатами.
-    const row = event.target.closest("tr.hit[data-nomer]");
+    // Фамилия человека — его карточка со счётчиком и выплатами. Ловим именно
+    // ячейку с именем: в строке есть поле премии, по нему кликают для ввода.
+    const row = event.target.closest("td.hit")?.closest("tr[data-nomer]");
     if (!row) return;
     const chelovek = lyudi[Number(row.dataset.nomer)];
     if (!chelovek) return;

@@ -482,8 +482,63 @@
   background: var(--panel);
 }
 
-.zpTeam tr.hit { cursor: pointer; }
-.zpTeam tr.hit:hover { background: rgba(39, 196, 107, 0.07); }
+.zpTeam tr.hit, .zpTeam td.hit { cursor: pointer; }
+.zpTeam tr.hit:hover, .zpTeam tr:hover td.hit { background: rgba(39, 196, 107, 0.07); }
+
+/* Чья база: первое, что выбирает подающий зарплату. */
+.zpBazy { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
+.zpBaza {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 13px 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #121a25;
+  color: var(--muted);
+  font-family: var(--ui);
+  text-align: left;
+  cursor: pointer;
+}
+.zpBaza b { color: var(--text); font-size: 15px; }
+.zpBaza span { font-size: 12px; }
+.zpBaza.is-on { border-color: rgba(39, 196, 107, 0.55); background: rgba(39, 196, 107, 0.1); }
+
+/* Фонд и перелимит. */
+.zpLimit { padding: 18px 22px; margin-top: 14px; }
+.zpLimit__head { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.zpLimit__head h2 { margin: 0; font-size: 17px; }
+.zpLimit__znak { padding: 5px 11px; border-radius: 999px; font-size: 12.5px; font-weight: 600; }
+.zpLimit__znak.is-ok { color: #58d68a; background: rgba(39, 196, 107, 0.13); }
+.zpLimit__znak.is-over { color: #f0917f; background: rgba(224, 110, 90, 0.16); }
+.zpLimit__row { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-top: 14px; }
+.zpLimit__row small { display: block; color: var(--muted); font-size: 11.5px; }
+.zpLimit__row b { display: block; margin-top: 3px; font-size: 20px; font-variant-numeric: tabular-nums; }
+.zpLimit__row i { display: block; margin-top: 2px; color: var(--muted); font-size: 11.5px; font-style: normal; }
+.zpNad { color: #f0917f; }
+.zpPod { color: #58d68a; }
+
+/* Поле премии прямо в строке. */
+.zpPrem {
+  width: 96px;
+  padding: 5px 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: #0f1620;
+  color: var(--text);
+  font-family: var(--ui);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.zpPrem:focus { border-color: rgba(39, 196, 107, 0.6); outline: none; }
+
+.zpTeam tfoot td { border-top: 1px solid var(--line-strong); padding-top: 12px; font-size: 15px; }
+
+/* Служебное — под кат: в работе подающего оно каждый день не нужно. */
+.zpSvorka { padding: 16px 22px; margin-top: 14px; }
+.zpSvorka summary { cursor: pointer; color: var(--muted); font-size: 13px; }
+.zpSvorka h3 { margin: 18px 0 4px; font-size: 15px; }
 .zpTeam td b { font-weight: 600; }
 .zpTeam td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .zpTeam .src { color: var(--muted); font-size: 11px; }
