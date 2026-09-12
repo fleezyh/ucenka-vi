@@ -372,6 +372,62 @@
   box-shadow: 0 0 0 4px rgba(39, 196, 107, 0.12);
 }
 
+/* Выработка под разбором зарплаты. Пока это соседний факт, а не слагаемое —
+   поэтому отдельным блоком, а не строкой в выписке. */
+.zpWork {
+  margin-top: 14px;
+  padding: 18px 22px 20px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--panel-soft);
+}
+
+.zpWork__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.zpWork__cap { margin: 0; font-size: 15px; font-weight: 600; }
+.zpWork__note { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
+.zpWork__link { flex: none; color: var(--blue); font-size: 13px; font-weight: 600; }
+
+/* График выработки. Числа под ним — не сами по себе, а подпись к линии. */
+.zpChart { display: block; width: 100%; height: 190px; margin: 16px 0 4px; }
+.zpLine { fill: none; stroke: var(--green); stroke-width: 2.2; stroke-linejoin: round; }
+.zpArea { fill: var(--green); fill-opacity: 0.12; }
+.zpDot { fill: var(--green); }
+.zpAvg { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 5 5; opacity: 0.6; }
+.zpNum {
+  fill: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  text-anchor: middle;
+  font-variant-numeric: tabular-nums;
+}
+.zpAx { fill: var(--muted); font-size: 11px; text-anchor: middle; }
+
+.zpWork__itog {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-top: 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.zpWork__itog span { color: var(--muted); font-size: 13px; }
+.zpWork__itog b {
+  display: block;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.zpWork__itog i { display: block; margin-top: 2px; font-size: 11px; font-style: normal; }
+
 .zpTeam { margin-top: 18px; }
 
 .zpTeam .scroll {

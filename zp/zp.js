@@ -121,6 +121,72 @@ function schetchik(tik, schitano) {
   setInterval(risovat, 1000);
 }
 
+/* Выработка — графиком, а не столбцом чисел.
+ *
+ * Голые «276,2 штук за смену» и «1 из 51» ничего не говорят: человеку важно,
+ * растёт он или падает и где он относительно контура. Линия по месяцам с
+ * пунктиром среднего отвечает на оба вопроса сразу.
+ */
+function grafikVyrabotki(rab) {
+  if (!rab || !rab["на_смену"]) return "";
+  const mesyacy = (rab["по_месяцам"] || []).filter((m) => m["на_смену"]);
+  const sredne = Number(rab["среднее_контура"]) || 0;
+  const tren = rab["тренд"];
+
+  let grafik = "";
+  if (mesyacy.length > 1) {
+    const values = mesyacy.map((m) => Number(m["на_смену"]) || 0);
+    const cap = Math.max(...values, sredne) * 1.25 || 1;
+    const W = 640;
+    const H = 190;
+    const padTop = 26;
+    const padBottom = 26;
+    // Поля по краям: без них подписи крайних точек обрезаются рамкой.
+    const x = (i) => 26 + (i / (values.length - 1)) * (W - 52);
+    const y = (v) => padTop + (1 - v / cap) * (H - padTop - padBottom);
+    const liniya = values.map((v, i) => (i ? "L" : "M") + x(i).toFixed(1)
+      + "," + y(v).toFixed(1)).join(" ");
+    const tochki = values.map((v, i) =>
+      `<circle cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="3.5" class="zpDot"/>`).join("");
+    const podpisi = values.map((v, i) =>
+      `<text x="${x(i).toFixed(1)}" y="${(y(v) - 10).toFixed(1)}" class="zpNum">`
+      + Math.round(v) + "</text>").join("");
+    const mesy = mesyacy.map((m, i) =>
+      `<text x="${x(i).toFixed(1)}" y="${H - 6}" class="zpAx">`
+      + String(m["месяц"] || "").slice(5) + "</text>").join("");
+    grafik = `
+      <svg class="zpChart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+        <line x1="0" x2="${W}" y1="${y(sredne).toFixed(1)}" y2="${y(sredne).toFixed(1)}"
+              class="zpAvg"/>
+        <path d="${liniya} L${x(values.length - 1).toFixed(1)},${H - padBottom}
+                 L${x(0).toFixed(1)},${H - padBottom} Z" class="zpArea"/>
+        <path d="${liniya}" class="zpLine"/>
+        ${tochki}${podpisi}${mesy}
+      </svg>`;
+  }
+
+  const k = sredne ? Math.round(100 * rab["на_смену"] / sredne - 100) : 0;
+  return `
+    <div class="zpWork">
+      <div class="zpWork__head">
+        <div><p class="zpWork__cap">Ваша выработка · ${rab["контур"]}</p>
+        <p class="zpWork__note">Штук за смену по месяцам. Пунктир — среднее по
+          контуру, ${(sredne || 0).toLocaleString("ru-RU")}</p></div>
+        <a class="zpWork__link" href="/perf/">Весь контур →</a>
+      </div>
+      ${grafik}
+      <div class="zpWork__itog">
+        <span><b>${(rab["на_смену"] || 0).toLocaleString("ru-RU")}</b> штук за смену
+          <i>${k >= 0 ? "+" : ""}${k}% к среднему</i></span>
+        <span><b>${rab["место"] ? rab["место"] + " из " + rab["из"] : "—"}</b> место
+          <i>среди тех, у кого хватает смен</i></span>
+        <span><b>${tren === null || tren === undefined ? "—"
+          : (tren > 0 ? "+" : "") + tren.toFixed(1) + "%"}</b> тренд
+          <i>${(rab["смен"] || 0).toLocaleString("ru-RU")} смен с ${String(rab["первая_смена"] || "").slice(0, 10)}</i></span>
+      </div>
+    </div>`;
+}
+
 function karta(data, kto) {
   const ya = kto || data["я"];
   if (!ya) return;
@@ -161,6 +227,9 @@ function karta(data, kto) {
   // это деньги на экране.
   const chey = kto && kto !== data["я"]
     ? `<p class="zpTick__who">${ya["фио"]}</p>` : "";
+
+  const rab = kto ? null : data["выработка"];
+  const vyrabotka = grafikVyrabotki(rab);
 
   blockMe.innerHTML = `
     ${beta}
@@ -209,7 +278,8 @@ function karta(data, kto) {
           <b>${rubli(ya["прогноз_месяца"])}</b>
         </div>
       </div>
-    </div>`;
+    </div>
+    ${vyrabotka}`;
   blockMe.hidden = false;
   note.hidden = false;
   if (ya["тик"]) schetchik(ya["тик"], Number(data["посчитано_в"]) || 0);
