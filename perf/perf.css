@@ -501,6 +501,9 @@
   .staffRow .staffRow__name { grid-column: 1 / -1; white-space: normal; font-size: 14px; line-height: 1.4; }
   .staffRows__median { display: none; }
   .chart__axis span:nth-child(even) { display: none; }
+  /* Крайняя подпись («воскресенье») вылезала за край и давала странице
+     горизонтальный скролл: прижимаем её к правому краю. */
+  .chart__axis span:last-child { transform: translateX(-100%); }
 }
 
 .tip {

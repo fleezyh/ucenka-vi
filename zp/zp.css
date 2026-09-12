@@ -393,17 +393,20 @@
   background: var(--panel-soft);
 }
 
+/* На телефоне кнопки не влезают рядом с заголовком и выталкивали страницу
+   за край — переносим их под него. */
 .zpWork__head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
+  flex-wrap: wrap;
 }
 
 .zpWork__cap { margin: 0; font-size: 15px; font-weight: 600; }
 .zpWork__note { margin: 4px 0 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
 .zpWork__link { flex: none; color: var(--blue); font-size: 13px; font-weight: 600; }
-.zpWork__tools { display: flex; align-items: center; gap: 8px; flex: none; }
+.zpWork__tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .zpWork__tools .zpView {
   padding: 6px 12px;
   border: 1px solid var(--line);
