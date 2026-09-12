@@ -491,7 +491,8 @@ function stroki(lyudi, otkuda) {
       <td class="num" data-prognoz>${rubli(c["прогноз_месяца"])}</td>
       <td class="num">${vyrabotkaYacheyka(c["выработка"])}</td>
       <td class="num">${mestoYacheyka(c["выработка"])}</td>
-      <td>${c["отсутствие"] || ""}</td>
+      <td>${c["отсутствие"] || ""}${c["подсказка"]
+        ? `<div class="src">${c["подсказка"]}</div>` : ""}</td>
     </tr>`).join("");
 }
 
