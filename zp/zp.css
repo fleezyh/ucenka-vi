@@ -29,6 +29,9 @@
 }
 
 .zpView.is-on { color: var(--text); background: rgba(39, 196, 107, 0.16); }
+/* Выгрузка — главное действие подающего зарплату, поэтому выделена. */
+.zpView--glavnaya { color: var(--text); border-color: rgba(39, 196, 107, 0.5); background: rgba(39, 196, 107, 0.12); }
+.zpView--glavnaya:hover { background: rgba(39, 196, 107, 0.2); }
 
 .zpMe { display: block; margin-top: 18px; }
 

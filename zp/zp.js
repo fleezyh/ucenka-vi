@@ -494,6 +494,51 @@ function stroki(lyudi, otkuda) {
     </tr>`).join("");
 }
 
+/* Выгрузка под форму подачи в 1С: колонки названы так же, как в ней, чтобы
+   столбцы вставлялись как есть. Заполняем то, что знаем сами — дни по СКУД и
+   отсутствия; премию и штрафы ставит руководитель. */
+const STOLBCY_PODACHI = [
+  ["Подразделение", (c) => c["подразделение"] || ""],
+  ["Должность", (c) => c["должность"] || ""],
+  ["ФИО", (c) => c["фио"] || ""],
+  ["Статус", (c) => c["отсутствие"] || "Работа"],
+  ["Оклад", (c) => c["оклад"] || ""],
+  ["Надбавка", (c) => c["надбавка"] || 0],
+  ["План дней", (c) => c["план_дней"] || 0],
+  ["Отработано дней (факт)", (c) => c["отработано"] ?? ""],
+  ["Отработано дней (раб.)", (c) => Math.round(c["отработано"] || 0)],
+  ["Источник факта", (c) => c["источник_факта"] || ""],
+  ["Последний выход", (c) => c["последний_выход"] || ""],
+  ["Пропущено дней", (c) => c["пропущено_дней"] || 0],
+  ["Штук за смену", (c) => (c["выработка"] || {})["на_смену"] ?? ""],
+  ["Контур", (c) => (c["выработка"] || {})["контур"] || ""],
+  ["Место в контуре", (c) => (c["выработка"] || {})["место"] ?? ""],
+  ["Факт Ежемесячная премия", () => ""],
+  ["Разовая премия", () => ""],
+  ["Прочие штрафы", () => ""],
+  ["Комментарий", () => ""],
+];
+
+function vygruzkaPodachi(spisok, podpis) {
+  const ekran = (v) => {
+    const s = String(v ?? "").replace(/"/g, '""');
+    return /[";\n]/.test(s) ? `"${s}"` : s;
+  };
+  const strok = [STOLBCY_PODACHI.map(([name]) => ekran(name)).join(";")]
+    .concat(spisok.map((c) => STOLBCY_PODACHI.map(([, bri]) => ekran(bri(c))).join(";")));
+  // BOM: без него Excel открывает кириллицу в CSV кракозябрами.
+  const blob = new Blob(["﻿" + strok.join("\r\n")],
+                        { type: "text/csv;charset=utf-8" });
+  const ssylka = document.createElement("a");
+  ssylka.href = URL.createObjectURL(blob);
+  ssylka.download = "подача-зп-" + (podpis || "все").replace(/[^\wа-яА-ЯёЁ-]+/g, "-")
+    + "-" + new Date().toISOString().slice(0, 10) + ".csv";
+  document.body.appendChild(ssylka);
+  ssylka.click();
+  ssylka.remove();
+  setTimeout(() => URL.revokeObjectURL(ssylka.href), 1000);
+}
+
 /* Выработка прямо в строке: руководителю нужен разрез по людям, а не поход
    в карточку каждого. Прочерк — человек не на пикающем контуре. */
 function vyrabotkaYacheyka(rab) {
@@ -583,6 +628,8 @@ function tablica(data) {
           <input id="poisk" type="search" placeholder="Фамилия, должность, подразделение, контур"
                  autocomplete="off">
           <button class="zpView" type="button" id="sbros" hidden>Показать всех</button>
+          <button class="zpView zpView--glavnaya" type="button" id="vygruzka"
+                  title="CSV с колонками формы подачи: дни по СКУД, отсутствия, выработка">Выгрузить для подачи</button>
         </div>
       </div>
       <div class="scroll"><table>
@@ -625,11 +672,21 @@ function tablica(data) {
   const poisk = blockTeam.querySelector("#poisk");
   const sbros = blockTeam.querySelector("#sbros");
 
+  // Что сейчас на экране — то и уйдёт в выгрузку: отфильтровал подразделение,
+  // нажал кнопку, получил файл ровно по нему.
+  let vidno = lyudi;
+  let chto = "";
+
   function pokazat(spisok, podpis) {
+    vidno = spisok;
+    chto = podpis || "";
     telo.innerHTML = stroki(spisok, lyudi);
     zagolovok.textContent = "Люди · " + spisok.length + (podpis ? " · " + podpis : "");
     sbros.hidden = spisok.length === lyudi.length;
   }
+
+  blockTeam.querySelector("#vygruzka")
+    .addEventListener("click", () => vygruzkaPodachi(vidno, chto));
 
   poisk.addEventListener("input", () => {
     const slovo = poisk.value.trim().toLowerCase();
