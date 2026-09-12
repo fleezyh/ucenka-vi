@@ -446,6 +446,20 @@ function tablica(data) {
     const chelovek = lyudi[Number(row.dataset.nomer)];
     if (!chelovek) return;
     karta(data, chelovek);
+    // Догружаем его выработку: в общем списке её нет — она считается по
+    // одному человеку. Экран получается ровно такой, какой видит он сам.
+    if (chelovek["логин"]) {
+      fetch("/__zp/chelovek?login=" + encodeURIComponent(chelovek["логин"]),
+            { credentials: "same-origin" })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((ego) => {
+          if (!ego || !ego["выработка"]) return;
+          const mesto = document.querySelector("#me .zpCheck");
+          if (mesto) mesto.insertAdjacentHTML("afterend",
+            grafikVyrabotki(ego["выработка"]));
+        })
+        .catch(() => { /* нет выработки — карточка и так полная */ });
+    }
     blockTeam.hidden = true;
     views.querySelectorAll(".zpView").forEach((item) => item.classList.remove("is-on"));
     const svoya = views.querySelector('[data-view="me"]');
