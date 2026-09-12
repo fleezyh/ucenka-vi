@@ -175,27 +175,38 @@ function karta(data, kto) {
         отработано ${otrabotano} из ${ya["план_дней"]} по графику · ${istochnik}</p>
     </div>
 
-    <div class="zpGrid">
-      <div class="zpRow">
-        <span>Оклад за месяц</span>
-        <b>${rubli(ya["оклад_на_руки"])}</b>
-      </div>
-      <div class="zpRow">
-        <span>Отработано ${otrabotano} из ${ya["план_дней"]}</span>
-        <b>${rubli(ya["окладная_часть"] * 0.87)}</b>
-      </div>
-      <div class="zpRow zpRow--soft">
-        <span>Премия, ожидаемая</span>
-        <b>${rubli(ya["премия_ожидаемая"] * 0.87)}</b>
-      </div>
-      <div class="zpPay">
-        <div class="zpPay__item">
-          <p class="zpPay__when">Аванс · ${avansKogda}</p>
-          <p class="zpPay__sum">${rubli(ya["аванс"])}</p>
+    <div class="zpCheck">
+      <div class="zpCheck__part">
+        <p class="zpCheck__cap">Из чего сложилось</p>
+        <div class="zpCheck__line">
+          <span>Окладная часть<small>${otrabotano} из ${ya["план_дней"]} по графику,
+            оклад ${rubli(ya["оклад_на_руки"])}</small></span>
+          <b>${rubli(ya["окладная_часть"] * 0.87)}</b>
         </div>
-        <div class="zpPay__item">
-          <p class="zpPay__when">Зарплата · ${zpKogda}</p>
-          <p class="zpPay__sum">${rubli(ya["остаток"])}</p>
+        ${ya["премия_ожидаемая"] ? `
+        <div class="zpCheck__line">
+          <span>Премия<small>плановая, точную ставит руководитель</small></span>
+          <b>${rubli(ya["премия_ожидаемая"] * 0.87)}</b>
+        </div>` : ""}
+        <div class="zpCheck__line zpCheck__line--itog">
+          <span>Заработано на сегодня</span>
+          <b>${rubli(ya["на_руки"])}</b>
+        </div>
+      </div>
+
+      <div class="zpCheck__part">
+        <p class="zpCheck__cap">Когда придёт</p>
+        <div class="zpCheck__line">
+          <span>Аванс<small>${avansKogda}, за первую половину месяца</small></span>
+          <b>${rubli(ya["аванс"])}</b>
+        </div>
+        <div class="zpCheck__line">
+          <span>Зарплата<small>${zpKogda}, остальное за месяц</small></span>
+          <b>${rubli(ya["остаток"])}</b>
+        </div>
+        <div class="zpCheck__line zpCheck__line--itog">
+          <span>За весь месяц, если доработаете</span>
+          <b>${rubli(ya["прогноз_месяца"])}</b>
         </div>
       </div>
     </div>`;
