@@ -127,65 +127,115 @@ function schetchik(tik, schitano) {
  * растёт он или падает и где он относительно контура. Линия по месяцам с
  * пунктиром среднего отвечает на оба вопроса сразу.
  */
+function liniyaVyrabotki(tochki, sredne, opts) {
+  if (tochki.length < 2) return "";
+  const values = tochki.map((t) => t.v);
+  const svoi = tochki.some((t) => t.k);           // есть ли линия контура
+  const cap = Math.max(...values, sredne, ...tochki.map((t) => t.k || 0)) * 1.25 || 1;
+  const W = 900;
+  const H = 210;
+  const padTop = 28;
+  const padBottom = 26;
+  // Поля по краям: без них подписи крайних точек обрезаются рамкой.
+  const x = (i) => 28 + (i / (values.length - 1)) * (W - 56);
+  const y = (v) => padTop + (1 - v / cap) * (H - padTop - padBottom);
+  const put = (arr) => arr.map((v, i) => (i ? "L" : "M") + x(i).toFixed(1)
+    + "," + y(v).toFixed(1)).join(" ");
+
+  const moya = put(values);
+  const konturLine = svoi
+    ? `<path d="${put(tochki.map((t) => t.k || 0))}" class="zpLineKontur"/>` : "";
+  // Числа над точками — только пока их немного: на шестнадцати неделях
+  // подписи слипаются и перекрывают саму линию.
+  const podpisi = values.length <= 12
+    ? values.map((v, i) => `<text x="${x(i).toFixed(1)}" y="${(y(v) - 10).toFixed(1)}"
+        class="zpNum">${Math.round(v)}</text>`).join("")
+    : "";
+  const shag = Math.max(1, Math.ceil(tochki.length / 9));
+  const osi = tochki.map((t, i) => (i % shag && i !== tochki.length - 1) ? "" :
+    `<text x="${x(i).toFixed(1)}" y="${H - 6}" class="zpAx">${t.p}</text>`).join("");
+
+  return `
+    <svg class="zpChart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+      <line x1="0" x2="${W}" y1="${y(sredne).toFixed(1)}" y2="${y(sredne).toFixed(1)}"
+            class="zpAvg"/>
+      <path d="${moya} L${x(values.length - 1).toFixed(1)},${H - padBottom}
+               L${x(0).toFixed(1)},${H - padBottom} Z" class="zpArea"/>
+      ${konturLine}
+      <path d="${moya}" class="zpLine"/>
+      ${values.map((v, i) => `<circle cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}"
+        r="3.5" class="zpDot"/>`).join("")}
+      ${podpisi}${osi}
+    </svg>`;
+}
+
+/* Подпись под заголовком: про светлую линию говорим только там, где она есть,
+   то есть на неделях. */
+function zametkaVyrabotki(sredne, estKontur) {
+  return "Штук за смену. Пунктир — среднее по контуру, "
+    + (sredne || 0).toLocaleString("ru-RU")
+    + (estKontur ? "; светлая линия — контур в ту же неделю" : "");
+}
+
 function grafikVyrabotki(rab) {
   if (!rab || !rab["на_смену"]) return "";
-  const mesyacy = (rab["по_месяцам"] || []).filter((m) => m["на_смену"]);
   const sredne = Number(rab["среднее_контура"]) || 0;
   const tren = rab["тренд"];
 
-  let grafik = "";
-  if (mesyacy.length > 1) {
-    const values = mesyacy.map((m) => Number(m["на_смену"]) || 0);
-    const cap = Math.max(...values, sredne) * 1.25 || 1;
-    const W = 640;
-    const H = 190;
-    const padTop = 26;
-    const padBottom = 26;
-    // Поля по краям: без них подписи крайних точек обрезаются рамкой.
-    const x = (i) => 26 + (i / (values.length - 1)) * (W - 52);
-    const y = (v) => padTop + (1 - v / cap) * (H - padTop - padBottom);
-    const liniya = values.map((v, i) => (i ? "L" : "M") + x(i).toFixed(1)
-      + "," + y(v).toFixed(1)).join(" ");
-    const tochki = values.map((v, i) =>
-      `<circle cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="3.5" class="zpDot"/>`).join("");
-    const podpisi = values.map((v, i) =>
-      `<text x="${x(i).toFixed(1)}" y="${(y(v) - 10).toFixed(1)}" class="zpNum">`
-      + Math.round(v) + "</text>").join("");
-    const mesy = mesyacy.map((m, i) =>
-      `<text x="${x(i).toFixed(1)}" y="${H - 6}" class="zpAx">`
-      + String(m["месяц"] || "").slice(5) + "</text>").join("");
-    grafik = `
-      <svg class="zpChart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
-        <line x1="0" x2="${W}" y1="${y(sredne).toFixed(1)}" y2="${y(sredne).toFixed(1)}"
-              class="zpAvg"/>
-        <path d="${liniya} L${x(values.length - 1).toFixed(1)},${H - padBottom}
-                 L${x(0).toFixed(1)},${H - padBottom} Z" class="zpArea"/>
-        <path d="${liniya}" class="zpLine"/>
-        ${tochki}${podpisi}${mesy}
-      </svg>`;
-  }
+  const mesyacy = (rab["по_месяцам"] || []).filter((m) => m["на_смену"])
+    .map((m) => ({ v: Number(m["на_смену"]) || 0, p: String(m["месяц"] || "").slice(5), k: 0 }));
+  const nedeli = (rab["по_неделям"] || []).filter((w) => w["на_смену"])
+    .map((w) => ({ v: Number(w["на_смену"]) || 0,
+                   p: "W" + String(w["неделя"] || "").slice(-2),
+                   k: Number(w["контур"]) || 0 }));
 
   const k = sredne ? Math.round(100 * rab["на_смену"] / sredne - 100) : 0;
+
+  const id = "w" + Math.random().toString(36).slice(2, 8);
   return `
-    <div class="zpWork">
+    <div class="zpWork" data-work="${id}">
       <div class="zpWork__head">
-        <div><p class="zpWork__cap">Ваша выработка · ${rab["контур"]}</p>
-        <p class="zpWork__note">Штук за смену по месяцам. Пунктир — среднее по
-          контуру, ${(sredne || 0).toLocaleString("ru-RU")}</p></div>
-        <a class="zpWork__link" href="/perf/">Весь контур →</a>
+        <div><p class="zpWork__cap">Выработка · ${rab["контур"]}</p>
+        <p class="zpWork__note" data-note>${zametkaVyrabotki(sredne,
+          nedeli.length > 1 && nedeli.some((n) => n.k))}</p></div>
+        <div class="zpWork__tools">
+          ${nedeli.length > 1 ? `<button class="zpView is-on" type="button" data-shag="недели">Недели</button>` : ""}
+          ${mesyacy.length > 1 ? `<button class="zpView${nedeli.length > 1 ? "" : " is-on"}" type="button" data-shag="месяцы">Месяцы</button>` : ""}
+          <a class="zpWork__link" href="/perf/">Весь контур →</a>
+        </div>
       </div>
-      ${grafik}
+      <div class="zpWork__plot" data-nedeli='${JSON.stringify(nedeli)}'
+           data-mesyacy='${JSON.stringify(mesyacy)}' data-sredne="${sredne}">
+        ${nedeli.length > 1 ? liniyaVyrabotki(nedeli, sredne) : liniyaVyrabotki(mesyacy, sredne)}
+      </div>
       <div class="zpWork__itog">
         <span><b>${(rab["на_смену"] || 0).toLocaleString("ru-RU")}</b> штук за смену
-          <i>${k >= 0 ? "+" : ""}${k}% к среднему</i></span>
+          <i>${k >= 0 ? "+" : ""}${k}% к среднему по контуру</i></span>
         <span><b>${rab["место"] ? rab["место"] + " из " + rab["из"] : "—"}</b> место
           <i>среди тех, у кого хватает смен</i></span>
         <span><b>${tren === null || tren === undefined ? "—"
           : (tren > 0 ? "+" : "") + tren.toFixed(1) + "%"}</b> тренд
-          <i>${(rab["смен"] || 0).toLocaleString("ru-RU")} смен с ${String(rab["первая_смена"] || "").slice(0, 10)}</i></span>
+          <i>${(rab["смен"] || 0).toLocaleString("ru-RU")} смен, ${(rab["штук"] || 0).toLocaleString("ru-RU")} штук с ${String(rab["первая_смена"] || "").slice(0, 10)}</i></span>
       </div>
     </div>`;
 }
+
+/* Переключение шага прямо в блоке: данные уже в разметке, ходить за ними
+   второй раз незачем. */
+document.addEventListener("click", (event) => {
+  const button = event.target.closest(".zpWork__tools .zpView");
+  if (!button) return;
+  const blok = button.closest(".zpWork");
+  const plot = blok.querySelector(".zpWork__plot");
+  blok.querySelectorAll(".zpWork__tools .zpView")
+    .forEach((b) => b.classList.toggle("is-on", b === button));
+  const nabor = button.dataset.shag === "месяцы"
+    ? JSON.parse(plot.dataset.mesyacy) : JSON.parse(plot.dataset.nedeli);
+  const sredne = Number(plot.dataset.sredne) || 0;
+  plot.innerHTML = liniyaVyrabotki(nabor, sredne);
+  const note = blok.querySelector("[data-note]");
+  if (note) note.textContent = zametkaVyrabotki(sredne, nabor.some((t) => t.k));
+});
 
 function karta(data, kto) {
   const ya = kto || data["я"];
