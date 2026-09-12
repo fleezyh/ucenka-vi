@@ -452,6 +452,8 @@
 .zpTeam td b { font-weight: 600; }
 .zpTeam td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .zpTeam .src { color: var(--muted); font-size: 11px; }
+.zpTeam .src.vyshe { color: #58d68a; }
+.zpTeam .src.nizhe { color: #e08a7a; }
 
 @media (max-width: 860px) {
   .zpGrid { grid-template-columns: 1fr; }

@@ -351,8 +351,28 @@ function stroki(lyudi, otkuda) {
       <td class="num"><b>${rubli(c["на_руки"])}</b></td>
       <td class="num">${rubli(c["аванс"])}</td>
       <td class="num">${rubli(c["прогноз_месяца"])}</td>
+      <td class="num">${vyrabotkaYacheyka(c["выработка"])}</td>
+      <td class="num">${mestoYacheyka(c["выработка"])}</td>
       <td>${c["отсутствие"] || ""}</td>
     </tr>`).join("");
+}
+
+/* Выработка прямо в строке: руководителю нужен разрез по людям, а не поход
+   в карточку каждого. Прочерк — человек не на пикающем контуре. */
+function vyrabotkaYacheyka(rab) {
+  if (!rab || !rab["на_смену"]) return "<span class=\"src\">—</span>";
+  const k = rab["к_среднему"];
+  const znak = k === null || k === undefined ? ""
+    : `<div class="src ${k >= 0 ? "vyshe" : "nizhe"}">${k >= 0 ? "+" : ""}${k}% к контуру</div>`;
+  return `<b>${rab["на_смену"].toLocaleString("ru-RU")}</b>${znak}`;
+}
+
+function mestoYacheyka(rab) {
+  if (!rab || !rab["место"]) {
+    return rab && rab["мало_смен"]
+      ? "<span class=\"src\">мало смен</span>" : "<span class=\"src\">—</span>";
+  }
+  return `${rab["место"]} из ${rab["из"]}<div class="src">${rab["контур"]}</div>`;
 }
 
 function tablica(data) {
@@ -423,7 +443,7 @@ function tablica(data) {
       <div class="cardHeading">
         <h2 id="ktoZagolovok">Люди · ${lyudi.length}</h2>
         <div class="zpFiltr">
-          <input id="poisk" type="search" placeholder="Фамилия, должность, подразделение"
+          <input id="poisk" type="search" placeholder="Фамилия, должность, подразделение, контур"
                  autocomplete="off">
           <button class="zpView" type="button" id="sbros" hidden>Показать всех</button>
         </div>
@@ -431,7 +451,8 @@ function tablica(data) {
       <div class="scroll"><table>
         <thead><tr>
           <th>Человек</th><th>Оклад</th><th>Отработано</th><th>Окладная</th>
-          <th>Премия</th><th>На сегодня</th><th>Аванс</th><th>Прогноз</th><th>Отсутствие</th>
+          <th>Премия</th><th>На сегодня</th><th>Аванс</th><th>Прогноз</th>
+          <th>Штук за смену</th><th>Место</th><th>Отсутствие</th>
         </tr></thead>
         <tbody id="ktoTelo">${stroki(lyudi, lyudi)}</tbody>
       </table></div>
@@ -476,7 +497,8 @@ function tablica(data) {
   poisk.addEventListener("input", () => {
     const slovo = poisk.value.trim().toLowerCase();
     if (!slovo) return pokazat(lyudi, "");
-    pokazat(lyudi.filter((c) => [c["фио"], c["должность"], c["подразделение"]]
+    pokazat(lyudi.filter((c) => [c["фио"], c["должность"], c["подразделение"],
+      (c["выработка"] || {})["контур"] || ""]
       .join(" ").toLowerCase().includes(slovo)), "поиск «" + poisk.value.trim() + "»");
   });
   sbros.addEventListener("click", () => { poisk.value = ""; pokazat(lyudi, ""); });
