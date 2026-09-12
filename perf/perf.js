@@ -168,6 +168,8 @@
     };
   }
   let barStep = "недели";
+  // Пока человек сам не выбрал шаг, он подставляется по длине периода.
+  let shagVybran = false;
 
   function say(text, type = "") {
     message.textContent = text;
@@ -257,6 +259,125 @@
     });
   }
 
+  /* Линия вместо столбиков.
+   *
+   * Столбики отвечали на вопрос «сколько», хотя в производительности важнее
+   * «куда идёт». Линия показывает движение, а подпись над точкой возвращает
+   * само число — но только когда точек мало: на тридцати подписи слипаются
+   * в кашу и мешают читать сам ход кривой.
+   */
+  const PODPISI_DO = 16;
+
+  function renderLine(list, options) {
+    const opts = options || {};
+    const label = opts.label || ((row) => row.ключ || "");
+    const wrap = document.createElement("div");
+    wrap.className = "chart chart--series";
+
+    const values = list.map((row) => row.на_смену);
+    const max = Math.max(...values, 1);
+    const cap = max * 1.18;
+    const avg = values.reduce((sum, v) => sum + v, 0) / (values.length || 1);
+    const podpisi = list.length <= PODPISI_DO;
+
+    const W = 1000;
+    const H = 240;
+    const padTop = podpisi ? 30 : 16;
+    const padBottom = 24;
+    const x = (i) => (list.length === 1 ? W / 2 : (i / (list.length - 1)) * W);
+    const y = (v) => padTop + (1 - Math.min(v, cap) / cap) * (H - padTop - padBottom);
+
+    const svg = document.createElementNS(SVG, "svg");
+    svg.setAttribute("class", "chart__svg");
+    svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+    svg.setAttribute("preserveAspectRatio", "none");
+
+    const sred = document.createElementNS(SVG, "line");
+    sred.setAttribute("class", "chart__median");
+    sred.setAttribute("x1", 0);
+    sred.setAttribute("x2", W);
+    sred.setAttribute("y1", y(avg));
+    sred.setAttribute("y2", y(avg));
+    svg.appendChild(sred);
+
+    const path = values
+      .map((v, i) => (i ? "L" : "M") + x(i).toFixed(1) + "," + y(v).toFixed(1))
+      .join(" ");
+
+    const area = document.createElementNS(SVG, "path");
+    area.setAttribute("class", "chart__area");
+    area.setAttribute("d", path + " L" + x(values.length - 1) + "," + (H - padBottom) +
+                      " L" + x(0) + "," + (H - padBottom) + " Z");
+    svg.appendChild(area);
+
+    const line = document.createElementNS(SVG, "path");
+    line.setAttribute("class", "chart__line");
+    line.setAttribute("d", path);
+    svg.appendChild(line);
+
+    const canvas = document.createElement("div");
+    canvas.className = "chart__canvas";
+    canvas.appendChild(svg);
+
+    const dots = document.createElement("div");
+    dots.className = "chart__dots";
+    list.forEach((row, index) => {
+      const dot = document.createElement("i");
+      if (row.неполная) dot.className = "isPartial";
+      dot.style.left = (x(index) / W * 100).toFixed(2) + "%";
+      dot.style.top = (y(row.на_смену) / H * 100).toFixed(2) + "%";
+      const prev = index > 0 ? list[index - 1].на_смену : null;
+      const delta = prev ? ((row.на_смену - prev) / prev) * 100 : null;
+      bindTip(dot,
+        "<b>" + label(row) + "</b>" +
+        "<span>" + one(row.на_смену) + " штук за смену" +
+        (row.неполная ? " — период не закончен" : "") + "</span>" +
+        (row.штук ? "<span>" + count(row.штук) + " штук · " + count(row.смен) +
+         " смен</span>" : "") +
+        (delta === null ? "" : "<span>" + (delta >= 0 ? "+" : "") +
+         delta.toFixed(0) + "% к прошлому</span>"));
+      dots.appendChild(dot);
+
+      if (!podpisi) return;
+      const value = document.createElement("b");
+      value.className = "chart__value";
+      value.textContent = Math.round(row.на_смену);
+      value.style.left = (x(index) / W * 100).toFixed(2) + "%";
+      value.style.top = (y(row.на_смену) / H * 100).toFixed(2) + "%";
+      dots.appendChild(value);
+    });
+    canvas.appendChild(dots);
+
+    const scale = document.createElement("div");
+    scale.className = "chart__scale";
+    scale.innerHTML = "<span>" + Math.round(cap) + "</span><span>" +
+      Math.round(cap / 2) + "</span><span>0</span>";
+
+    const axis = document.createElement("div");
+    axis.className = "chart__axis";
+    const step = Math.max(1, Math.ceil(list.length / 12));
+    list.forEach((row, index) => {
+      if (index % step && index !== list.length - 1) return;
+      const mark = document.createElement("span");
+      mark.textContent = label(row);
+      mark.style.left = (x(index) / W * 100).toFixed(2) + "%";
+      axis.appendChild(mark);
+    });
+
+    const legend = document.createElement("div");
+    legend.className = "chart__legend";
+    legend.innerHTML = "<span class=\"k k--line\"></span>"
+      + (opts.legenda || "штук за смену")
+      + "<span class=\"k k--median\"></span>среднее " + one(avg);
+
+    const plot = document.createElement("div");
+    plot.className = "chart__plot";
+    plot.append(scale, canvas);
+
+    wrap.append(legend, plot, axis);
+    return wrap;
+  }
+
   function renderDaily(list) {
     const wrap = document.createElement("div");
     wrap.className = "chart";
@@ -332,6 +453,16 @@
         count(row.человек) + " человек</span>" +
         "<span>среднее за неделю " + one(avg7[index]) + "</span>");
       dots.appendChild(dot);
+
+      // Число над точкой — только когда дней мало. На месяце их за тридцать,
+      // и подписи сливаются в сплошную полосу поверх самой линии.
+      if (list.length > PODPISI_DO) return;
+      const value = document.createElement("b");
+      value.className = "chart__value";
+      value.textContent = Math.round(row.на_смену);
+      value.style.left = (x(index) / W * 100).toFixed(2) + "%";
+      value.style.top = (y(row.на_смену) / H * 100).toFixed(2) + "%";
+      dots.appendChild(value);
     });
     canvas.appendChild(dots);
 
@@ -875,7 +1006,7 @@
       };
     });
 
-    card.append(head, renderMonths(bars));
+    card.append(head, renderLine(bars, { label: (row) => row.подпись || row.ключ }));
     row.parentElement.insertBefore(card, row.nextSibling);
     card.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
@@ -967,46 +1098,58 @@
         `<span class="perfCard__note">выходили на стол</span></article>`;
     parts.push(top);
 
-    // Шаг по умолчанию — неделя: на месяце провал видно спустя три недели после
-    // того, как он случился, а на дне цифра прыгает от состава смены.
+    // Одна динамика вместо двух графиков. Раньше «По неделям» и «По дням»
+    // стояли друг под другом и показывали одно и то же в разной нарезке —
+    // читать приходилось дважды. Теперь это один блок с переключателем шага.
+    // День по умолчанию на месяце (видно каждый провал), неделя — на периодах
+    // длиннее: там дней под сотню и линия превращается в частокол.
+    if (!shagVybran) {
+      barStep = periodKey === "month" ? "дни" : "недели";
+      shagVybran = true;
+    }
     const steps = document.createElement("div");
     steps.className = "stepSwitch";
-    for (const [key, label] of [["недели", "Недели"], ["месяцы", "Месяцы"]]) {
+    const shagi = view.дни.length
+      ? [["дни", "Дни"], ["недели", "Недели"], ["месяцы", "Месяцы"]]
+      : [["недели", "Недели"], ["месяцы", "Месяцы"]];
+    for (const [key, label] of shagi) {
       const button = document.createElement("button");
       button.type = "button";
       button.className = "stepSwitch__item" + (barStep === key ? " is-on" : "");
       button.textContent = label;
       button.addEventListener("click", () => {
         barStep = key;
+        shagVybran = true;
         try { navigator.vibrate?.(8); } catch { /* нет поддержки */ }
         render();
       });
       steps.appendChild(button);
     }
 
+    const poDnyam = barStep === "дни" && view.дни.length;
     const bars = barStep === "недели"
       ? weeksFrom(view.недели, view.недели.length)
       : monthsAsBars(view.месяцы);
     const barTools = document.createElement("div");
     barTools.className = "perfActions";
     barTools.append(
-      excelButton([[barStep === "недели" ? "неделя" : "месяц", "штук", "смен", "штук за смену"],
-                   ...bars.map((row) => [row.ключ, row.штук, row.смен, Number(row.на_смену.toFixed(1))])],
-                  `${data.название} по ${barStep === "недели" ? "неделям" : "месяцам"} ${period.current.label}`),
+      poDnyam
+        ? excelButton([["день", "штук", "смен", "человек", "штук за смену"],
+                       ...view.дни.map((r) => [r.день, r.штук, r.смен, r.человек, r.на_смену])],
+                      `${data.название} по дням ${period.current.label}`)
+        : excelButton([[barStep === "недели" ? "неделя" : "месяц", "штук", "смен", "штук за смену"],
+                       ...bars.map((row) => [row.ключ, row.штук, row.смен, Number(row.на_смену.toFixed(1))])],
+                      `${data.название} по ${barStep === "недели" ? "неделям" : "месяцам"} ${period.current.label}`),
       steps);
 
-    parts.push(block(barStep === "недели" ? "По неделям" : "По месяцам",
-                     `${period.current.label} · штук за смену`,
-                     renderMonths(bars), barTools));
-
-    if (view.дни.length) {
-      parts.push(block("По дням",
-                       `${period.current.label} · ${view.дни.length} ${dayWord(view.дни.length)} с выходом`,
-                       renderDaily(view.дни), excelButton(
-                         [["день", "штук", "смен", "человек", "штук за смену"],
-                          ...view.дни.map((r) => [r.день, r.штук, r.смен, r.человек, r.на_смену])],
-                         `${data.название} по дням ${period.current.label}`)));
-    }
+    parts.push(block(
+      "Динамика",
+      poDnyam
+        ? `${period.current.label} · ${view.дни.length} ${dayWord(view.дни.length)} с выходом`
+        : `${period.current.label} · штук за смену, по ${barStep === "недели" ? "неделям" : "месяцам"}`,
+      poDnyam ? renderDaily(view.дни)
+              : renderLine(bars, { label: (row) => row.подпись || row.ключ }),
+      barTools));
 
     if (view.часы.length) {
       const hours = [...view.часы].sort((a, b) => b.на_час - a.на_час);
@@ -1021,7 +1164,8 @@
                        `${period.current.label} · штук за занятый человеко-час. Лучше всего идёт `
                        + `в ${String(peak.час).padStart(2, "0")}:00 — ${one(peak.на_час)}, `
                        + `хуже всего в ${String(dip.час).padStart(2, "0")}:00 — ${one(dip.на_час)}`,
-                       renderMonths(hoursAsBars(view.часы)),
+                       renderLine(hoursAsBars(view.часы), { label: (row) => row.подпись || row.ключ,
+                                             legenda: "штук за человеко-час" }),
                        excelButton([["час", "штук", "человеко-часов", "штук за час"],
                                     ...view.часы.map((r) => [r.час, r.штук, r.человекочасов, r.на_час])],
                                    `${data.название} по часам ${period.current.label}`)));
@@ -1030,7 +1174,7 @@
     if (view.дниНедели.length) {
       parts.push(block("По дням недели",
                        `${period.current.label} · где систематический провал, а не случайный день`,
-                       renderMonths(weekdaysAsBars(view.дниНедели))));
+                       renderLine(weekdaysAsBars(view.дниНедели), { label: (row) => row.подпись || row.ключ })));
     }
 
     if (data.выходНаНорму?.length) {
@@ -1045,7 +1189,8 @@
                        + `Норма периода ${one(norm)} штук`
                        + (reached ? `, до 90% от неё доходят к ${reached.смена}-й смене`
                                   : ", за первые смены её не достигают"),
-                       renderMonths(rampAsBars(ramp))));
+                       renderLine(rampAsBars(ramp), { label: (row) => row.подпись || row.ключ,
+                                      legenda: "штук за смену по номеру смены" })));
     }
 
     const staff = { list: view.сотрудники, label: period.current.label,
