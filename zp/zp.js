@@ -383,13 +383,28 @@ function karta(data, kto) {
             оклад ${rubli(ya["оклад_на_руки"])}</small></span>
           <b>${rubli(ya["окладная_часть"] * 0.87)}</b>
         </div>
-        ${ya["премия_ожидаемая"] ? `
         <div class="zpCheck__line">
-          <span>Премия<small>плановая, точную ставит руководитель</small></span>
-          <b>${rubli(ya["премия_ожидаемая"] * 0.87)}</b>
+          <span>Премия<small>${ya["премия_ожидаемая"]
+            ? "плановая, точную ставит руководитель"
+            : "на этот месяц не заявлена"}</small></span>
+          <b class="${ya["премия_ожидаемая"] ? "" : "zpCheck__net"}">${
+            ya["премия_ожидаемая"] ? rubli(ya["премия_ожидаемая"] * 0.87) : "—"}</b>
+        </div>
+        ${ya["надбавка"] ? `
+        <div class="zpCheck__line">
+          <span>Надбавка<small>из формы подачи</small></span>
+          <b>${rubli(ya["надбавка"] * 0.87)}</b>
         </div>` : ""}
+        <div class="zpCheck__line">
+          <span>Начислено до НДФЛ<small>эта цифра уходит в 1С</small></span>
+          <b>${rubli(ya["начислено"])}</b>
+        </div>
+        <div class="zpCheck__line">
+          <span>НДФЛ<small>13%, удерживает работодатель</small></span>
+          <b class="zpCheck__minus">−${rubli(ya["начислено"] - ya["на_руки"])}</b>
+        </div>
         <div class="zpCheck__line zpCheck__line--itog">
-          <span>Заработано на сегодня</span>
+          <span>Заработано на сегодня<small>на руки</small></span>
           <b>${rubli(ya["на_руки"])}</b>
         </div>
       </div>
@@ -404,8 +419,13 @@ function karta(data, kto) {
           <span>Зарплата<small>${zpKogda}, остальное за месяц</small></span>
           <b>${rubli(ya["остаток"])}</b>
         </div>
+        <div class="zpCheck__line">
+          <span>Осталось отработать<small>${ya["отсутствие"]
+            ? ya["отсутствие"] : "по вашему графику до конца месяца"}</small></span>
+          <b>${dney(Math.max(0, Math.round((ya["план_дней"] - ya["отработано"]) * 10) / 10))}</b>
+        </div>
         <div class="zpCheck__line zpCheck__line--itog">
-          <span>За весь месяц, если доработаете</span>
+          <span>За весь месяц, если доработаете<span></span></span>
           <b>${rubli(ya["прогноз_месяца"])}</b>
         </div>
       </div>
