@@ -436,11 +436,7 @@ function karta(data, kto) {
           <b>${rubli(ya["надбавка"] * 0.87)}</b>
         </div>` : ""}
         <div class="zpCheck__line">
-          <span>Начислено до НДФЛ<small>эта цифра уходит в 1С</small></span>
-          <b>${rubli(ya["начислено"])}</b>
-        </div>
-        <div class="zpCheck__line">
-          <span>НДФЛ<small>13%, уходит государству</small></span>
+          <span>НДФЛ<small>13% с ${rubli(ya["начислено"])}, уходит государству</small></span>
           <b class="zpCheck__minus">−${rubli(ya["начислено"] - ya["на_руки"])}</b>
         </div>
         <div class="zpCheck__line zpCheck__line--itog">
@@ -460,16 +456,7 @@ function karta(data, kto) {
           <b>${rubli(ya["остаток"])}</b>
         </div>
         <div class="zpCheck__line">
-          <span>Осталось отработать<small>${ya["отсутствие"]
-            ? ya["отсутствие"] : "по вашему графику до конца месяца"}</small></span>
-          <b>${dney(Math.max(0, Math.round((ya["план_дней"] - ya["отработано"]) * 10) / 10))}</b>
-        </div>
-        <div class="zpCheck__line">
-          <span>Начислят за месяц<small>до НДФЛ, если отработаете график</small></span>
-          <b>${rubli(ya["прогноз_месяца"] / 0.87)}</b>
-        </div>
-        <div class="zpCheck__line">
-          <span>НДФЛ за месяц<small>13% с начисленного</small></span>
+          <span>НДФЛ за месяц<small>13% с ${rubli(ya["прогноз_месяца"] / 0.87)}, уходит государству</small></span>
           <b class="zpCheck__minus">−${rubli(ya["прогноз_месяца"] / 0.87 - ya["прогноз_месяца"])}</b>
         </div>
         <div class="zpCheck__line zpCheck__line--itog">
