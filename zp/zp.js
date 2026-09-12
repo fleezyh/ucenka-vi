@@ -127,54 +127,110 @@ function schetchik(tik, schitano) {
  * растёт он или падает и где он относительно контура. Линия по месяцам с
  * пунктиром среднего отвечает на оба вопроса сразу.
  */
+/* Ширину SVG берём фактическую, а не растягиваем картинку под контейнер:
+   с preserveAspectRatio="none" на широком экране буквы и кружки расползались
+   вдвое по горизонтали. */
 function liniyaVyrabotki(tochki, sredne, opts) {
-  if (tochki.length < 2) return "";
-  const values = tochki.map((t) => t.v);
-  const svoi = tochki.some((t) => t.k);           // есть ли линия контура
-  const cap = Math.max(...values, sredne, ...tochki.map((t) => t.k || 0)) * 1.25 || 1;
-  const W = 900;
-  const H = 210;
-  const padTop = 28;
-  const padBottom = 26;
-  // Поля по краям: без них подписи крайних точек обрезаются рамкой.
-  const x = (i) => 28 + (i / (values.length - 1)) * (W - 56);
-  const y = (v) => padTop + (1 - v / cap) * (H - padTop - padBottom);
-  const put = (arr) => arr.map((v, i) => (i ? "L" : "M") + x(i).toFixed(1)
-    + "," + y(v).toFixed(1)).join(" ");
+  if (tochki.filter((t) => t.v !== null).length < 2) return "";
+  const W = Math.max(520, Math.round((opts && opts.shirina) || 900));
+  const H = 260;
+  const padTop = 34;
+  const padBottom = 30;
+  const padLeft = 34;
+  const padRight = 22;
 
-  const moya = put(values);
+  const est = tochki.filter((t) => t.v !== null);
+  const svoi = tochki.some((t) => t.k);           // есть ли линия контура
+  const cap = Math.max(...est.map((t) => t.v), sredne,
+                       ...tochki.map((t) => t.k || 0)) * 1.2 || 1;
+  const x = (i) => padLeft + (i / (tochki.length - 1)) * (W - padLeft - padRight);
+  const y = (v) => padTop + (1 - v / cap) * (H - padTop - padBottom);
+
+  /* Пропущенные недели рвут линию, а не склеиваются в прямую: человек в них
+     не выходил, и рисовать там ход выработки — враньё. */
+  function put(znachenie) {
+    let d = "";
+    let razryv = true;
+    tochki.forEach((t, i) => {
+      const v = znachenie(t);
+      if (v === null || v === undefined) { razryv = true; return; }
+      d += (razryv ? "M" : "L") + x(i).toFixed(1) + "," + y(v).toFixed(1) + " ";
+      razryv = false;
+    });
+    return d.trim();
+  }
+
+  const moya = put((t) => t.v);
   const konturLine = svoi
-    ? `<path d="${put(tochki.map((t) => t.k || 0))}" class="zpLineKontur"/>` : "";
+    ? `<path d="${put((t) => t.k || null)}" class="zpLineKontur"/>` : "";
   // Числа над точками — только пока их немного: на шестнадцати неделях
   // подписи слипаются и перекрывают саму линию.
-  const podpisi = values.length <= 12
-    ? values.map((v, i) => `<text x="${x(i).toFixed(1)}" y="${(y(v) - 10).toFixed(1)}"
-        class="zpNum">${Math.round(v)}</text>`).join("")
-    : "";
-  const shag = Math.max(1, Math.ceil(tochki.length / 9));
+  const gusto = est.length > 12;
+  const podpisi = gusto ? "" : tochki.map((t, i) => t.v === null ? "" :
+    `<text x="${x(i).toFixed(1)}" y="${(y(t.v) - 11).toFixed(1)}"
+      class="zpNum">${Math.round(t.v)}</text>`).join("");
+  const shag = Math.max(1, Math.ceil(tochki.length / 10));
   const osi = tochki.map((t, i) => (i % shag && i !== tochki.length - 1) ? "" :
-    `<text x="${x(i).toFixed(1)}" y="${H - 6}" class="zpAx">${t.p}</text>`).join("");
+    `<text x="${x(i).toFixed(1)}" y="${H - 8}" class="zpAx">${t.p}</text>`).join("");
+
+  // Легенда в самом графике: подпись под заголовком читают не все.
+  const legenda = `
+    <g class="zpLeg" transform="translate(${padLeft},14)">
+      <line x1="0" x2="16" y1="-4" y2="-4" class="zpLine"/>
+      <text x="22" y="0">вы</text>
+      ${svoi ? `<line x1="60" x2="76" y1="-4" y2="-4" class="zpLineKontur"/>
+      <text x="82" y="0">контур в ту же неделю</text>` : ""}
+      <line x1="${svoi ? 232 : 60}" x2="${svoi ? 248 : 76}" y1="-4" y2="-4" class="zpAvg"/>
+      <text x="${svoi ? 254 : 82}" y="0">среднее по контуру</text>
+    </g>`;
 
   return `
-    <svg class="zpChart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
-      <line x1="0" x2="${W}" y1="${y(sredne).toFixed(1)}" y2="${y(sredne).toFixed(1)}"
-            class="zpAvg"/>
-      <path d="${moya} L${x(values.length - 1).toFixed(1)},${H - padBottom}
-               L${x(0).toFixed(1)},${H - padBottom} Z" class="zpArea"/>
+    <svg class="zpChart" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}"
+         preserveAspectRatio="xMidYMid meet">
+      <line x1="${padLeft}" x2="${W - padRight}" y1="${y(sredne).toFixed(1)}"
+            y2="${y(sredne).toFixed(1)}" class="zpAvg"/>
+      <text x="${padLeft - 6}" y="${(y(sredne) + 4).toFixed(1)}" class="zpAvgNum"
+        >${Math.round(sredne)}</text>
+      ${est.length === tochki.length ? `<path d="${moya}
+        L${x(tochki.length - 1).toFixed(1)},${H - padBottom}
+        L${x(0).toFixed(1)},${H - padBottom} Z" class="zpArea"/>` : ""}
       ${konturLine}
       <path d="${moya}" class="zpLine"/>
-      ${values.map((v, i) => `<circle cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}"
-        r="3.5" class="zpDot"/>`).join("")}
-      ${podpisi}${osi}
+      ${tochki.map((t, i) => t.v === null ? "" :
+        `<circle cx="${x(i).toFixed(1)}" cy="${y(t.v).toFixed(1)}"
+          r="${gusto ? 3 : 3.8}" class="zpDot"/>`).join("")}
+      ${podpisi}${osi}${legenda}
     </svg>`;
+}
+
+/* Недели, в которые человек не выходил, всё равно должны быть на оси —
+   иначе месячный простой выглядит как обычный шаг вправо. */
+function polnyeNedeli(nedeli) {
+  if (nedeli.length < 2) return nedeli;
+  const nomer = (s) => {
+    const m = String(s || "").match(/(\d{4})-W(\d{2})/);
+    return m ? Number(m[1]) * 100 + Number(m[2]) : null;
+  };
+  const itog = [];
+  for (let i = 0; i < nedeli.length; i += 1) {
+    itog.push(nedeli[i]);
+    const a = nomer(nedeli[i].n);
+    const b = i + 1 < nedeli.length ? nomer(nedeli[i + 1].n) : null;
+    if (a === null || b === null || b - a <= 1 || b - a > 12) continue;
+    for (let k = a + 1; k < b; k += 1) {
+      itog.push({ v: null, k: 0, p: "W" + String(k % 100).padStart(2, "0"), n: "" });
+    }
+  }
+  return itog;
 }
 
 /* Подпись под заголовком: про светлую линию говорим только там, где она есть,
    то есть на неделях. */
 function zametkaVyrabotki(sredne, estKontur) {
-  return "Штук за смену. Пунктир — среднее по контуру, "
-    + (sredne || 0).toLocaleString("ru-RU")
-    + (estKontur ? "; светлая линия — контур в ту же неделю" : "");
+  // Что есть что — написано легендой на самом графике; здесь только суть.
+  return estKontur
+    ? "Штук за смену. Разрыв линии — недели, в которые человек не выходил"
+    : "Штук за смену";
 }
 
 function grafikVyrabotki(rab) {
@@ -184,10 +240,11 @@ function grafikVyrabotki(rab) {
 
   const mesyacy = (rab["по_месяцам"] || []).filter((m) => m["на_смену"])
     .map((m) => ({ v: Number(m["на_смену"]) || 0, p: String(m["месяц"] || "").slice(5), k: 0 }));
-  const nedeli = (rab["по_неделям"] || []).filter((w) => w["на_смену"])
+  const nedeli = polnyeNedeli((rab["по_неделям"] || []).filter((w) => w["на_смену"])
     .map((w) => ({ v: Number(w["на_смену"]) || 0,
                    p: "W" + String(w["неделя"] || "").slice(-2),
-                   k: Number(w["контур"]) || 0 }));
+                   n: w["неделя"] || "",
+                   k: Number(w["контур"]) || 0 })));
 
   const k = sredne ? Math.round(100 * rab["на_смену"] / sredne - 100) : 0;
 
@@ -205,7 +262,8 @@ function grafikVyrabotki(rab) {
         </div>
       </div>
       <div class="zpWork__plot" data-nedeli='${JSON.stringify(nedeli)}'
-           data-mesyacy='${JSON.stringify(mesyacy)}' data-sredne="${sredne}">
+           data-mesyacy='${JSON.stringify(mesyacy)}' data-sredne="${sredne}"
+           data-shag="${nedeli.length > 1 ? "недели" : "месяцы"}">
         ${nedeli.length > 1 ? liniyaVyrabotki(nedeli, sredne) : liniyaVyrabotki(mesyacy, sredne)}
       </div>
       <div class="zpWork__itog">
@@ -229,13 +287,36 @@ document.addEventListener("click", (event) => {
   const plot = blok.querySelector(".zpWork__plot");
   blok.querySelectorAll(".zpWork__tools .zpView")
     .forEach((b) => b.classList.toggle("is-on", b === button));
-  const nabor = button.dataset.shag === "месяцы"
+  plot.dataset.shag = button.dataset.shag;
+  pererisovat(plot);
+});
+
+/* Рисуем под фактическую ширину блока: так штрихи, кружки и подписи остаются
+   такими, какими задуманы, на любом экране. */
+function pererisovat(plot) {
+  const nabor = plot.dataset.shag === "месяцы"
     ? JSON.parse(plot.dataset.mesyacy) : JSON.parse(plot.dataset.nedeli);
   const sredne = Number(plot.dataset.sredne) || 0;
-  plot.innerHTML = liniyaVyrabotki(nabor, sredne);
-  const note = blok.querySelector("[data-note]");
+  plot.innerHTML = liniyaVyrabotki(nabor, sredne,
+    { shirina: plot.clientWidth || 900 });
+  const note = plot.closest(".zpWork").querySelector("[data-note]");
   if (note) note.textContent = zametkaVyrabotki(sredne, nabor.some((t) => t.k));
-});
+}
+
+const nablyudatel = typeof ResizeObserver === "function"
+  ? new ResizeObserver((zapisi) => zapisi.forEach((z) => pererisovat(z.target)))
+  : null;
+
+/* Новый блок графика появляется после отрисовки карточки — подхватываем его
+   и сразу пересчитываем под реальную ширину. */
+function podklyuchitGrafiki(koren) {
+  (koren || document).querySelectorAll(".zpWork__plot").forEach((plot) => {
+    if (plot.dataset.gotov) return;
+    plot.dataset.gotov = "1";
+    pererisovat(plot);
+    if (nablyudatel) nablyudatel.observe(plot);
+  });
+}
 
 function karta(data, kto) {
   const ya = kto || data["я"];
@@ -333,6 +414,7 @@ function karta(data, kto) {
   blockMe.hidden = false;
   note.hidden = false;
   if (ya["тик"]) schetchik(ya["тик"], Number(data["посчитано_в"]) || 0);
+  podklyuchitGrafiki(blockMe);
 }
 
 /* Панель управления ФОТ.
@@ -527,8 +609,9 @@ function tablica(data) {
         .then((ego) => {
           if (!ego || !ego["выработка"]) return;
           const mesto = document.querySelector("#me .zpCheck");
-          if (mesto) mesto.insertAdjacentHTML("afterend",
-            grafikVyrabotki(ego["выработка"]));
+          if (!mesto) return;
+          mesto.insertAdjacentHTML("afterend", grafikVyrabotki(ego["выработка"]));
+          podklyuchitGrafiki(blockMe);
         })
         .catch(() => { /* нет выработки — карточка и так полная */ });
     }
