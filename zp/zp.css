@@ -523,6 +523,11 @@
 .zpBaza__skolko { font-size: 26px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -.03em; }
 .zpBaza.is-on { border-color: rgba(43, 209, 121, .45); background: rgba(28, 26, 36, 0.92); }
 .zpBaza.is-on .zpBaza__znak { background: #27c46b; }
+/* Ничьи — не вкладка, а сигнал: этих людей не подаёт никто. */
+.zpBaza--trevoga { border-color: rgba(224, 112, 90, 0.45); }
+.zpBaza--trevoga .zpBaza__znak { background: #e0705a; }
+.zpBaza--trevoga.is-on { border-color: rgba(224, 112, 90, 0.7); }
+.zpBaza--trevoga.is-on .zpBaza__znak { background: #e0705a; }
 
 /* Сколько заложено на отдел и что сверх. */
 .zpOtdely { padding: 20px 22px; margin-top: 14px; }

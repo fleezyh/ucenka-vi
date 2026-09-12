@@ -562,6 +562,9 @@ function mestoYacheyka(rab) {
 function tablica(data) {
   // ВИ Сервис в панель не берём вовсе: третий контур пока не наш.
   const lyudi = (data["люди"] || []).filter((c) => c["подаёт"] !== "ВИ Сервис");
+  // «Оба контура» — только то, что подаём: ничьи туда не входят, иначе они
+  // растворятся в итогах, а их как раз надо видеть отдельно.
+  const nashi = lyudi.filter((c) => c["подаёт"] !== "не закреплён");
   const itogo = data["итого"] || {};
   const podrazdeleniya = data["подразделения"] || [];
   const nepodklyucheny = data["не_подключены"] || [];
@@ -570,10 +573,12 @@ function tablica(data) {
   // «ВИ Сервис» — третий контур, его пока не ведём и в панели не показываем.
   const BAZY = [
     { klyuch: "Поснова", imya: "Поснова", bukva: "П", chto: "её выгрузка" },
-    { klyuch: "Широких", imya: "Широких", bukva: "Ш", chto: "остальные по браку" },
+    { klyuch: "Широких", imya: "Широких", bukva: "Ш", chto: "направление брака" },
     { klyuch: "", imya: "Оба контура", bukva: "Σ", chto: "всё, что подаём" },
+    { klyuch: "не закреплён", imya: "Ничьи", bukva: "!", chto: "никто не подаёт",
+      trevoga: true },
   ];
-  const vBaze = (b) => b ? lyudi.filter((c) => c["подаёт"] === b) : lyudi;
+  const vBaze = (b) => b ? lyudi.filter((c) => c["подаёт"] === b) : nashi;
 
   const sporne = lyudi.filter((c) => c["расхождение"]);
   const sporneRows = sporne.map((c) => `
@@ -604,8 +609,9 @@ function tablica(data) {
 
   blockTeam.innerHTML = `
     <nav class="zpBazy" id="bazy" aria-label="Чья база">
-      ${BAZY.map((b, i) => `
-        <button class="zpBaza${i ? "" : " is-on"}" type="button" data-baza="${b.klyuch}">
+      ${BAZY.filter((b) => !b.trevoga || vBaze(b.klyuch).length).map((b, i) => `
+        <button class="zpBaza${i ? "" : " is-on"}${b.trevoga ? " zpBaza--trevoga" : ""}"
+                type="button" data-baza="${b.klyuch}">
           <span class="zpBaza__znak">${b.bukva}</span>
           <span class="zpBaza__copy">
             <strong>${b.imya}</strong>
