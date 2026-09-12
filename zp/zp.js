@@ -163,12 +163,13 @@ function liniyaVyrabotki(tochki, sredne, opts) {
   const moya = put((t) => t.v);
   const konturLine = svoi
     ? `<path d="${put((t) => t.k || null)}" class="zpLineKontur"/>` : "";
-  // Числа над точками — только пока их немного: на шестнадцати неделях
-  // подписи слипаются и перекрывают саму линию.
-  const gusto = est.length > 12;
+  // Числа над точками ставим всегда, когда они физически влезают: решает не
+  // количество точек, а расстояние между ними в пикселях.
+  const shagPx = (W - padLeft - padRight) / Math.max(1, tochki.length - 1);
+  const gusto = shagPx < 34;
   const podpisi = gusto ? "" : tochki.map((t, i) => t.v === null ? "" :
     `<text x="${x(i).toFixed(1)}" y="${(y(t.v) - 11).toFixed(1)}"
-      class="zpNum">${Math.round(t.v)}</text>`).join("");
+      class="zpNum${shagPx < 56 ? " zpNum--melko" : ""}">${Math.round(t.v)}</text>`).join("");
   const shag = Math.max(1, Math.ceil(tochki.length / 10));
   const osi = tochki.map((t, i) => (i % shag && i !== tochki.length - 1) ? "" :
     `<text x="${x(i).toFixed(1)}" y="${H - 8}" class="zpAx">${t.p}</text>`).join("");
@@ -200,6 +201,14 @@ function liniyaVyrabotki(tochki, sredne, opts) {
         `<circle cx="${x(i).toFixed(1)}" cy="${y(t.v).toFixed(1)}"
           r="${gusto ? 3 : 3.8}" class="zpDot"/>`).join("")}
       ${podpisi}${osi}${legenda}
+      ${/* Прозрачные столбцы поверх: наведение где угодно по вертикали
+            ловит ближайшую точку и показывает цифры за этот шаг. */ ""}
+      <g class="zpHover">${tochki.map((t, i) => t.v === null ? "" : `
+        <rect x="${(x(i) - shagPx / 2).toFixed(1)}" y="0" width="${shagPx.toFixed(1)}"
+              height="${H - padBottom}" class="zpHit"
+              data-x="${x(i).toFixed(1)}" data-y="${y(t.v).toFixed(1)}"
+              data-v="${Math.round(t.v)}" data-k="${t.k ? Math.round(t.k) : ""}"
+              data-p="${t.p}"/>`).join("")}</g>
     </svg>`;
 }
 
@@ -303,6 +312,37 @@ function pererisovat(plot) {
   if (note) note.textContent = zametkaVyrabotki(sredne, nabor.some((t) => t.k));
 }
 
+/* Наведение на график: показываем неделю, свою выработку и контур за неё же.
+   Ловим на всём блоке — точки мелкие, целиться в них мышью неудобно. */
+document.addEventListener("mouseover", (event) => {
+  const hit = event.target.closest(".zpHit");
+  if (!hit) return;
+  const plot = hit.closest(".zpWork__plot");
+  const svg = hit.closest("svg");
+  if (!plot || !svg) return;
+  const mashtab = svg.getBoundingClientRect().width / (svg.viewBox.baseVal.width || 1);
+  const kontur = hit.dataset.k
+    ? `<i>контур ${Number(hit.dataset.k).toLocaleString("ru-RU")}</i>` : "";
+  let vsplyvashka = plot.querySelector(".zpTip");
+  if (!vsplyvashka) {
+    vsplyvashka = document.createElement("div");
+    vsplyvashka.className = "zpTip";
+    plot.appendChild(vsplyvashka);
+  }
+  vsplyvashka.innerHTML = `<b>${Number(hit.dataset.v).toLocaleString("ru-RU")}</b>
+    <span>${hit.dataset.p}</span>${kontur}`;
+  vsplyvashka.style.left = (Number(hit.dataset.x) * mashtab) + "px";
+  vsplyvashka.style.top = (Number(hit.dataset.y) * mashtab) + "px";
+  vsplyvashka.dataset.on = "1";
+});
+
+document.addEventListener("mouseout", (event) => {
+  const hit = event.target.closest(".zpHit");
+  if (!hit) return;
+  const tip = hit.closest(".zpWork__plot").querySelector(".zpTip");
+  if (tip) delete tip.dataset.on;
+});
+
 const nablyudatel = typeof ResizeObserver === "function"
   ? new ResizeObserver((zapisi) => zapisi.forEach((z) => pererisovat(z.target)))
   : null;
@@ -400,7 +440,7 @@ function karta(data, kto) {
           <b>${rubli(ya["начислено"])}</b>
         </div>
         <div class="zpCheck__line">
-          <span>НДФЛ<small>13%, удерживает работодатель</small></span>
+          <span>НДФЛ<small>13%, уходит государству</small></span>
           <b class="zpCheck__minus">−${rubli(ya["начислено"] - ya["на_руки"])}</b>
         </div>
         <div class="zpCheck__line zpCheck__line--itog">
@@ -424,8 +464,16 @@ function karta(data, kto) {
             ? ya["отсутствие"] : "по вашему графику до конца месяца"}</small></span>
           <b>${dney(Math.max(0, Math.round((ya["план_дней"] - ya["отработано"]) * 10) / 10))}</b>
         </div>
+        <div class="zpCheck__line">
+          <span>Начислят за месяц<small>до НДФЛ, если отработаете график</small></span>
+          <b>${rubli(ya["прогноз_месяца"] / 0.87)}</b>
+        </div>
+        <div class="zpCheck__line">
+          <span>НДФЛ за месяц<small>13% с начисленного</small></span>
+          <b class="zpCheck__minus">−${rubli(ya["прогноз_месяца"] / 0.87 - ya["прогноз_месяца"])}</b>
+        </div>
         <div class="zpCheck__line zpCheck__line--itog">
-          <span>За весь месяц, если доработаете<span></span></span>
+          <span>За весь месяц, если доработаете<small>на руки, двумя выплатами</small></span>
           <b>${rubli(ya["прогноз_месяца"])}</b>
         </div>
       </div>

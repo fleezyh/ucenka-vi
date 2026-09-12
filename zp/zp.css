@@ -238,7 +238,9 @@
   padding: 4px 22px 16px;
   border: 1px solid var(--line);
   border-radius: 18px;
-  background: var(--panel);
+  /* Непрозрачный: var(--panel) с альфой 0.92 пропускал фон страницы, и левая
+     колонка на красном краю выходила теплее правой на фиолетовом. */
+  background: #121a25;
 }
 
 .zpCheck__cap {
@@ -417,6 +419,26 @@
 .zpAvg { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 5 5; opacity: 0.55; }
 .zpAvgNum { fill: var(--muted); font-size: 11px; text-anchor: end; font-variant-numeric: tabular-nums; }
 .zpLeg text { fill: var(--muted); font-size: 11px; dominant-baseline: middle; }
+
+/* Наведение: прозрачные столбцы ловят мышь, точка под курсором подсвечивается. */
+.zpHit { fill: transparent; cursor: crosshair; }
+.zpHit:hover { fill: rgba(255, 255, 255, 0.04); }
+.zpWork__plot { position: relative; }
+.zpTip {
+  position: absolute;
+  transform: translate(-50%, calc(-100% - 26px));
+  display: none;
+  padding: 7px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: #0f1620;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.zpTip[data-on] { display: block; }
+.zpTip b { font-size: 15px; font-variant-numeric: tabular-nums; }
+.zpTip span { margin-left: 7px; color: var(--muted); font-size: 12px; }
+.zpTip i { display: block; margin-top: 2px; color: #6ea8ff; font-size: 11.5px; font-style: normal; }
 .zpNum {
   fill: var(--text);
   font-size: 12px;
@@ -424,6 +446,7 @@
   text-anchor: middle;
   font-variant-numeric: tabular-nums;
 }
+.zpNum--melko { font-size: 11px; }
 .zpAx { fill: var(--muted); font-size: 11px; text-anchor: middle; }
 
 .zpWork__itog {
