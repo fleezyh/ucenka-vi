@@ -687,6 +687,130 @@
     return box;
   }
 
+  // --- Бэклог: где именно он лежит -------------------------------------------
+  // У бэклога, в отличие от остальных плиток, под числом есть физический
+  // адрес: шестнадцать зон, контейнеры и акты приёмки. Разворот показывает
+  // разрез по зонам, даёт скачать детализацию по каждому акту и объясняет
+  // периметр — какие зоны берём и какие контейнеры считаем.
+  // Данные готовит task_backlog.py тем же прогоном, что и само число.
+
+  let backlogData = null;      // null — ещё не спрашивали, false — не вышло
+
+  /** Штуки, sku и контейнеры — всегда целые: niceNumber показал бы «4,0». */
+  const shtuki = (value) => Math.round(Number(value) || 0).toLocaleString("ru-RU");
+
+  async function backlogPull() {
+    if (backlogData !== null) return backlogData;
+    try {
+      const answer = await fetch("../data/backlog.json", { cache: "no-store" });
+      backlogData = answer.ok ? await answer.json() : false;
+    } catch { backlogData = false; }
+    return backlogData;
+  }
+
+  function backlogZoneRow(zone, data, table) {
+    const istoriya = data.история || [];
+    const pervyy = istoriya[0];
+    const vsego = data.штук || 1;
+    const bylo = pervyy ? (pervyy.по_зонам.find((z) => z.зона === zone.зона)?.штук ?? null) : null;
+    const change = bylo === null ? null : zone.штук - bylo;
+
+    const row = document.createElement("tr");
+    row.className = "zones__row";
+    const znak = change === null ? "" : change > 0 ? "up" : change < 0 ? "down" : "flat";
+    row.innerHTML = `<td>${zone.зона}</td>`
+      + `<td class="zones__num">${shtuki(zone.штук)}</td>`
+      + `<td class="zones__num">${Math.round((zone.штук / vsego) * 100)}%</td>`
+      + `<td class="zones__num">${shtuki(zone.sku)}</td>`
+      + `<td class="zones__num">${shtuki(zone.контейнеров)}</td>`
+      + `<td class="zones__num zones__${znak}">`
+      + (change === null ? "—"
+         : change === 0 ? "не двигалась"
+         : `${change > 0 ? "+" : "−"}${shtuki(Math.abs(change))}`)
+      + "</td>";
+
+    // Клик разворачивает ряд по дням: видно, зона копится или стоит.
+    const podrobno = document.createElement("tr");
+    podrobno.className = "zones__days";
+    podrobno.hidden = true;
+    const cell = document.createElement("td");
+    cell.colSpan = 6;
+    cell.textContent = istoriya
+      .map((den) => `${dayLabel(den.день)} ${shtuki(den.по_зонам.find((z) => z.зона === zone.зона)?.штук || 0)}`)
+      .join("  ·  ");
+    podrobno.append(cell);
+
+    row.addEventListener("click", (event) => {
+      event.stopPropagation();
+      podrobno.hidden = !podrobno.hidden;
+      row.classList.toggle("is-open", !podrobno.hidden);
+    });
+    table.append(row, podrobno);
+  }
+
+  function backlogBlock() {
+    const box = document.createElement("section");
+    box.className = "how zones";
+    const title = document.createElement("h4");
+    title.className = "how__title";
+    title.textContent = "Где лежит";
+    const lead = document.createElement("p");
+    lead.className = "how__lead";
+    lead.textContent = "собираю разрез по зонам…";
+    box.append(title, lead);
+
+    backlogPull().then((data) => {
+      if (!data || !data.по_зонам?.length) { box.remove(); return; }
+
+      const istoriya = data.история || [];
+      const pervyy = istoriya[0];
+      const rost = pervyy ? data.штук - pervyy.штук : null;
+      lead.textContent = `${shtuki(data.штук)} штук по ${data.по_зонам.length} зонам, `
+        + `${shtuki(data.актов)} актов приёмки`
+        + (rost === null ? ""
+           : ` · за ${istoriya.length} дней ${rost >= 0 ? "прибавилось" : "ушло"} `
+             + `${shtuki(Math.abs(rost))} штук`);
+
+      const table = document.createElement("table");
+      table.className = "zones__table";
+      table.innerHTML = "<thead><tr><th>Зона</th><th>Штук</th><th>Доля</th><th>SKU</th>"
+        + "<th>Контейнеров</th><th>За период</th></tr></thead>";
+      const body = document.createElement("tbody");
+      data.по_зонам.forEach((zone) => backlogZoneRow(zone, data, body));
+      table.append(body);
+
+      const wrap = document.createElement("div");
+      wrap.className = "zones__wrap";
+      wrap.append(table);
+
+      const hint = document.createElement("p");
+      hint.className = "how__caveat";
+      hint.textContent = "Щёлкните по зоне — покажет её по дням. "
+        + "Прошлые дни восстановлены по движениям, дальше история копится сама.";
+
+      const save = document.createElement("a");
+      save.className = "zones__save";
+      save.href = "../data/backlog-podrobno.csv";
+      save.setAttribute("download", "");
+      save.innerHTML = `<b>Скачать детально</b>`
+        + `<small>${shtuki(data.строк_в_выгрузке)} строк: акт, товар, дефект, `
+        + `себестоимость, РРЦ, контейнер, ячейка, зона</small>`;
+
+      const period = document.createElement("details");
+      period.className = "zones__method";
+      const m = data.методика || {};
+      period.innerHTML = "<summary>Какие зоны и контейнеры считаем</summary>"
+        + `<div class="zones__list">${(m.зоны || []).map((z) => `<span>${z}</span>`).join("")}</div>`
+        + (m["как отбираем"] || []).map((p) => `<p>${p}</p>`).join("")
+        + (m.история ? `<p>${m.история}</p>` : "");
+      period.addEventListener("click", (event) => event.stopPropagation());
+
+      box.append(wrap, hint, save, period);
+    });
+
+    return box;
+  }
+
   // --- Цель прямо у плитки ---------------------------------------------------
   // Раньше цель правилась только в книге или в админке: увидел на плитке, что
   // цель не та, — иди в другое место и ищи строку среди двух сотен. Теперь она
@@ -1103,6 +1227,7 @@
       bare.append(bareHead);
       const how = methodBlock(metricKey);
       if (how) bare.append(how);
+      if (metricKey === "backlog") bare.append(backlogBlock());
       const bareGoal = goalBox(metricKey);
       if (bareGoal) bare.append(bareGoal);
       if (metricKey === "finres_pct") {
@@ -1295,6 +1420,7 @@
     box.append(head, plot, axis, facts);
     const how = methodBlock(metricKey);
     if (how) box.append(how);
+    if (metricKey === "backlog") box.append(backlogBlock());
     const goal = goalBox(metricKey);
     if (goal) box.append(goal);
     if (metricKey === "finres_pct") {

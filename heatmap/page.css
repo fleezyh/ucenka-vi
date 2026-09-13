@@ -389,6 +389,66 @@ body[data-mode="heatmap"] .shell {
 
 .how__caveat { margin: 8px 0 0; color: var(--muted); font-size: 12.5px; line-height: 1.5; }
 
+/* Разрез бэклога по зонам — только в развороте одноимённой плитки. Таблица,
+   а не карточки: сравнивают шестнадцать строк по пяти числам, и глазу нужны
+   ровные колонки. Щелчок по строке разворачивает зону по дням. */
+.zones__wrap { margin-top: 10px; overflow-x: auto; }
+.zones__table { width: 100%; min-width: 560px; border-collapse: collapse; font-size: 13px; }
+.zones__table th {
+  padding: 6px 9px;
+  color: var(--muted);
+  font: 500 11.5px var(--ui);
+  text-align: right;
+  border-bottom: 1px solid var(--line);
+}
+.zones__table th:first-child { text-align: left; }
+.zones__table td { padding: 7px 9px; text-align: right; white-space: nowrap; }
+.zones__table td:first-child { text-align: left; white-space: normal; min-width: 180px; }
+.zones__num { font-variant-numeric: tabular-nums; }
+.zones__row { cursor: pointer; border-bottom: 1px solid rgba(38, 51, 69, 0.5); }
+.zones__row:hover { background: rgba(77, 141, 247, 0.09); }
+.zones__row.is-open { background: rgba(77, 141, 247, 0.14); }
+.zones__up { color: var(--red); }
+.zones__down { color: var(--green); }
+.zones__flat { color: var(--muted); }
+.zones__days td {
+  padding: 4px 9px 10px;
+  color: var(--muted);
+  font-size: 11.5px;
+  line-height: 1.7;
+  text-align: left;
+  white-space: normal;
+}
+
+/* Выгрузка по актам: ссылка ведёт на .csv, а файл на диске сжат — nginx
+   подставляет .gz, браузер распаковывает сам. */
+.zones__save {
+  display: grid;
+  gap: 2px;
+  margin-top: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  color: var(--text);
+  text-decoration: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+.zones__save:hover { border-color: var(--blue); background: rgba(77, 141, 247, 0.12); }
+.zones__save b { font-size: 13.5px; font-weight: 600; }
+.zones__save small { color: var(--muted); font-size: 11.5px; }
+
+.zones__method { margin-top: 12px; }
+.zones__method summary { color: var(--muted); font-size: 12.5px; cursor: pointer; }
+.zones__method p { margin: 8px 0 0; color: var(--muted); font-size: 12.5px; line-height: 1.55; }
+.zones__list { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 9px; }
+.zones__list span {
+  padding: 3px 8px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
 /* Панель без графика: методика в ней единственное содержимое, линия сверху
    ни от чего не отделяет. */
 .daily--bare .how { margin-top: 0; padding-top: 0; border-top: 0; }
