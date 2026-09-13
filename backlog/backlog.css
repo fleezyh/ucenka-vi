@@ -1,0 +1,142 @@
+/* Бэклог фильтра брака: история по дням, разрез по зонам и детальная выгрузка.
+   Раскладка та же, что в остальных разделах, — своё здесь только график и
+   таблица зон. Размеры заголовков берутся из site-header.css. */
+
+.heroBacklog {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 22px;
+  margin-bottom: 26px;
+}
+
+.heroBacklog h1 {
+  margin: 6px 0 8px;
+  font-size: clamp(40px, 6vw, 66px);
+  line-height: 0.98;
+  letter-spacing: -0.03em;
+}
+
+.heroBacklog .lead { margin: 0; max-width: 62ch; color: var(--muted); font-size: 15px; }
+
+.heroSide { display: grid; gap: 9px; justify-items: end; }
+
+.downloadBtn {
+  display: grid;
+  gap: 2px;
+  padding: 11px 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: var(--panel-soft);
+  color: var(--text);
+  text-decoration: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.downloadBtn:hover { border-color: var(--blue); background: rgba(77, 141, 247, 0.12); }
+.downloadBtn span { font-weight: 600; font-size: 14px; }
+.downloadBtn small { color: var(--muted); font-size: 12px; }
+
+/* Сводка. Четыре числа в ряд, на телефоне — по два. */
+.summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.summaryCard {
+  min-width: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+}
+
+.summaryCard b { display: block; font-size: 26px; font-weight: 600; letter-spacing: -0.02em; }
+.summaryCard span { display: block; margin-top: 3px; color: var(--muted); font-size: 12.5px; }
+.summaryCard--up b { color: var(--red); }
+.summaryCard--down b { color: var(--green); }
+
+.panel {
+  margin-bottom: 18px;
+  padding: 18px 20px 20px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--panel);
+}
+
+.panelHead { margin-bottom: 14px; }
+.panelHead h2 { margin: 0; font-size: 17px; font-weight: 600; }
+.panelDay { color: var(--muted); font-weight: 500; }
+.panelNote { margin: 5px 0 0; color: var(--muted); font-size: 12.5px; max-width: 78ch; }
+
+/* График истории: столбик на день, щелчок переключает таблицу зон. */
+.chartWrap { overflow-x: auto; }
+.chart { display: flex; align-items: flex-end; gap: 6px; min-width: 520px; height: 210px; }
+
+.day {
+  display: grid;
+  align-content: end;
+  gap: 6px;
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 11px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.day i {
+  display: block;
+  border-radius: 5px 5px 0 0;
+  background: linear-gradient(180deg, var(--blue) 0%, var(--blue-deep) 100%);
+  opacity: 0.68;
+  transition: opacity 0.12s;
+}
+
+.day:hover i { opacity: 0.9; }
+.day[aria-pressed="true"] i { opacity: 1; box-shadow: 0 0 0 1px var(--blue) inset; }
+.day[aria-pressed="true"] { color: var(--text); }
+.day b { font-weight: 600; font-size: 11.5px; color: var(--text); }
+.day em { font-style: normal; white-space: nowrap; }
+
+/* Таблица зон. */
+.tableWrap { overflow-x: auto; }
+.zones { width: 100%; min-width: 560px; border-collapse: collapse; font-size: 13.5px; }
+.zones th, .zones td { padding: 8px 10px; text-align: right; white-space: nowrap; }
+.zones th { color: var(--muted); font-weight: 500; font-size: 12px; border-bottom: 1px solid var(--line); }
+.zones th:first-child, .zones td:first-child { text-align: left; white-space: normal; min-width: 190px; }
+.zones tbody tr { border-bottom: 1px solid rgba(38, 51, 69, 0.55); cursor: pointer; }
+.zones tbody tr:hover { background: rgba(77, 141, 247, 0.08); }
+.zones tbody tr.is-open { background: rgba(77, 141, 247, 0.12); }
+.zones tfoot td { padding-top: 11px; font-weight: 600; border-top: 1px solid var(--line-strong); }
+.zones .num { font-variant-numeric: tabular-nums; }
+.zones .up { color: var(--red); }
+.zones .down { color: var(--green); }
+.zones .zero { color: var(--muted); }
+
+.share { display: block; height: 4px; margin-top: 5px; border-radius: 2px; background: rgba(77, 141, 247, 0.9); }
+
+.method { display: grid; gap: 12px; }
+.method p { margin: 0; color: var(--muted); font-size: 13.5px; line-height: 1.55; max-width: 96ch; }
+.method h3 { margin: 4px 0 0; font-size: 13px; font-weight: 600; color: var(--text); }
+.methodZones { display: flex; flex-wrap: wrap; gap: 6px; }
+.methodZones span {
+  padding: 4px 9px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+@media (max-width: 700px) {
+  .heroBacklog { grid-template-columns: minmax(0, 1fr); }
+  .heroSide { justify-items: start; }
+  .panel { padding: 15px 14px 16px; }
+  .summaryCard b { font-size: 22px; }
+}

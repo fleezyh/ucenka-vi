@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0a1018">
+  <title>Уценка · Бэклог фильтра брака</title>
+  <link rel="icon" type="image/svg+xml" href="../assets/brand/vi-mark.svg">
+  <link rel="preload" href="../assets/fonts/VI_Sans_Regular.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="../style.css?v=20260911-3">
+  <link rel="stylesheet" href="backlog.css?v=20260913-1">
+  <link rel="stylesheet" href="../reeded-bg.css?v=20260907-6">
+  <link rel="stylesheet" href="../site-header.css?v=20260909-7">
+  <script src="../reeded-bg.js?v=20260906-7" defer></script>
+  <script src="backlog.js?v=20260913-1" defer></script>
+  <script src="../nav.js?v=20260911-5" defer></script>
+</head>
+<body data-mode="backlog">
+  <main class="shell">
+    <header class="topbar">
+      <a class="brand" href="../" aria-label="Уценка — главная">
+        <img class="brand__mark" src="../assets/brand/vi-mark.svg" alt="" width="36" height="36">
+        <span>Уценка</span>
+      </a>
+      <nav class="siteNav" aria-label="Разделы сайта">
+        <span class="navGroup">
+          <span class="navGroup__label">Уценка</span>
+          <a class="navLink" href="../antigen/">Антигенерация</a>
+          <a class="navLink" href="../heatmap/">Хитмап</a>
+          <a class="navLink" href="../backlog/" aria-current="page">Бэклог</a>
+          <a class="navLink" href="../sales/">Продажи</a>
+          <a class="navLink" href="../perf/">Производительность</a>
+        </span>
+        <span class="navGroup">
+          <span class="navGroup__label">Инструменты</span>
+          <a class="navLink" href="../picker/">Пикалка</a>
+        </span>
+      </nav>
+    </header>
+
+    <section class="heroBacklog">
+      <div>
+        <p class="eyebrow">Фильтр брака</p>
+        <h1>Бэклог</h1>
+        <p class="lead">Сколько товара лежит в зонах фильтра брака и ждёт разбора. Уровень, а не поток: дни складывать нельзя, их сравнивают между собой.</p>
+      </div>
+      <div class="heroSide">
+        <a class="downloadBtn" id="download" href="../data/backlog-podrobno.csv" download>
+          <span>Скачать детально</span>
+          <small id="download-note">строка на акт и товар</small>
+        </a>
+        <p class="stamp" id="stamp"></p>
+      </div>
+    </section>
+
+    <p class="message" id="message">Загружаю бэклог…</p>
+
+    <section class="summary" id="summary" hidden></section>
+
+    <section class="panel" id="history-panel" hidden>
+      <div class="panelHead">
+        <h2>История: как менялся за <span id="history-days">20</span> дней</h2>
+        <p class="panelNote" id="history-note"></p>
+      </div>
+      <div class="chartWrap"><div id="chart"></div></div>
+    </section>
+
+    <section class="panel" id="zones-panel" hidden>
+      <div class="panelHead">
+        <h2>По зонам <span class="panelDay" id="zones-day"></span></h2>
+        <p class="panelNote">Колонка «за период» — сколько прибавилось или ушло с первого дня истории. Щёлкните по зоне, чтобы увидеть её на графике.</p>
+      </div>
+      <div class="tableWrap"><table class="zones" id="zones"></table></div>
+    </section>
+
+    <section class="panel" id="method-panel" hidden>
+      <div class="panelHead"><h2>Что именно считается</h2></div>
+      <div class="method" id="method"></div>
+    </section>
+  </main>
+</body>
+</html>
