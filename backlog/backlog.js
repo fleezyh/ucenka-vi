@@ -90,8 +90,11 @@
     const max = Math.max(...znacheniya, 1);
     const min = Math.min(...znacheniya);
     // Шкала от нуля врёт: рост со 134 до 155 тысяч выглядел бы ровной полкой.
-    // Отталкиваемся от минимума, оставляя ему четверть высоты.
-    const niz = min - (max - min) * 0.35 || 0;
+    // Отталкиваемся от минимума, оставляя ему треть высоты. Но если значение
+    // за все дни не двинулось — считаем от нуля, иначе неподвижная зона
+    // схлопывается в ниточки и выглядит пустой, хотя там тридцать шесть тысяч.
+    const razmah = max - min;
+    const niz = razmah ? min - razmah * 0.35 : 0;
 
     const chart = document.createElement("div");
     chart.className = "chart";
@@ -102,7 +105,12 @@
       knopka.type = "button";
       knopka.className = "day";
       knopka.setAttribute("aria-pressed", String(d.день === vybrannyDen));
-      knopka.innerHTML = `<b>${count(znachenie)}</b><i style="height:${vysota}px"></i>`
+      // Подпись числа — только у краёв и выбранного дня: двадцать
+      // шестизначных чисел подряд налезают друг на друга и не читаются.
+      // Остальные показываются при наведении и по щелчку.
+      const vidno = i === 0 || i === dni.length - 1 || d.день === vybrannyDen;
+      knopka.innerHTML = `<b>${vidno ? count(znachenie) : "&nbsp;"}</b>`
+        + `<i style="height:${vysota}px"></i>`
         + `<em>${korotkiyDen(d.день)}</em>`;
       knopka.title = `${denPodpis(d.день)}: ${count(znachenie)} шт`;
       knopka.addEventListener("click", () => {
