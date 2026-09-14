@@ -1308,11 +1308,13 @@
     const table = document.createElement('div');
     table.className = 'agTable';
     const label = contour.dims.find((d) => d.key === state.drillDim).label;
+    const shortMeasure = measure.kind === 'money' ? 'сумма' : (measure.kind === 'int' ? 'кол-во' : measure.label);
     const header = document.createElement('div');
     header.className = 'agRow agRow--head';
     header.innerHTML = `<span></span><span class="agRow__name">${label} · ${rows.length}</span>`
       + '<span class="agRow__bar"></span>'
-      + `<span class="agRow__val">${measure.label}</span>`
+      + `<span class="agRow__val"><span class="agDesktopOnly">${measure.label}</span>`
+      + `<span class="agMobileOnly">${shortMeasure}</span></span>`
       + `<span class="agRow__delta">${current ? 'к медиане' : 'доля'}</span>`
       + '<span></span>';
     table.appendChild(header);
@@ -1799,6 +1801,8 @@
     const points = months.map((month) => ({
       month,
       brak: byMonth.get(month).brak,
+      rub: byMonth.get(month).rub,
+      sold: sold[month] || 0,
       share: sold[month] ? (byMonth.get(month).rub / sold[month]) * 100 : 0,
     }));
     if (!points.length) { box.innerHTML = '<p class="agEmpty">Нет данных</p>'; return; }
@@ -1816,6 +1820,22 @@
     // Текущий месяц ещё идёт: без пометки его столбец читается как обвал.
     const now = new Date();
     const running = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const closed = points.filter((point) => point.month !== running);
+    const latest = closed[closed.length - 1] || points[points.length - 1];
+    const previous = closed.length > 1 ? closed[closed.length - 2] : null;
+    const latestMonth = MONTHS_SHORT[Number(latest.month.slice(5, 7)) - 1];
+    const deltaShare = previous ? latest.share - previous.share : null;
+    const totalRub = points.reduce((sum, point) => sum + point.rub, 0);
+    const totalSold = points.reduce((sum, point) => sum + point.sold, 0);
+    const averageShare = totalSold ? totalRub / totalSold * 100 : 0;
+    const deltaClass = deltaShare === null ? '' : (deltaShare > 0 ? 'up' : deltaShare < 0 ? 'down' : '');
+    const summary = '<div class="agTrendSummary">'
+      + `<div class="agTrendSummary__item"><small>последний закрытый · ${latestMonth}</small><b>${fmtInt(latest.brak)} шт</b></div>`
+      + `<div class="agTrendSummary__item"><small>доля возврата</small><b>${latest.share.toFixed(2).replace('.', ',')}%</b>`
+      + (deltaShare === null ? '' : `<em class="${deltaClass}">${deltaShare > 0 ? '+' : ''}${deltaShare.toFixed(2).replace('.', ',')} п.п. к прошлому месяцу</em>`)
+      + '</div>'
+      + `<div class="agTrendSummary__item"><small>средняя за окно</small><b>${averageShare.toFixed(2).replace('.', ',')}%</b></div>`
+      + '</div>';
     const bars = points.map((point, i) => {
       const height = (point.brak / peak) * innerH;
       const x = pad.left + step * i + (step - barW) / 2;
@@ -1839,7 +1859,7 @@
         + `y="${H - 8}" text-anchor="middle">${MONTHS_SHORT[Number(point.month.slice(5, 7)) - 1]}</text>`;
     }).join('');
 
-    box.innerHTML = `<svg class="agCSvg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">`
+    box.innerHTML = summary + `<svg class="agCSvg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">`
       + `<line class="agGrid" x1="${pad.left}" y1="${pad.top + innerH}" x2="${W - pad.right}" y2="${pad.top + innerH}"></line>`
       + bars
       + `<path class="agCLine" d="${line}"></path>${dots}`
@@ -1885,14 +1905,28 @@
   function clientTop(data, groups, company) {
     const box = el('agClientTop');
     const dim = CLIENT_DIMS.find((d) => d.key === state.client.dim);
-    el('agClientTopTitle').textContent = `Кто тянет вниз — ${dim ? dim.label : ''}`;
+    const dimLabel = dim ? dim.label : 'разрезу';
+    el('agClientTopTitle').innerHTML = `<strong>Декомпозиция по: ${escape(dimLabel)}</strong>`
+      + '<span>Объём возвратов и доля возвращённых рублей от продаж каждой строки</span>';
     const top = [...groups]
       .sort((a, b) => clientKindValue(b) - clientKindValue(a))
       .slice(0, 10);
     if (!top.length) { box.innerHTML = '<p class="agEmpty">Нет данных</p>'; return; }
 
     const peak = Math.max(...top.map(clientKindValue), 1);
-    box.innerHTML = top.map((item) => {
+    const total = groups.reduce((sum, item) => sum + clientKindValue(item), 0) || 1;
+    const top3Share = top.slice(0, 3).reduce((sum, item) => sum + clientKindValue(item), 0) / total * 100;
+    const riskiest = [...groups]
+      .filter((item) => item.soldFullRub > 0)
+      .sort((a, b) => (b.rub / b.soldFullRub) - (a.rub / a.soldFullRub))[0];
+    const riskShare = riskiest ? riskiest.rub / riskiest.soldFullRub * 100 : null;
+    const insight = '<div class="agClientInsight">'
+      + `<div class="agClientInsight__item"><small>топ‑3 дают</small><b>${top3Share.toFixed(0)}% возвратов</b></div>`
+      + `<div class="agClientInsight__item"><small>больше всего возвратов</small><b>${escape(top[0].name)}</b></div>`
+      + (riskiest ? `<div class="agClientInsight__item"><small>самая высокая доля</small><b>${escape(riskiest.name)} · ${riskShare.toFixed(2).replace('.', ',')}%</b></div>` : '')
+      + '</div>';
+    const rowHead = '<div class="agCRowHead"><span>строка</span><span class="agCRowHead__bar"></span><span>возвраты</span><span>доля ₽</span></div>';
+    box.innerHTML = insight + rowHead + top.map((item) => {
       const value = clientKindValue(item);
       const share = item.soldFullRub ? (item.rub / item.soldFullRub) * 100 : null;
       const heat = share === null ? '' : (share >= 1 ? ' is-hot' : share >= 0.3 ? ' is-warm' : '');

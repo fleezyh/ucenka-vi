@@ -496,6 +496,7 @@ body[data-mode="antigen"] .shell {
 .agRow--head { cursor: default; font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); background: none; }
 .agRow--head:hover { border-color: transparent; }
 .agRow--head .agRow__val, .agRow--head .agRow__delta { font-weight: 500; font-size: 11.5px; }
+.agMobileOnly { display: none; }
 
 /* Минус у строки: вычесть её из общего числа и посмотреть, что останется.
    Держим тихим — это не основное действие, основное здесь провалиться. */
@@ -572,6 +573,12 @@ body[data-mode="antigen"] .shell {
   .agRow__val { font-size: 14px; }
   .agRow__delta { font-size: 12px; }
   .agRow__minus { width: 22px; height: 22px; font-size: 15px; }
+  .agRow--head { letter-spacing: .04em; }
+  .agRow--head .agRow__name,
+  .agRow--head .agRow__val,
+  .agRow--head .agRow__delta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .agDesktopOnly { display: none; }
+  .agMobileOnly { display: inline; }
 }
 
 /* Отметка о данных и «Старая версия» стоят внизу страницы, перед подписью, —
@@ -748,6 +755,8 @@ body[data-mode="antigen"] .shell {
   color: var(--muted);
   font-size: 12px;
 }
+.agClientChart figcaption strong { display: block; color: var(--text); font-size: 14px; font-weight: 600; }
+.agClientChart figcaption span { display: block; margin-top: 3px; line-height: 1.4; }
 .agCSvg { display: block; width: 100%; height: auto; overflow: visible; }
 .agCBar { fill: rgba(77, 141, 247, .55); }
 .agCBar:hover { fill: rgba(77, 141, 247, .85); }
@@ -760,6 +769,39 @@ body[data-mode="antigen"] .shell {
 .agLegend { width: 12px; height: 3px; border-radius: 2px; }
 .agLegend--bar { height: 9px; background: rgba(77, 141, 247, .7); }
 .agLegend--line { margin-left: 10px; background: var(--amber); }
+
+.agTrendSummary,
+.agClientInsight {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.agTrendSummary__item,
+.agClientInsight__item {
+  min-width: 0;
+  padding: 9px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .035);
+}
+.agTrendSummary small,
+.agClientInsight small { display: block; color: var(--muted); font-size: 10px; line-height: 1.25; }
+.agTrendSummary b,
+.agClientInsight b { display: block; margin-top: 3px; color: var(--text); font-size: 13px; font-weight: 600; line-height: 1.25; }
+.agTrendSummary em { display: block; margin-top: 2px; color: var(--muted); font-size: 10.5px; font-style: normal; }
+.agTrendSummary em.up { color: var(--red); }
+.agTrendSummary em.down { color: var(--green); }
+.agCRowHead {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 110px 62px 62px;
+  gap: 10px;
+  padding: 2px 8px 4px;
+  color: var(--muted);
+  font-size: 10px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.agCRowHead span:nth-last-child(-n+2) { text-align: right; }
 
 /* Полосы топа: имя, длина по объёму, доля справа. */
 .agCRow {
@@ -799,6 +841,8 @@ body[data-mode="antigen"] .shell {
   .agClientCharts { grid-template-columns: minmax(0, 1fr); }
   .agCRow { grid-template-columns: minmax(0, 1fr) 70px 52px; }
   .agCRow__bar { display: none; }
+  .agCRowHead { grid-template-columns: minmax(0, 1fr) 70px 52px; }
+  .agCRowHead__bar { display: none; }
 }
 /* Незакрытый месяц: тот же столбец, но видно, что он ещё наберёт. */
 .agCBar--partial { fill: rgba(77, 141, 247, .26); stroke: rgba(77, 141, 247, .55); stroke-dasharray: 3 3; }
@@ -807,6 +851,28 @@ body[data-mode="antigen"] .shell {
 /* Свёрнутая методология: display у прямого потомка details ломает штатное
    скрытие, поэтому прячем сами. */
 .agMethod:not([open]) .agMethod__grid { display: none; }
+
+@media (max-width: 560px) {
+  .agPanel { padding: 14px 12px 16px; }
+  .agClientBar { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .agClientBar .agSeg { width: 100%; }
+  .agClientBar .agSeg button { flex: 1 0 auto; }
+  .agClientField { display: grid; grid-template-columns: 74px minmax(0, 1fr) auto; width: 100%; }
+  .agClientField input,
+  .agClientField--wide input { box-sizing: border-box; width: 100%; min-width: 0; }
+  .agClientTotals { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .agClientTotals .agFact { min-width: 0; }
+  .agClientTotals .agFact:last-child:nth-child(odd) { grid-column: 1 / -1; }
+  .agClientTotals .agFact b { font-size: 17px; overflow-wrap: anywhere; }
+  .agClientChart { padding: 12px 10px 10px; }
+  .agTrendSummary,
+  .agClientInsight { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .agTrendSummary__item,
+  .agClientInsight__item { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; gap: 4px 10px; padding: 8px 10px; }
+  .agTrendSummary__item em { grid-column: 1 / -1; }
+  .agClientLegend { flex-wrap: wrap; line-height: 1.3; }
+  .agClientLegend__note { flex-basis: 100%; margin-left: 20px; }
+}
 
 /* Крошки провала на вкладке клиентского брака: разрез мелким, значение —
    основным, крестик у последней подсказывает, что она снимается. */

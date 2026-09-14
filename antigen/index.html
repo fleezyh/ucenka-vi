@@ -8,13 +8,13 @@
   <link rel="icon" type="image/svg+xml" href="../assets/brand/vi-mark.svg">
   <link rel="preload" href="../assets/fonts/VI_Sans_Regular.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="../style.css?v=20260911-3">
-  <link rel="stylesheet" href="antigen.css?v=20260914-10">
+  <link rel="stylesheet" href="antigen.css?v=20260914-11">
   <link rel="stylesheet" href="../reeded-bg.css?v=20260907-6">
   <link rel="stylesheet" href="../site-header.css?v=20260914-2">
   <link rel="stylesheet" href="../section-assistant.css?v=20260910-2">
   <link rel="stylesheet" href="../news-feed.css?v=20260911-1">
   <script src="../reeded-bg.js?v=20260906-7" defer></script>
-  <script src="antigen.js?v=20260914-9" defer></script>
+  <script src="antigen.js?v=20260914-10" defer></script>
   <script src="../nav.js?v=20260914-1" defer></script>
   <script src="../news-feed.js?v=20260911-1" defer></script>
 </head>
@@ -198,17 +198,23 @@
 
       <div class="agClientCharts">
         <figure class="agClientChart">
-          <figcaption>Помесячно: сколько вернули и какая это доля продаж</figcaption>
+          <figcaption>
+            <strong>Динамика возвратов</strong>
+            <span>Столбцы — количество, линия — доля возврата в рублях от продаж</span>
+          </figcaption>
           <div id="agClientTrend"></div>
         </figure>
         <figure class="agClientChart">
-          <figcaption id="agClientTopTitle">Кто тянет вниз</figcaption>
+          <figcaption id="agClientTopTitle"><strong>Декомпозиция</strong></figcaption>
           <div id="agClientTop"></div>
         </figure>
       </div>
 
       <figure class="agClientChart agClientChart--wide">
-        <figcaption>Карта решения: продажи против доли возвратов, размер точки — деньги возврата; клик проваливает в неё</figcaption>
+        <figcaption>
+          <strong>Карта приоритетов</strong>
+          <span>Правее — больше продаж, выше — выше доля возвратов, крупнее точка — больше денег возвращено</span>
+        </figcaption>
         <div id="agClientMap"></div>
       </figure>
 
