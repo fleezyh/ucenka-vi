@@ -1807,11 +1807,14 @@
     }));
     if (!points.length) { box.innerHTML = '<p class="agEmpty">Нет данных</p>'; return; }
 
-    const W = Math.max(420, Math.round(box.clientWidth || 560));
-    const H = 240;
-    const pad = { top: 22, right: 46, bottom: 28, left: 52 };
+    const W = Math.max(340, Math.round(box.clientWidth || 560));
+    const H = 300;
+    const pad = { right: 18, left: 52 };
     const innerW = W - pad.left - pad.right;
-    const innerH = H - pad.top - pad.bottom;
+    const barTop = 28;
+    const barH = 82;
+    const lineTop = 158;
+    const lineH = 88;
     const peak = Math.max(...points.map((p) => p.brak), 1);
     const peakShare = Math.max(...points.map((p) => p.share), 0.1);
     const step = innerW / points.length;
@@ -1837,16 +1840,16 @@
       + `<div class="agTrendSummary__item"><small>средняя за окно</small><b>${averageShare.toFixed(2).replace('.', ',')}%</b></div>`
       + '</div>';
     const bars = points.map((point, i) => {
-      const height = (point.brak / peak) * innerH;
+      const height = (point.brak / peak) * barH;
       const x = pad.left + step * i + (step - barW) / 2;
       const partial = point.month === running ? ' agCBar--partial' : '';
-      return `<rect class="agCBar${partial}" x="${x.toFixed(1)}" y="${(pad.top + innerH - height).toFixed(1)}" `
+      return `<rect class="agCBar${partial}" x="${x.toFixed(1)}" y="${(barTop + barH - height).toFixed(1)}" `
         + `width="${barW.toFixed(1)}" height="${Math.max(1, height).toFixed(1)}" rx="3">`
         + `<title>${point.month}: ${fmtInt(point.brak)} возвратов, доля ${point.share.toFixed(2)}%`
         + `${partial ? ' — месяц ещё не закрыт' : ''}</title></rect>`;
     }).join('');
 
-    const lineY = (share) => pad.top + innerH - (share / peakShare) * innerH;
+    const lineY = (share) => lineTop + lineH - (share / peakShare) * lineH;
     const line = points.map((point, i) =>
       `${i ? 'L' : 'M'}${(pad.left + step * i + step / 2).toFixed(1)},${lineY(point.share).toFixed(1)}`).join(' ');
     const dots = points.map((point, i) =>
@@ -1859,19 +1862,24 @@
         + `y="${H - 8}" text-anchor="middle">${MONTHS_SHORT[Number(point.month.slice(5, 7)) - 1]}</text>`;
     }).join('');
 
+    const averageY = lineY(Math.min(averageShare, peakShare));
     box.innerHTML = summary + `<svg class="agCSvg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">`
-      + `<line class="agGrid" x1="${pad.left}" y1="${pad.top + innerH}" x2="${W - pad.right}" y2="${pad.top + innerH}"></line>`
+      + `<text class="agTrendLabel" x="${pad.left}" y="12">ВОЗВРАТЫ, ШТ</text>`
+      + `<line class="agGrid" x1="${pad.left}" y1="${barTop + barH}" x2="${W - pad.right}" y2="${barTop + barH}"></line>`
       + bars
+      + `<text class="agAxis" x="${pad.left - 8}" y="${barTop + 4}" text-anchor="end">${fmtInt(peak)}</text>`
+      + `<text class="agAxis" x="${pad.left - 8}" y="${barTop + barH + 3}" text-anchor="end">0</text>`
+      + `<text class="agTrendLabel" x="${pad.left}" y="${lineTop - 14}">ДОЛЯ ВОЗВРАТА ОТ ПРОДАЖ, %</text>`
+      + `<line class="agGrid" x1="${pad.left}" y1="${lineTop + lineH}" x2="${W - pad.right}" y2="${lineTop + lineH}"></line>`
+      + `<line class="agTrendAvg" x1="${pad.left}" y1="${averageY.toFixed(1)}" x2="${W - pad.right}" y2="${averageY.toFixed(1)}"></line>`
       + `<path class="agCLine" d="${line}"></path>${dots}`
-      + `<text class="agAxis" x="${pad.left - 8}" y="${pad.top + 4}" text-anchor="end">${fmtInt(peak)}</text>`
-      + `<text class="agAxis agAxis--share" x="${W - pad.right + 8}" y="${pad.top + 4}">${peakShare.toFixed(1)}%</text>`
+      + `<text class="agAxis agAxis--share" x="${pad.left - 8}" y="${lineTop + 4}" text-anchor="end">${peakShare.toFixed(1)}%</text>`
+      + `<text class="agAxis" x="${pad.left - 8}" y="${lineTop + lineH + 3}" text-anchor="end">0</text>`
+      + `<text class="agAxis agAxis--share" x="${W - pad.right}" y="${averageY - 5}" text-anchor="end">среднее ${averageShare.toFixed(2)}%</text>`
       + axis
       + '</svg>'
-      + '<p class="agClientLegend"><span class="agLegend agLegend--bar"></span>возвраты, шт'
-      + '<span class="agLegend agLegend--line"></span>доля от продаж, ₽'
       + (points.some((p) => p.month === running)
-        ? '<span class="agClientLegend__note">последний месяц не закрыт</span>' : '')
-      + '</p>';
+        ? '<p class="agClientLegend"><span class="agClientLegend__note">пунктирный столбец — месяц ещё не закрыт</span></p>' : '');
   }
 
   /** Продажи показанного среза по месяцам — знаменатель для линии доли. */
