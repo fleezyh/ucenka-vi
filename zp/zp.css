@@ -588,6 +588,29 @@
 .zpLimit__fot { padding-left: 12px; border-left: 2px solid rgba(245, 173, 50, .55); }
 .zpLimit__fot b { color: #f5ad32; }
 
+/* Форма подачи в 1С: два способа рядом, потому что пока не ясно, какой
+   приживётся. Слева приём выгрузки, справа своя сборка. */
+.zpForma { padding: 22px; margin-top: 14px; }
+.zpForma h2 { margin: 0; font-size: 17px; }
+.zpForma__note { margin: 6px 0 0; color: var(--muted); font-size: 12.5px; max-width: 80ch; }
+.zpForma__row { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; margin-top: 14px; }
+.zpForma__drop, .zpForma__save {
+  display: grid;
+  gap: 3px;
+  padding: 13px 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  color: var(--text);
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+}
+.zpForma__drop:hover, .zpForma__save:hover { border-color: var(--blue); background: rgba(77, 141, 247, .1); }
+.zpForma__drop b, .zpForma__save b { font-size: 14px; font-weight: 600; }
+.zpForma__drop small, .zpForma__save small { color: var(--muted); font-size: 11.5px; line-height: 1.45; }
+.zpForma__otvet { margin: 12px 0 0; color: var(--muted); font-size: 12.5px; line-height: 1.5; }
+.zpForma__otvet b { color: #f0917f; }
+
 /* Поле премии прямо в строке. */
 .zpPrem {
   width: 96px;

@@ -626,6 +626,28 @@ function tablica(data) {
     </nav>
 
     <div class="card zpLimit" id="limit"></div>
+
+    <!-- Подача в 1С. Два способа нарочно: какой приживётся, покажет практика.
+         Первый честнее — 1С отдаёт форму со своими GUID, мы её заполняем и
+         возвращаем. Второй быстрее — файл собирается у нас, но GUID берутся
+         из того, что мы уже видели. -->
+    <div class="card zpForma">
+      <h2>Форма подачи в 1С</h2>
+      <p class="zpForma__note">Заполняем оклад по факту выходов, ежемесячную премию и отработанные дни. Отпуска и больничные не трогаем — их считает 1С.</p>
+      <div class="zpForma__row">
+        <label class="zpForma__drop">
+          <input type="file" id="formaVhod" accept=".xls,.xlsx" hidden>
+          <b>Заполнить выгрузку из 1С</b>
+          <small>Нажмите «Заполнить» в 1С, скачайте файл и положите его сюда — вернём заполненным</small>
+        </label>
+        <a class="zpForma__save" id="formaSvoya" href="/__zp/forma" download>
+          <b>Скачать нашу форму</b>
+          <small>Собрана с нуля по нашим данным, с теми же колонками</small>
+        </a>
+      </div>
+      <p class="zpForma__otvet" id="formaOtvet" hidden></p>
+    </div>
+
     <div class="card zpOtdely" id="otdely"></div>
 
     <div class="card" style="padding:22px;margin-top:14px">
@@ -910,6 +932,43 @@ function tablica(data) {
     poisk.value = "";
     pokazat(vBaze(baza), "");
   });
+
+  /* Загрузка выгрузки из 1С: отдаём файл на сервер, получаем заполненный
+     обратно и показываем сводку сверки. Сводка важнее файла — по ней видно,
+     где наш расчёт разошёлся с тем, что стоит в форме. */
+  const formaVhod = blockTeam.querySelector("#formaVhod");
+  const formaOtvet = blockTeam.querySelector("#formaOtvet");
+  if (formaVhod) {
+    formaVhod.addEventListener("change", async () => {
+      const fayl = formaVhod.files && formaVhod.files[0];
+      if (!fayl) return;
+      formaOtvet.hidden = false;
+      formaOtvet.textContent = "Заполняю…";
+      const telo = new FormData();
+      telo.append("fayl", fayl);
+      try {
+        const otvet = await fetch("/__zp/forma", { method: "POST", body: telo });
+        if (!otvet.ok) throw new Error(await otvet.text());
+        const svodka = JSON.parse(otvet.headers.get("X-Svodka") || "{}");
+        const blob = await otvet.blob();
+        const ssylka = document.createElement("a");
+        ssylka.href = URL.createObjectURL(blob);
+        ssylka.download = "Заполнено " + fayl.name;
+        ssylka.click();
+        URL.revokeObjectURL(ssylka.href);
+        const razoshlis = (svodka["разошлись"] || []).length;
+        formaOtvet.innerHTML = `Готово: заполнено ${svodka["заполнено"]} строк из ${svodka["строк"]}.`
+          + (razoshlis ? ` <b>Разошлось с формой: ${razoshlis}</b> — `
+              + (svodka["разошлись"] || []).slice(0, 3)
+                  .map((r) => `${r["фио"]} ${rubli(r["в_форме"])} → ${rubli(r["у_нас"])}`).join("; ")
+            : " Всё сошлось.")
+          + (svodka["прогноз"] ? " Месяц ещё идёт — суммы проставлены прогнозом на полный месяц." : "");
+      } catch (oshibka) {
+        formaOtvet.textContent = "Не вышло: " + String(oshibka).slice(0, 200);
+      }
+      formaVhod.value = "";
+    });
+  }
 
   // Премия вводится прямо в строке: вбил — итог, прогноз и выгрузка сразу
   // пересчитались, ничего сохранять отдельно не надо.
