@@ -723,6 +723,52 @@
     return backlogData;
   }
 
+  /** Линия по дням для одной зоны: столбики с подписью на краях и максимуме. */
+  function zonaGrafik(istoriya, imya) {
+    const dni = istoriya.map((den) => ({
+      день: den.день,
+      штук: den.по_зонам.find((z) => z.зона === imya)?.штук || 0,
+    }));
+    const max = Math.max(...dni.map((d) => d.штук), 1);
+    const min = Math.min(...dni.map((d) => d.штук));
+    // Если зона за все дни не двинулась, считаем от нуля: иначе ровная полка
+    // схлопывается в ниточки и выглядит пустой.
+    const razmah = max - min;
+    const niz = razmah ? min - razmah * 0.4 : 0;
+
+    const box = document.createElement("div");
+    box.className = "zoneChart";
+    // Двадцать одна дата подряд не помещается — «25.0826.08» слипалось в одно
+    // слово. Подписываем каждую третью, крайние всегда; остальные видны при
+    // наведении.
+    const shag = dni.length > 14 ? 3 : dni.length > 8 ? 2 : 1;
+    dni.forEach((d, i) => {
+      const vysota = Math.max(3, Math.round(((d.штук - niz) / (max - niz || 1)) * 54));
+      const kray = i === 0 || i === dni.length - 1;
+      const stolb = document.createElement("span");
+      stolb.className = "zoneChart__day";
+      stolb.innerHTML = `<b>${kray ? shtuki(d.штук) : ""}</b>`
+        + `<i style="height:${vysota}px"></i>`
+        + `<em>${kray || i % shag === 0 ? dayLabel(d.день) : ""}</em>`;
+      stolb.title = `${dayLabel(d.день)} — ${shtuki(d.штук)} шт`;
+      box.appendChild(stolb);
+    });
+
+    const pervyy = dni[0]?.штук || 0;
+    const posledniy = dni[dni.length - 1]?.штук || 0;
+    const itog = document.createElement("p");
+    itog.className = "zoneChart__note";
+    itog.textContent = posledniy === pervyy
+      ? `за ${dni.length} дней не двигалась`
+      : `за ${dni.length} дней ${posledniy > pervyy ? "прибавилось" : "ушло"} `
+        + `${shtuki(Math.abs(posledniy - pervyy))} шт · размах `
+        + `${shtuki(min)} — ${shtuki(max)}`;
+
+    const wrap = document.createElement("div");
+    wrap.append(box, itog);
+    return wrap;
+  }
+
   function backlogZoneRow(zone, data, table) {
     const istoriya = data.история || [];
     const pervyy = istoriya[0];
@@ -744,15 +790,15 @@
          : `${change > 0 ? "+" : "−"}${shtuki(Math.abs(change))}`)
       + "</td>";
 
-    // Клик разворачивает ряд по дням: видно, зона копится или стоит.
+    // Клик разворачивает зону графиком по дням: строка из двадцати чисел
+    // подряд не читается — глазу нужна линия, чтобы увидеть, копится зона
+    // или стоит.
     const podrobno = document.createElement("tr");
     podrobno.className = "zones__days";
     podrobno.hidden = true;
     const cell = document.createElement("td");
     cell.colSpan = 6;
-    cell.textContent = istoriya
-      .map((den) => `${dayLabel(den.день)} ${shtuki(den.по_зонам.find((z) => z.зона === zone.зона)?.штук || 0)}`)
-      .join("  ·  ");
+    cell.append(zonaGrafik(istoriya, zone.зона));
     podrobno.append(cell);
 
     row.addEventListener("click", (event) => {
@@ -805,9 +851,9 @@
 
       const save = document.createElement("a");
       save.className = "zones__save";
-      save.href = "../data/backlog-podrobno.csv";
+      save.href = data.выгрузка?.ссылка || "../data/backlog-podrobno.xlsx";
       save.setAttribute("download", "");
-      save.innerHTML = `<b>Скачать детально</b>`
+      save.innerHTML = `<b>Скачать детально · Excel</b>`
         + `<small>${shtuki(data.строк_в_выгрузке)} строк: акт, товар, дефект, `
         + `себестоимость, РРЦ, контейнер, ячейка, зона</small>`;
 
