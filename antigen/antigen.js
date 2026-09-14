@@ -91,6 +91,12 @@
         { key: 'svyaz', label: 'связь с забраковкой' },
       ],
     },
+    {
+      // Пятый контур устроен иначе остальных: месяцы вместо недель, таблица
+      // вместо графика. Общая механика к нему не применяется — см. render().
+      key: 'client', name: 'Клиентский брак', note: 'что вернули покупатели — против продаж',
+      table: true, measures: [], dims: [],
+    },
   ];
 
   const PERIODS = [
@@ -130,6 +136,19 @@
     drillDim: null,
     heatDim: null,
     share: null,       // какая доля раскрыта в разбор
+    // Клиентский брак живёт своей жизнью: окно месяцами, свой разрез и свои
+    // фильтры. Держим отдельно, чтобы возврат к обычным контурам ничего здесь
+    // не сбрасывал.
+    client: {
+      window: 12,      // месяцев назад
+      kind: 'all',     // all | vozvrat | remont
+      dim: 'kat2',
+      sort: 'brak',
+      desc: true,
+      minSales: 50,
+      search: '',
+      path: [],        // провал: [{dim, value}]
+    },
   };
 
   const cache = new Map();
@@ -477,7 +496,9 @@
         button.dataset.key = contour.key;
         button.innerHTML = `<span class="agContour__name">${contour.name}</span>`
           + `<span class="agContour__note">${contour.note}</span>`
-          + `<span class="agContour__id">#${contour.chart}</span>`;
+          // Номер чарта есть не у всех: клиентский брак считается запросом в
+          // DWH, и в Superset его нет.
+          + (contour.chart ? `<span class="agContour__id">#${contour.chart}</span>` : '');
         button.addEventListener('click', () => switchContour(contour.key, []));
         box.appendChild(button);
       });
@@ -527,6 +548,9 @@
     if (key !== state.contour) pendingEnter = true;
     const contour = CONTOURS.find((c) => c.key === key);
     state.contour = key;
+    // У клиентского брака ни мер, ни разрезов общей механики нет — он живёт
+    // своим состоянием и рисуется отдельной панелью.
+    if (contour.table) { render(); return; }
     state.measure = contour.measures[0].key;
     state.filters = filters || [];
     // Исключения и поиск заданы разрезами прежнего контура — в новом их нет.
@@ -1461,9 +1485,374 @@
 
   // ---------------------------------------------------------------- сборка
 
+  /* ── Клиентский брак ───────────────────────────────────────────────────
+   *
+   * Отдельный контур с месячной осью: возврат приходит через недели после
+   * продажи, и на недельном шаге доля скачет так, что решать по ней нечего.
+   * Смотрят здесь не форму кривой, а строку — какой товар, категорию или
+   * бренд пора снимать с витрины.
+   */
+
+  const CLIENT_WINDOWS = [
+    { key: 3, label: '3 месяца' },
+    { key: 6, label: 'полгода' },
+    { key: 12, label: 'год' },
+  ];
+
+  const CLIENT_KINDS = [
+    { key: 'all', label: 'всё', measure: 'brak' },
+    { key: 'vozvrat', label: 'возврат товара', measure: 'vozvrat' },
+    { key: 'remont', label: 'сервис и ремонт', measure: 'remont' },
+  ];
+
+  const CLIENT_DIMS = [
+    { key: 'kat1', label: 'категория' },
+    { key: 'kat2', label: 'подкатегория' },
+    { key: 'kat3', label: 'группа' },
+    { key: 'brand', label: 'бренд' },
+    { key: 'supplier', label: 'поставщик' },
+    { key: 'tovar', label: 'товар' },
+  ];
+
+  let clientData = null;
+
+  async function loadClient() {
+    if (clientData) return clientData;
+    const meta = index.client;
+    if (!meta) return null;
+    const payload = await fetch(DATA_DIR + meta.file, { cache: 'no-cache' }).then((r) => r.json());
+    const dimAt = {};
+    payload.dims.forEach((name, i) => { dimAt[name] = i; });
+    const measureAt = {};
+    payload.measures.forEach((name, i) => { measureAt[name] = payload.dims.length + i; });
+    clientData = { ...payload, dimAt, measureAt };
+    return clientData;
+  }
+
+  /** Месяцы выбранного окна — от последнего, что есть в данных. */
+  function clientMonths(data) {
+    return data.months.slice(-state.client.window);
+  }
+
+  /** Строки окна с учётом провала и поиска. */
+  function clientRows(data) {
+    const months = new Set(clientMonths(data));
+    const words = state.client.search.trim().toLowerCase();
+    const path = state.client.path;
+    return data.rows.filter((row) => {
+      if (!months.has(data.labels.month[row[data.dimAt.month]])) return false;
+      for (const step of path) {
+        if (data.labels[step.dim][row[data.dimAt[step.dim]]] !== step.value) return false;
+      }
+      if (!words) return true;
+      const haystack = `${data.labels.tovar[row[data.dimAt.tovar]]} `
+        + `${data.labels.brand[row[data.dimAt.brand]]} `
+        + `${data.labels.supplier[row[data.dimAt.supplier]]} `
+        + `${data.labels.sku[row[data.dimAt.sku]]}`;
+      return haystack.toLowerCase().includes(words);
+    });
+  }
+
+  /** Свод по выбранному разрезу: возвраты, деньги и оба знаменателя. */
+  function clientGroups(data, rows) {
+    const dim = state.client.dim;
+    const at = data.dimAt[dim];
+    const groups = new Map();
+    for (const row of rows) {
+      const name = data.labels[dim][row[at]];
+      let item = groups.get(name);
+      if (!item) {
+        item = { name, brak: 0, vozvrat: 0, remont: 0, rub: 0, sold: 0, soldRub: 0,
+                 sku: new Set() };
+        groups.set(name, item);
+      }
+      item.brak += row[data.measureAt.brak];
+      item.vozvrat += row[data.measureAt.vozvrat];
+      item.remont += row[data.measureAt.remont];
+      item.rub += row[data.measureAt.brak_rub];
+      item.sold += row[data.measureAt.prod];
+      item.soldRub += row[data.measureAt.prod_rub];
+      item.sku.add(row[data.dimAt.sku]);
+    }
+
+    // Знаменатель для категорий, брендов и поставщиков берём полный — продажи
+    // всего разреза, а не только тех товаров, по которым был возврат. Иначе
+    // доля завышается в разы: товар без единой претензии продавался, но в
+    // расчёт бы не попал.
+    const months = clientMonths(data);
+    const full = data.sales && data.sales[dim];
+    for (const item of groups.values()) {
+      if (full && full[item.name]) {
+        let sold = 0;
+        let soldRub = 0;
+        for (const month of months) {
+          const cell = full[item.name][month];
+          // Рубли в файле лежат тысячами — разворачиваем сразу, чтобы дальше
+          // по коду везде были рубли и никто не делил разное на разное.
+          if (cell) { sold += cell[0]; soldRub += cell[1] * 1000; }
+        }
+        item.soldFull = sold;
+        item.soldFullRub = soldRub;
+      } else {
+        item.soldFull = item.sold;
+        item.soldFullRub = item.soldRub;
+      }
+    }
+    return [...groups.values()];
+  }
+
+  /** Продажи компании за окно — знаменатель «процента от всей компании». */
+  function clientCompany(data) {
+    let sht = 0;
+    let rub = 0;
+    for (const month of clientMonths(data)) {
+      const cell = data.company && data.company[month];
+      if (cell) { sht += cell[0]; rub += cell[1]; }
+    }
+    return { sht, rub };
+  }
+
+  const CLIENT_COLUMNS = [
+    { key: 'name', label: 'значение', kind: 'text' },
+    { key: 'brak', label: 'возвратов, шт', kind: 'int' },
+    { key: 'rub', label: '₽ возвращённого', kind: 'money' },
+    // Главная доля — денежная. В штуках категория «Электрика и свет» это
+    // полтора миллиарда лампочек, и любая доля там обращается в ноль; в
+    // деньгах разрыв между категориями видно сразу.
+    { key: 'shareRub', label: 'доля от продаж, ₽', kind: 'pct3',
+      hint: 'возвращено ₽ ÷ продано ₽ этого же разреза за окно' },
+    { key: 'share', label: 'доля от продаж, шт', kind: 'pct3',
+      hint: 'возвраты ÷ проданные штуки этого же разреза' },
+    { key: 'soldFull', label: 'продано, шт', kind: 'int' },
+    { key: 'skuCount', label: 'SKU', kind: 'int' },
+  ];
+
+  function clientValue(item, column, company) {
+    switch (column.key) {
+      case 'name': return item.name;
+      case 'brak': return clientKindValue(item);
+      case 'share': return item.soldFull ? (clientKindValue(item) / item.soldFull) * 100 : null;
+      // Знаменатель уже в рублях: тысячи развернули при чтении файла.
+      case 'shareRub': return item.soldFullRub
+        ? (item.rub / item.soldFullRub) * 100 : null;
+      case 'rub': return item.rub;
+      case 'soldFull': return item.soldFull;
+      case 'company': return company.sht ? (clientKindValue(item) / company.sht) * 100 : null;
+      case 'skuCount': return item.sku.size;
+      default: return null;
+    }
+  }
+
+  function clientKindValue(item) {
+    const kind = CLIENT_KINDS.find((k) => k.key === state.client.kind) || CLIENT_KINDS[0];
+    return item[kind.measure === 'brak' ? 'brak' : kind.measure];
+  }
+
+  function renderClient(data) {
+    const box = el('agClientTable');
+    const rows = clientRows(data);
+    const company = clientCompany(data);
+    const groups = clientGroups(data, rows);
+    const minSales = Number(state.client.minSales) || 0;
+
+    // Порог отсекает шум: одна продажа и один возврат — это 100%, но решать
+    // по такой строке нечего. Порог ноль возвращает всё, включая возвраты по
+    // давним продажам, — их видно по пометке в первой колонке.
+    const shown = groups.filter((item) => item.soldFull >= minSales
+      && clientKindValue(item) > 0);
+    const column = CLIENT_COLUMNS.find((c) => c.key === state.client.sort) || CLIENT_COLUMNS[1];
+    shown.sort((a, b) => {
+      const left = clientValue(a, column, company);
+      const right = clientValue(b, column, company);
+      if (typeof left === 'string' || typeof right === 'string') {
+        return String(left).localeCompare(String(right), 'ru') * (state.client.desc ? -1 : 1);
+      }
+      const l = left === null ? -1 : left;
+      const r = right === null ? -1 : right;
+      return (r - l) * (state.client.desc ? 1 : -1);
+    });
+
+    const limited = shown.slice(0, 200);
+    const head = CLIENT_COLUMNS.map((c) => {
+      const on = c.key === state.client.sort;
+      const mark = on ? (state.client.desc ? ' ↓' : ' ↑') : '';
+      return `<th data-sort="${c.key}" class="${on ? 'is-sorted' : ''}"`
+        + `${c.hint ? ` title="${escape(c.hint)}"` : ''}>${escape(c.label)}${mark}</th>`;
+    }).join('');
+
+    const body = limited.map((item) => {
+      const cells = CLIENT_COLUMNS.map((c) => {
+        const value = clientValue(item, c, company);
+        if (c.kind === 'text') {
+          const suspicious = item.soldFull > 0 && clientKindValue(item) > item.soldFull;
+          const note = suspicious
+            ? '<span class="agFlag" title="возвратов больше, чем продано за окно: скорее всего вернули товар давних продаж">возвраты старых продаж</span>'
+            : (item.soldFull === 0
+              ? '<span class="agFlag" title="за окно продаж не было">продаж нет</span>' : '');
+          return `<td class="agTable__name">${escape(String(value))}${note}</td>`;
+        }
+        if (value === null) return '<td class="agNum">—</td>';
+        if (c.kind === 'money') return `<td class="agNum">${fmtMoney(value)}</td>`;
+        if (c.kind === 'pct') return `<td class="agNum">${pctPlain(value)}</td>`;
+        if (c.kind === 'pct3') {
+          // Три знака: на доле в сотые процента разница между категориями уже
+          // видна, а округление до сотых схлопывало половину таблицы в ноль.
+          const cls = value >= 1 ? ' is-hot' : (value >= 0.3 ? ' is-warm' : '');
+          return `<td class="agNum${cls}">${value.toFixed(3).replace('.', ',')}%</td>`;
+        }
+        return `<td class="agNum">${fmtInt(value)}</td>`;
+      }).join('');
+      return `<tr data-value="${escape(item.name)}">${cells}</tr>`;
+    }).join('');
+
+    box.innerHTML = limited.length
+      ? `<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`
+        + (shown.length > limited.length
+          ? `<p class="agHint agTable__more">показаны первые ${limited.length} из ${fmtInt(shown.length)} — уточните поиск или порог</p>`
+          : '')
+      : '<div class="agEmpty">Ничего не нашлось — смягчите порог или поиск</div>';
+
+    box.querySelectorAll('th[data-sort]').forEach((cell) => {
+      cell.addEventListener('click', () => {
+        const key = cell.dataset.sort;
+        if (state.client.sort === key) state.client.desc = !state.client.desc;
+        else { state.client.sort = key; state.client.desc = true; }
+        renderClient(data);
+      });
+    });
+
+    // Клик по строке — провал внутрь: категория → её товары. Последний разрез
+    // дальше не проваливается, там уже конкретный товар.
+    const order = CLIENT_DIMS.map((d) => d.key);
+    const nextDim = order[Math.min(order.indexOf(state.client.dim) + 1, order.length - 1)];
+    box.querySelectorAll('tbody tr').forEach((row) => {
+      if (state.client.dim === 'tovar') return;
+      row.classList.add('is-clickable');
+      row.addEventListener('click', () => {
+        state.client.path = [...state.client.path, { dim: state.client.dim, value: row.dataset.value }];
+        state.client.dim = nextDim;
+        drawClient(data);
+      });
+    });
+
+    // Итоги окна: сколько всего вернули и какая это доля продаж компании.
+    const totalBrak = shown.reduce((sum, item) => sum + clientKindValue(item), 0);
+    const totalRub = shown.reduce((sum, item) => sum + item.rub, 0);
+    el('agClientTotals').innerHTML = [
+      ['возвратов за окно', fmtInt(totalBrak) + ' шт'],
+      ['на сумму', fmtMoney(totalRub)],
+      ['продано компанией', fmtInt(company.sht) + ' шт'],
+      ['доля от продаж компании', company.sht ? (totalBrak / company.sht * 100).toFixed(3).replace('.', ',') + '%' : '—'],
+      ['строк в разрезе', fmtInt(shown.length)],
+    ].map(([label, value]) => `<div class="agFact"><small>${label}</small><b>${value}</b></div>`).join('');
+
+    // Крошки провала.
+    const crumbs = ['<button type="button" data-at="-1">все товары</button>'];
+    state.client.path.forEach((step, i) => {
+      const label = CLIENT_DIMS.find((d) => d.key === step.dim);
+      crumbs.push(`<button type="button" data-at="${i}">${escape(label ? label.label : step.dim)}: ${escape(step.value)}</button>`);
+    });
+    const crumbBox = el('agClientCrumbs');
+    crumbBox.innerHTML = crumbs.join('<span class="agCrumbs__sep">→</span>');
+    crumbBox.querySelectorAll('button').forEach((button) => {
+      button.addEventListener('click', () => {
+        const at = Number(button.dataset.at);
+        state.client.path = at < 0 ? [] : state.client.path.slice(0, at + 1);
+        if (at < 0) state.client.dim = 'kat2';
+        drawClient(data);
+      });
+    });
+  }
+
+  /** Перерисовать вкладку целиком: переключатели и таблицу. */
+  function drawClient(data) {
+    segment(el('agClientWindow'), CLIENT_WINDOWS, state.client.window, (key) => {
+      state.client.window = key;
+      drawClient(data);
+    });
+    segment(el('agClientKind'), CLIENT_KINDS, state.client.kind, (key) => {
+      state.client.kind = key;
+      drawClient(data);
+    });
+    segment(el('agClientDims'), CLIENT_DIMS, state.client.dim, (key) => {
+      state.client.dim = key;
+      state.client.path = [];
+      drawClient(data);
+    });
+    renderClient(data);
+  }
+
+  function setupClient(data) {
+    const min = el('agClientMin');
+    const search = el('agClientSearch');
+    if (!min.dataset.ready) {
+      min.dataset.ready = '1';
+      min.value = String(state.client.minSales);
+      min.addEventListener('input', () => {
+        state.client.minSales = Number(min.value) || 0;
+        renderClient(data);
+      });
+      search.addEventListener('input', () => {
+        state.client.search = search.value;
+        renderClient(data);
+      });
+      el('agClientExport').addEventListener('click', () => exportClient(data));
+    }
+  }
+
+  async function exportClient(data) {
+    await loadXlsx();
+    const company = clientCompany(data);
+    const groups = clientGroups(data, clientRows(data));
+    const header = ['Значение', 'Возвратов, шт', 'Возврат товара, шт', 'Сервис, шт',
+                    '₽ возвращённого', 'Продано, шт', 'Доля от своих продаж, %',
+                    '% от продаж компании', 'SKU'];
+    const body = groups
+      .sort((a, b) => clientKindValue(b) - clientKindValue(a))
+      .map((item) => [
+        item.name, clientKindValue(item), item.vozvrat, item.remont,
+        Math.round(item.rub), item.soldFull,
+        item.soldFull ? Number((clientKindValue(item) / item.soldFull * 100).toFixed(2)) : null,
+        company.sht ? Number((clientKindValue(item) / company.sht * 100).toFixed(4)) : null,
+        item.sku.size,
+      ]);
+    const sheet = window.XLSX.utils.aoa_to_sheet([header, ...body]);
+    const book = window.XLSX.utils.book_new();
+    const dim = CLIENT_DIMS.find((d) => d.key === state.client.dim);
+    window.XLSX.utils.book_append_sheet(book, sheet, 'Клиентский брак');
+    window.XLSX.writeFile(book, `Клиентский брак — ${dim ? dim.label : state.client.dim}.xlsx`);
+  }
+
+  /** Панели обычных контуров и панель клиентского брака не уживаются на
+   *  экране вместе: у них разная ось и разный способ читать. */
+  function showPanels(table) {
+    document.querySelectorAll('.agPanel--time, .agPanel--heat, .agPanel--drill')
+      .forEach((panel) => { panel.hidden = table; });
+    el('agClient').hidden = !table;
+    const search = el('agSearch');
+    if (search) search.hidden = table || search.dataset.off === '1';
+  }
+
   async function render() {
     const contour = contourDef();
     renderContours();
+
+    if (contour.table) {
+      showPanels(true);
+      const data = await loadClient();
+      if (!data) {
+        el('agClientTable').innerHTML = '<div class="agEmpty">Данные ещё не собраны</div>';
+        return;
+      }
+      setupClient(data);
+      drawClient(data);
+      el('agStamp').innerHTML = `данные: <b>WMS · DWH</b><br>собрано: <b>${index.built.slice(0, 16).replace('T', ' ')}</b>`
+        + `<br>история: <b>${data.months.length} ${plural(data.months.length, 'месяц', 'месяца', 'месяцев')}</b>`;
+      if (pendingEnter) { pendingEnter = false; playEnter(); }
+      return;
+    }
+    showPanels(false);
+
     segment(el('agMeasure'), contour.measures, state.measure, (key) => {
       state.measure = key;
       // Знаменатель у долей месячный, по неделям его не разложить. Переводим

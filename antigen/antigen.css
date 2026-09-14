@@ -597,3 +597,95 @@ body[data-mode="antigen"] .shell {
   body[data-mode="antigen"] .shell > .topbar { margin-bottom: 4px; }
   .agHero { gap: 10px; }
 }
+
+/* ── Клиентский брак ──────────────────────────────────────────────────────
+   Здесь не график, а таблица решений: строку читают, чтобы решить судьбу
+   товара на витрине. Поэтому колонки чисел выровнены вправо, а заголовки
+   кликабельны — сортировка нужна по любой из них. */
+
+.agClientBar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  margin-bottom: 14px;
+}
+
+.agClientField {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.agClientField input {
+  width: 92px;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: rgba(7, 12, 18, .72);
+  color: var(--text);
+  font: inherit;
+}
+.agClientField input:focus { outline: none; border-color: var(--line-strong); }
+.agClientField--wide input { width: 230px; }
+
+.agClientTotals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.agClientTotals .agFact { flex: 1 1 150px; padding: 11px 13px; }
+.agClientTotals .agFact small { display: block; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.agClientTotals .agFact b { display: block; margin-top: 4px; font-size: 19px; font-weight: 600; }
+
+.agTable--client table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.agTable--client th {
+  position: sticky;
+  top: 0;
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--line);
+  background: #0f1720;
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-align: right;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+}
+.agTable--client th:first-child { text-align: left; }
+.agTable--client th:hover { color: var(--text); }
+.agTable--client th.is-sorted { color: var(--text); }
+.agTable--client td { padding: 8px 10px; border-bottom: 1px solid rgba(255, 255, 255, .05); }
+.agTable--client tr.is-clickable { cursor: pointer; }
+.agTable--client tbody tr:hover { background: rgba(255, 255, 255, .035); }
+.agTable--client .agNum { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.agTable--client .agTable__name { max-width: 520px; }
+.agTable__more { margin: 10px 0 0; }
+
+/* Пометка у строки: возвратов больше, чем продаж окна, или продаж нет вовсе.
+   Без неё доля в 400% выглядит ошибкой расчёта, хотя это живой случай. */
+.agFlag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 7px;
+  border: 1px solid rgba(240, 173, 50, .45);
+  border-radius: 999px;
+  color: var(--amber);
+  font-size: 10.5px;
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .agTable--client { overflow-x: auto; }
+  .agTable--client table { min-width: 720px; }
+  .agClientField--wide input { width: 160px; }
+}
+/* Доля, на которую стоит смотреть: от трети процента — тёплая, от процента —
+   горячая. Пороги грубые, но глазу нужно за что-то зацепиться в длинной
+   таблице. */
+.agTable--client .is-warm { color: var(--amber); }
+.agTable--client .is-hot { color: var(--red); font-weight: 600; }

@@ -328,6 +328,69 @@ def build_akty(rows: list[dict[str, Any]], today: date) -> dict[str, Any]:
     return {"weeks": kept, "partial_weeks": partial, **facts.payload()}
 
 
+def build_client_sales(rows: list[dict[str, Any]]) -> dict[str, dict[str, dict[str, list[int]]]]:
+    """Полные продажи разрезов — знаменатель для долей.
+
+    Без них доля категории считалась бы только по товарам, у которых был
+    возврат, и завышалась в разы. Рубли храним тысячами: на девяноста тысячах
+    строк каждая лишняя цифра — это лишние сотни килобайт у человека в
+    браузере, а на доле такая точность не сказывается.
+    """
+    sales: dict[str, dict[str, dict[str, list[int]]]] = {}
+    for row in rows:
+        srez = norm(row.get("srez"))
+        value = norm(row.get("znachenie"))
+        month = norm(row.get("month_key"))[:7]
+        if not srez or not value or not month:
+            continue
+        sales.setdefault(srez, {}).setdefault(value, {})[month] = [
+            int(round(number(row.get("prodano_sht")))),
+            int(round(number(row.get("prodano_rub")) / 1000)),
+        ]
+    return sales
+
+
+def build_client(rows: list[dict[str, Any]],
+                 sales_rows: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+    """Клиентский брак: возвраты покупателей против продаж того же товара.
+
+    Контур месячный, а не недельный: возврат приходит с задержкой после
+    продажи, и на неделе доля скачет так, что решать по ней нечего.
+
+    Проценты здесь не считаем — их считает страница на выбранном окне. Сложить
+    помесячные доли нельзя: получится среднее от средних, а нужна доля периода
+    целиком — сумма возвратов на сумму продаж.
+    """
+    facts = Facts(
+        dims=["month", "kat1", "kat2", "kat3", "brand", "supplier", "sku", "tovar"],
+        measures=["brak", "vozvrat", "remont", "brak_rub", "prod", "prod_rub"],
+    )
+    # Продажи компании кладём отдельной строкой на месяц, а не мерой в фактах:
+    # в каждой строке месяца они одинаковы и при свёртке множились бы.
+    company: dict[str, list[float]] = {}
+    months: set[str] = set()
+    for row in rows:
+        month = norm(row.get("month_key"))[:7]
+        if not month:
+            continue
+        months.add(month)
+        company[month] = [number(row.get("kompaniya_sht")), number(row.get("kompaniya_rub"))]
+        facts.add(
+            {"month": month, "kat1": row.get("kat1"), "kat2": row.get("kat2"),
+             "kat3": row.get("kat3"), "brand": row.get("brend"),
+             "supplier": row.get("postavshchik"), "sku": row.get("sku"),
+             "tovar": row.get("tovar")},
+            [number(row.get("brak_sht")), number(row.get("vozvrat_sht")),
+             number(row.get("remont_sht")), number(row.get("brak_rub")),
+             number(row.get("prodano_sht")), number(row.get("prodano_rub"))],
+        )
+    return {"months": sorted(months),
+            "company": {month: [int(round(v)) for v in values]
+                        for month, values in sorted(company.items())},
+            "sales": build_client_sales(sales_rows or {}) if sales_rows else {},
+            **facts.payload()}
+
+
 def build_control(metrics: list[dict[str, Any]], plan: list[dict[str, Any]]) -> dict[str, Any]:
     """Месячные контрольные показатели и целевая траектория — как были."""
     months = []
@@ -431,12 +494,20 @@ def main() -> int:
     parser.add_argument("--cache", type=Path, help="папка с *.json.gz вместо живой выгрузки")
     parser.add_argument("--zabr-csv", type=Path,
                         help="выгрузка tools/sql/zabr_plus.sql — забраковка с товаром и сектором")
+    parser.add_argument("--client-csv", type=Path,
+                        help="выгрузка tools/sql/antigen_client.sql — клиентский брак против продаж")
+    parser.add_argument("--client-sales-csv", type=Path,
+                        help="выгрузка tools/sql/antigen_client_sales.sql — знаменатель по разрезам")
     parser.add_argument("--out", type=Path, default=OUT_DIR)
     args = parser.parse_args()
 
     source = load_cache(args.cache) if args.cache else load_live()
     if args.zabr_csv:
         source["zabr"] = load_zabr_csv(args.zabr_csv)
+    if args.client_csv:
+        source["client"] = load_zabr_csv(args.client_csv)
+    if args.client_sales_csv:
+        source["client_sales"] = load_zabr_csv(args.client_sales_csv)
     missing = [name for name in ("zabr", "dmd", "gen", "akty", "metrics", "plan")
                if name not in source]
     if missing:
@@ -467,6 +538,22 @@ def main() -> int:
         }
         print(f'{name}: {len(payload["rows"])} строк, {len(payload["weeks"])} недель, '
               f'{index["contours"][name]["size_kb"]} КБ')
+
+    # Клиентский брак живёт месяцами и в недельную ось не встраивается —
+    # поэтому он отдельным ключом, а не пятым контуром.
+    if source.get("client"):
+        payload = build_client(source["client"], source.get("client_sales"))
+        path = args.out / "client.json"
+        path.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")),
+                        encoding="utf-8")
+        index["client"] = {
+            "file": "client.json",
+            "months": payload["months"],
+            "rows": len(payload["rows"]),
+            "size_kb": round(path.stat().st_size / 1024),
+        }
+        print(f'client: {len(payload["rows"])} строк, {len(payload["months"])} месяцев, '
+              f'{index["client"]["size_kb"]} КБ')
 
     # Общая ось — недели основного контура: остальные к ней подстраиваются.
     index["weeks"] = index["contours"]["zabr"]["weeks"]

@@ -8,13 +8,13 @@
   <link rel="icon" type="image/svg+xml" href="../assets/brand/vi-mark.svg">
   <link rel="preload" href="../assets/fonts/VI_Sans_Regular.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="../style.css?v=20260911-3">
-  <link rel="stylesheet" href="antigen.css?v=20260913-1">
+  <link rel="stylesheet" href="antigen.css?v=20260914-3">
   <link rel="stylesheet" href="../reeded-bg.css?v=20260907-6">
   <link rel="stylesheet" href="../site-header.css?v=20260909-7">
   <link rel="stylesheet" href="../section-assistant.css?v=20260910-2">
   <link rel="stylesheet" href="../news-feed.css?v=20260911-1">
   <script src="../reeded-bg.js?v=20260906-7" defer></script>
-  <script src="antigen.js?v=20260910-15" defer></script>
+  <script src="antigen.js?v=20260914-5" defer></script>
   <script src="../nav.js?v=20260911-5" defer></script>
   <script src="../news-feed.js?v=20260911-1" defer></script>
 </head>
@@ -122,6 +122,41 @@
       <div class="agCrumbs" id="agCrumbs"></div>
       <div class="agDims" id="agDims" role="tablist" aria-label="Разрезы"></div>
       <div class="agTable" id="agTable"></div>
+    </section>
+
+    <!-- Клиентский брак: что вернули покупатели и какая это доля от продаж.
+         Отдельная панель, а не пятый контур общей механики: здесь месяцы
+         вместо недель и таблица вместо графика — решение принимают по строке
+         товара, а не по форме кривой. -->
+    <section class="agPanel agPanel--client" id="agClient" hidden>
+      <div class="agPanel__head">
+        <div>
+          <h2>Клиентский брак</h2>
+          <p class="agHint">возвраты и сервис по товару, что уехал к покупателю; клик по строке — провалиться в её товары</p>
+        </div>
+        <div class="agTools">
+          <button type="button" class="agBtn" id="agClientExport">Выгрузить в Excel</button>
+        </div>
+      </div>
+
+      <div class="agClientBar">
+        <div class="agSeg" id="agClientWindow" role="group" aria-label="Окно"></div>
+        <div class="agSeg" id="agClientKind" role="group" aria-label="Вид обращения"></div>
+        <label class="agClientField">
+          <span>продажи от</span>
+          <input id="agClientMin" type="number" min="0" step="10" value="50" inputmode="numeric">
+          <span>шт</span>
+        </label>
+        <label class="agClientField agClientField--wide">
+          <span>поиск</span>
+          <input id="agClientSearch" type="search" placeholder="товар, бренд, поставщик, SKU" autocomplete="off">
+        </label>
+      </div>
+
+      <div class="agClientTotals" id="agClientTotals"></div>
+      <div class="agCrumbs" id="agClientCrumbs"></div>
+      <div class="agDims" id="agClientDims" role="tablist" aria-label="Разрез клиентского брака"></div>
+      <div class="agTable agTable--client" id="agClientTable"></div>
     </section>
 
     <!-- Сводка с рабочей группы: что решили, какие числа звучали и чьими словами.
