@@ -570,12 +570,14 @@ function tablica(data) {
   const podrazdeleniya = data["подразделения"] || [];
   const nepodklyucheny = data["не_подключены"] || [];
 
-  // Базы подачи: у Посновой своя выгрузка, у Широких всё остальное по браку.
-  // «ВИ Сервис» — третий контур, его пока не ведём и в панели не показываем.
+  // Кто что подаёт в 1С. Контуров три: у Посновой её подразделения, у Широких
+  // отдел фильтра брака, у Малашкиной управление направления и группа продаж
+  // уценённого товара. «ВИ Сервис» считает зарплату сам, в панель не берём.
   const BAZY = [
     { klyuch: "Поснова", imya: "Поснова", bukva: "П", chto: "её выгрузка" },
-    { klyuch: "Широких", imya: "Широких", bukva: "Ш", chto: "направление брака" },
-    { klyuch: "", imya: "Оба контура", bukva: "Σ", chto: "всё, что подаём" },
+    { klyuch: "Широких", imya: "Широких", bukva: "Ш", chto: "отдел фильтр брака" },
+    { klyuch: "Малашкина", imya: "Малашкина", bukva: "М", chto: "управление и продажи" },
+    { klyuch: "", imya: "Все контуры", bukva: "Σ", chto: "всё, что подаём" },
     { klyuch: "не закреплён", imya: "Ничьи", bukva: "!", chto: "никто не подаёт",
       trevoga: true },
   ];
@@ -597,6 +599,7 @@ function tablica(data) {
       <td class="num">${rubli(p["фонд_окладов"])}</td>
       <td class="num"><b>${rubli(p["начислено"])}</b></td>
       <td class="num">${rubli(p["прогноз"])}</td>
+      <td class="num">${rubli(p["фот"])}</td>
       <td class="num">${p["в_отсутствии"] || "—"}</td>
       <td class="num">${p["по_скуд"]} / ${p["человек"]}</td>
     </tr>`).join("");
@@ -669,8 +672,9 @@ function tablica(data) {
       <h3>По подразделениям</h3>
       <div class="scroll" style="max-height:300px"><table>
         <thead><tr>
-          <th>Подразделение</th><th>Человек</th><th>Фонд окладов</th>
-          <th>На сегодня</th><th>Прогноз месяца</th><th>Отсутствуют</th><th>Факт из СКУД</th>
+          <th>Подразделение</th><th>Человек</th><th>Оклады, гросс</th>
+          <th>На сегодня</th><th>Подадим за месяц</th><th>ФОТ со взносами</th>
+          <th>Отсутствуют</th><th>Факт из СКУД</th>
         </tr></thead>
         <tbody>${podr}</tbody>
       </table></div>
@@ -720,14 +724,20 @@ function tablica(data) {
 
   const prognozS = (c) => c["прогноз_месяца"] || 0;
 
+  /* Все суммы панели — в гросс, как их подают в 1С: «мы перешли полноценно
+     на гросс, нет нам не нужен». Отдельной строкой идёт полный ФОТ — во что
+     это обходится компании: гросс плюс взносы в фонды плюс резерв отпусков,
+     ровно по методике ШР. Человеку на его странице по-прежнему показываем
+     «на руки» — это разные вопросы и разные читатели. */
   function svodka(spisok) {
     const summa = (f) => spisok.reduce((s, c) => s + (Number(f(c)) || 0), 0);
     return {
       lyudey: spisok.length,
-      fond: summa((c) => c["оклад_на_руки"]),
-      premii: summa((c) => (c["премия_план"] || 0) * 0.87),
-      segodnya: summa((c) => c["на_руки"]),
-      prognoz: summa(prognozS),
+      fond: summa((c) => c["оклад"]),
+      premii: summa((c) => c["премия_план"]),
+      segodnya: summa((c) => c["начислено"]),
+      prognoz: summa((c) => c["прогноз_гросс"] ?? (c["прогноз_месяца"] || 0) / 0.87),
+      fot: summa((c) => c["фот_прогноз_месяца"]),
     };
   }
 
@@ -745,12 +755,13 @@ function tablica(data) {
           ? "сверх окладов " + rubli(raznica) : "в пределах окладов, запас " + rubli(-raznica)}</span>
       </div>
       <div class="zpLimit__row">
-        <div><small>Оклады по ШР</small><b>${rubli(s.fond)}</b><i>на руки, при полной отработке</i></div>
+        <div><small>Оклады по ШР</small><b>${rubli(s.fond)}</b><i>гросс, при полной отработке</i></div>
         <div><small>Премии за месяц</small><b>${rubli(s.premii)}</b><i>${
           spisok.filter((c) => c["премия_план"]).length} из ${s.lyudey} человек</i></div>
-        <div><small>Начислено на сегодня</small><b>${rubli(s.segodnya)}</b><i>${
+        <div><small>Начислено на сегодня</small><b>${rubli(s.segodnya)}</b><i>гросс, ${
           data["прошло_дней"]} из ${data["норма_дней"]} дней</i></div>
-        <div><small>Выйдет за месяц</small><b>${rubli(s.prognoz)}</b><i>оклады по факту выходов плюс премии</i></div>
+        <div><small>Подадим за месяц</small><b>${rubli(s.prognoz)}</b><i>гросс — то, что уйдёт в 1С</i></div>
+        <div class="zpLimit__fot"><small>ФОТ со взносами</small><b>${rubli(s.fot)}</b><i>во что обойдётся компании: +30,2% взносы, +2% резерв отпусков</i></div>
         <div><small>Против ШР</small><b class="${pereli ? "zpNad" : "zpPod"}">${
           (pereli ? "+" : "") + rubli(raznica)}</b><i>${pereli
             ? "премии и надбавки сверх окладов" : "недовыходы съели больше, чем добавили премии"}</i></div>
