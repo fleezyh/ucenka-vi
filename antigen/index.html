@@ -8,13 +8,13 @@
   <link rel="icon" type="image/svg+xml" href="../assets/brand/vi-mark.svg">
   <link rel="preload" href="../assets/fonts/VI_Sans_Regular.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="../style.css?v=20260911-3">
-  <link rel="stylesheet" href="antigen.css?v=20260914-3">
+  <link rel="stylesheet" href="antigen.css?v=20260914-7">
   <link rel="stylesheet" href="../reeded-bg.css?v=20260907-6">
   <link rel="stylesheet" href="../site-header.css?v=20260909-7">
   <link rel="stylesheet" href="../section-assistant.css?v=20260910-2">
   <link rel="stylesheet" href="../news-feed.css?v=20260911-1">
   <script src="../reeded-bg.js?v=20260906-7" defer></script>
-  <script src="antigen.js?v=20260914-5" defer></script>
+  <script src="antigen.js?v=20260914-8" defer></script>
   <script src="../nav.js?v=20260911-5" defer></script>
   <script src="../news-feed.js?v=20260911-1" defer></script>
 </head>
@@ -154,6 +154,64 @@
       </div>
 
       <div class="agClientTotals" id="agClientTotals"></div>
+
+      <!-- Методология сразу на виду: без неё «доля 4600%» читается как ошибка
+           расчёта, и разговор уходит в спор о данных вместо решения. -->
+      <details class="agMethod" id="agClientMethod">
+        <summary>Как это считается и как читать</summary>
+        <div class="agMethod__grid">
+          <div>
+            <h4>что считаем</h4>
+            <p>Акты приёмки товара, который уже уехал к покупателю: возврат по браку
+               и обращения в сервис. Внутренний брак склада, предпродажный и брак
+               поставщика сюда не входят — там клиента не было.</p>
+          </div>
+          <div>
+            <h4>доля от продаж, ₽</h4>
+            <p>Сколько вернули на рубль проданного в этом же разрезе. Главная цифра:
+               в штуках категория с лампочками и категория со станками несравнимы,
+               в деньгах — да.</p>
+          </div>
+          <div>
+            <h4>% от продаж компании</h4>
+            <p>Тот же числитель, но знаменатель — все продажи компании за окно.
+               Именно эта доля складывается по строкам в общий процент.</p>
+          </div>
+          <div>
+            <h4>возвраты старых продаж</h4>
+            <p>Пометка у строки, где возвратов больше, чем продано за окно. Это не
+               ошибка: товар купили раньше окна или вернули партией. Доля там
+               условна — смотрите на штуки и деньги.</p>
+          </div>
+          <div>
+            <h4>порог продаж</h4>
+            <p>Одна продажа и один возврат дают 100%, решать по такой строке нечего.
+               Порог убирает шум; поставьте 0, чтобы увидеть и такие случаи.</p>
+          </div>
+          <div>
+            <h4>окно и задержка</h4>
+            <p>Шаг — месяц: возврат приходит через недели после продажи, и на неделе
+               доля скачет. Поэтому минимальное окно — три месяца.</p>
+          </div>
+        </div>
+      </details>
+
+      <div class="agClientCharts">
+        <figure class="agClientChart">
+          <figcaption>Помесячно: сколько вернули и какая это доля продаж</figcaption>
+          <div id="agClientTrend"></div>
+        </figure>
+        <figure class="agClientChart">
+          <figcaption id="agClientTopTitle">Кто тянет вниз</figcaption>
+          <div id="agClientTop"></div>
+        </figure>
+      </div>
+
+      <figure class="agClientChart agClientChart--wide">
+        <figcaption>Карта решения: продажи против доли возвратов, размер точки — деньги возврата; клик проваливает в неё</figcaption>
+        <div id="agClientMap"></div>
+      </figure>
+
       <div class="agCrumbs" id="agClientCrumbs"></div>
       <div class="agDims" id="agClientDims" role="tablist" aria-label="Разрез клиентского брака"></div>
       <div class="agTable agTable--client" id="agClientTable"></div>

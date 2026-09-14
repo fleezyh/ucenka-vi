@@ -1723,17 +1723,16 @@
 
     // Клик по строке — провал внутрь: категория → её товары. Последний разрез
     // дальше не проваливается, там уже конкретный товар.
-    const order = CLIENT_DIMS.map((d) => d.key);
-    const nextDim = order[Math.min(order.indexOf(state.client.dim) + 1, order.length - 1)];
     box.querySelectorAll('tbody tr').forEach((row) => {
       if (state.client.dim === 'tovar') return;
       row.classList.add('is-clickable');
-      row.addEventListener('click', () => {
-        state.client.path = [...state.client.path, { dim: state.client.dim, value: row.dataset.value }];
-        state.client.dim = nextDim;
-        drawClient(data);
-      });
+      row.addEventListener('click', () => clientDrill(data, row.dataset.value));
     });
+
+    // Графики строятся из тех же групп, что и таблица: расходиться им нельзя.
+    clientTrend(data);
+    clientTop(data, shown, company);
+    clientMap(data, shown);
 
     // Итоги окна: сколько всего вернули и какая это доля продаж компании.
     const totalBrak = shown.reduce((sum, item) => sum + clientKindValue(item), 0);
@@ -1762,6 +1761,245 @@
         drawClient(data);
       });
     });
+  }
+
+  /** Помесячная динамика: столбцы возвратов и линия доли в деньгах.
+   *
+   * Одна таблица не отвечает на вопрос «стало хуже или всегда так было».
+   * Столбцы дают объём, линия — долю: вместе видно, растёт ли проблема или
+   * просто выросли продажи.
+   */
+  function clientTrend(data) {
+    const box = el('agClientTrend');
+    const months = clientMonths(data);
+    const rows = clientRows(data);
+    const byMonth = new Map(months.map((month) => [month, { brak: 0, rub: 0 }]));
+    for (const row of rows) {
+      const month = data.labels.month[row[data.dimAt.month]];
+      const cell = byMonth.get(month);
+      if (!cell) continue;
+      cell.brak += row[data.measureAt[CLIENT_KINDS.find((k) => k.key === state.client.kind).measure]];
+      cell.rub += row[data.measureAt.brak_rub];
+    }
+
+    // Знаменатель месяца — продажи того же среза, что показан в таблице: при
+    // провале в категорию доля должна быть её, а не общей.
+    const sold = clientSoldByMonth(data, months);
+    const points = months.map((month) => ({
+      month,
+      brak: byMonth.get(month).brak,
+      share: sold[month] ? (byMonth.get(month).rub / sold[month]) * 100 : 0,
+    }));
+    if (!points.length) { box.innerHTML = '<p class="agEmpty">Нет данных</p>'; return; }
+
+    const W = Math.max(420, Math.round(box.clientWidth || 560));
+    const H = 240;
+    const pad = { top: 22, right: 46, bottom: 28, left: 52 };
+    const innerW = W - pad.left - pad.right;
+    const innerH = H - pad.top - pad.bottom;
+    const peak = Math.max(...points.map((p) => p.brak), 1);
+    const peakShare = Math.max(...points.map((p) => p.share), 0.1);
+    const step = innerW / points.length;
+    const barW = Math.max(6, step * 0.56);
+
+    // Текущий месяц ещё идёт: без пометки его столбец читается как обвал.
+    const now = new Date();
+    const running = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const bars = points.map((point, i) => {
+      const height = (point.brak / peak) * innerH;
+      const x = pad.left + step * i + (step - barW) / 2;
+      const partial = point.month === running ? ' agCBar--partial' : '';
+      return `<rect class="agCBar${partial}" x="${x.toFixed(1)}" y="${(pad.top + innerH - height).toFixed(1)}" `
+        + `width="${barW.toFixed(1)}" height="${Math.max(1, height).toFixed(1)}" rx="3">`
+        + `<title>${point.month}: ${fmtInt(point.brak)} возвратов, доля ${point.share.toFixed(2)}%`
+        + `${partial ? ' — месяц ещё не закрыт' : ''}</title></rect>`;
+    }).join('');
+
+    const lineY = (share) => pad.top + innerH - (share / peakShare) * innerH;
+    const line = points.map((point, i) =>
+      `${i ? 'L' : 'M'}${(pad.left + step * i + step / 2).toFixed(1)},${lineY(point.share).toFixed(1)}`).join(' ');
+    const dots = points.map((point, i) =>
+      `<circle class="agCDot" cx="${(pad.left + step * i + step / 2).toFixed(1)}" `
+      + `cy="${lineY(point.share).toFixed(1)}" r="3.2"></circle>`).join('');
+
+    const axis = points.map((point, i) => {
+      if (points.length > 8 && i % 2) return '';
+      return `<text class="agAxis" x="${(pad.left + step * i + step / 2).toFixed(1)}" `
+        + `y="${H - 8}" text-anchor="middle">${MONTHS_SHORT[Number(point.month.slice(5, 7)) - 1]}</text>`;
+    }).join('');
+
+    box.innerHTML = `<svg class="agCSvg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">`
+      + `<line class="agGrid" x1="${pad.left}" y1="${pad.top + innerH}" x2="${W - pad.right}" y2="${pad.top + innerH}"></line>`
+      + bars
+      + `<path class="agCLine" d="${line}"></path>${dots}`
+      + `<text class="agAxis" x="${pad.left - 8}" y="${pad.top + 4}" text-anchor="end">${fmtInt(peak)}</text>`
+      + `<text class="agAxis agAxis--share" x="${W - pad.right + 8}" y="${pad.top + 4}">${peakShare.toFixed(1)}%</text>`
+      + axis
+      + '</svg>'
+      + '<p class="agClientLegend"><span class="agLegend agLegend--bar"></span>возвраты, шт'
+      + '<span class="agLegend agLegend--line"></span>доля от продаж, ₽'
+      + (points.some((p) => p.month === running)
+        ? '<span class="agClientLegend__note">последний месяц не закрыт</span>' : '')
+      + '</p>';
+  }
+
+  /** Продажи показанного среза по месяцам — знаменатель для линии доли. */
+  function clientSoldByMonth(data, months) {
+    const result = {};
+    const path = state.client.path;
+    const last = path[path.length - 1];
+    const full = last && data.sales && data.sales[last.dim] && data.sales[last.dim][last.value];
+    for (const month of months) {
+      if (full) {
+        result[month] = full[month] ? full[month][1] * 1000 : 0;
+      } else if (!path.length) {
+        // Без провала знаменатель — продажи всей компании.
+        result[month] = data.company[month] ? data.company[month][1] : 0;
+      } else {
+        result[month] = 0;
+      }
+    }
+    if (path.length && !full) {
+      // Провал по разрезу, которого нет в справочнике продаж (товар): считаем
+      // по самим строкам — других продаж у SKU и нет.
+      for (const row of clientRows(data)) {
+        const month = data.labels.month[row[data.dimAt.month]];
+        result[month] = (result[month] || 0) + row[data.measureAt.prod_rub];
+      }
+    }
+    return result;
+  }
+
+  /** Топ разреза полосами: объём возвратов и доля рядом. */
+  function clientTop(data, groups, company) {
+    const box = el('agClientTop');
+    const dim = CLIENT_DIMS.find((d) => d.key === state.client.dim);
+    el('agClientTopTitle').textContent = `Кто тянет вниз — ${dim ? dim.label : ''}`;
+    const top = [...groups]
+      .sort((a, b) => clientKindValue(b) - clientKindValue(a))
+      .slice(0, 10);
+    if (!top.length) { box.innerHTML = '<p class="agEmpty">Нет данных</p>'; return; }
+
+    const peak = Math.max(...top.map(clientKindValue), 1);
+    box.innerHTML = top.map((item) => {
+      const value = clientKindValue(item);
+      const share = item.soldFullRub ? (item.rub / item.soldFullRub) * 100 : null;
+      const heat = share === null ? '' : (share >= 1 ? ' is-hot' : share >= 0.3 ? ' is-warm' : '');
+      return `<button type="button" class="agCRow" data-value="${escape(item.name)}">`
+        + `<span class="agCRow__name" title="${escape(item.name)}">${escape(item.name)}</span>`
+        + `<span class="agCRow__bar"><i style="--w:${((value / peak) * 100).toFixed(1)}%"></i></span>`
+        + `<span class="agCRow__value">${fmtInt(value)}</span>`
+        + `<span class="agCRow__share${heat}">${share === null ? '—' : share.toFixed(2).replace('.', ',') + '%'}</span>`
+        + '</button>';
+    }).join('');
+
+    box.querySelectorAll('.agCRow').forEach((row) => {
+      row.addEventListener('click', () => clientDrill(data, row.dataset.value));
+    });
+  }
+
+  /** Карта решения: продажи по горизонтали, доля возвратов по вертикали.
+   *
+   * Таблицу читают строками, а решение принимают по сочетанию: много продаём и
+   * много возвращают — снимать; мало продаём и много возвращают — просто
+   * почистить. На карте это видно одним взглядом, в таблице — нет.
+   */
+  function clientMap(data, groups) {
+    const box = el('agClientMap');
+    const items = groups
+      .filter((item) => item.soldFullRub > 0 && clientKindValue(item) > 0)
+      .map((item) => ({ ...item, share: (item.rub / item.soldFullRub) * 100 }))
+      .filter((item) => item.share > 0);
+    if (items.length < 2) { box.innerHTML = '<p class="agEmpty">Точек мало — смягчите порог</p>'; return; }
+
+    const W = Math.max(560, Math.round(box.clientWidth || 1100));
+    const H = 340;
+    const pad = { top: 24, right: 26, bottom: 44, left: 64 };
+    const innerW = W - pad.left - pad.right;
+    const innerH = H - pad.top - pad.bottom;
+
+    // Продажи по оси X — в логарифме: между товаром на сто тысяч и категорией
+    // на десять миллиардов линейная шкала не оставляет места ничему.
+    const sales = items.map((item) => item.soldFullRub);
+    const minX = Math.log10(Math.max(1000, Math.min(...sales)));
+    const maxX = Math.log10(Math.max(...sales));
+    const spanX = Math.max(0.5, maxX - minX);
+    const shares = items.map((item) => item.share);
+    const peakY = Math.max(...shares) * 1.08;
+    const money = items.map((item) => item.rub);
+    const maxMoney = Math.max(...money, 1);
+
+    const x = (value) => pad.left + ((Math.log10(Math.max(1000, value)) - minX) / spanX) * innerW;
+    const y = (value) => pad.top + innerH - (value / peakY) * innerH;
+    const r = (value) => 4 + Math.sqrt(value / maxMoney) * 16;
+
+    // Линия среднего по всему показанному: выше неё — те, кто хуже среднего.
+    const totalRub = items.reduce((sum, item) => sum + item.rub, 0);
+    const totalSold = items.reduce((sum, item) => sum + item.soldFullRub, 0);
+    const average = totalSold ? (totalRub / totalSold) * 100 : 0;
+
+    const dots = items.map((item) => {
+      const heat = item.share >= average * 2 ? ' is-hot' : item.share >= average ? ' is-warm' : '';
+      return `<circle class="agMapDot${heat}" cx="${x(item.soldFullRub).toFixed(1)}" `
+        + `cy="${y(item.share).toFixed(1)}" r="${r(item.rub).toFixed(1)}" data-value="${escape(item.name)}">`
+        + `<title>${escape(item.name)}\nдоля ${item.share.toFixed(2)}% · возвратов ${fmtInt(clientKindValue(item))} шт `
+        + `на ${fmtMoney(item.rub)}\nпродажи ${fmtMoney(item.soldFullRub)}</title></circle>`;
+    }).join('');
+
+    // Подписываем только крупные и самые проблемные — иначе каша.
+    const labelled = [...items]
+      .sort((a, b) => (b.share * b.rub) - (a.share * a.rub))
+      .slice(0, 7);
+    const labels = labelled.map((item) => {
+      const left = x(item.soldFullRub);
+      const anchor = left > W - pad.right - 120 ? 'end' : 'start';
+      const shift = anchor === 'end' ? -r(item.rub) - 5 : r(item.rub) + 5;
+      return `<text class="agMapLabel" x="${(left + shift).toFixed(1)}" y="${(y(item.share) + 3.5).toFixed(1)}" `
+        + `text-anchor="${anchor}">${escape(item.name.slice(0, 34))}</text>`;
+    }).join('');
+
+    const gridY = [0, peakY / 2, peakY].map((value) =>
+      `<line class="agGrid" x1="${pad.left}" y1="${y(value).toFixed(1)}" x2="${W - pad.right}" y2="${y(value).toFixed(1)}"></line>`
+      + `<text class="agAxis" x="${pad.left - 8}" y="${(y(value) + 3.5).toFixed(1)}" text-anchor="end">${value.toFixed(1)}%</text>`).join('');
+
+    const ticksX = [minX, (minX + maxX) / 2, maxX].map((power) =>
+      `<text class="agAxis" x="${(pad.left + ((power - minX) / spanX) * innerW).toFixed(1)}" `
+      + `y="${H - 22}" text-anchor="middle">${fmtMoney(Math.pow(10, power))}</text>`).join('');
+
+    box.innerHTML = `<svg class="agCSvg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">`
+      + gridY
+      + `<line class="agMapAvg" x1="${pad.left}" y1="${y(average).toFixed(1)}" x2="${W - pad.right}" y2="${y(average).toFixed(1)}"></line>`
+      + `<text class="agMapAvgText" x="${W - pad.right}" y="${(y(average) - 6).toFixed(1)}" text-anchor="end">среднее ${average.toFixed(2)}%</text>`
+      + dots + labels + ticksX
+      + `<text class="agAxis agAxis--muted" x="${(pad.left + innerW / 2).toFixed(1)}" y="${H - 6}" text-anchor="middle">продажи за окно, ₽ — шкала логарифмическая</text>`
+      + '</svg>';
+
+    box.querySelectorAll('.agMapDot').forEach((dot) => {
+      dot.addEventListener('click', () => clientDrill(data, dot.dataset.value));
+    });
+  }
+
+  /** Провал в значение разреза — общий для таблицы, полос и карты.
+   *
+   * Следующий разрез выбираем не по порядку, а первый, где строк больше
+   * одной: внутри подкатегории группа сплошь и рядом одна, и экран с
+   * единственной строкой — потерянный клик.
+   */
+  function clientDrill(data, value) {
+    if (state.client.dim === 'tovar') return;
+    const order = CLIENT_DIMS.map((d) => d.key);
+    const from = order.indexOf(state.client.dim);
+    state.client.path = [...state.client.path, { dim: state.client.dim, value }];
+
+    let chosen = order[order.length - 1];
+    for (const key of order.slice(from + 1)) {
+      state.client.dim = key;
+      const seen = new Set();
+      for (const row of clientRows(data)) seen.add(row[data.dimAt[key]]);
+      if (seen.size > 1) { chosen = key; break; }
+    }
+    state.client.dim = chosen;
+    drawClient(data);
   }
 
   /** Перерисовать вкладку целиком: переключатели и таблицу. */
