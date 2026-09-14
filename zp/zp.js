@@ -481,14 +481,14 @@ function stroki(lyudi, otkuda) {
   return lyudi.map((c) => `
     <tr data-nomer="${otkuda.indexOf(c)}">
       <td class="hit" title="Открыть карточку"><b>${c["фио"]}</b><div class="src">${c["должность"] || ""}${c["подразделение"] ? " · " + c["подразделение"] : ""}</div></td>
-      <td class="num">${rubli(c["оклад_на_руки"])}</td>
+      <td class="num">${rubli(c["оклад"])}</td>
       <td class="num">${c["источник_факта"] === "СКУД" ? c["отработано"] : Math.round(c["отработано"])} / ${c["план_дней"]}<div class="src">${c["источник_факта"]}</div></td>
-      <td class="num">${rubli(c["окладная_часть"] * 0.87)}</td>
+      <td class="num">${rubli(c["окладная_часть"])}</td>
       <td class="num"><input class="zpPrem" type="number" min="0" step="1000"
         inputmode="numeric" value="${c["премия_план"] || ""}" placeholder="0"
-        aria-label="Премия за месяц, ${c["фио"]}"><div class="src">за месяц, до НДФЛ</div></td>
-      <td class="num"><b data-seychas>${rubli(c["на_руки"])}</b></td>
-      <td class="num" data-prognoz>${rubli(c["прогноз_месяца"])}</td>
+        aria-label="Премия за месяц, ${c["фио"]}"><div class="src">за месяц, гросс</div></td>
+      <td class="num"><b data-seychas>${rubli(c["начислено"])}</b></td>
+      <td class="num" data-prognoz>${rubli(c["прогноз_гросс"] ?? c["прогноз_месяца"] / 0.87)}</td>
       <td class="num">${vyrabotkaYacheyka(c["выработка"])}</td>
       <td class="num">${mestoYacheyka(c["выработка"])}</td>
       <td>${c["отсутствие"] || ""}${c["подсказка"]
@@ -666,8 +666,8 @@ function tablica(data) {
         в контуре. Клик по фамилии — карточка человека</p>
       <div class="scroll"><table>
         <thead><tr>
-          <th>Человек</th><th>Оклад</th><th>Дни</th><th>Окладная</th>
-          <th>Премия</th><th>На сегодня</th><th>Прогноз</th>
+          <th>Человек</th><th>Оклад, гросс</th><th>Дни</th><th>Окладная</th>
+          <th>Премия</th><th>На сегодня</th><th>Прогноз месяца</th>
           <th>Штук за смену</th><th>Место</th><th>Отсутствие</th>
         </tr></thead>
         <tbody id="ktoTelo"></tbody>
@@ -728,14 +728,21 @@ function tablica(data) {
   const dolya = (data["норма_дней"] || 0)
     ? (data["прошло_дней"] || 0) / data["норма_дней"] : 0;
 
+  /* Премию вводят в гросс — в нём же и пересчитываем строку. Раньше здесь
+     стоял множитель 0,87, потому что панель показывала «на руки». */
   function postavitPremiyu(c, mesyachnaya) {
     const bylo = c["премия_ожидаемая"] || 0;
     c["премия_план"] = Math.max(0, Math.round(Number(mesyachnaya) || 0));
     c["премия_ожидаемая"] = Math.round(c["премия_план"] * dolya);
-    const delta = (c["премия_ожидаемая"] - bylo) * 0.87;
-    c["на_руки"] = (c["на_руки"] || 0) + delta;
-    c["прогноз_месяца"] = (c["прогноз_месяца"] || 0)
-      - (c["премия_план_ishodno"] - c["премия_план"]) * 0.87;
+    const delta = c["премия_ожидаемая"] - bylo;
+    c["начислено"] = (c["начислено"] || 0) + delta;
+    c["на_руки"] = (c["на_руки"] || 0) + delta * 0.87;
+    const pribavka = c["премия_план"] - (c["премия_план_ishodno"] || 0);
+    c["прогноз_гросс"] = (c["прогноз_гросс"] ?? (c["прогноз_месяца"] || 0) / 0.87)
+      + pribavka - (c["_premiya_uchtena"] || 0);
+    c["_premiya_uchtena"] = pribavka;
+    // Полный ФОТ идёт следом: взносы 30,2% и резерв отпусков 2% от суммы.
+    c["фот_прогноз_месяца"] = Math.round(c["прогноз_гросс"] * 1.302 / 0.98);
   }
 
   lyudi.forEach((c) => { c["премия_план_ishodno"] = c["премия_план"] || 0; });
