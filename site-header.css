@@ -468,6 +468,23 @@ body { font-weight: 500; }
   -webkit-backdrop-filter: blur(18px) saturate(140%);
 }
 
+/* На телефоне липкая шапка превращалась при прокрутке в широкую чёрную
+   полосу и съедала полезную высоту. Мобильная шапка уходит вместе со страницей;
+   раскрывающееся меню и все проверки доступа при этом остаются прежними. */
+@media (max-width: 640px) {
+  .shell > .topbar {
+    position: static;
+    margin-inline: 0;
+    width: 100%;
+    padding: 0;
+  }
+  .shell > .topbar.is-stuck {
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
 /* Полоса примерки роли: админ смотрит сайт чужими глазами, и об этом должно
    быть видно на каждой странице — иначе легко решить, что раздел пропал. */
 .viewAs { position: sticky; top: 0; z-index: 60; display: flex; align-items: center; gap: 14px;

@@ -74,11 +74,9 @@
       const mozhet = (pravo) => prava.includes("*") || prava.includes(pravo);
       const zp = mozhet("salary")
         ? '<a class="navLink" href="/zp/">Зарплата</a>' : "";
-      // Аналитика ФОТ — только тем, кто подаёт: там чужие деньги, пусть и
-      // свёрнутые до направлений. У остальных ссылки нет вовсе.
-      const fot = mozhet("salary_team")
-        ? '<a class="navLink" href="/fot/">ФОТ</a>' : "";
-      box.innerHTML = zp + fot + '<a class="navLink" href="/__account">Кабинет</a>'
+      // Панель ФОТ уже находится внутри «Зарплаты». Отдельную ссылку в шапке
+      // не показываем, но серверные права salary_team не меняем.
+      box.innerHTML = zp + '<a class="navLink" href="/__account">Кабинет</a>'
         + '<a class="navLink" href="/__logout">Выйти</a>';
       nav.appendChild(box);
       hideClosed(user["права"]);
