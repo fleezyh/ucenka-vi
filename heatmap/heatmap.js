@@ -723,35 +723,64 @@
     return backlogData;
   }
 
-  /** Линия по дням для одной зоны: столбики с подписью на краях и максимуме. */
+  /** Зона по дням линией с точками — как большой график плитки, только мельче.
+   *
+   * Точки рисуются обычными элементами поверх холста: внутри SVG, растянутого
+   * по ширине, круг превратился бы в эллипс.
+   */
   function zonaGrafik(istoriya, imya) {
     const dni = istoriya.map((den) => ({
       день: den.день,
       штук: den.по_зонам.find((z) => z.зона === imya)?.штук || 0,
     }));
-    const max = Math.max(...dni.map((d) => d.штук), 1);
+    const max = Math.max(...dni.map((d) => d.штук));
     const min = Math.min(...dni.map((d) => d.штук));
-    // Если зона за все дни не двинулась, считаем от нуля: иначе ровная полка
-    // схлопывается в ниточки и выглядит пустой.
     const razmah = max - min;
-    const niz = razmah ? min - razmah * 0.4 : 0;
+    // Неподвижная зона — ровная линия посередине: прижимать её к краю нечестно,
+    // она ведь не на нуле, а просто не меняется.
+    const y = (v) => (razmah ? 12 + (1 - (v - min) / razmah) * 76 : 50);
+    const x = (i) => (dni.length === 1 ? 50 : (i / (dni.length - 1)) * 100);
+
+    const tochki = dni.map((d, i) => `${x(i)},${y(d.штук)}`).join(" ");
+    const holst = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    holst.setAttribute("viewBox", "0 0 100 100");
+    holst.setAttribute("preserveAspectRatio", "none");
+    holst.innerHTML =
+      `<polygon points="0,100 ${tochki} 100,100" fill="rgba(77,141,247,0.16)"></polygon>`
+      + `<polyline points="${tochki}" fill="none" stroke="var(--blue)" stroke-width="2"`
+      + ` vector-effect="non-scaling-stroke" stroke-linejoin="round"></polyline>`;
 
     const box = document.createElement("div");
-    box.className = "zoneChart";
+    box.className = "zoneLine";
+    box.appendChild(holst);
+
     // Двадцать одна дата подряд не помещается — «25.0826.08» слипалось в одно
-    // слово. Подписываем каждую третью, крайние всегда; остальные видны при
-    // наведении.
+    // слово. Подписываем каждую третью, крайние всегда.
     const shag = dni.length > 14 ? 3 : dni.length > 8 ? 2 : 1;
     dni.forEach((d, i) => {
-      const vysota = Math.max(3, Math.round(((d.штук - niz) / (max - niz || 1)) * 54));
       const kray = i === 0 || i === dni.length - 1;
-      const stolb = document.createElement("span");
-      stolb.className = "zoneChart__day";
-      stolb.innerHTML = `<b>${kray ? shtuki(d.штук) : ""}</b>`
-        + `<i style="height:${vysota}px"></i>`
-        + `<em>${kray || i % shag === 0 ? dayLabel(d.день) : ""}</em>`;
-      stolb.title = `${dayLabel(d.день)} — ${shtuki(d.штук)} шт`;
-      box.appendChild(stolb);
+      const tochka = document.createElement("i");
+      tochka.className = "zoneLine__dot";
+      tochka.style.left = `${x(i)}%`;
+      tochka.style.top = `${y(d.штук)}%`;
+      tochka.title = `${dayLabel(d.день)} — ${shtuki(d.штук)} шт`;
+      box.appendChild(tochka);
+
+      if (kray) {
+        const podpis = document.createElement("b");
+        podpis.className = "zoneLine__pin";
+        podpis.textContent = shtuki(d.штук);
+        podpis.style.left = `${x(i)}%`;
+        podpis.style.top = `${y(d.штук)}%`;
+        box.appendChild(podpis);
+      }
+      if (kray || i % shag === 0) {
+        const data = document.createElement("em");
+        data.className = "zoneLine__day";
+        data.textContent = dayLabel(d.день);
+        data.style.left = `${x(i)}%`;
+        box.appendChild(data);
+      }
     });
 
     const pervyy = dni[0]?.штук || 0;
