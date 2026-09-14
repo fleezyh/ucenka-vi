@@ -1746,18 +1746,29 @@
     ].map(([label, value]) => `<div class="agFact"><small>${label}</small><b>${value}</b></div>`).join('');
 
     // Крошки провала.
-    const crumbs = ['<button type="button" data-at="-1">все товары</button>'];
+    const root = state.client.path.length
+      ? '<button type="button" class="agCrumb" data-at="-1">все товары</button>'
+      : '<span class="agCrumb agCrumb--root"><em>все товары</em></span>';
+    const crumbs = [root];
     state.client.path.forEach((step, i) => {
       const label = CLIENT_DIMS.find((d) => d.key === step.dim);
-      crumbs.push(`<button type="button" data-at="${i}">${escape(label ? label.label : step.dim)}: ${escape(step.value)}</button>`);
+      const last = i === state.client.path.length - 1;
+      crumbs.push(`<button type="button" class="agCrumb" data-at="${i}">`
+        + `<em>${escape(label ? label.label : step.dim)}</em>`
+        + `<b>${escape(step.value)}</b>${last ? '<span class="agCrumb__x">×</span>' : ''}</button>`);
     });
     const crumbBox = el('agClientCrumbs');
     crumbBox.innerHTML = crumbs.join('<span class="agCrumbs__sep">→</span>');
     crumbBox.querySelectorAll('button').forEach((button) => {
       button.addEventListener('click', () => {
         const at = Number(button.dataset.at);
-        state.client.path = at < 0 ? [] : state.client.path.slice(0, at + 1);
-        if (at < 0) state.client.dim = 'kat2';
+        const last = at === state.client.path.length - 1;
+        // По последней крошке — шаг назад: иначе нажать на неё нечем, а
+        // возвращаться к самому началу каждый раз неудобно.
+        state.client.path = at < 0 ? [] : state.client.path.slice(0, last ? at : at + 1);
+        if (!state.client.path.length) state.client.dim = 'kat2';
+        else if (last) state.client.dim = state.client.path[state.client.path.length - 1].dim === 'kat1'
+          ? 'kat2' : CLIENT_DIMS[CLIENT_DIMS.findIndex((d) => d.key === state.client.path[state.client.path.length - 1].dim) + 1].key;
         drawClient(data);
       });
     });
@@ -2012,10 +2023,23 @@
       state.client.kind = key;
       drawClient(data);
     });
-    segment(el('agClientDims'), CLIENT_DIMS, state.client.dim, (key) => {
-      state.client.dim = key;
-      state.client.path = [];
-      drawClient(data);
+    // Разрезы рисуем теми же чипами, что в «Разборе»: segment() даёт голые
+    // кнопки, и вкладка выглядела чужой на фоне остального раздела.
+    const dims = el('agClientDims');
+    dims.innerHTML = '';
+    CLIENT_DIMS.forEach((dim) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'agDim';
+      button.setAttribute('role', 'tab');
+      button.setAttribute('aria-selected', String(dim.key === state.client.dim));
+      button.textContent = dim.label;
+      button.addEventListener('click', () => {
+        state.client.dim = dim.key;
+        state.client.path = [];
+        drawClient(data);
+      });
+      dims.appendChild(button);
     });
     renderClient(data);
   }

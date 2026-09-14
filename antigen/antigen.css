@@ -662,7 +662,7 @@ body[data-mode="antigen"] .shell {
 .agTable--client td { padding: 8px 10px; border-bottom: 1px solid rgba(255, 255, 255, .05); }
 .agTable--client tr.is-clickable { cursor: pointer; }
 .agTable--client tbody tr:hover { background: rgba(255, 255, 255, .035); }
-.agTable--client .agNum { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.agTable--client .agNum { text-align: right; white-space: nowrap; font-feature-settings: 'tnum' 0, 'pnum' 1; }
 .agTable--client .agTable__name { max-width: 520px; }
 .agTable__more { margin: 10px 0 0; }
 
@@ -778,8 +778,8 @@ body[data-mode="antigen"] .shell {
 .agCRow__name { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .agCRow__bar { position: relative; height: 7px; border-radius: 4px; background: rgba(255, 255, 255, .06); }
 .agCRow__bar i { position: absolute; inset: 0 auto 0 0; width: var(--w, 0%); border-radius: 4px; background: var(--blue); }
-.agCRow__value { font-size: 12.5px; text-align: right; font-variant-numeric: tabular-nums; }
-.agCRow__share { font-size: 12.5px; text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
+.agCRow__value { font-size: 12.5px; text-align: right; font-feature-settings: 'tnum' 0, 'pnum' 1; }
+.agCRow__share { font-size: 12.5px; text-align: right; color: var(--muted); font-feature-settings: 'tnum' 0, 'pnum' 1; }
 .agCRow__share.is-warm { color: var(--amber); }
 .agCRow__share.is-hot { color: var(--red); font-weight: 600; }
 
@@ -804,3 +804,9 @@ body[data-mode="antigen"] .shell {
 /* Свёрнутая методология: display у прямого потомка details ломает штатное
    скрытие, поэтому прячем сами. */
 .agMethod:not([open]) .agMethod__grid { display: none; }
+
+/* Крошки провала на вкладке клиентского брака: разрез мелким, значение —
+   основным, крестик у последней подсказывает, что она снимается. */
+.agCrumb__x { margin-left: 4px; color: var(--muted); font-size: 12px; }
+.agCrumb:hover .agCrumb__x { color: var(--red); }
+.agCrumbs__sep { color: var(--muted); font-size: 12px; }
