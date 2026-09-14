@@ -564,7 +564,10 @@
 .zpOtdel__shr { height: 26px; background: rgba(255, 255, 255, 0.13); }
 .zpOtdel__fakt { top: 7px; height: 12px; background: #27c46b; }
 .zpOtdel__fakt.is-over { background: linear-gradient(90deg, #27c46b 0 62%, #e0705a 100%); }
-.zpOtdel__cifry { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; text-align: right; font-variant-numeric: tabular-nums; }
+.zpOtdel__cifry { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 10px; text-align: right; font-variant-numeric: tabular-nums; }
+/* Цель по ШР — четвёртая колонка, отделена чертой: это другой вопрос,
+   не «вылезли ли за оклады», а «укладываемся ли в бюджет направления». */
+.zpOtdel__cel { padding-left: 10px; border-left: 1px solid var(--line); }
 .zpOtdel__cifry span { font-size: 13px; }
 .zpOtdel__cifry b { font-size: 14px; font-weight: 600; }
 .zpOtdel__cifry i { display: block; margin-top: 2px; color: var(--muted); font-size: 11px; font-style: normal; }

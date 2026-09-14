@@ -798,22 +798,33 @@ function tablica(data) {
   }
 
   /* Свод по любому срезу: сколько заложено окладами и что вышло сверх. */
+  /* Всё в гросс: полосы сравнивают заложенные оклады с тем, что подадим.
+     Рядом идёт цель из ШР — это уже полный ФОТ со взносами, и его сравнивают
+     с нашим полным ФОТ, а не с окладами. Два разных вопроса: «не вылезли ли
+     за оклады» и «укладываемся ли в бюджет направления». */
+  const celiSHR = data["цели_шр"] || {};
+
   function svesti(spisok, klyuch) {
     const po = new Map();
     spisok.forEach((c) => {
       const imya = c[klyuch] || "—";
-      const o = po.get(imya) || { imya, lyudey: 0, fond: 0, prognoz: 0,
+      const o = po.get(imya) || { imya, lyudey: 0, fond: 0, prognoz: 0, fot: 0,
                                   premii: 0, nadbavki: 0, otsutstvie: 0 };
       o.lyudey += 1;
-      o.fond += c["оклад_на_руки"] || 0;
-      o.prognoz += prognozS(c);
-      o.premii += (c["премия_план"] || 0) * 0.87;
-      o.nadbavki += (c["надбавка"] || 0) * 0.87;
+      o.fond += c["оклад"] || 0;
+      o.prognoz += c["прогноз_гросс"] ?? (prognozS(c) / 0.87);
+      o.fot += c["фот_прогноз_месяца"] || 0;
+      o.premii += c["премия_план"] || 0;
+      o.nadbavki += c["надбавка"] || 0;
       if (c["отсутствие"]) o.otsutstvie += 1;
       po.set(imya, o);
     });
-    return [...po.values()].map((o) => ({ ...o, raznica: o.prognoz - o.fond }))
-      .sort((a, b) => b.prognoz - a.prognoz);
+    return [...po.values()].map((o) => ({
+      ...o,
+      raznica: o.prognoz - o.fond,
+      cel: (celiSHR[o.imya] || {}).фот || 0,
+      celChelovek: (celiSHR[o.imya] || {}).человек || 0,
+    })).sort((a, b) => b.prognoz - a.prognoz);
   }
 
   function polosa(o, maks, krupno) {
@@ -825,10 +836,14 @@ function tablica(data) {
              style="width:${(100 * o.prognoz / maks).toFixed(1)}%"></div>
       </div>
       <div class="zpOtdel__cifry">
-        <span>${rubli(o.fond)}<i>по ШР</i></span>
-        <span>${rubli(o.prognoz)}<i>выйдет</i></span>
+        <span>${rubli(o.fond)}<i>оклады, гросс</i></span>
+        <span>${rubli(o.prognoz)}<i>подадим</i></span>
         <span class="${sverh ? "zpNad" : "zpPod"}"><b>${sverh ? "+" : ""}${rubli(o.raznica)}</b>
           <i>${prichina(o)}</i></span>
+        ${o.cel ? `<span class="zpOtdel__cel">${rubli(o.fot)} / ${rubli(o.cel)}
+          <i>ФОТ против цели ШР${o.fot > o.cel
+            ? ", <b class=\"zpNad\">выше на " + rubli(o.fot - o.cel) + "</b>"
+            : ", запас " + rubli(o.cel - o.fot)}</i></span>` : ""}
       </div>`;
   }
 
