@@ -739,7 +739,17 @@
     // Неподвижная зона — ровная линия посередине: прижимать её к краю нечестно,
     // она ведь не на нуле, а просто не меняется.
     const y = (v) => (razmah ? 12 + (1 - (v - min) / razmah) * 76 : 50);
-    const x = (i) => (dni.length === 1 ? 50 : (i / (dni.length - 1)) * 100);
+    // Крайние точки держим внутри поля: иначе подпись первой уезжает за левый
+    // край панели и обрезается.
+    const x = (i) => (dni.length === 1 ? 50 : 2 + (i / (dni.length - 1)) * 96);
+
+    // Значение подписываем у каждой точки — иначе приходится наводить на все
+    // подряд. Двадцать одно шестизначное число в строку не влезает, поэтому
+    // крупные зоны показываем в тысячах.
+    const vTysyachah = max >= 10000;
+    const podpisChisla = (v) => (vTysyachah
+      ? (v / 1000).toLocaleString("ru-RU", { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+      : shtuki(v));
 
     const tochki = dni.map((d, i) => `${x(i)},${y(d.штук)}`).join(" ");
     const holst = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -766,14 +776,14 @@
       tochka.title = `${dayLabel(d.день)} — ${shtuki(d.штук)} шт`;
       box.appendChild(tochka);
 
-      if (kray) {
-        const podpis = document.createElement("b");
-        podpis.className = "zoneLine__pin";
-        podpis.textContent = shtuki(d.штук);
-        podpis.style.left = `${x(i)}%`;
-        podpis.style.top = `${y(d.штук)}%`;
-        box.appendChild(podpis);
-      }
+      const podpis = document.createElement("b");
+      podpis.className = "zoneLine__pin"
+        + (i === 0 ? " zoneLine__pin--first" : "")
+        + (i === dni.length - 1 ? " zoneLine__pin--last" : "");
+      podpis.textContent = podpisChisla(d.штук);
+      podpis.style.left = `${x(i)}%`;
+      podpis.style.top = `${y(d.штук)}%`;
+      box.appendChild(podpis);
       if (kray || i % shag === 0) {
         const data = document.createElement("em");
         data.className = "zoneLine__day";
@@ -787,11 +797,12 @@
     const posledniy = dni[dni.length - 1]?.штук || 0;
     const itog = document.createElement("p");
     itog.className = "zoneChart__note";
-    itog.textContent = posledniy === pervyy
+    itog.textContent = (posledniy === pervyy
       ? `за ${dni.length} дней не двигалась`
       : `за ${dni.length} дней ${posledniy > pervyy ? "прибавилось" : "ушло"} `
         + `${shtuki(Math.abs(posledniy - pervyy))} шт · размах `
-        + `${shtuki(min)} — ${shtuki(max)}`;
+        + `${shtuki(min)} — ${shtuki(max)}`)
+      + (vTysyachah ? " · на графике тысячи штук" : "");
 
     const wrap = document.createElement("div");
     wrap.append(box, itog);

@@ -439,14 +439,22 @@ body[data-mode="heatmap"] .shell {
   box-shadow: 0 0 0 2px var(--panel);
 }
 
+/* Подпись у каждой точки. Крайние прижимаем к своей стороне: по центру они
+   вылезали за панель и обрезались. */
 .zoneLine__pin {
   position: absolute;
-  transform: translate(-50%, -150%);
+  transform: translate(-50%, -160%);
   color: var(--text);
-  font-size: 10.5px;
+  font-size: 9.5px;
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
+
+/* Крайние ещё и поднимаем на ярус выше: прижатые к своей стороне, они иначе
+   наползают на соседнюю подпись. */
+.zoneLine__pin--first { transform: translate(0, -280%); }
+.zoneLine__pin--last { transform: translate(-100%, -280%); }
 
 .zoneLine__day {
   position: absolute;
