@@ -525,35 +525,41 @@
     return итог;
   }
 
-  /* Кнопка «Это не КГТ».
+  /* Кнопка «Это не КГТ» и обратная ей «Это КГТ».
    *
    * Справочник относит товар к четвёртому кластеру — крупногабаритным, — а
    * кладовщик держит коробку в руках и видит, что она обычная. Раньше сказать
    * об этом было некуда: ручка на сервере есть с самого начала, а кнопки в
    * пикалке не было, и за всё время не пришло ни одной отметки.
    *
-   * Показываем только там, где расхождение имеет смысл: на товаре из кластера
-   * крупногабаритных. */
+   * Обратный случай не реже: товар числится обычным, а на деле его вдвоём
+   * носят. И ошибается он дороже — такой товар уходит в отбор на маркетплейс,
+   * который крупногабарит не берёт, и возвращается обратно. Поэтому кнопка
+   * есть в обе стороны, а какая именно — решает кластер товара.
+   *
+   * Только в предсорте: там кластер и есть предмет работы. В уценке человек
+   * смотрит себестоимость, и кнопка про габариты там не к месту. */
   const kgtMark = document.getElementById("kgtMark");
   let kgtPayload = null;
 
   function showKgtButton(row, fields) {
     if (!kgtMark) return;
     const cluster = String(field(row, "Кластер") || "").trim();
-    // Только в предсорте: там кластер и есть предмет работы. В уценке человек
-    // смотрит себестоимость, и кнопка про габариты там не к месту.
-    const isBig = mode === "presort" && cluster === "4";
-    kgtMark.hidden = !isBig;
+    // Без кластера сравнивать не с чем: справочник про габариты молчит.
+    const estKlaster = mode === "presort" && cluster !== "";
+    const bolshoy = cluster === "4";
+    kgtMark.hidden = !estKlaster;
     kgtMark.disabled = false;
-    kgtMark.textContent = "Это не КГТ";
+    kgtMark.textContent = bolshoy ? "Это не КГТ" : "Это КГТ";
+    kgtMark.classList.toggle("kgtBtn--kgt", estKlaster && !bolshoy);
     kgtMark.classList.remove("is-done");
-    kgtPayload = isBig ? {
+    kgtPayload = estKlaster ? {
       barcode: field(row, "Штрихкод"),
       name: fields.name,
       rubric: fields.rubric,
       cluster,
-      says: "КГТ",
-      human: "не КГТ",
+      says: bolshoy ? "КГТ" : "не КГТ",
+      human: bolshoy ? "не КГТ" : "КГТ",
       at: new Date().toISOString(),
     } : null;
   }

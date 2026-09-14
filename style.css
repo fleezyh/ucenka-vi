@@ -947,6 +947,11 @@ body[data-mode="dorogie"] .dorogieCard { display: block; }
 .kgtBtn:hover { color: var(--text); border-color: var(--amber); }
 .kgtBtn.is-done { color: var(--green); border-color: rgba(39, 196, 107, .5); cursor: default; }
 .kgtBtn[disabled] { opacity: .6; cursor: default; }
+/* Обратная отметка — «на деле это КГТ». Ошибка в эту сторону дороже: товар
+   уходит в отбор на маркетплейс, который крупногабарит не берёт, и приезжает
+   назад. Поэтому кнопка заметнее, чем её пара. */
+.kgtBtn--kgt { color: var(--text); border-color: rgba(245, 173, 50, .45); }
+.kgtBtn--kgt:hover { background: rgba(245, 173, 50, .12); }
 
 /* Вердикт по отбору на площадки: показывается только на товаре дороже порога,
    поэтому вариант один. Текст дублирует цвет, чтобы решение читалось и без него. */
