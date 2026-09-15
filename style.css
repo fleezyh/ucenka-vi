@@ -195,41 +195,24 @@ h1 {
 .pickerTabs {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
+  gap: 8px;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(8, 13, 20, 0.72);
 }
 
 .pickerTabGroup {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: center;
   min-width: 0;
-  padding: 5px;
-  border: 1px solid var(--line);
-  border-radius: 15px;
-  background: rgba(8, 13, 20, 0.72);
+  padding: 0;
+  border: 0;
+  background: transparent;
 }
-.pickerTabGroup__label {
-  display: block;
-  margin: 0;
-  padding: 0 11px 0 7px;
-  border-right: 1px solid var(--line);
-  color: var(--muted);
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: .1em;
-  line-height: 1.25;
-  white-space: nowrap;
-  text-transform: uppercase;
-}
+.pickerTabGroup--bulk { padding-left: 8px; border-left: 1px solid var(--line); }
 .pickerTabGroup__buttons {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 4px;
-  padding-left: 5px;
 }
 .pickerTabs .tab { min-width: 0; padding-inline: 14px; }
 
@@ -727,9 +710,9 @@ kbd {
   .primary { min-width: 0; }
   .primary.category { text-align: left; }
   .nameNote { margin-top: 10px; }
-  .pickerTabs { grid-template-columns: 1fr; gap: 8px; padding: 0; overflow: visible; }
-  .pickerTabGroup { padding: 5px; }
-  .pickerTabGroup__label { min-width: 76px; padding-inline: 7px 10px; }
+  .pickerTabs { gap: 6px; padding: 5px; }
+  .pickerTabGroup--bulk { padding-left: 6px; }
+  .pickerTabs .tab { padding-inline: 7px; font-size: 13px; }
 }
 
 /* Светлой темы здесь больше нет. Она включалась сама, по настройке Windows, и
