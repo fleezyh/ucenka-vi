@@ -721,6 +721,58 @@ body[data-mode="pallets"] .modePill {
 }
 body[data-mode="pallets"] .readyPill i { background: var(--amber); }
 
+/* ---- Раздел «Себес списком» --------------------------------------------- */
+.costListCard { display: none; }
+body[data-mode="costlist"] .searchCard:not(.costListCard) { display: none; }
+body[data-mode="costlist"] .costListCard { display: block; }
+body[data-mode="costlist"] .databaseCard { display: none; }
+body[data-mode="costlist"] .layout { grid-template-columns: minmax(0, 1fr); }
+body[data-mode="costlist"] {
+  background:
+    radial-gradient(1000px 620px at 3% -8%, rgba(39, 196, 107, 0.13), transparent 59%),
+    radial-gradient(850px 560px at 100% 2%, rgba(77, 141, 247, 0.10), transparent 58%),
+    var(--bg);
+}
+body[data-mode="costlist"] .eyebrow { color: #74dea2; }
+.tab[data-mode="costlist"][aria-selected="true"] {
+  background: var(--green);
+  box-shadow: 0 8px 24px rgba(39, 196, 107, 0.22);
+}
+
+.costListIntro { margin: 0 0 17px; color: var(--muted); font-size: 14px; line-height: 1.55; }
+.costListUpload { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+.costListUpload span { color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+.costListFileButton { display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+#costListInput {
+  width: 100%; min-height: 160px; padding: 13px 15px;
+  border: 1px solid var(--line); border-radius: 13px;
+  color: var(--text); background: rgba(8, 13, 20, 0.6);
+  font-family: var(--ui); font-size: 14px; line-height: 1.5; resize: vertical;
+}
+#costListInput:focus { outline: none; border-color: var(--green); box-shadow: 0 0 0 4px rgba(39, 196, 107, 0.12); }
+#costListInput::placeholder { color: var(--muted); }
+.searchRow--costList { margin-top: 12px; display: flex; gap: 10px; flex-wrap: wrap; }
+.costListProgress { height: 5px; margin: 12px 0 0; overflow: hidden; border-radius: 999px; background: var(--line); }
+.costListProgress i { display: block; height: 100%; width: 0; border-radius: inherit; background: var(--green); transition: width 160ms ease; }
+.costListTotals { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 16px 0; }
+.costListTotals div { padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel-soft); }
+.costListTotals span { display: block; margin-bottom: 5px; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
+.costListTotals strong { color: var(--text); font-size: 20px; }
+.costListResults { display: none; max-height: 580px; }
+.costListResults td { max-width: 320px; }
+.costListResults td:nth-child(2), .costListResults td:nth-child(3) { min-width: 220px; }
+.costListResults tr.is-missing td { background: rgba(240, 93, 114, 0.07); }
+.costListResults tr.is-warning td { background: rgba(245, 173, 50, 0.07); }
+.costListStatus--ok { color: #74dea2; }
+.costListStatus--missing { color: #ff8da0; }
+.costListStatus--warning { color: #f7c877; }
+
+@media (max-width: 700px) {
+  .costListTotals { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .costListResults { max-height: 70vh; }
+  #costListInput { font-size: 16px; }
+}
+
 #palletInput {
   width: 100%;
   min-height: 118px;

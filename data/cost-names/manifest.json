@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "builtAt": "2026-09-15 15:02:21",
+  "rows": 7027285,
+  "skipped": 9,
+  "hash": "fnv1a64-utf8-normalized",
+  "shardHex": 3,
+  "shardPath": "data/cost-names/shards/{key}.csv.gz"
+}

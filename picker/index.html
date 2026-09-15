@@ -9,11 +9,12 @@
   <link rel="icon" type="image/svg+xml" href="assets/brand/vi-mark.svg?v=20260903-3">
   <link rel="preload" href="assets/fonts/VI_Sans_Regular.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="assets/fonts/VI_Sans_ExtraBold.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="style.css?v=20260914-1">
+  <link rel="stylesheet" href="style.css?v=20260915-1">
   <link rel="stylesheet" href="reeded-bg.css?v=20260907-6">
   <link rel="stylesheet" href="site-header.css?v=20260914-2">
   <script src="reeded-bg.js?v=20260906-7" defer></script>
-  <script src="script.js?v=20260914-1" defer></script>
+  <script src="script.js?v=20260915-1" defer></script>
+  <script src="cost-list.js?v=20260915-2" defer></script>
   <script src="pallets.js?v=20260905-7" defer></script>
   <script src="nav.js?v=20260914-1" defer></script>
 </head>
@@ -49,6 +50,7 @@
       </div>
       <div class="tabs" role="tablist" aria-label="Раздел Пикалки">
         <button class="tab" type="button" role="tab" data-mode="ucenka" aria-selected="true">Уценка</button>
+        <button class="tab" type="button" role="tab" data-mode="costlist" aria-selected="false">Себес списком</button>
         <button class="tab" type="button" role="tab" data-mode="presort" aria-selected="false">Предсорт</button>
         <button class="tab" type="button" role="tab" data-mode="pallets" aria-selected="false">Паллеты</button>
       </div>
@@ -164,6 +166,64 @@
         <p class="scannerNote">
           Сканер обычно отправляет <kbd>Enter</kbd> после кода. Поле очистится и сразу будет готово к следующему товару.
         </p>
+      </section>
+
+      <section class="card searchCard costListCard" id="costListCard">
+        <div class="cardHeading searchHeading">
+          <div>
+            <p class="overline">Массовый расчёт</p>
+            <h2>Себес по списку</h2>
+          </div>
+          <span class="readyPill"><i></i>До 500 строк</span>
+        </div>
+
+        <p class="costListIntro">
+          Загрузите Excel или вставьте таблицу. Колонки «Наименование» и «Заказ, ед.» определятся автоматически.
+          Если вставить только названия, количество будет равно одной штуке.
+        </p>
+
+        <div class="costListUpload">
+          <input id="costListFile" type="file" accept=".xlsx,.xls,.csv,.txt" hidden>
+          <label class="action action--secondary costListFileButton" for="costListFile">Загрузить Excel</label>
+          <span id="costListFileName">или вставьте список ниже</span>
+        </div>
+
+        <label class="fieldLabel" for="costListInput">Наименования</label>
+        <textarea id="costListInput" rows="8" autocomplete="off" spellcheck="false"
+                  placeholder="Наименование товара 1&#9;2&#10;Наименование товара 2&#9;1"></textarea>
+        <div class="searchRow searchRow--costList">
+          <button class="action" id="costListGo" type="button">Получить себес</button>
+          <button class="action action--secondary" id="costListExport" type="button" hidden>Скачать Excel</button>
+          <button class="action action--secondary" id="costListClear" type="button">Очистить</button>
+        </div>
+
+        <p class="message" id="costListMessage">Загрузите файл или вставьте список.</p>
+        <div class="costListProgress" id="costListProgress" hidden><i id="costListProgressValue"></i></div>
+
+        <div class="costListTotals" id="costListTotals" hidden>
+          <div><span>Строк</span><strong id="costListRows">0</strong></div>
+          <div><span>Найдено</span><strong id="costListFound">0</strong></div>
+          <div><span>Не посчитано</span><strong id="costListMissing">0</strong></div>
+          <div><span>Себес заказа</span><strong id="costListSum">0 ₽</strong></div>
+        </div>
+
+        <div class="results costListResults" id="costListResults">
+          <table>
+            <thead>
+              <tr>
+                <th class="num">№</th>
+                <th>Наименование из списка</th>
+                <th>Найденный товар</th>
+                <th class="num">Код</th>
+                <th class="num">Кол-во</th>
+                <th class="num">Себес/шт</th>
+                <th class="num">Сумма</th>
+                <th>Статус</th>
+              </tr>
+            </thead>
+            <tbody id="costListBody"></tbody>
+          </table>
+        </div>
       </section>
 
       <section class="card searchCard palletsCard">

@@ -68,6 +68,22 @@ class SiteRegressions(unittest.TestCase):
         self.assertIn('<base href="../">', picker)
         self.assertIn('nav.js?v=', picker)
 
+    def test_picker_has_bulk_cost_tool_and_exact_name_index(self):
+        picker = (ROOT / "picker/index.html").read_text(encoding="utf-8")
+        script = (ROOT / "cost-list.js").read_text(encoding="utf-8")
+        manifest = json.loads((ROOT / "data/cost-names/manifest.json").read_text(encoding="utf-8"))
+        shards = list((ROOT / "data/cost-names/shards").glob("*.csv.gz"))
+
+        self.assertIn('data-mode="costlist"', picker)
+        self.assertIn('id="costListFile"', picker)
+        self.assertIn('id="costListExport"', picker)
+        self.assertIn("Заказ", picker)
+        self.assertIn("fnv1a64", script)
+        self.assertIn("Цена требует проверки", script)
+        self.assertGreater(manifest["rows"], 7_000_000)
+        self.assertEqual(manifest["shardHex"], 3)
+        self.assertEqual(len(shards), 4096)
+
     def test_dashboard_has_no_manual_import_or_usage_counter(self):
         dashboard = (ROOT / "dashboard/index.html").read_text(encoding="utf-8")
         publisher = (ROOT / "tools/publish-dashboard.ps1").read_text(encoding="utf-8")
