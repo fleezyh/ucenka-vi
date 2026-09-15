@@ -184,28 +184,29 @@ h1 {
 }
 
 .tabs {
-  display: flex;
-  gap: 8px;
-  padding: 5px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.pickerTabGroup {
+  min-width: 0;
+  padding: 6px;
   border: 1px solid var(--line);
   border-radius: 16px;
   background: rgba(8, 13, 20, 0.72);
-  
 }
-
-.pickerTabGroup { min-width: 0; }
-.pickerTabGroup--bulk { padding-left: 8px; border-left: 1px solid var(--line); }
 .pickerTabGroup__label {
   display: block;
-  margin: 2px 8px 5px;
+  margin: 2px 9px 7px;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: .1em;
-  line-height: 1;
+  line-height: 1.15;
   text-transform: uppercase;
 }
-.pickerTabGroup__buttons { display: flex; gap: 4px; }
+.pickerTabGroup__buttons { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
 
 .tab {
   min-width: 128px;
@@ -676,9 +677,8 @@ kbd {
 @media (max-width: 860px) {
   .hero { grid-template-columns: 1fr; align-items: start; }
   .tabs { width: 100%; overflow-x: auto; scrollbar-width: thin; }
-  .pickerTabGroup { flex: 1 0 auto; }
   .pickerTabGroup__buttons { width: 100%; }
-  .tab { flex: 1; min-width: 108px; }
+  .tab { min-width: 108px; }
   .layout { grid-template-columns: 1fr; }
   .databaseCard { order: 2; }
   .searchCard { order: 1; }
@@ -702,9 +702,9 @@ kbd {
   .primary { min-width: 0; }
   .primary.category { text-align: left; }
   .nameNote { margin-top: 10px; }
-  .tabs { padding: 5px; }
-  .pickerTabGroup--bulk { padding-left: 7px; }
-  .pickerTabGroup__label { margin-left: 5px; }
+  .tabs { gap: 8px; }
+  .pickerTabGroup { padding: 5px; }
+  .pickerTabGroup__label { margin: 2px 7px 6px; }
 }
 
 /* Светлой темы здесь больше нет. Она включалась сама, по настройке Windows, и
