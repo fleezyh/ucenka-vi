@@ -5,7 +5,8 @@
   const MANIFEST_URL = "data/v2/manifest.json";
   const COST_MANIFEST_URL = "data/cost-names/manifest.json";
   const XLSX_URL = "dashboard/vendor/xlsx.full.min.js";
-  const LIMIT = 500;
+  const LIMIT = 2000;
+  const LOOKUP_CONCURRENCY = 8;
   const FETCH_CONCURRENCY = 8;
   const utf8 = new TextDecoder("utf-8");
   const moneyFormat = new Intl.NumberFormat("ru-RU", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -379,10 +380,12 @@
         if (!response.ok) throw new Error("не найден справочник Пикалки");
         return response.json();
       });
-      for (let index = 0; index < rows.length; index += 1) {
-        outputRows.push(await matchOne(rows[index]));
-        setProgress(true, 5 + ((index + 1) / rows.length) * 95);
-        say(`Проверено ${index + 1} из ${rows.length}…`);
+      for (let index = 0; index < rows.length; index += LOOKUP_CONCURRENCY) {
+        const batch = rows.slice(index, index + LOOKUP_CONCURRENCY);
+        outputRows.push(...await Promise.all(batch.map(matchOne)));
+        const checked = Math.min(rows.length, index + batch.length);
+        setProgress(true, 5 + (checked / rows.length) * 95);
+        say(`Проверено ${checked} из ${rows.length}…`);
       }
       render();
       const found = outputRows.filter((row) => Number.isFinite(row.unitCost)).length;

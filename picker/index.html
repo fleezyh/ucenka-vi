@@ -9,12 +9,12 @@
   <link rel="icon" type="image/svg+xml" href="assets/brand/vi-mark.svg?v=20260903-3">
   <link rel="preload" href="assets/fonts/VI_Sans_Regular.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="assets/fonts/VI_Sans_ExtraBold.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="style.css?v=20260915-1">
+  <link rel="stylesheet" href="style.css?v=20260915-2">
   <link rel="stylesheet" href="reeded-bg.css?v=20260907-6">
   <link rel="stylesheet" href="site-header.css?v=20260914-2">
   <script src="reeded-bg.js?v=20260906-7" defer></script>
   <script src="script.js?v=20260915-1" defer></script>
-  <script src="cost-list.js?v=20260915-2" defer></script>
+  <script src="cost-list.js?v=20260915-3" defer></script>
   <script src="pallets.js?v=20260905-7" defer></script>
   <script src="nav.js?v=20260914-1" defer></script>
 </head>
@@ -49,10 +49,20 @@
         </p>
       </div>
       <div class="tabs" role="tablist" aria-label="Раздел Пикалки">
-        <button class="tab" type="button" role="tab" data-mode="ucenka" aria-selected="true">Уценка</button>
-        <button class="tab" type="button" role="tab" data-mode="costlist" aria-selected="false">Себес списком</button>
-        <button class="tab" type="button" role="tab" data-mode="presort" aria-selected="false">Предсорт</button>
-        <button class="tab" type="button" role="tab" data-mode="pallets" aria-selected="false">Паллеты</button>
+        <div class="pickerTabGroup">
+          <span class="pickerTabGroup__label">Один товар</span>
+          <div class="pickerTabGroup__buttons">
+            <button class="tab" type="button" role="tab" data-mode="ucenka" aria-selected="true">Уценка</button>
+            <button class="tab" type="button" role="tab" data-mode="presort" aria-selected="false">Предсорт</button>
+          </div>
+        </div>
+        <div class="pickerTabGroup pickerTabGroup--bulk">
+          <span class="pickerTabGroup__label">Списки</span>
+          <div class="pickerTabGroup__buttons">
+            <button class="tab" type="button" role="tab" data-mode="costlist" aria-selected="false">Себес списком</button>
+            <button class="tab" type="button" role="tab" data-mode="pallets" aria-selected="false">Паллеты</button>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -174,7 +184,7 @@
             <p class="overline">Массовый расчёт</p>
             <h2>Себес по списку</h2>
           </div>
-          <span class="readyPill"><i></i>До 500 строк</span>
+          <span class="readyPill"><i></i>До 2 000 строк</span>
         </div>
 
         <p class="costListIntro">
