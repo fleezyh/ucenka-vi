@@ -29,6 +29,7 @@
 
   let manifest;
   let costManifest;
+  let costManifestPromise;
   let preparedRows = null;
   let outputRows = [];
   const wordCache = new Map();
@@ -64,8 +65,10 @@
 
   async function getCostManifest() {
     if (costManifest !== undefined) return costManifest;
-    const response = await fetch(COST_MANIFEST_URL, { cache: "no-cache" });
-    costManifest = response.ok ? await response.json() : null;
+    costManifestPromise ||= fetch(COST_MANIFEST_URL, { cache: "no-cache" }).then(async (response) => (
+      response.ok ? response.json() : null
+    ));
+    costManifest = await costManifestPromise;
     return costManifest;
   }
 
