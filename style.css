@@ -193,6 +193,8 @@ h1 {
 }
 
 .pickerTabs {
+  position: relative;
+  isolation: isolate;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
@@ -201,6 +203,27 @@ h1 {
   border-radius: 16px;
   background: rgba(8, 13, 20, 0.72);
 }
+.pickerTabs__lens {
+  position: absolute;
+  z-index: 0;
+  top: 5px;
+  bottom: 5px;
+  left: 0;
+  width: var(--picker-lens-width, 0px);
+  border: 1px solid rgba(255,255,255,.24);
+  border-radius: 11px;
+  background: var(--green);
+  box-shadow: 0 8px 24px rgba(39,196,107,.22);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(var(--picker-lens-x, 5px));
+}
+.pickerTabs.is-ready .pickerTabs__lens {
+  opacity: 1;
+  transition: transform .42s cubic-bezier(.22,1,.36,1), width .42s cubic-bezier(.22,1,.36,1), background .3s ease, box-shadow .3s ease;
+}
+body[data-mode="presort"] .pickerTabs__lens { background: var(--blue); box-shadow: 0 8px 24px rgba(77,141,247,.22); }
+body[data-mode="pallets"] .pickerTabs__lens { background: var(--amber); box-shadow: 0 8px 24px rgba(245,173,50,.22); }
 
 .pickerTabGroup {
   min-width: 0;
@@ -214,7 +237,8 @@ h1 {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 4px;
 }
-.pickerTabs .tab { min-width: 0; padding-inline: 14px; }
+.pickerTabs .tab { position: relative; z-index: 1; min-width: 0; padding-inline: 14px; }
+body .pickerTabs .tab[aria-selected="true"] { background: transparent; box-shadow: none; }
 
 .tab {
   min-width: 128px;
@@ -248,6 +272,10 @@ h1 {
   /* Карточки тянутся до общей высоты: разная длина колонок выглядела обрубком. */
   align-items: stretch;
 }
+.databaseCard { grid-column: 1; grid-row: 1; }
+.searchCard { grid-column: 2; grid-row: 1; }
+.layout.is-entering { animation: pickerPanelIn .42s cubic-bezier(.22,1,.36,1); }
+@keyframes pickerPanelIn { from { opacity: 0; transform: translateY(12px) scale(.99); } }
 
 .card {
   position: relative;
@@ -688,8 +716,8 @@ kbd {
   .pickerTabGroup__buttons { width: 100%; }
   .tab { min-width: 108px; }
   .layout { grid-template-columns: 1fr; }
-  .databaseCard { order: 2; }
-  .searchCard { order: 1; }
+  .databaseCard { grid-column: 1; grid-row: 2; }
+  .searchCard { grid-column: 1; grid-row: 1; }
   .databaseNote { display: none; }
 }
 
@@ -723,11 +751,12 @@ kbd {
 
 /* ---- Раздел «Паллеты» ---------------------------------------------------- */
 /* Карточки товара и паллет занимают одно место: показываем ту, что выбрана. */
-.palletsCard { display: none; }
-body[data-mode="pallets"] .searchCard:not(.palletsCard) { display: none; }
-body[data-mode="pallets"] .palletsCard { display: block; }
+.palletsCard { display: block; visibility: hidden; opacity: 0; pointer-events: none; }
+body[data-mode="pallets"] .searchCard:not(.palletsCard) { visibility: hidden; opacity: 0; pointer-events: none; }
+body[data-mode="pallets"] .palletsCard { visibility: visible; opacity: 1; pointer-events: auto; }
 body[data-mode="pallets"] .databaseCard { display: none; }
 body[data-mode="pallets"] .layout { grid-template-columns: minmax(0, 1fr); }
+body[data-mode="pallets"] .searchCard { grid-column: 1; grid-row: 1; }
 
 body[data-mode="pallets"] {
   background:
@@ -749,11 +778,12 @@ body[data-mode="pallets"] .modePill {
 body[data-mode="pallets"] .readyPill i { background: var(--amber); }
 
 /* ---- Раздел «Себес списком» --------------------------------------------- */
-.costListCard { display: none; }
-body[data-mode="costlist"] .searchCard:not(.costListCard) { display: none; }
-body[data-mode="costlist"] .costListCard { display: block; }
+.costListCard { display: block; visibility: hidden; opacity: 0; pointer-events: none; }
+body[data-mode="costlist"] .searchCard:not(.costListCard) { visibility: hidden; opacity: 0; pointer-events: none; }
+body[data-mode="costlist"] .costListCard { visibility: visible; opacity: 1; pointer-events: auto; }
 body[data-mode="costlist"] .databaseCard { display: none; }
 body[data-mode="costlist"] .layout { grid-template-columns: minmax(0, 1fr); }
+body[data-mode="costlist"] .searchCard { grid-column: 1; grid-row: 1; }
 body[data-mode="costlist"] {
   background:
     radial-gradient(1000px 620px at 3% -8%, rgba(39, 196, 107, 0.13), transparent 59%),
@@ -995,6 +1025,8 @@ body[data-mode="costlist"] .eyebrow { color: #74dea2; }
   .action, .tab, .navLink, .navAdmin, .retry, .dashboardLink, .answer, .results tbody tr {
     transition: none;
   }
+  .layout.is-entering { animation: none; }
+  .pickerTabs.is-ready .pickerTabs__lens { transition: none; }
   .action:active, .tab:active, .navLink:active, .navAdmin:active,
   .retry:active, .dashboardLink:active, .answer:active, .results tbody tr:active {
     transform: none;
@@ -1002,9 +1034,12 @@ body[data-mode="costlist"] .eyebrow { color: #74dea2; }
 }
 
 /* Отбор дорогого товара — своя карточка, как у паллет. */
-.dorogieCard { display: none; }
-body[data-mode="dorogie"] .searchCard:not(.dorogieCard) { display: none; }
-body[data-mode="dorogie"] .dorogieCard { display: block; }
+.dorogieCard { display: block; visibility: hidden; opacity: 0; pointer-events: none; }
+body[data-mode="dorogie"] .searchCard:not(.dorogieCard) { visibility: hidden; opacity: 0; pointer-events: none; }
+body[data-mode="dorogie"] .dorogieCard { visibility: visible; opacity: 1; pointer-events: auto; }
+body[data-mode="dorogie"] .databaseCard { display: none; }
+body[data-mode="dorogie"] .layout { grid-template-columns: minmax(0, 1fr); }
+body[data-mode="dorogie"] .searchCard { grid-column: 1; grid-row: 1; }
 .dorogieTotals { display: flex; flex-wrap: wrap; gap: 8px 22px; margin-bottom: 14px; color: var(--muted); font-size: 13px; }
 .dorogieTotals b { color: var(--text); font-weight: 700; font-size: 16px; }
 .dorogieCard td small { display: block; margin-top: 2px; color: var(--muted); font-size: 11.5px; }

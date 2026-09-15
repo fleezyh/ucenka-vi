@@ -28,6 +28,9 @@
   const progress = $("progress");
   const progressValue = $("progressValue");
   const retry = $("retry");
+  const pickerTabs = document.querySelector(".pickerTabs");
+  const pickerLens = document.querySelector(".pickerTabs__lens");
+  const modeLayout = document.querySelector(".layout");
 
   const MODES = {
     ucenka: {
@@ -186,12 +189,29 @@
     $("modeDescription").textContent = config.description;
     $("modePill").textContent = config.title;
     tabs.forEach((tab) => tab.setAttribute("aria-selected", String(tab.dataset.mode === mode)));
+    requestAnimationFrame(updatePickerLens);
     if (config.external) return;
 
     $("extraHead1").textContent = config.extra1;
     $("extraHead2").textContent = config.extra2;
     primaryLabel.textContent = config.primary;
     renderStats();
+  }
+
+  function updatePickerLens() {
+    const selected = pickerTabs?.querySelector('.tab[aria-selected="true"]');
+    if (!pickerTabs || !pickerLens || !selected) return;
+    const hostRect = pickerTabs.getBoundingClientRect();
+    const tabRect = selected.getBoundingClientRect();
+    pickerTabs.style.setProperty("--picker-lens-x", `${tabRect.left - hostRect.left}px`);
+    pickerTabs.style.setProperty("--picker-lens-width", `${tabRect.width}px`);
+    pickerTabs.classList.add("is-ready");
+  }
+
+  function animateModeLayout() {
+    if (!modeLayout) return;
+    modeLayout.classList.remove("is-entering");
+    requestAnimationFrame(() => modeLayout.classList.add("is-entering"));
   }
 
   /** Распаковывает ответ, если сервер отдал .gz как есть, а не разжал по дороге. */
@@ -999,6 +1019,7 @@
     const shown = productCode.textContent.trim();
     mode = nextMode;
     renderMode();
+    animateModeLayout();
     // У паллет своя карточка и свой поиск — здесь делать нечего.
     if (MODES[mode].external) return;
     if (!manifest) return;
@@ -1016,6 +1037,7 @@
   }
 
   tabs.forEach((tab) => tab.addEventListener("click", () => switchMode(tab.dataset.mode)));
+  window.addEventListener("resize", updatePickerLens);
   retry.addEventListener("click", connect);
   go.addEventListener("click", searchBarcode);
   goName.addEventListener("click", searchByName);
