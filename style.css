@@ -741,6 +741,8 @@ kbd {
   .pickerTabs { gap: 6px; padding: 5px; }
   .pickerTabGroup--bulk { padding-left: 6px; }
   .pickerTabs .tab { padding-inline: 7px; font-size: 13px; }
+  body[data-mode="costlist"] .lead,
+  body[data-mode="pallets"] .lead { min-height: 4.95em; }
 }
 
 /* Светлой темы здесь больше нет. Она включалась сама, по настройке Windows, и
@@ -791,6 +793,8 @@ body[data-mode="costlist"] {
     var(--bg);
 }
 body[data-mode="costlist"] .eyebrow { color: #74dea2; }
+body[data-mode="costlist"] .lead,
+body[data-mode="pallets"] .lead { min-height: 3.3em; }
 .tab[data-mode="costlist"][aria-selected="true"] {
   background: var(--green);
   box-shadow: 0 8px 24px rgba(39, 196, 107, 0.22);
