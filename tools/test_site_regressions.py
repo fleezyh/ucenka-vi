@@ -6,8 +6,10 @@ from pathlib import Path
 from fetch_analytics import totals_from
 
 ROOT = Path(__file__).resolve().parent.parent
-PAGES = ["index.html"] + [f"{name}/index.html" for name in
-    ("picker", "dashboard", "heatmap", "perf", "sales", "stock", "funnel")]
+PAGES = ["index.html"] + [f"{name}/index.html" for name in (
+    "antigen", "dashboard", "fot", "funnel", "heatmap", "launch",
+    "people", "perf", "picker", "sales", "stock", "zp",
+)]
 BEACON = "907d91d4e2e044f682da0d451e684f83"
 
 class SiteRegressions(unittest.TestCase):
