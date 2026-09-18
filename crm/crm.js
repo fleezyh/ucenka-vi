@@ -381,9 +381,10 @@
       return `<tr data-nomer="${nomer}" data-id="${z.id || ""}">${yachejki}</tr>`;
     }).join("");
 
-    el("crmSchyot").textContent = vidimye.length > 600
+    const skolko = vidimye.length > 600
       ? `Показаны первые 600 из ${vidimye.length}`
       : `Строк: ${vidimye.length}`;
+    el("crmSchyot").textContent = `${skolko} · ${kol.length} колонок, таблица листается вбок`;
     el("crmTabl").innerHTML = `<table><thead>${shapka}</thead><tbody>${telo}</tbody></table>`;
 
     el("crmTabl").querySelectorAll("tbody tr").forEach((tr) => {
@@ -482,13 +483,31 @@
     vvod.addEventListener("click", (event) => event.stopPropagation());
   }
 
+  function pokazat(v, tip) {
+    if (v === null || v === undefined || v === "") return "";
+    if (tip === "dengi" || tip === "chislo") return chislo(v);
+    if (tip === "dolya") return dolya(v);
+    if (tip === "data" || tip === "otgruzkaData") return data(v);
+    return String(v);
+  }
+
   function polyaKartochki(z) {
-    const vse = vid === "loty"
-      ? POLYA_FORMY.map((p) => [p.imya, z[p.pole]])
-      : Object.entries(z).filter(([k]) => k !== "id");
-    return vse.filter(([, v]) => v !== null && v !== undefined && v !== "")
+    const kol = stolbcy();
+    const vse = kol
+      .filter((s) => s.tip !== "otgruzka" && s.tip !== "otgruzkaData")
+      .map((s) => [s.imya, pokazat(z[s.pole], s.tip)]);
+
+    // Отгрузки показываем парами: что и когда, иначе три пустые строки.
+    (z.otgruzki || []).forEach((para, i) => {
+      if (para["что"] || para["когда"]) {
+        vse.push([`Отгрузка ${i + 1}`,
+                  [para["что"], data(para["когда"])].filter(Boolean).join(" · ")]);
+      }
+    });
+
+    return vse.filter(([, v]) => v !== "" && v !== null && v !== undefined)
       .map(([imya, v]) => `<div class="crmStroka"><span>${escape(imya)}</span>
-        <b>${escape(typeof v === "object" ? JSON.stringify(v) : v)}</b></div>`).join("");
+        <b>${escape(v)}</b></div>`).join("");
   }
 
   function otkrytKartochku(z) {

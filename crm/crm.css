@@ -165,3 +165,18 @@
   color: #6b7a8f; border-bottom: 1px solid rgba(143,156,173,.18); text-align: center; }
 .crmShapkaGruppy th.crmGruppa:not(:last-child) { border-right: 1px solid rgba(143,156,173,.18); }
 .crmTabl thead tr:nth-child(2) th { top: 27px; }
+
+/* Колонок много, таблица шире экрана. Полосу прокрутки делаем видимой:
+   иначе кажется, что колонок просто нет. */
+.crmTabl { scrollbar-color: rgba(143,156,173,.55) rgba(15,23,42,.5); scrollbar-width: auto; }
+.crmTabl::-webkit-scrollbar { height: 12px; width: 12px; }
+.crmTabl::-webkit-scrollbar-track { background: rgba(15,23,42,.5); border-radius: 8px; }
+.crmTabl::-webkit-scrollbar-thumb { background: rgba(143,156,173,.55); border-radius: 8px; }
+.crmTabl::-webkit-scrollbar-thumb:hover { background: rgba(223,231,242,.75); }
+
+/* Номер лота не уезжает при прокрутке вбок — по нему ориентируешься. */
+.crmTabl th:first-child, .crmTabl td:first-child { position: sticky; left: 0; z-index: 2;
+  background: #111a2b; }
+.crmTabl thead th:first-child { z-index: 3; }
+.crmTabl tbody tr:hover td:first-child { background: #16203400; }
+.crmShapkaGruppy th:first-child { background: #0b1220; }
