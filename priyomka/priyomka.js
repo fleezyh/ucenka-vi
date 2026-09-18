@@ -132,10 +132,12 @@
     "хранение": "#f5ad32",
   };
   const KOL_W_MIN = 190;
+  const KOL_W_MAX = 340;
+  const SHAG_Y_MIN = 58;
   const OTSTUP_SVERHU = 58;
   const OTSTUP_SNIZU = 34;
-  const SHAG_Y = 78;
-  const V_KOLONKE = 12;
+
+
 
   function cvetZony(z, vozrastPoZonam) {
     // У приёмки и разгрузки занятость ничего не значит — товар стоит на полу
@@ -195,13 +197,19 @@
     if (!polosy.length) { uzel.hidden = true; return; }
     if (!polosy.length) return;
 
-    // В колонке оставляем самые весомые зоны, хвост сворачиваем в один узел:
-    // иначе из двух сотен зон получается нечитаемая каша.
+    // Сколько узлов влезет в экран по высоте: от карты до низа окна минус
+    // запас. Всё, что не помещается, сворачивается в «· ещё N» — иначе карта
+    // уезжает в прокрутку, а её надо видеть целиком с первого взгляда.
+    // От верха карты до низа окна, минус запас на легенду и воздух снизу.
+    const svoyVerh = uzel.getBoundingClientRect().top;
+    const vysota = Math.max(360, window.innerHeight - svoyVerh - 56);
+    const vlezaet = Math.max(5, Math.floor((vysota - 92) / SHAG_Y_MIN));
+
     polosy.forEach((e) => {
       const spisok = kolonki.get(e.key).sort((a, b) => (b.штук || 0) - (a.штук || 0));
-      if (spisok.length > V_KOLONKE) {
-        const hvost = spisok.slice(V_KOLONKE - 1);
-        kolonki.set(e.key, spisok.slice(0, V_KOLONKE - 1).concat({
+      if (spisok.length > vlezaet) {
+        const hvost = spisok.slice(vlezaet - 1);
+        kolonki.set(e.key, spisok.slice(0, vlezaet - 1).concat({
           зона: "· ещё " + hvost.length,
           штук: hvost.reduce((n, z) => n + (z.штук || 0), 0),
           мест: hvost.reduce((n, z) => n + (z.мест || 0), 0),
@@ -216,9 +224,14 @@
     // Панель разбора съедает свои 250 плюс отступ, если открыта.
     const bokOtkryt = el("prKartaBok") && !el("prKartaBok").hidden;
     const dostupno = Math.max(600, (uzel.clientWidth || 1200) - (bokOtkryt ? 268 : 0));
-    const KOL_W = Math.max(KOL_W_MIN, Math.floor(dostupno / polosy.length));
+    const KOL_W = Math.min(KOL_W_MAX,
+                           Math.max(KOL_W_MIN, Math.floor(dostupno / polosy.length)));
     const W = KOL_W * polosy.length;
-    const H = OTSTUP_SVERHU + OTSTUP_SNIZU + SHAG_Y * Math.max(...rows, 1);
+    // Высота — ровно под экран: шаг растягивается, если зон мало, и жмётся
+    // до минимума, если много.
+    const strok = Math.max(...rows, 1);
+    const SHAG_Y = Math.max(SHAG_Y_MIN, Math.floor((vysota - 92) / strok));
+    const H = OTSTUP_SVERHU + OTSTUP_SNIZU + SHAG_Y * strok;
     const maksVKolonke = new Map(polosy.map((e) =>
       [e.key, Math.max(1, ...kolonki.get(e.key).map((z) => z.штук || 0))]));
 
@@ -232,7 +245,8 @@
     const svg = document.createElementNS(SVG_NS, "svg");
     svg.setAttribute("viewBox", "0 0 " + W + " " + H);
     svg.setAttribute("class", "prKartaSvg");
-    svg.style.maxWidth = "100%";
+    svg.style.width = W + "px";
+    svg.style.height = H + "px";
     svg.setAttribute("role", "img");
 
     const stil = document.createElementNS(SVG_NS, "style");
