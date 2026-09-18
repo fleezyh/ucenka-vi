@@ -186,11 +186,13 @@
     (dannye.секторы || []).forEach((s) => {
       (s.зоны || []).forEach((z) => {
         if (!kolonki.has(z.назначение)) return;
+        if (!z.штук) return;
         kolonki.get(z.назначение).push({ ...z, сектор: s.сектор });
       });
     });
 
     const polosy = ETAPY.filter((e) => kolonki.get(e.key).length);
+    if (!polosy.length) { uzel.hidden = true; return; }
     if (!polosy.length) return;
 
     // В колонке оставляем самые весомые зоны, хвост сворачиваем в один узел:
@@ -213,7 +215,8 @@
     const rows = polosy.map((e) => kolonki.get(e.key).length);
     const W = KOL_W * polosy.length;
     const H = OTSTUP_SVERHU + OTSTUP_SNIZU + SHAG_Y * Math.max(...rows, 1);
-    const maks = Math.max(1, ...polosy.flatMap((e) => kolonki.get(e.key).map((z) => z.штук || 0)));
+    const maksVKolonke = new Map(polosy.map((e) =>
+      [e.key, Math.max(1, ...kolonki.get(e.key).map((z) => z.штук || 0))]));
 
     const dobavit = (tag, atr, roditel) => {
       const n = document.createElementNS(SVG_NS, tag);
@@ -273,7 +276,7 @@
       spisok.forEach((z, k) => {
         const x = KOL_W * i + KOL_W / 2;
         const y = OTSTUP_SVERHU + shag * (k + 0.5);
-        const r = Math.min(8 + 17 * Math.sqrt((z.штук || 0) / maks), potolok);
+        const r = Math.min(8 + 17 * Math.sqrt((z.штук || 0) / maksVKolonke.get(etap.key)), potolok);
 
         const cvet = z.свёрнутая ? "нет данных" : cvetZony(z, vozrastPoZonam);
         const ton = SVETOFOR[cvet] || SVETOFOR["нет данных"];
