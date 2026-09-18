@@ -199,15 +199,15 @@
   .stockBar, .stage__bar, .total { transition: none; }
 }
 
-/* Вкладки раздела: стили живут в perf.css, который здесь не подключён,
-   поэтому ссылки выглядели как обычные подчёркнутые ссылки. */
-.perfViews { display: flex; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
-.perfView { display: inline-flex; align-items: center; height: 34px; padding: 0 16px;
-  border-radius: 999px; border: 1px solid rgba(143, 156, 173, 0.3);
-  color: var(--muted, #8f9cad); font-size: 13px; text-decoration: none; }
-.perfView:hover { border-color: rgba(223, 231, 242, 0.6); color: #dfe7f2; }
-.perfView.is-on { background: rgba(223, 231, 242, 0.12);
-  border-color: rgba(223, 231, 242, 0.5); color: #dfe7f2; font-weight: 600; }
+/* Вкладки раздела: perf.css здесь не подключён, поэтому тот же стиль
+   переносим сюда — единый переключатель, а не отдельные ссылки. */
+.perfViews { display: inline-flex; gap: 4px; padding: 4px;
+  border: 1px solid var(--line, rgba(143,156,173,.25)); border-radius: 13px;
+  background: rgba(8, 13, 20, 0.72); }
+.perfView { padding: 8px 14px; border-radius: 9px; color: var(--muted, #8f9cad);
+  font-size: 13px; font-weight: 600; text-decoration: none; }
+.perfView:hover { color: var(--text, #dfe7f2); }
+.perfView.is-on { color: #fff; background: rgba(255, 255, 255, 0.12); }
 .heroSales .perfTools { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
 
 /* «Добавить / убрать» — ссылка, а базовый .action рассчитан на кнопку:

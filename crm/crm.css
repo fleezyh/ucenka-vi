@@ -1,22 +1,20 @@
 /* CRM продаж. Плотная таблица на полторы тысячи строк, поэтому строки узкие,
    а цвет несёт смысл: статус в воронке. */
 
-.crmVidy { display: flex; gap: 6px; margin-bottom: 12px; }
-.crmVid { cursor: pointer; font: inherit; font-size: 13px; height: 32px; padding: 0 16px;
-  display: inline-flex; align-items: center; border-radius: 999px;
-  border: 1px solid rgba(143,156,173,.3); background: transparent;
-  color: var(--muted, #8f9cad); }
-.crmVid:hover { border-color: rgba(223,231,242,.6); color: #dfe7f2; }
-.crmVid.is-on { background: rgba(223,231,242,.12); border-color: rgba(223,231,242,.5);
-  color: #dfe7f2; font-weight: 600; }
-/* Вкладки раздела в шапке — как в остальных разделах. */
-.perfViews { display: flex; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
-.perfView { display: inline-flex; align-items: center; height: 34px; padding: 0 16px;
-  border-radius: 999px; border: 1px solid rgba(143,156,173,.3);
-  color: var(--muted, #8f9cad); font-size: 13px; text-decoration: none; }
-.perfView:hover { border-color: rgba(223,231,242,.6); color: #dfe7f2; }
-.perfView.is-on { background: rgba(223,231,242,.12); border-color: rgba(223,231,242,.5);
-  color: #dfe7f2; font-weight: 600; }
+.crmVidy {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--line, rgba(143,156,173,.25));
+  border-radius: 13px;
+  background: rgba(8, 13, 20, 0.72);
+  margin-bottom: 12px;
+}
+.crmVid { cursor: pointer; font: inherit; padding: 8px 14px; border: 0;
+  border-radius: 9px; background: transparent; color: var(--muted, #8f9cad);
+  font-size: 13px; font-weight: 600; }
+.crmVid:hover { color: var(--text, #dfe7f2); }
+.crmVid.is-on { color: #fff; background: rgba(255, 255, 255, 0.12); }
 
 .crmPlitki { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
   gap: 12px; margin: 18px 0; }
