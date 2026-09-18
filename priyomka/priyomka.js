@@ -59,6 +59,57 @@
     el("prPlitki").hidden = false;
   }
 
+
+  // Сколько товар лежит в приёмке. Возраст считается по товару (пара
+  // «SKU + ячейка»), а не по таре: контейнер многоразовый и по нему
+  // возраст выходит в тысячи часов. SLA — 48 часов.
+  const KORZINY = {
+    "1. до 24 ч": { podpis: "до 24 ч", klass: "pr--zelyonyy" },
+    "2. 24–48 ч": { podpis: "24–48 ч", klass: "pr--zhyoltyy" },
+    "3. больше 48 ч": { podpis: "больше 48 ч · SLA нарушен", klass: "pr--krasnyy" },
+    "4. движения не найдено": { podpis: "без следа прихода", klass: "pr--net" },
+  };
+
+  function narisovatVozrast() {
+    const vozrast = dannye.возраст;
+    const uzel = el("prVozrast");
+    if (!uzel || !vozrast || !vozrast.зоны || !vozrast.зоны.length) return;
+
+    const itogo = vozrast.итого || {};
+    const vsego = Object.values(itogo).reduce((s, n) => s + n, 0);
+    const plitki = Object.keys(KORZINY).map((k) => {
+      const n = itogo[k] || 0;
+      const dolya = vsego ? (100 * n / vsego).toFixed(1) : "0.0";
+      return `<article class="prPlitka ${KORZINY[k].klass}">
+        <p class="prPlitka__zag">${escape(KORZINY[k].podpis)}</p>
+        <p class="prPlitka__znak">${chislo(n)}</p>
+        <p class="prPlitka__pod">${dolya}% штук</p>
+      </article>`;
+    }).join("");
+
+    const rows = vozrast.зоны.slice(0, 20).map((z) => {
+      const prosr = (z.корзины || {})["3. больше 48 ч"] || 0;
+      const dolya = z.штук ? (100 * prosr / z.штук) : 0;
+      return `<tr>
+        <td>${escape(z.зона)}</td>
+        <td class="prNum">${chislo(z.штук)}</td>
+        <td class="prNum"><b class="${dolya > 50 ? "prKrit" : ""}">${chislo(prosr)}</b></td>
+        <td class="prNum">${dolya.toFixed(0)}%</td>
+        <td class="prNum">${z.максимум_часов ? chislo(z.максимум_часов) + " ч" : "—"}</td>
+      </tr>`;
+    }).join("");
+
+    uzel.innerHTML = `<h2 class="prVozrast__zag">Сколько товар лежит в приёмке</h2>
+      <div class="prPlitki prPlitki--vozrast">${plitki}</div>
+      <table class="prVozrast__tab">
+        <thead><tr><th>Зона</th><th class="prNum">штук</th>
+          <th class="prNum">старше 48 ч</th><th class="prNum">доля</th>
+          <th class="prNum">самое старое</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+    uzel.hidden = false;
+  }
+
   function narisovatFiltry() {
     const sektory = dannye.секторы || [];
     // «Нет данных» тоже нужен отдельной кнопкой: это три десятка зон, где
@@ -160,6 +211,7 @@
     el("stamp").textContent = `${dannye.склад} · обновлено ${dannye.обновлено}`;
 
     narisovatPlitki();
+    narisovatVozrast();
     narisovatFiltry();
     narisovatTablicu();
 
