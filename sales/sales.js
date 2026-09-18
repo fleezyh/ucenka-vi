@@ -14,6 +14,7 @@
   const monthSelect = $("month");
   const stamp = $("stamp");
   const exportButton = $("stockExport");
+  const funnelRefresh = $("funnelRefresh");
 
   let funnelData = null;
 
@@ -397,6 +398,33 @@
   }
 
   monthSelect.addEventListener("change", () => renderFunnel(monthSelect.value));
+
+  funnelRefresh?.addEventListener("click", async () => {
+    funnelRefresh.disabled = true;
+    funnelRefresh.textContent = "Обновляю из таблицы…";
+    try {
+      const response = await fetch("/__funnel-refresh", {
+        method: "POST", credentials: "same-origin", cache: "no-store"
+      });
+      if (!response.ok) {
+        if (response.status === 409) throw new Error("обновление уже идёт, попробуйте через несколько секунд");
+        if (response.status === 401 || response.status === 403) throw new Error("нет доступа — войдите на сайт заново");
+        throw new Error(`Google-таблица недоступна или расчёт не завершился (${response.status})`);
+      }
+      const latest = await response.json();
+      const selectedMonth = monthSelect.value;
+      funnelData = latest;
+      fillMonths(latest.месяц);
+      if ([...monthSelect.options].some((option) => option.value === selectedMonth)) monthSelect.value = selectedMonth;
+      renderFunnel(monthSelect.value);
+      say(`Воронка пересчитана из Google-таблицы · ${latest.обновлено || "сейчас"}`);
+    } catch (error) {
+      say(`Не удалось обновить воронку: ${error.message}`, "error");
+    } finally {
+      funnelRefresh.disabled = false;
+      funnelRefresh.textContent = "Обновить из таблицы";
+    }
+  });
 
   // Блоки грузятся независимо: если один источник отвалится, второй покажем.
   const load = (url) => fetch(url, { cache: "no-cache" }).then((r) => {

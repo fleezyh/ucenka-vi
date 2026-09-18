@@ -37,6 +37,39 @@
 /* Легенда и выбор месяца стоят в шапке блока, а не отдельной строкой. */
 .salesHead .stockLegend { flex: 0 0 auto; gap: 5px; }
 .salesHead .periodBox { flex: 0 0 auto; gap: 5px; }
+#funnelRefresh { min-height: 36px; padding: 7px 12px; white-space: nowrap; }
+
+.salesHistoryView { display: grid; gap: 16px; }
+.salesHistoryToolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px 22px; flex-wrap: wrap; }
+.salesHistoryModes { display: inline-flex; gap: 3px; padding: 3px; border: 1px solid var(--line); border-radius: 11px; background: #101722; }
+.salesHistoryModes button { padding: 8px 13px; border: 0; border-radius: 8px; background: transparent; color: var(--muted); font: inherit; font-size: 13px; cursor: pointer; }
+.salesHistoryModes button.is-active { background: #314154; color: #fff; }
+.salesHistoryNavigation { display: flex; align-items: center; gap: 9px; width: min(430px, 100%); }
+.salesHistoryArrow { width: 34px; height: 34px; flex: 0 0 auto; border: 1px solid var(--line); border-radius: 9px; background: #101722; color: var(--text); font: inherit; cursor: pointer; }
+.salesHistoryArrow:disabled { opacity: .35; cursor: default; }
+.salesHistorySlider { flex: 1 1 auto; min-width: 50px; accent-color: #55cdb1; cursor: pointer; }
+.salesHistoryRange { min-width: 90px; text-align: right; font: 12px "Segoe UI", Arial, sans-serif; color: var(--muted); font-variant-numeric: tabular-nums; letter-spacing: 0; }
+.salesHistorySummary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; padding: 11px; border: 1px solid var(--line); border-radius: 17px; background: #171d25; }
+.salesHistoryDay { min-width: 0; padding: 8px 11px; background: transparent; }
+.salesHistoryDay time { display: block; color: var(--muted); font: 12px "Segoe UI", Arial, sans-serif; font-variant-numeric: tabular-nums; letter-spacing: 0; word-spacing: 0; }
+.salesHistoryDay strong { display: block; margin: 7px 0 1px; font-size: clamp(27px, 3vw, 40px); line-height: 1; letter-spacing: -0.035em; }
+.salesHistoryDay small { color: var(--muted); font-size: 11px; letter-spacing: 0; }
+.salesHistoryGrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.salesHistoryRegionCard { min-width: 0; padding: 15px 18px 12px; border: 1px solid var(--line); border-radius: 14px; background: #171d25; }
+.salesHistoryRegionHead { display: flex; justify-content: space-between; gap: 10px; color: var(--muted); font-size: 13px; }
+.salesHistoryRegionHead b { font-weight: 600; }
+.salesHistoryRegionHead span { font-variant-numeric: tabular-nums; }
+.salesHistoryRegionHead .is-up { color: #f27486; }
+.salesHistoryRegionHead .is-down { color: #45cfaa; }
+.salesHistoryRegionValue { display: block; margin-top: 9px; font-size: clamp(30px, 3vw, 42px); line-height: 1; }
+.salesHistorySpark { display: block; width: 100%; height: auto; margin-top: 3px; }
+.salesHistoryPointDates { display: grid; grid-template-columns: repeat(4, 1fr); color: var(--muted); font: 11px "Segoe UI", Arial, sans-serif; font-variant-numeric: tabular-nums; letter-spacing: 0; word-spacing: 0; }
+.salesHistoryPointDates span:nth-child(2), .salesHistoryPointDates span:nth-child(3) { text-align: center; }
+.salesHistoryPointDates span:last-child { text-align: right; }
+.salesHistoryNote { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.45; }
+@media (max-width: 1350px) { .salesHistoryGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 950px) { .salesHistoryGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .salesHistorySummary { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 4px; padding: 10px; } .salesHistoryDay { padding: 8px; } .salesHistoryGrid { grid-template-columns: 1fr; } .salesHistoryToolbar, .salesHistoryNavigation { width: 100%; } }
 
 @media (max-width: 760px) {
   .heroSales { grid-template-columns: 1fr; align-items: start; gap: 12px; }
