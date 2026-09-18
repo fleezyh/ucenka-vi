@@ -122,6 +122,15 @@
     { key: "размещение", name: "Размещение" },
     { key: "хранение", name: "Хранение" },
   ];
+  // Цвет этапа — как в паноптикуме: по нему видно, на каком шаге узел,
+  // даже когда светофор у всех одинаковый.
+  const CVET_ETAPA = {
+    "разгрузка": "#4d8df7",
+    "поступление": "#4d8df7",
+    "приёмка": "#27c46b",
+    "размещение": "#a985ff",
+    "хранение": "#f5ad32",
+  };
   const KOL_W = 210;
   const OTSTUP_SVERHU = 54;
   const OTSTUP_SNIZU = 46;
@@ -138,6 +147,20 @@
       return "зелёный";
     }
     return z.мест ? z.цвет : "нет данных";
+  }
+
+  function razbit(text, predel) {
+    const slova = String(text).split(/\s+/);
+    const stroki = [];
+    let tekushchaya = "";
+    slova.forEach((slovo) => {
+      if (!tekushchaya) { tekushchaya = slovo; return; }
+      if ((tekushchaya + " " + slovo).length <= predel) { tekushchaya += " " + slovo; return; }
+      stroki.push(tekushchaya);
+      tekushchaya = slovo;
+    });
+    if (tekushchaya) stroki.push(tekushchaya);
+    return stroki.slice(0, 2);
   }
 
   function korotko(imya) {
@@ -204,24 +227,24 @@
 
     const stil = document.createElementNS(SVG_NS, "style");
     stil.textContent = [
-      '.prKartaSvg text { font-family: Inter, -apple-system, "Segoe UI", sans-serif; }',
-      ".prKartaSvg .etap { font-size: 12px; font-weight: 700; fill: #475569; letter-spacing: .3px; }",
-      ".prKartaSvg .imya { font-size: 11px; fill: #0f172a; }",
-      ".prKartaSvg .chislo { font-size: 11px; font-weight: 700; fill: #334155; }",
-      ".prKartaSvg .potok { stroke: #cbd5e1; stroke-width: 1.5; fill: none; }",
+      '.prKartaSvg text { font-family: "VI Sans", system-ui, sans-serif; }',
+      ".prKartaSvg .etap { font: 600 14px 'VI Sans', system-ui, sans-serif; fill: #8f9cad; letter-spacing: .1em; }",
+      ".prKartaSvg .imya { font: 600 14px 'VI Sans', system-ui, sans-serif; fill: #dfe7f2; }",
+      ".prKartaSvg .chislo { font: 600 13px 'VI Sans', system-ui, sans-serif; fill: #8f9cad; }",
+      ".prKartaSvg .potok { fill: none; opacity: .34; }",
       ".prKartaSvg .uzel { cursor: pointer; }",
-      ".prKartaSvg .uzel:hover circle { stroke-width: 3; }",
-      ".prKartaSvg circle { stroke-width: 2; }",
+      ".prKartaSvg .uzel circle { transition: fill-opacity .25s ease; }",
+      ".prKartaSvg .uzel:hover circle { fill-opacity: .72; }",
     ].join("\n");
     svg.appendChild(stil);
 
-    const zalivka = {
-      "красный": ["#fef2f2", "#dc2626"],
-      "жёлтый": ["#fffbeb", "#d97706"],
-      "зелёный": ["#f0fdf4", "#16a34a"],
-      "недогруз": ["#f8fafc", "#94a3b8"],
-      "нет данных": ["#ffffff", "#cbd5e1"],
-      "нет мест": ["#ffffff", "#cbd5e1"],
+    const SVETOFOR = {
+      "красный": "#f05d72",
+      "жёлтый": "#f5ad32",
+      "зелёный": "#27c46b",
+      "недогруз": "#5b6b82",
+      "нет данных": "#5b6b82",
+      "нет мест": "#5b6b82",
     };
 
     polosy.forEach((etap, i) => {
@@ -239,9 +262,16 @@
         const r = Math.min(13 + 24 * Math.sqrt((z.штук || 0) / maks), potolok);
 
         const cvet = z.свёрнутая ? "нет данных" : cvetZony(z, vozrastPoZonam);
+        const ton = SVETOFOR[cvet] || SVETOFOR["нет данных"];
         const gruppa = dobavit("g", { class: "uzel" }, svg);
-        dobavit("circle", { cx: x, cy: y, r: r.toFixed(1),
-                            fill: zalivka[cvet][0], stroke: zalivka[cvet][1] }, gruppa);
+        // Красное кольцо снаружи — зона за SLA. Видно издалека, даже когда
+        // кружок маленький и цвет заливки читается плохо.
+        if (cvet === "красный") {
+          dobavit("circle", { cx: x, cy: y, r: (r + 5).toFixed(1), fill: "none",
+                              stroke: ton, "stroke-width": 1, "stroke-opacity": .45 }, gruppa);
+        }
+        dobavit("circle", { cx: x, cy: y, r: r.toFixed(1), fill: ton,
+                            "fill-opacity": .34, stroke: ton, "stroke-width": 2 }, gruppa);
 
         const v = vozrastPoZonam.get(z.зона);
         const podpis = dobavit("title", {}, gruppa);
@@ -251,23 +281,18 @@
             + (z.мест ? "\n" + chislo(z.занято) + " из " + chislo(z.мест) + " мест · " + z.процент + "%" : "")
             + (v && v.просрочено ? "\nстарше 48 ч: " + chislo(v.просрочено) + " шт, до " + chislo(v.часов) + " ч" : "");
 
-        dobavit("text", { x, y: y + r + 15, class: "imya", "text-anchor": "middle" }, gruppa)
-          .textContent = korotko(z.зона).slice(0, 22);
-        dobavit("text", { x, y: y + r + 29, class: "chislo", "text-anchor": "middle" }, gruppa)
-          .textContent = chislo(z.штук);
+        const stroki = razbit(korotko(z.зона), 20);
+        stroki.forEach((stroka, nomer) => {
+          dobavit("text", { x, y: y + r + 20 + nomer * 17, class: "imya",
+                            "text-anchor": "middle" }, gruppa).textContent = stroka;
+        });
+        dobavit("text", { x, y: y + r + 20 + stroki.length * 17, class: "chislo",
+                          "text-anchor": "middle" }, gruppa).textContent = chislo(z.штук);
 
         if (!z.свёрнутая && z.сектор) {
           gruppa.addEventListener("click", () => otkrytSektor(z.сектор));
         }
       });
-    });
-
-    // Линия между колонками: путь товара слева направо. Точных маршрутов
-    // зона-в-зону на входе в данных нет, поэтому связываем этапы, а не зоны.
-    polosy.slice(0, -1).forEach((etap, i) => {
-      const x1 = KOL_W * i + KOL_W / 2;
-      const x2 = KOL_W * (i + 1) + KOL_W / 2;
-      dobavit("path", { d: "M " + (x1 + 34) + " 41 L " + (x2 - 34) + " 41", class: "potok" }, svg);
     });
 
     uzel.innerHTML = '<h2 class="prKarta__zag">Карта входа</h2>'
