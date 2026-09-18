@@ -132,9 +132,9 @@
     "хранение": "#f5ad32",
   };
   const KOL_W_MIN = 190;
-  const KOL_W_MAX = 340;
-  const SHAG_Y_MIN = 58;
-  const OTSTUP_SVERHU = 58;
+  const KOL_W_MAX = 470;
+  const SHAG_Y_MIN = 78;
+  const OTSTUP_SVERHU = 62;
   const OTSTUP_SNIZU = 34;
 
 
@@ -258,11 +258,11 @@
     const stil = document.createElementNS(SVG_NS, "style");
     stil.textContent = [
       '.prKartaSvg text { font-family: "VI Sans", system-ui, sans-serif; }',
-      ".prKartaSvg .etap { font: 600 12px 'VI Sans', system-ui, sans-serif; fill: #8f9cad; letter-spacing: .08em; }",
-      ".prKartaSvg .etapItog { font: 500 11px 'VI Sans', system-ui, sans-serif; fill: #6b7a8f; }",
-      ".prKartaSvg .povod { font: 500 10px 'VI Sans', system-ui, sans-serif; opacity: .85; }",
-      ".prKartaSvg .imya { font: 500 12px 'VI Sans', system-ui, sans-serif; fill: #dfe7f2; }",
-      ".prKartaSvg .chislo { font: 600 12px 'VI Sans', system-ui, sans-serif; fill: #8f9cad; }",
+      ".prKartaSvg .etap { font: 600 15px 'VI Sans', system-ui, sans-serif; fill: #8f9cad; letter-spacing: .08em; }",
+      ".prKartaSvg .etapItog { font: 500 13px 'VI Sans', system-ui, sans-serif; fill: #6b7a8f; }",
+      ".prKartaSvg .povod { font: 500 12px 'VI Sans', system-ui, sans-serif; opacity: .85; }",
+      ".prKartaSvg .imya { font: 600 15px 'VI Sans', system-ui, sans-serif; fill: #dfe7f2; }",
+      ".prKartaSvg .chislo { font: 600 14px 'VI Sans', system-ui, sans-serif; fill: #8f9cad; }",
       ".prKartaSvg .potok { fill: none; opacity: .34; }",
       ".prKartaSvg .uzel { cursor: pointer; }",
       ".prKartaSvg .uzel circle { transition: fill-opacity .25s ease; }",
@@ -283,16 +283,16 @@
       const spisok = kolonki.get(etap.key);
       const prostor = H - OTSTUP_SVERHU - OTSTUP_SNIZU;
       const shag = prostor / spisok.length;
-      const potolok = Math.max(7, (shag - 42) / 2);
+      const potolok = Math.max(9, (shag - 54) / 2);
 
       const vsegoShtuk = spisok.reduce((n, z) => n + (z.штук || 0), 0);
       const prosrocheno = spisok.reduce((n, z) => {
         const v = vozrastPoZonam.get(z.зона);
         return n + (v ? v.просрочено : 0);
       }, 0);
-      dobavit("text", { x: KOL_W * i + KOL_W / 2, y: 20, class: "etap", "text-anchor": "middle" }, svg)
+      dobavit("text", { x: KOL_W * i + KOL_W / 2, y: 22, class: "etap", "text-anchor": "middle" }, svg)
         .textContent = etap.name.toUpperCase();
-      dobavit("text", { x: KOL_W * i + KOL_W / 2, y: 36, class: "etapItog", "text-anchor": "middle" }, svg)
+      dobavit("text", { x: KOL_W * i + KOL_W / 2, y: 40, class: "etapItog", "text-anchor": "middle" }, svg)
         .textContent = prosrocheno
           ? chislo(vsegoShtuk) + " шт · " + chislo(prosrocheno) + " за SLA"
           : chislo(vsegoShtuk) + " шт";
@@ -300,7 +300,7 @@
       spisok.forEach((z, k) => {
         const x = KOL_W * i + KOL_W / 2;
         const y = OTSTUP_SVERHU + shag * (k + 0.5);
-        const r = Math.min(8 + 17 * Math.sqrt((z.штук || 0) / maksVKolonke.get(etap.key)), potolok);
+        const r = Math.min(11 + 26 * Math.sqrt((z.штук || 0) / maksVKolonke.get(etap.key)), potolok);
 
         const cvet = z.свёрнутая ? "нет данных" : cvetZony(z, vozrastPoZonam);
         const ton = SVETOFOR[cvet] || SVETOFOR["нет данных"];
@@ -322,16 +322,16 @@
             + (z.мест ? "\n" + chislo(z.занято) + " из " + chislo(z.мест) + " мест · " + z.процент + "%" : "")
             + (v && v.просрочено ? "\nстарше 48 ч: " + chislo(v.просрочено) + " шт, до " + chislo(v.часов) + " ч" : "");
 
-        const stroki = razbit(korotko(z.зона), 22);
+        const stroki = razbit(korotko(z.зона), 26);
         stroki.forEach((stroka, nomer) => {
-          dobavit("text", { x, y: y + r + 15 + nomer * 13, class: "imya",
+          dobavit("text", { x, y: y + r + 19 + nomer * 16, class: "imya",
                             "text-anchor": "middle" }, gruppa).textContent = stroka;
         });
-        dobavit("text", { x, y: y + r + 15 + stroki.length * 13, class: "chislo",
+        dobavit("text", { x, y: y + r + 19 + stroki.length * 16, class: "chislo",
                           "text-anchor": "middle" }, gruppa).textContent = chislo(z.штук);
         const povod = pochemu(z, v);
         if (povod) {
-          dobavit("text", { x, y: y + r + 15 + stroki.length * 13 + 12, class: "povod",
+          dobavit("text", { x, y: y + r + 19 + stroki.length * 16 + 15, class: "povod",
                             fill: ton, "text-anchor": "middle" }, gruppa).textContent = povod;
         }
 
