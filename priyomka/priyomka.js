@@ -173,6 +173,7 @@
   function narisovatKartu() {
     const uzel = el("prKarta");
     if (!uzel) return;
+    uzel.hidden = false;
 
     const vozrastPoZonam = new Map();
     ((dannye.возраст || {}).зоны || []).forEach((z) => {
@@ -200,9 +201,14 @@
     // Сколько узлов влезет в экран по высоте: от карты до низа окна минус
     // запас. Всё, что не помещается, сворачивается в «· ещё N» — иначе карта
     // уезжает в прокрутку, а её надо видеть целиком с первого взгляда.
-    // От верха карты до низа окна, минус запас на легенду и воздух снизу.
-    const svoyVerh = uzel.getBoundingClientRect().top;
-    const vysota = Math.max(360, window.innerHeight - svoyVerh - 56);
+    // От верха карты до низа окна, минус воздух снизу. Заголовок и легенда
+    // живут внутри блока, поэтому их высоту вычитаем отдельно.
+    const svoyVerh = uzel.getBoundingClientRect().top + window.scrollY;
+    const shapka = uzel.querySelector(".prLegenda");
+    const vysotaShapki = shapka ? shapka.getBoundingClientRect().bottom
+                                  + window.scrollY - svoyVerh : 70;
+    const vysota = Math.max(320,
+      window.innerHeight - (svoyVerh - window.scrollY) - vysotaShapki - 36);
     const vlezaet = Math.max(5, Math.floor((vysota - 92) / SHAG_Y_MIN));
 
     polosy.forEach((e) => {
