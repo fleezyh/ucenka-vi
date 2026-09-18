@@ -167,7 +167,7 @@
 
 /* Методология: кнопка в шапке и модалка поверх страницы — как записки
    антигенерации. В подвале её никто не искал бы. */
-.prZapOtkryt { margin-top: 10px; cursor: pointer; font: inherit; font-size: 12px;
+.prZapOtkryt { margin-top: 14px; cursor: pointer; font: inherit; font-size: 12px;
   padding: 7px 15px; border-radius: 999px; border: 1px solid rgba(143,156,173,.4);
   background: transparent; color: var(--muted, #8f9cad); }
 .prZapOtkryt:hover { border-color: rgba(223,231,242,.7); color: #dfe7f2; }

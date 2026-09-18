@@ -42,9 +42,10 @@
       <div>
         <p class="eyebrow">Мониторинг склада</p>
         <h1>Приёмка и размещение ДМД</h1>
-        <p class="lead">Где на складе кончились места. Цвет сектора — по худшей его зоне,
-          а не по среднему: средние 88% при забитом негабарите красят борд зелёным,
-          пока склад стоит.</p>
+        <p class="lead">Где на складе пробка. Светофор считается из двух признаков сразу:
+          сколько мест занято и сколько времени товар там лежит. Занятость на приёмке
+          сама по себе врёт — товар стоит на полу и в системе не числится.</p>
+        <button type="button" class="prZapOtkryt" id="prZapOtkryt">Как это считается</button>
       </div>
       <div class="perfTools">
         <nav class="perfViews" aria-label="Раздел производительности">
@@ -58,8 +59,6 @@
     </section>
 
     <p class="message" id="message">Загружаю монитор…</p>
-
-    <button type="button" class="prZapOtkryt" id="prZapOtkryt">Как это считается</button>
 
     <section class="prPlitki" id="prPlitki" hidden></section>
 
