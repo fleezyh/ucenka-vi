@@ -109,6 +109,10 @@
     });
   }
 
+  // Что правили последним — для отмены по Ctrl+Z. Держим стопку: несколько
+  // шагов назад отменяются подряд, как в таблице.
+  const otmena = [];
+
   let dannye = null;
   let vid = "loty";
   let filtry = {};
@@ -181,32 +185,94 @@
     el("crmPlitki").hidden = false;
   }
 
-  // Воронка: сколько лотов на каждом этапе и на какую сумму. Снятые с торгов
-  // показываем отдельно — это не этап, а выход из воронки.
-  function narisovatVoronku() {
+  // План продаж на месяц: план, отгружено, в работе — и то же по людям.
+  // План правится кликом по сумме: он живёт в базе, а не в голове.
+  function narisovatPlan() {
     const uzel = el("crmVoronka");
-    if (!uzel) return;
-    const loty = dannye.лоты || [];
-    const etapy = VORONKA.filter((s) => s !== "Снят с торгов")
-      .map((s) => ({ etap: s, loty: loty.filter((z) => z.status === s) }))
-      .filter((x) => x.loty.length);
-    const snyato = loty.filter((z) => String(z.status || "").startsWith("Снят"));
-    const maks = Math.max(1, ...etapy.map((x) => x.loty.length));
+    if (!uzel || !dannye.план) return;
+    const p = dannye.план;
+    const dolya = p.план ? Math.min(100, Math.round(100 * p.факт / p.план)) : 0;
+    const dolya_raboty = p.план
+      ? Math.min(100 - dolya, Math.round(100 * p.в_работе / p.план)) : 0;
+    const ostalos = Math.max(0, (p.план || 0) - p.факт);
 
-    const polosa = (imya, spisok, klass) => {
-      const summa = spisok.reduce((n, z) => n + (Number(z.cena_otgruzki) || 0), 0);
-      const dolya_shiriny = Math.max(4, Math.round(100 * spisok.length / maks));
-      return `<div class="crmEtap ${klass || ""}">
-        <span class="crmEtap__imya">${escape(imya.replace(/^\d+\.\s*/, ""))}</span>
-        <span class="crmEtap__polosa"><i style="width:${dolya_shiriny}%"></i></span>
-        <span class="crmEtap__chislo">${chislo(spisok.length)}</span>
-        <span class="crmEtap__summa">${chislo(summa)} ₽</span>
+    const stroka = (x) => {
+      const svoya = x.план ? Math.min(100, Math.round(100 * x.факт / x.план)) : 0;
+      const rabota = x.план
+        ? Math.min(100 - svoya, Math.round(100 * x.в_работе / x.план)) : 0;
+      return `<div class="crmPlanStroka">
+        <span class="crmPlanStroka__imya">${escape(x.менеджер)}</span>
+        <span class="crmPlanStroka__polosa">
+          <i class="crmPlanStroka__fakt" style="width:${svoya}%"></i>
+          <i class="crmPlanStroka__rabota" style="width:${rabota}%"></i>
+        </span>
+        <span class="crmPlanStroka__chislo">${chislo(x.факт)}</span>
+        <span class="crmPlanStroka__plan" data-menedzher="${escape(x.менеджер)}"
+              title="Клик — поставить план">${x.план ? chislo(x.план) : "план?"}</span>
+        <span class="crmPlanStroka__pod">${x.лотов} лотов${
+          x.лотов_в_работе ? ` · ещё ${x.лотов_в_работе} в работе` : ""}</span>
       </div>`;
     };
 
-    uzel.innerHTML = etapy.map((x) => polosa(x.etap, x.loty,
-        String(x.etap).startsWith("10") ? "crm--gotovo" : "crm--v-rabote")).join("")
-      + polosa("Снят с торгов", snyato, "crm--snyat");
+    uzel.innerHTML = `
+      <div class="crmPlanShapka">
+        <div>
+          <p class="crmPlanShapka__zag">План продаж</p>
+          <select class="crmPlanMesyac" id="crmPlanMesyac">${
+            (p.месяцы || []).map((m) =>
+              `<option${m === p.месяц ? " selected" : ""}>${escape(m)}</option>`).join("")}</select>
+        </div>
+        <div class="crmPlanItog">
+          <span class="crmPlanItog__fakt">${chislo(p.факт)} ₽</span>
+          <span class="crmPlanItog__iz">из <b class="crmPlanStroka__plan" data-menedzher=""
+            title="Клик — поставить план">${p.план ? chislo(p.план) : "плана нет"}</b></span>
+          ${p.план ? `<span class="crmPlanItog__proc">${dolya}%</span>` : ""}
+        </div>
+      </div>
+      <div class="crmPlanPolosa">
+        <i class="crmPlanStroka__fakt" style="width:${dolya}%"></i>
+        <i class="crmPlanStroka__rabota" style="width:${dolya_raboty}%"></i>
+      </div>
+      <p class="crmPlanPodval">${
+        p.план
+          ? `осталось ${chislo(ostalos)} ₽ · в работе ${chislo(p.в_работе)} ₽`
+          : `отгружено ${chislo(p.факт)} ₽, в работе ${chislo(p.в_работе)} ₽ — поставьте план, чтобы видеть выполнение`}</p>
+      <div class="crmPlanLyudi">${(p.по_людям || []).map(stroka).join("")}</div>`;
+
+    const mesyac = el("crmPlanMesyac");
+    if (mesyac) {
+      mesyac.addEventListener("change", async () => {
+        await obnovitPlan({ месяц: mesyac.value, менеджер: null, сумма: undefined });
+      });
+    }
+    uzel.querySelectorAll("[data-menedzher]").forEach((uz) => {
+      uz.addEventListener("click", async () => {
+        const bylo = uz.textContent.replace(/[^\d]/g, "");
+        const otvet = prompt(
+          `План на ${p.месяц}${uz.dataset.menedzher ? ", " + uz.dataset.menedzher : " (общий)"}, ₽`,
+          bylo || "");
+        if (otvet === null) return;
+        await obnovitPlan({
+          месяц: p.месяц,
+          менеджер: uz.dataset.menedzher && uz.dataset.menedzher !== "(без менеджера)"
+            ? uz.dataset.menedzher : null,
+          сумма: otvet.replace(/\s/g, "") === "" ? null : Number(otvet.replace(/[^\d.]/g, "")),
+        });
+      });
+    });
+  }
+
+  async function obnovitPlan(telo) {
+    // Смена месяца — тот же запрос без суммы: сервер вернёт план выбранного.
+    const otvet = await fetch("/__crm/plan", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(telo.сумма === undefined
+        ? { месяц: telo.месяц, менеджер: null, сумма: null, только_показать: true }
+        : telo),
+    });
+    if (!otvet.ok) return;
+    dannye.план = await otvet.json();
+    narisovatPlan();
   }
 
   function narisovatFiltry() {
@@ -335,6 +401,7 @@
         });
         const itog = await otvet.json();
         if (!otvet.ok) throw new Error(itog.ошибка || "не сохранилось");
+        otmena.push({ id: zapis.id, nomer: zapis.nomer, pole, bylo });
         Object.assign(zapis, itog);
         narisovatPlitki();
         narisovatTablicu();
@@ -432,10 +499,46 @@
     });
   }
 
+  // Возврат последней правки: шлём обратно то значение, что было.
+  async function vernutNazad() {
+    const shag = otmena.pop();
+    if (!shag) {
+      soobshchit("Отменять нечего");
+      return;
+    }
+    soobshchit("Возвращаю…");
+    try {
+      const otvet = await fetch("/__crm/lot", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: shag.id, nomer: shag.nomer,
+                               [shag.pole]: shag.bylo === "" ? null : shag.bylo }),
+      });
+      if (!otvet.ok) throw new Error("не вышло");
+      const itog = await otvet.json();
+      const zapis = (dannye.лоты || []).find((z) => z.id === shag.id);
+      if (zapis) Object.assign(zapis, itog);
+      narisovatPlitki();
+      narisovatTablicu();
+      soobshchit(`Отменено: ${shag.pole}`);
+    } catch (e) {
+      otmena.push(shag);
+      soobshchit("Не удалось отменить");
+    }
+  }
+
+  function soobshchit(text) {
+    const uzel = el("crmSchyot");
+    if (!uzel) return;
+    const bylo = uzel.textContent;
+    uzel.textContent = text;
+    clearTimeout(soobshchit.taymer);
+    soobshchit.taymer = setTimeout(() => { uzel.textContent = bylo; }, 2200);
+  }
+
   function narisovat() {
     sobratSpravochniki(dannye.лоты || []);
     narisovatPlitki();
-    narisovatVoronku();
+    narisovatPlan();
     narisovatFiltry();
     narisovatTablicu();
     el("crmPanel").hidden = false;
@@ -491,6 +594,11 @@
     });
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape") el("crmOkno").hidden = true;
+      const ctrl = event.ctrlKey || event.metaKey;
+      if (ctrl && event.key.toLowerCase() === "z" && !event.target.closest("input, select, textarea")) {
+        event.preventDefault();
+        vernutNazad();
+      }
     });
     zagruzit();
   });

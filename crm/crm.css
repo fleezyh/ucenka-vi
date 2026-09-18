@@ -127,3 +127,32 @@
   font-variant-numeric: tabular-nums; }
 .crmVid--tumbler.is-on { background: rgba(39,196,107,.16);
   border-color: rgba(39,196,107,.5); color: #7ee2a8; }
+
+/* Виджет плана продаж: план, отгружено, в работе — и то же по людям. */
+.crmPlanShapka { display: flex; justify-content: space-between; align-items: flex-end;
+  gap: 20px; margin-bottom: 10px; }
+.crmPlanShapka__zag { font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--muted, #8f9cad); margin: 0 0 6px; }
+.crmPlanMesyac { font: inherit; font-size: 14px; font-weight: 600; padding: 5px 10px;
+  border-radius: 10px; border: 1px solid rgba(143,156,173,.3); background: rgba(6,10,20,.4);
+  color: inherit; }
+.crmPlanItog { display: flex; align-items: baseline; gap: 10px; }
+.crmPlanItog__fakt { font-size: 24px; font-weight: 700; }
+.crmPlanItog__iz { font-size: 13px; color: var(--muted, #8f9cad); }
+.crmPlanItog__proc { font-size: 15px; font-weight: 700; color: #27c46b; }
+.crmPlanPolosa, .crmPlanStroka__polosa { display: flex; height: 10px; border-radius: 6px;
+  background: rgba(143,156,173,.14); overflow: hidden; }
+.crmPlanPolosa { height: 14px; margin-bottom: 8px; }
+.crmPlanStroka__fakt { background: #27c46b; }
+.crmPlanStroka__rabota { background: rgba(245,173,50,.65); }
+.crmPlanPodval { font-size: 12px; color: var(--muted, #8f9cad); margin: 0 0 14px; }
+.crmPlanLyudi { display: flex; flex-direction: column; gap: 6px; }
+.crmPlanStroka { display: grid; grid-template-columns: 170px 1fr 110px 110px 190px;
+  align-items: center; gap: 12px; font-size: 12.5px; }
+.crmPlanStroka__imya { color: #cbd5e1; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; }
+.crmPlanStroka__chislo { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+.crmPlanStroka__plan { text-align: right; cursor: pointer; border-bottom: 1px dashed
+  rgba(143,156,173,.5); color: var(--muted, #8f9cad); font-variant-numeric: tabular-nums; }
+.crmPlanStroka__plan:hover { color: #dfe7f2; border-color: #dfe7f2; }
+.crmPlanStroka__pod { font-size: 11.5px; color: var(--muted, #8f9cad); }
