@@ -145,10 +145,12 @@
               style="flex-grow:${(ves * 100).toFixed(0)}"
               data-sektor="${escape(s.сектор)}"
               title="${escape(s.сектор)} · ${s.процент_хранения}% · ${chislo(s.занято_хранения)} из ${chislo(s.мест_хранения)}">
-              <span class="prKl__imya">${escape(s.сектор.replace(/^\d+\s*/, ""))}</span>
+              <span class="prKl__imya">${escape(s.сектор.replace(/^\d+\s*/, ""))}${s.повод === "время" ? '<em class="prKl__chasy" title="красный по времени, а не по местам">⏱</em>' : ""}</span>
               <span class="prKl__proc">${s.процент_хранения}%</span>
               <span class="prKl__polosa"><i style="width:${Math.min(100, s.процент_хранения)}%"></i></span>
-              <span class="prKl__mest">${chislo(s.занято_хранения)} / ${chislo(s.мест_хранения)}</span>
+              <span class="prKl__mest">${s.повод === "время"
+                ? chislo(s.просрочено_штук) + " шт старше 48 ч"
+                : chislo(s.занято_хранения) + " / " + chislo(s.мест_хранения)}</span>
             </button>`;
           }).join("");
         const proc = mest ? (100 * zanyato / mest).toFixed(1) : "0.0";
