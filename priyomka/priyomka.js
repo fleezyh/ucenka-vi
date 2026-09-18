@@ -132,7 +132,7 @@
     "хранение": "#f5ad32",
   };
   const KOL_W = 240;
-  const OTSTUP_SVERHU = 44;
+  const OTSTUP_SVERHU = 58;
   const OTSTUP_SNIZU = 34;
   const SHAG_Y = 78;
   const V_KOLONKE = 12;
@@ -178,6 +178,7 @@
         штук: z.штук || 0,
         просрочено: (z.корзины || {})["3. больше 48 ч"] || 0,
         часов: z.максимум_часов || 0,
+        корзины: z.корзины || {},
       });
     });
 
@@ -231,6 +232,8 @@
     stil.textContent = [
       '.prKartaSvg text { font-family: "VI Sans", system-ui, sans-serif; }',
       ".prKartaSvg .etap { font: 600 12px 'VI Sans', system-ui, sans-serif; fill: #8f9cad; letter-spacing: .08em; }",
+      ".prKartaSvg .etapItog { font: 500 11px 'VI Sans', system-ui, sans-serif; fill: #6b7a8f; }",
+      ".prKartaSvg .povod { font: 500 10px 'VI Sans', system-ui, sans-serif; opacity: .85; }",
       ".prKartaSvg .imya { font: 500 12px 'VI Sans', system-ui, sans-serif; fill: #dfe7f2; }",
       ".prKartaSvg .chislo { font: 600 12px 'VI Sans', system-ui, sans-serif; fill: #8f9cad; }",
       ".prKartaSvg .potok { fill: none; opacity: .34; }",
@@ -255,8 +258,17 @@
       const shag = prostor / spisok.length;
       const potolok = Math.max(7, (shag - 42) / 2);
 
-      dobavit("text", { x: KOL_W * i + KOL_W / 2, y: 24, class: "etap", "text-anchor": "middle" }, svg)
+      const vsegoShtuk = spisok.reduce((n, z) => n + (z.штук || 0), 0);
+      const prosrocheno = spisok.reduce((n, z) => {
+        const v = vozrastPoZonam.get(z.зона);
+        return n + (v ? v.просрочено : 0);
+      }, 0);
+      dobavit("text", { x: KOL_W * i + KOL_W / 2, y: 20, class: "etap", "text-anchor": "middle" }, svg)
         .textContent = etap.name.toUpperCase();
+      dobavit("text", { x: KOL_W * i + KOL_W / 2, y: 36, class: "etapItog", "text-anchor": "middle" }, svg)
+        .textContent = prosrocheno
+          ? chislo(vsegoShtuk) + " шт · " + chislo(prosrocheno) + " за SLA"
+          : chislo(vsegoShtuk) + " шт";
 
       spisok.forEach((z, k) => {
         const x = KOL_W * i + KOL_W / 2;
@@ -265,6 +277,7 @@
 
         const cvet = z.свёрнутая ? "нет данных" : cvetZony(z, vozrastPoZonam);
         const ton = SVETOFOR[cvet] || SVETOFOR["нет данных"];
+        const v = vozrastPoZonam.get(z.зона);
         const gruppa = dobavit("g", { class: "uzel" }, svg);
         // Красное кольцо снаружи — зона за SLA. Видно издалека, даже когда
         // кружок маленький и цвет заливки читается плохо.
@@ -275,7 +288,6 @@
         dobavit("circle", { cx: x, cy: y, r: r.toFixed(1), fill: ton,
                             "fill-opacity": .34, stroke: ton, "stroke-width": 1.5 }, gruppa);
 
-        const v = vozrastPoZonam.get(z.зона);
         const podpis = dobavit("title", {}, gruppa);
         podpis.textContent = z.свёрнутая
           ? z.зона + ": " + chislo(z.штук) + " штук"
@@ -290,18 +302,85 @@
         });
         dobavit("text", { x, y: y + r + 15 + stroki.length * 13, class: "chislo",
                           "text-anchor": "middle" }, gruppa).textContent = chislo(z.штук);
+        const povod = pochemu(z, v);
+        if (povod) {
+          dobavit("text", { x, y: y + r + 15 + stroki.length * 13 + 12, class: "povod",
+                            fill: ton, "text-anchor": "middle" }, gruppa).textContent = povod;
+        }
 
-        if (!z.свёрнутая && z.сектор) {
-          gruppa.addEventListener("click", () => otkrytSektor(z.сектор));
+        if (!z.свёрнутая) {
+          gruppa.addEventListener("click", () => pokazatZonu(z, v));
         }
       });
     });
 
     uzel.innerHTML = '<h2 class="prKarta__zag">Карта входа</h2>'
       + '<p class="prHint">колонка — этап пути товара, кружок — зона, размер по штукам · '
-      + 'на приёмке цвет по времени, на хранении — по занятости · клик открывает сектор</p>';
-    uzel.appendChild(svg);
+      + 'клик по зоне открывает разбор справа</p>'
+      + '<div class="prLegenda">'
+      + '<span><i style="background:#f05d72"></i>больше половины за SLA 48 ч</span>'
+      + '<span><i style="background:#f5ad32"></i>четверть и больше за SLA</span>'
+      + '<span><i style="background:#27c46b"></i>идёт в срок</span>'
+      + '<span><i style="background:#5b6b82"></i>мест нет или движения не видно</span>'
+      + '<span class="prLegenda__pr">на хранении цвет по занятости, не по времени</span>'
+      + '</div>';
+    const holst = document.createElement("div");
+    holst.className = "prKartaHolst";
+    holst.appendChild(svg);
+    const bok = document.createElement("aside");
+    bok.className = "prKartaBok";
+    bok.id = "prKartaBok";
+    bok.hidden = true;
+    holst.appendChild(bok);
+    uzel.appendChild(holst);
     uzel.hidden = false;
+  }
+
+  // Почему узел такого цвета — одной строкой под числом.
+  function pochemu(z, v) {
+    if (z.свёрнутая) return "";
+    if (v && v.штук) {
+      const dolya = Math.round(100 * v.просрочено / v.штук);
+      if (v.просрочено) return chislo(v.просрочено) + " шт > 48 ч · " + dolya + "%";
+      return "в срок";
+    }
+    if (z.мест) return "занято " + z.процент + "%";
+    return "";
+  }
+
+  // Разбор зоны рядом с картой: что за зона, чем забита, сколько лежит и
+  // куда идти разбираться. Раньше клик уводил в таблицу внизу страницы —
+  // приходилось искать глазами строку, и связь с картой терялась.
+  function pokazatZonu(z, v) {
+    const bok = el("prKartaBok");
+    if (!bok) return;
+    const stroka = (podpis, znachenie, klass) =>
+      `<div class="prBokStroka"><span>${escape(podpis)}</span>` +
+      `<b class="${klass || ""}">${znachenie}</b></div>`;
+
+    let korziny = "";
+    if (v && v.штук) {
+      const k = v.корзины || {};
+      korziny = ["1. до 24 ч", "2. 24–48 ч", "3. больше 48 ч", "4. движения не найдено"]
+        .filter((imya) => k[imya])
+        .map((imya) => stroka(KORZINY[imya] ? KORZINY[imya].podpis : imya,
+                              chislo(k[imya]),
+                              imya === "3. больше 48 ч" ? "prKrit" : ""))
+        .join("");
+    }
+
+    bok.innerHTML = `<div class="prBokZag">${escape(z.зона)}</div>
+      <p class="prBokPod">${escape(z.сектор || "")} · ${escape(z.назначение || "")}</p>
+      ${stroka("Штук в зоне", chislo(z.штук))}
+      ${z.мест ? stroka("Мест", chislo(z.занято) + " из " + chislo(z.мест)) : ""}
+      ${z.мест ? stroka("Занято", z.процент + "%") : ""}
+      ${z.контейнеров ? stroka("Контейнеров", chislo(z.контейнеров)) : ""}
+      ${v && v.часов ? stroka("Самое старое", chislo(v.часов) + " ч", "prKrit") : ""}
+      ${korziny ? `<p class="prBokPod prBokPod--tit">Сколько лежит</p>${korziny}` : ""}
+      ${z.сектор ? `<button class="prBokKnopka" type="button">Открыть сектор целиком</button>` : ""}`;
+    bok.hidden = false;
+    const knopka = bok.querySelector(".prBokKnopka");
+    if (knopka) knopka.addEventListener("click", () => otkrytSektor(z.сектор));
   }
 
   function otkrytSektor(imya) {
