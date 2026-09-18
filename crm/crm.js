@@ -12,9 +12,16 @@
 
   // Воронка. Порядок важен: по нему строится и фильтр, и сортировка статусов.
   const VORONKA = [
-    "1. Лот размещается", "2. Торги", "3. Согласование", "4. Выбран КА",
-    "5. Подготовка счетов", "6. Счета выставлены", "7. Оплачен",
-    "8. Отгружен физически", "9. Отгружен(системно)", "10.Отгружен ФИЗ и СИСТ",
+    "1. Лот размещается",
+    "2. Лот разыгран - перег",
+    "3. Заключение договора",
+    "4. Подготовка заказов",
+    "5. Подготовка счетов",
+    "6. Счета выставлены",
+    "7. Оплачен",
+    "8. Отгружен физически",
+    "9. Отгружен(системно)",
+    "10.Отгружен ФИЗ и СИСТ",
     "Снят с торгов",
   ];
 
@@ -102,6 +109,9 @@
   // не запрещаем вписать новое — новый менеджер или контрагент появится
   // раньше, чем кто-то полезет править код.
   function sobratSpravochniki(loty) {
+    const statusy = [...new Set(loty.map((z) => z.status).filter(Boolean))];
+    const lishnie = statusy.filter((s) => !VORONKA.includes(s));
+    PRAVIMYE.status.spisok = VORONKA.concat(lishnie);
     [["menedzher", "menedzher"], ["ka", "ka"],
      ["region", "region"], ["kategoriya", "kategoriya"]].forEach(([pole]) => {
       PRAVIMYE[pole].spisok = [...new Set(loty.map((z) => z[pole]).filter(Boolean))]
@@ -595,7 +605,9 @@
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape") el("crmOkno").hidden = true;
       const ctrl = event.ctrlKey || event.metaKey;
-      if (ctrl && event.key.toLowerCase() === "z" && !event.target.closest("input, select, textarea")) {
+      const v_pole = event.target && event.target.closest
+        && event.target.closest("input, select, textarea");
+      if (ctrl && event.code === "KeyZ" && !v_pole) {
         event.preventDefault();
         vernutNazad();
       }
