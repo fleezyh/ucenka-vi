@@ -111,3 +111,19 @@
   background: #0b1220; color: inherit; }
 .crmTabl td input:focus, .crmTabl td select:focus { outline: none;
   border-color: #27c46b; }
+
+/* Мини-воронка: сколько лотов на каждом этапе и на какую сумму. */
+.crmVoronka { border: 1px solid rgba(143,156,173,.2); border-radius: 16px;
+  padding: 14px 18px; background: rgba(15,23,42,.28); margin-bottom: 16px; }
+.crmVoronka[hidden] { display: none; }
+.crmEtap { display: grid; grid-template-columns: 190px 1fr 60px 130px;
+  align-items: center; gap: 12px; padding: 5px 0; font-size: 12.5px; }
+.crmEtap__imya { color: #cbd5e1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.crmEtap__polosa { display: block; height: 8px; border-radius: 5px;
+  background: rgba(143,156,173,.14); overflow: hidden; }
+.crmEtap__polosa i { display: block; height: 100%; border-radius: 5px; background: currentColor; }
+.crmEtap__chislo { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+.crmEtap__summa { text-align: right; color: var(--muted, #8f9cad);
+  font-variant-numeric: tabular-nums; }
+.crmVid--tumbler.is-on { background: rgba(39,196,107,.16);
+  border-color: rgba(39,196,107,.5); color: #7ee2a8; }

@@ -73,7 +73,11 @@
   // Поля, которые правятся прямо в таблице. Остальные (окуп, например)
   // считаются и руками не трогаются.
   const PRAVIMYE = {
-    nomer: {}, menedzher: {}, ka: {}, region: {}, kategoriya: {},
+    nomer: {},
+    menedzher: { spisok: null, svoyo: true },   // список соберём из данных
+    ka: { spisok: null, svoyo: true },
+    region: { spisok: null, svoyo: true },
+    kategoriya: { spisok: null, svoyo: true },
     mesyac_otgruzki: {}, nedelya_plan: {}, kommentariy: {},
     ploshchadka: { spisok: ["Bidzaar", "Почта", "Авито", "B2B-center"] },
     status: { spisok: null },                       // подставим воронку ниже
@@ -93,6 +97,17 @@
   const data = (v) => !v ? "" : String(v).slice(0, 10).split("-").reverse().join(".");
 
   PRAVIMYE.status.spisok = VORONKA;
+
+  // Собираем справочники из того, что уже есть: список предлагаем, но
+  // не запрещаем вписать новое — новый менеджер или контрагент появится
+  // раньше, чем кто-то полезет править код.
+  function sobratSpravochniki(loty) {
+    [["menedzher", "menedzher"], ["ka", "ka"],
+     ["region", "region"], ["kategoriya", "kategoriya"]].forEach(([pole]) => {
+      PRAVIMYE[pole].spisok = [...new Set(loty.map((z) => z[pole]).filter(Boolean))]
+        .sort((a, b) => a.localeCompare(b, "ru"));
+    });
+  }
 
   let dannye = null;
   let vid = "loty";
@@ -164,6 +179,34 @@
       plitka("Средний окуп", dolya(sredniy), "по отгруженным"),
     ].join("");
     el("crmPlitki").hidden = false;
+  }
+
+  // Воронка: сколько лотов на каждом этапе и на какую сумму. Снятые с торгов
+  // показываем отдельно — это не этап, а выход из воронки.
+  function narisovatVoronku() {
+    const uzel = el("crmVoronka");
+    if (!uzel) return;
+    const loty = dannye.лоты || [];
+    const etapy = VORONKA.filter((s) => s !== "Снят с торгов")
+      .map((s) => ({ etap: s, loty: loty.filter((z) => z.status === s) }))
+      .filter((x) => x.loty.length);
+    const snyato = loty.filter((z) => String(z.status || "").startsWith("Снят"));
+    const maks = Math.max(1, ...etapy.map((x) => x.loty.length));
+
+    const polosa = (imya, spisok, klass) => {
+      const summa = spisok.reduce((n, z) => n + (Number(z.cena_otgruzki) || 0), 0);
+      const dolya_shiriny = Math.max(4, Math.round(100 * spisok.length / maks));
+      return `<div class="crmEtap ${klass || ""}">
+        <span class="crmEtap__imya">${escape(imya.replace(/^\d+\.\s*/, ""))}</span>
+        <span class="crmEtap__polosa"><i style="width:${dolya_shiriny}%"></i></span>
+        <span class="crmEtap__chislo">${chislo(spisok.length)}</span>
+        <span class="crmEtap__summa">${chislo(summa)} ₽</span>
+      </div>`;
+    };
+
+    uzel.innerHTML = etapy.map((x) => polosa(x.etap, x.loty,
+        String(x.etap).startsWith("10") ? "crm--gotovo" : "crm--v-rabote")).join("")
+      + polosa("Снят с торгов", snyato, "crm--snyat");
   }
 
   function narisovatFiltry() {
@@ -238,10 +281,25 @@
     const shirina = td.offsetWidth;
     td.classList.add("is-pravka");
 
-    const vvod = opisanie.spisok
+    const vvod = opisanie.spisok && !opisanie.svoyo
       ? document.createElement("select")
       : document.createElement("input");
-    if (opisanie.spisok) {
+    if (opisanie.spisok && opisanie.svoyo) {
+      // Список подсказкой: значение выбирается из готовых, но можно вписать
+      // новое — для нового менеджера или контрагента.
+      const id = "crmSpisok_" + pole;
+      let spisok = document.getElementById(id);
+      if (!spisok) {
+        spisok = document.createElement("datalist");
+        spisok.id = id;
+        document.body.appendChild(spisok);
+      }
+      spisok.innerHTML = (opisanie.spisok || [])
+        .map((s) => `<option value="${escape(s)}"></option>`).join("");
+      vvod.setAttribute("list", id);
+      vvod.type = "text";
+      vvod.value = bylo;
+    } else if (opisanie.spisok) {
       vvod.innerHTML = '<option value=""></option>' + opisanie.spisok
         .map((s) => `<option${s === bylo ? " selected" : ""}>${escape(s)}</option>`).join("");
     } else {
@@ -375,7 +433,9 @@
   }
 
   function narisovat() {
+    sobratSpravochniki(dannye.лоты || []);
     narisovatPlitki();
+    narisovatVoronku();
     narisovatFiltry();
     narisovatTablicu();
     el("crmPanel").hidden = false;
@@ -415,6 +475,14 @@
       poisk = event.target.value.trim().toLowerCase();
       narisovatTablicu();
     });
+    const tumbler = el("crmVoronkaKn");
+    if (tumbler) {
+      tumbler.addEventListener("click", () => {
+        const blok = el("crmVoronka");
+        blok.hidden = !blok.hidden;
+        tumbler.classList.toggle("is-on", !blok.hidden);
+      });
+    }
     el("crmNovyy").addEventListener("click", () => otkrytFormu(null));
     el("crmOkno").addEventListener("click", (event) => {
       if (event.target.id === "crmOknoFon" || event.target.hasAttribute("data-zakryt")) {
