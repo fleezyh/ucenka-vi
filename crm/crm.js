@@ -53,7 +53,8 @@
     { pole: "cena_sbs", imya: "Себестоимость", tip: "dengi", shirina: 115 },
     { pole: "okup", imya: "Окуп", tip: "dolya", shirina: 70 },
     { pole: "pallet", imya: "Паллет", tip: "chislo", shirina: 70 },
-    { pole: "tovarov", imya: "Товаров", tip: "chislo", shirina: 78 },
+    { pole: "tovarov", imya: "Товаров", tip: "chislo", shirina: 72 },
+    { pole: "kommentariy", imya: "Комментарий", shirina: 0 },
   ];
 
   const STOLBCY_SCHETOV = [
@@ -116,6 +117,12 @@
     return true;
   }
 
+  // Период, за который есть лоты: по крайним непустым датам.
+  function period(loty) {
+    const daty = loty.map((z) => z.data_vystavleniya).filter(Boolean).sort();
+    return daty.length ? `${data(daty[0])} — ${data(daty.at(-1))}` : "";
+  }
+
   function narisovatPlitki() {
     const loty = dannye.лоты || [];
     const otgruzheno = loty.filter((z) => String(z.status || "").startsWith("10"));
@@ -134,7 +141,7 @@
       <p class="crmPlitka__pod">${escape(pod)}</p></article>`;
 
     el("crmPlitki").innerHTML = [
-      plitka("Всего лотов", chislo(loty.length), `с ${data(loty.at(-1)?.data_vystavleniya)}`),
+      plitka("Всего лотов", chislo(loty.length), period(loty)),
       plitka("В работе", chislo(v_rabote.length), "не отгружены и не сняты", "crm--v-rabote"),
       plitka("Отгружено", chislo(otgruzheno.length), `на ${chislo(summa)} ₽`, "crm--gotovo"),
       plitka("Снято с торгов", chislo(snyato.length),
@@ -166,7 +173,7 @@
     const vidimye = stroki().filter(podhodit);
     const kol = stolbcy();
     const shapka = kol.map((s) =>
-      `<th style="width:${s.shirina}px">${escape(s.imya)}</th>`).join("");
+      `<th${s.shirina ? ` style="width:${s.shirina}px"` : ""}>${escape(s.imya)}</th>`).join("");
     const telo = vidimye.slice(0, 600).map((z, nomer) => {
       const yachejki = kol.map((s) => {
         const v = z[s.pole];
