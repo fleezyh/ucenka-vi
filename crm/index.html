@@ -4,21 +4,45 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>CRM продаж · Уценка</title>
-  <link rel="icon" href="../assets/favicon.svg">
-  <link rel="stylesheet" href="../style.css">
-  <link rel="stylesheet" href="../site-header.css">
-  <link rel="stylesheet" href="crm.css">
+  <link rel="icon" type="image/svg+xml" href="../assets/brand/vi-mark.svg">
+  <link rel="preload" href="../assets/fonts/VI_Sans_Regular.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="../style.css?v=20260911-3">
+  <link rel="stylesheet" href="../perf/perf.css?v=20260913-1">
+  <link rel="stylesheet" href="crm.css?v=20260918-2">
+  <link rel="stylesheet" href="../reeded-bg.css?v=20260907-6">
+  <link rel="stylesheet" href="../site-header.css?v=20260914-2">
+  <script src="../reeded-bg.js?v=20260906-7" defer></script>
+  <script src="crm.js?v=20260918-2" defer></script>
+  <script src="../nav.js?v=20260914-1" defer></script>
 </head>
-<body>
-  <div id="siteHeader"></div>
+<body data-mode="perf">
+  <main class="shell">
+    <header class="topbar">
+      <a class="brand" href="../" aria-label="Уценка — главная">
+        <img class="brand__mark" src="../assets/brand/vi-mark.svg" alt="" width="36" height="36">
+        <span>Уценка</span>
+      </a>
+      <nav class="siteNav" aria-label="Разделы сайта">
+        <span class="navGroup">
+          <span class="navGroup__label">Уценка</span>
+          <a class="navLink" href="../antigen/">Антигенерация</a>
+          <a class="navLink" href="../heatmap/">Хитмап</a>
+          <a class="navLink" href="../sales/">Продажи</a>
+          <a class="navLink" href="../perf/">Производительность</a>
+        </span>
+        <span class="navGroup">
+          <span class="navGroup__label">Инструменты</span>
+          <a class="navLink" href="../picker/">Пикалка</a>
+        </span>
+      </nav>
+    </header>
 
-  <main class="wrap">
     <section class="heroPerf">
       <div>
         <p class="eyebrow">Продажи</p>
         <h1>CRM продаж</h1>
         <p class="lead">Лоты от размещения до отгрузки и счета операторов.
-          Окупаемость считается сама — цена отгрузки к себестоимости.</p>
+          Правится прямо в строке: клик по ячейке — и пишешь.</p>
       </div>
       <div class="perfTools">
         <nav class="crmVidy" aria-label="Что показываем">
@@ -50,8 +74,5 @@
       <article class="crmOkno__doc" role="dialog" aria-modal="true" id="crmOknoDoc"></article>
     </div>
   </main>
-
-  <script src="../nav.js"></script>
-  <script src="crm.js"></script>
 </body>
 </html>

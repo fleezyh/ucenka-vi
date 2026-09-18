@@ -97,3 +97,17 @@
 .crmPole input:focus, .crmPole select:focus { outline: none; border-color: rgba(223,231,242,.6); }
 .crmForma__niz { grid-column: 1 / -1; display: flex; align-items: center; gap: 14px; margin-top: 6px; }
 .crmOtvet { font-size: 12px; color: var(--muted, #8f9cad); }
+
+/* Правка на месте: ячейка подсвечивается на наведение, чтобы было видно,
+   что её можно тронуть, и не превращалась в поле от случайного клика. */
+.crmTabl td.crmPravka { cursor: text; }
+.crmTabl td.crmPravka:hover { background: rgba(223,231,242,.09);
+  box-shadow: inset 0 0 0 1px rgba(223,231,242,.22); border-radius: 6px; }
+.crmTabl td.is-pravka { background: rgba(6,10,20,.6); }
+.crmTabl td.is-sohranyaetsya { opacity: .55; }
+.crmTabl td.is-oshibka { color: #f05d72; font-size: 11px; white-space: normal; }
+.crmTabl td input, .crmTabl td select { font: inherit; font-size: 12.5px;
+  padding: 4px 7px; border-radius: 7px; border: 1px solid rgba(223,231,242,.5);
+  background: #0b1220; color: inherit; }
+.crmTabl td input:focus, .crmTabl td select:focus { outline: none;
+  border-color: #27c46b; }

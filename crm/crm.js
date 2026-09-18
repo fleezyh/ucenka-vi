@@ -70,14 +70,29 @@
     { pole: "okup", imya: "Окуп", tip: "dolya", shirina: 70 },
   ];
 
+  // Поля, которые правятся прямо в таблице. Остальные (окуп, например)
+  // считаются и руками не трогаются.
+  const PRAVIMYE = {
+    nomer: {}, menedzher: {}, ka: {}, region: {}, kategoriya: {},
+    mesyac_otgruzki: {}, nedelya_plan: {}, kommentariy: {},
+    ploshchadka: { spisok: ["Bidzaar", "Почта", "Авито", "B2B-center"] },
+    status: { spisok: null },                       // подставим воронку ниже
+    data_vystavleniya: { tip: "date" }, data_oplaty: { tip: "date" },
+    cena_otgruzki: { tip: "number" }, cena_sbs: { tip: "number" },
+    startovaya_cena: { tip: "number" }, pallet: { tip: "number" },
+    tovarov: { tip: "number" }, rrc: { tip: "number" }, zakupochnaya: { tip: "number" },
+  };
+
   const el = (id) => document.getElementById(id);
   const escape = (t) => String(t ?? "").replace(/[&<>"]/g, (c) =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const chislo = (v) => v === null || v === undefined || v === ""
-    ? "" : Math.round(Number(v) || 0).toLocaleString("ru-RU");
+    ? "" : Math.round(Number(v) || 0).toLocaleString("ru-RU").replace(/\u00a0/g, " ");
   const dolya = (v) => v === null || v === undefined || v === ""
     ? "" : (Number(v) * 100).toFixed(0) + "%";
   const data = (v) => !v ? "" : String(v).slice(0, 10).split("-").reverse().join(".");
+
+  PRAVIMYE.status.spisok = VORONKA;
 
   let dannye = null;
   let vid = "loty";
@@ -174,19 +189,25 @@
     const kol = stolbcy();
     const shapka = kol.map((s) =>
       `<th${s.shirina ? ` style="width:${s.shirina}px"` : ""}>${escape(s.imya)}</th>`).join("");
+    const mozhno = vid === "loty";
     const telo = vidimye.slice(0, 600).map((z, nomer) => {
       const yachejki = kol.map((s) => {
         const v = z[s.pole];
-        if (s.tip === "dengi") return `<td class="crmNum">${chislo(v)}</td>`;
-        if (s.tip === "chislo") return `<td class="crmNum">${chislo(v)}</td>`;
-        if (s.tip === "dolya") return `<td class="crmNum">${dolya(v)}</td>`;
-        if (s.tip === "data") return `<td class="crmNum">${data(v)}</td>`;
+        const pravimo = mozhno && PRAVIMYE[s.pole];
+        const meta = pravimo ? ` data-pole="${s.pole}" class="crmPravka` : ' class="';
+        const chislovoe = s.tip === "dengi" || s.tip === "chislo"
+                       || s.tip === "dolya" || s.tip === "data";
+        const klass = `${meta}${chislovoe ? " crmNum" : ""}"`;
+        if (s.tip === "dengi" || s.tip === "chislo") return `<td${klass}>${chislo(v)}</td>`;
+        if (s.tip === "dolya") return `<td${klass}>${dolya(v)}</td>`;
+        if (s.tip === "data") return `<td${klass}>${data(v)}</td>`;
         if (s.tip === "status") {
-          return `<td><span class="crmStatus ${klassStatusa(v)}">${escape(v || "—")}</span></td>`;
+          return `<td${klass}><span class="crmStatus ${klassStatusa(v)}">${
+            escape(v || "—")}</span></td>`;
         }
-        return `<td>${escape(v || "")}</td>`;
+        return `<td${klass}>${escape(v || "")}</td>`;
       }).join("");
-      return `<tr data-nomer="${nomer}">${yachejki}</tr>`;
+      return `<tr data-nomer="${nomer}" data-id="${z.id || ""}">${yachejki}</tr>`;
     }).join("");
 
     el("crmSchyot").textContent = vidimye.length > 600
@@ -195,8 +216,83 @@
     el("crmTabl").innerHTML = `<table><thead><tr>${shapka}</tr></thead><tbody>${telo}</tbody></table>`;
 
     el("crmTabl").querySelectorAll("tbody tr").forEach((tr) => {
-      tr.addEventListener("click", () => otkrytKartochku(vidimye[Number(tr.dataset.nomer)]));
+      tr.addEventListener("click", (event) => {
+        const td = event.target.closest("td");
+        const zapis = vidimye[Number(tr.dataset.nomer)];
+        if (td && td.dataset.pole && mozhno) {
+          nachatPravku(td, zapis);
+        } else {
+          otkrytKartochku(zapis);
+        }
+      });
     });
+  }
+
+  // Правка прямо в ячейке: Enter сохраняет, Escape отменяет, уход мышью
+  // тоже сохраняет — так работают таблицы, к которым все привыкли.
+  function nachatPravku(td, zapis) {
+    if (td.querySelector("input, select")) return;
+    const pole = td.dataset.pole;
+    const opisanie = PRAVIMYE[pole] || {};
+    const bylo = zapis[pole] == null ? "" : String(zapis[pole]);
+    const shirina = td.offsetWidth;
+    td.classList.add("is-pravka");
+
+    const vvod = opisanie.spisok
+      ? document.createElement("select")
+      : document.createElement("input");
+    if (opisanie.spisok) {
+      vvod.innerHTML = '<option value=""></option>' + opisanie.spisok
+        .map((s) => `<option${s === bylo ? " selected" : ""}>${escape(s)}</option>`).join("");
+    } else {
+      vvod.type = opisanie.tip || "text";
+      vvod.value = opisanie.tip === "date" ? bylo.slice(0, 10) : bylo;
+    }
+    vvod.style.width = Math.max(90, shirina - 14) + "px";
+    td.textContent = "";
+    td.appendChild(vvod);
+    vvod.focus();
+    if (vvod.select) vvod.select();
+
+    let zakryto = false;
+    const zavershit = async (sohranyat) => {
+      if (zakryto) return;
+      zakryto = true;
+      const stalo = vvod.value.trim();
+      td.classList.remove("is-pravka");
+      if (!sohranyat || stalo === bylo) {
+        narisovatTablicu();
+        return;
+      }
+      td.classList.add("is-sohranyaetsya");
+      try {
+        const otvet = await fetch("/__crm/lot", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: zapis.id,
+            nomer: zapis.nomer,
+            [pole]: stalo === "" ? null
+                  : (opisanie.tip === "number" ? Number(stalo) : stalo),
+          }),
+        });
+        const itog = await otvet.json();
+        if (!otvet.ok) throw new Error(itog.ошибка || "не сохранилось");
+        Object.assign(zapis, itog);
+        narisovatPlitki();
+        narisovatTablicu();
+      } catch (e) {
+        td.classList.remove("is-sohranyaetsya");
+        td.classList.add("is-oshibka");
+        td.textContent = String(e.message || e);
+      }
+    };
+
+    vvod.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") { event.preventDefault(); zavershit(true); }
+      if (event.key === "Escape") { event.preventDefault(); zavershit(false); }
+    });
+    vvod.addEventListener("blur", () => zavershit(true));
+    vvod.addEventListener("click", (event) => event.stopPropagation());
   }
 
   function polyaKartochki(z) {
