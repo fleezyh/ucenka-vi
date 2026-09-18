@@ -111,73 +111,182 @@
   }
 
 
-  // Карта склада: секторы блоками, сгруппированные по блоку склада.
-  // Таблицей это читалось плохо — 87 строк, глазом пробки не видно.
-  // Ширина блока пропорциональна числу мест хранения: маленькая служебная
-  // зона не должна выглядеть так же весомо, как сектор на 20 тысяч мест.
+  // Карта входа: зоны расставлены по этапам движения товара, как в
+  // паноптикуме — колонка на этап, кружок на зону, радиус по объёму.
+  // Плитками это не читалось: не видно, на каком шаге затор.
+  const SVG_NS = "http://www.w3.org/2000/svg";
+  const ETAPY = [
+    { key: "разгрузка", name: "Разгрузка" },
+    { key: "поступление", name: "Поступление" },
+    { key: "приёмка", name: "Приёмка" },
+    { key: "размещение", name: "Размещение" },
+    { key: "хранение", name: "Хранение" },
+  ];
+  const KOL_W = 210;
+  const OTSTUP_SVERHU = 54;
+  const OTSTUP_SNIZU = 46;
+  const V_KOLONKE = 7;
+
+  function cvetZony(z, vozrastPoZonam) {
+    // У приёмки и разгрузки занятость ничего не значит — товар стоит на полу
+    // вне системы. Там красит время; у мест хранения — заполненность.
+    const v = vozrastPoZonam.get(z.зона);
+    if (v && v.штук) {
+      const dolya = v.просрочено / v.штук;
+      if (dolya >= 0.5) return "красный";
+      if (dolya > 0.25) return "жёлтый";
+      return "зелёный";
+    }
+    return z.мест ? z.цвет : "нет данных";
+  }
+
+  function korotko(imya) {
+    return String(imya || "").replace(/^\d+\s*/, "").replace(/\s*\(ДМД\)\s*$/i, "");
+  }
+
   function narisovatKartu() {
     const uzel = el("prKarta");
     if (!uzel) return;
-    const sektory = (dannye.секторы || []).filter((s) => s.мест_хранения > 0);
-    if (!sektory.length) return;
 
-    const bloki = new Map();
-    sektory.forEach((s) => {
-      if (!bloki.has(s.блок)) bloki.set(s.блок, []);
-      bloki.get(s.блок).push(s);
+    const vozrastPoZonam = new Map();
+    ((dannye.возраст || {}).зоны || []).forEach((z) => {
+      vozrastPoZonam.set(z.зона, {
+        штук: z.штук || 0,
+        просрочено: (z.корзины || {})["3. больше 48 ч"] || 0,
+        часов: z.максимум_часов || 0,
+      });
     });
 
-    const maks = Math.max(...sektory.map((s) => s.мест_хранения));
-    const gruppy = [...bloki.entries()]
-      .sort((a, b) => b[1].reduce((n, s) => n + s.мест_хранения, 0)
-                    - a[1].reduce((n, s) => n + s.мест_хранения, 0))
-      .map(([blok, spisok]) => {
-        const mest = spisok.reduce((n, s) => n + s.мест_хранения, 0);
-        const zanyato = spisok.reduce((n, s) => n + s.занято_хранения, 0);
-        const pl = spisok
-          .sort((a, b) => b.процент_хранения - a.процент_хранения)
-          .map((s) => {
-            const cvet = CVETA[s.цвет] || CVETA["нет данных"];
-            // Доля ширины: корень сглаживает разрыв, иначе мелкие секторы
-            // превращаются в нечитаемые полоски.
-            const ves = Math.max(0.28, Math.sqrt(s.мест_хранения / maks));
-            return `<button type="button" class="prKl ${cvet.klass}"
-              style="flex-grow:${(ves * 100).toFixed(0)}"
-              data-sektor="${escape(s.сектор)}"
-              title="${escape(s.сектор)} · ${s.процент_хранения}% · ${chislo(s.занято_хранения)} из ${chislo(s.мест_хранения)}">
-              <span class="prKl__imya">${escape(s.сектор.replace(/^\d+\s*/, ""))}${s.повод === "время" ? '<em class="prKl__chasy" title="красный по времени, а не по местам">⏱</em>' : ""}</span>
-              <span class="prKl__proc">${s.процент_хранения}%</span>
-              <span class="prKl__polosa"><i style="width:${Math.min(100, s.процент_хранения)}%"></i></span>
-              <span class="prKl__mest">${s.повод === "время"
-                ? chislo(s.просрочено_штук) + " шт старше 48 ч"
-                : chislo(s.занято_хранения) + " / " + chislo(s.мест_хранения)}</span>
-            </button>`;
-          }).join("");
-        const proc = mest ? (100 * zanyato / mest).toFixed(1) : "0.0";
-        return `<div class="prBlok">
-          <p class="prBlok__zag">${escape(blok)}<span>${proc}% · ${chislo(zanyato)} из ${chislo(mest)}</span></p>
-          <div class="prBlok__setka">${pl}</div>
-        </div>`;
-      }).join("");
+    const kolonki = new Map(ETAPY.map((e) => [e.key, []]));
+    (dannye.секторы || []).forEach((s) => {
+      (s.зоны || []).forEach((z) => {
+        if (!kolonki.has(z.назначение)) return;
+        kolonki.get(z.назначение).push({ ...z, сектор: s.сектор });
+      });
+    });
 
-    uzel.innerHTML = `<h2 class="prKarta__zag">Карта склада</h2>
-      <p class="prHint">ширина блока — сколько в секторе мест хранения · клик открывает зоны сектора</p>
-      ${gruppy}`;
-    uzel.hidden = false;
+    const polosy = ETAPY.filter((e) => kolonki.get(e.key).length);
+    if (!polosy.length) return;
 
-    uzel.querySelectorAll(".prKl").forEach((knopka) => {
-      knopka.addEventListener("click", () => {
-        const imya = knopka.dataset.sektor;
-        filtr = null;
-        narisovatTablicu();
-        const stroki = [...document.querySelectorAll("#prTable .prRow")];
-        const nuzhnaya = stroki.find((r) => r.querySelector("b")?.textContent === imya);
-        if (nuzhnaya) {
-          nuzhnaya.click();
-          nuzhnaya.scrollIntoView({ behavior: "smooth", block: "center" });
+    // В колонке оставляем самые весомые зоны, хвост сворачиваем в один узел:
+    // иначе из двух сотен зон получается нечитаемая каша.
+    polosy.forEach((e) => {
+      const spisok = kolonki.get(e.key).sort((a, b) => (b.штук || 0) - (a.штук || 0));
+      if (spisok.length > V_KOLONKE) {
+        const hvost = spisok.slice(V_KOLONKE - 1);
+        kolonki.set(e.key, spisok.slice(0, V_KOLONKE - 1).concat({
+          зона: "· ещё " + hvost.length,
+          штук: hvost.reduce((n, z) => n + (z.штук || 0), 0),
+          мест: hvost.reduce((n, z) => n + (z.мест || 0), 0),
+          занято: hvost.reduce((n, z) => n + (z.занято || 0), 0),
+          цвет: "нет данных",
+          свёрнутая: true,
+        }));
+      }
+    });
+
+    const rows = polosy.map((e) => kolonki.get(e.key).length);
+    const W = KOL_W * polosy.length;
+    const H = OTSTUP_SVERHU + OTSTUP_SNIZU + 104 * Math.max(...rows, 1);
+    const maks = Math.max(1, ...polosy.flatMap((e) => kolonki.get(e.key).map((z) => z.штук || 0)));
+
+    const dobavit = (tag, atr, roditel) => {
+      const n = document.createElementNS(SVG_NS, tag);
+      Object.entries(atr).forEach(([k, v]) => n.setAttribute(k, v));
+      if (roditel) roditel.appendChild(n);
+      return n;
+    };
+
+    const svg = document.createElementNS(SVG_NS, "svg");
+    svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+    svg.setAttribute("class", "prKartaSvg");
+    svg.setAttribute("role", "img");
+
+    const stil = document.createElementNS(SVG_NS, "style");
+    stil.textContent = [
+      '.prKartaSvg text { font-family: Inter, -apple-system, "Segoe UI", sans-serif; }',
+      ".prKartaSvg .etap { font-size: 12px; font-weight: 700; fill: #475569; letter-spacing: .3px; }",
+      ".prKartaSvg .imya { font-size: 11px; fill: #0f172a; }",
+      ".prKartaSvg .chislo { font-size: 11px; font-weight: 700; fill: #334155; }",
+      ".prKartaSvg .potok { stroke: #cbd5e1; stroke-width: 1.5; fill: none; }",
+      ".prKartaSvg .uzel { cursor: pointer; }",
+      ".prKartaSvg .uzel:hover circle { stroke-width: 3; }",
+      ".prKartaSvg circle { stroke-width: 2; }",
+    ].join("\n");
+    svg.appendChild(stil);
+
+    const zalivka = {
+      "красный": ["#fef2f2", "#dc2626"],
+      "жёлтый": ["#fffbeb", "#d97706"],
+      "зелёный": ["#f0fdf4", "#16a34a"],
+      "недогруз": ["#f8fafc", "#94a3b8"],
+      "нет данных": ["#ffffff", "#cbd5e1"],
+      "нет мест": ["#ffffff", "#cbd5e1"],
+    };
+
+    polosy.forEach((etap, i) => {
+      const spisok = kolonki.get(etap.key);
+      const prostor = H - OTSTUP_SVERHU - OTSTUP_SNIZU;
+      const shag = prostor / spisok.length;
+      const potolok = Math.max(10, (shag - 52) / 2);
+
+      dobavit("text", { x: KOL_W * i + KOL_W / 2, y: 28, class: "etap", "text-anchor": "middle" }, svg)
+        .textContent = etap.name.toUpperCase();
+
+      spisok.forEach((z, k) => {
+        const x = KOL_W * i + KOL_W / 2;
+        const y = OTSTUP_SVERHU + shag * (k + 0.5);
+        const r = Math.min(13 + 24 * Math.sqrt((z.штук || 0) / maks), potolok);
+
+        const cvet = z.свёрнутая ? "нет данных" : cvetZony(z, vozrastPoZonam);
+        const gruppa = dobavit("g", { class: "uzel" }, svg);
+        dobavit("circle", { cx: x, cy: y, r: r.toFixed(1),
+                            fill: zalivka[cvet][0], stroke: zalivka[cvet][1] }, gruppa);
+
+        const v = vozrastPoZonam.get(z.зона);
+        const podpis = dobavit("title", {}, gruppa);
+        podpis.textContent = z.свёрнутая
+          ? z.зона + ": " + chislo(z.штук) + " штук"
+          : z.зона + "\n" + chislo(z.штук) + " штук"
+            + (z.мест ? "\n" + chislo(z.занято) + " из " + chislo(z.мест) + " мест · " + z.процент + "%" : "")
+            + (v && v.просрочено ? "\nстарше 48 ч: " + chislo(v.просрочено) + " шт, до " + chislo(v.часов) + " ч" : "");
+
+        dobavit("text", { x, y: y + r + 15, class: "imya", "text-anchor": "middle" }, gruppa)
+          .textContent = korotko(z.зона).slice(0, 22);
+        dobavit("text", { x, y: y + r + 29, class: "chislo", "text-anchor": "middle" }, gruppa)
+          .textContent = chislo(z.штук);
+
+        if (!z.свёрнутая && z.сектор) {
+          gruppa.addEventListener("click", () => otkrytSektor(z.сектор));
         }
       });
     });
+
+    // Линия между колонками: путь товара слева направо. Точных маршрутов
+    // зона-в-зону на входе в данных нет, поэтому связываем этапы, а не зоны.
+    polosy.slice(0, -1).forEach((etap, i) => {
+      const x1 = KOL_W * i + KOL_W / 2;
+      const x2 = KOL_W * (i + 1) + KOL_W / 2;
+      dobavit("path", { d: "M " + (x1 + 34) + " 41 L " + (x2 - 34) + " 41", class: "potok" }, svg);
+    });
+
+    uzel.innerHTML = '<h2 class="prKarta__zag">Карта входа</h2>'
+      + '<p class="prHint">колонка — этап пути товара, кружок — зона, размер по штукам · '
+      + 'на приёмке цвет по времени, на хранении — по занятости · клик открывает сектор</p>';
+    uzel.appendChild(svg);
+    uzel.hidden = false;
+  }
+
+  function otkrytSektor(imya) {
+    filtr = null;
+    narisovatTablicu();
+    const stroki = [...document.querySelectorAll("#prTable .prRow")];
+    const nuzhnaya = stroki.find((r) => r.querySelector("b") &&
+                                        r.querySelector("b").textContent === imya);
+    if (nuzhnaya) {
+      nuzhnaya.click();
+      nuzhnaya.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
   }
 
   function narisovatFiltry() {
