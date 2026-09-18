@@ -227,9 +227,9 @@
     });
 
     const rows = polosy.map((e) => kolonki.get(e.key).length);
-    // Панель разбора съедает свои 250 плюс отступ, если открыта.
-    const bokOtkryt = el("prKartaBok") && !el("prKartaBok").hidden;
-    const dostupno = Math.max(600, (uzel.clientWidth || 1200) - (bokOtkryt ? 268 : 0));
+    // Место под панель разбора держим всегда: она открывается по клику,
+    // и если ширину не зарезервировать, карта с панелью вылезут за экран.
+    const dostupno = Math.max(600, (uzel.clientWidth || 1200) - 286);
     const KOL_W = Math.min(KOL_W_MAX,
                            Math.max(KOL_W_MIN, Math.floor(dostupno / polosy.length)));
     const W = KOL_W * polosy.length;
@@ -357,7 +357,9 @@
     const bok = document.createElement("aside");
     bok.className = "prKartaBok";
     bok.id = "prKartaBok";
-    bok.hidden = true;
+    bok.className = "prKartaBok prKartaBok--pusto";
+    bok.innerHTML = "<p>Кликните зону на карте — здесь появится разбор: "
+      + "сколько штук, сколько мест, сколько лежит и что с SLA.</p>";
     holst.appendChild(bok);
     uzel.appendChild(holst);
     uzel.hidden = false;
@@ -396,6 +398,7 @@
         .join("");
     }
 
+    bok.className = "prKartaBok";
     bok.innerHTML = `<div class="prBokZag">${escape(z.зона)}</div>
       <p class="prBokPod">${escape(z.сектор || "")} · ${escape(z.назначение || "")}</p>
       ${stroka("Штук в зоне", chislo(z.штук))}
@@ -405,7 +408,6 @@
       ${v && v.часов ? stroka("Самое старое", chislo(v.часов) + " ч", "prKrit") : ""}
       ${korziny ? `<p class="prBokPod prBokPod--tit">Сколько лежит</p>${korziny}` : ""}
       ${z.сектор ? `<button class="prBokKnopka" type="button">Открыть сектор целиком</button>` : ""}`;
-    bok.hidden = false;
     const knopka = bok.querySelector(".prBokKnopka");
     if (knopka) knopka.addEventListener("click", () => otkrytSektor(z.сектор));
   }
