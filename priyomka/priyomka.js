@@ -586,13 +586,19 @@
       + `там занятость ничего не значит — товар стоит в проездах и в системе не оприходован, `
       + `поэтому приёмка выглядит пустой даже когда она встала.`;
 
-    const zapKn = el("prZapiskaKn");
-    if (zapKn) {
-      zapKn.addEventListener("click", () => {
-        const telo = el("prZapiskaTelo");
-        telo.hidden = !telo.hidden;
-        zapKn.textContent = telo.hidden ? "Развернуть" : "Свернуть";
-        if (!telo.hidden) telo.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    const zapOtkryt = el("prZapOtkryt");
+    const zap = el("prZap");
+    if (zapOtkryt && zap) {
+      const zakryt = () => { zap.hidden = true; document.body.style.overflow = ""; };
+      zapOtkryt.addEventListener("click", () => {
+        zap.hidden = false;
+        document.body.style.overflow = "hidden";
+      });
+      zap.addEventListener("click", (event) => {
+        if (event.target.id === "prZapFon" || event.target.hasAttribute("data-zakryt")) zakryt();
+      });
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && !zap.hidden) zakryt();
       });
     }
 

@@ -164,20 +164,31 @@
 .prSektorKn.pr--zhyoltyy { border-color: rgba(245,173,50,.55); color: #f5ad32; }
 
 
-/* Методология прямо на странице: чтобы рассказывать, не открывая файл. */
-.prZapiska { margin: 28px 0 8px; border: 1px solid rgba(143,156,173,.22); border-radius: 16px;
-  padding: 16px 20px; background: rgba(15,23,42,.28); }
-.prZapiska__shapka { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
-.prZapiska__shapka h2 { font-size: 17px; font-weight: 700; margin: 0; }
-.prZapiska__knopki { display: flex; gap: 8px; flex-shrink: 0; }
-.prZapiska__kn { cursor: pointer; font: inherit; font-size: 12px; padding: 7px 14px;
+
+/* Методология: кнопка в шапке и модалка поверх страницы — как записки
+   антигенерации. В подвале её никто не искал бы. */
+.prZapOtkryt { margin-top: 10px; cursor: pointer; font: inherit; font-size: 12px;
+  padding: 7px 15px; border-radius: 999px; border: 1px solid rgba(143,156,173,.4);
+  background: transparent; color: var(--muted, #8f9cad); }
+.prZapOtkryt:hover { border-color: rgba(223,231,242,.7); color: #dfe7f2; }
+.prZap { position: fixed; inset: 0; z-index: 90; display: flex; align-items: flex-start;
+  justify-content: center; padding: 32px 16px; overflow-y: auto; }
+.prZap[hidden] { display: none; }
+.prZap__fon { position: fixed; inset: 0; background: rgba(6,10,20,.72); backdrop-filter: blur(3px); }
+.prZap__doc { position: relative; width: min(860px, 100%); border-radius: 18px;
+  padding: 26px 32px 34px; background: #111827; border: 1px solid rgba(143,156,173,.25);
+  box-shadow: 0 24px 60px rgba(0,0,0,.5); }
+.prZap__top { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.prZap__teg { font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--muted, #8f9cad); }
+.prZap__act { display: flex; gap: 8px; }
+.prZap__kn { cursor: pointer; font: inherit; font-size: 12px; padding: 7px 15px;
   border-radius: 999px; border: 1px solid rgba(143,156,173,.35); background: transparent;
-  color: inherit; text-decoration: none; display: inline-block; }
-.prZapiska__kn:hover { border-color: rgba(223,231,242,.6); }
-.prZapiska__telo { margin-top: 16px; max-width: 900px; }
-.prZapiska__pod { font-size: 12px; color: var(--muted, #8f9cad); margin: 0 0 14px; }
-.prZapiskaRazdel { margin-bottom: 18px; }
-.prZapiskaRazdel h3 { font-size: 14px; font-weight: 700; margin: 0 0 6px; }
-.prZapiskaRazdel p { margin: 0 0 8px; font-size: 13px; line-height: 1.6; color: #cbd5e1; }
-.prZapiskaRazdel ul { margin: 0 0 8px; padding-left: 18px; }
-.prZapiskaRazdel li { font-size: 13px; line-height: 1.6; color: #cbd5e1; margin-bottom: 5px; }
+  color: inherit; text-decoration: none; }
+.prZap__kn:hover { border-color: rgba(223,231,242,.7); }
+.prZap__doc h2 { font-size: 26px; font-weight: 700; margin: 16px 0 6px; line-height: 1.2; }
+.prZap__podpis { font-size: 13px; color: var(--muted, #8f9cad); margin: 0 0 22px; }
+.prZap__doc h3 { font-size: 15px; font-weight: 700; margin: 22px 0 8px; color: #f5ad32; }
+.prZap__doc p { font-size: 14px; line-height: 1.65; margin: 0 0 10px; color: #cbd5e1; }
+.prZap__doc ul { margin: 0 0 12px; padding-left: 20px; }
+.prZap__doc li { font-size: 14px; line-height: 1.65; margin-bottom: 7px; color: #cbd5e1; }
