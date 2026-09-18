@@ -150,3 +150,15 @@
 
 .prKartaBok--pusto { display: flex; align-items: center; text-align: center;
   color: var(--muted, #8f9cad); font-size: 12px; line-height: 1.5; min-height: 120px; }
+
+
+/* Кнопки секторов над картой: мост между таблицей секторов и схемой входа. */
+.prSektory { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 2px; }
+.prSektorKn { cursor: pointer; font: inherit; font-size: 12px; padding: 4px 11px;
+  border-radius: 999px; border: 1px solid rgba(143,156,173,.3); background: transparent;
+  color: var(--muted, #8f9cad); transition: border-color .15s ease, color .15s ease; }
+.prSektorKn:hover { border-color: rgba(143,156,173,.65); color: #dfe7f2; }
+.prSektorKn.is-on { background: rgba(223,231,242,.12); border-color: rgba(223,231,242,.5);
+  color: #dfe7f2; font-weight: 600; }
+.prSektorKn.pr--krasnyy { border-color: rgba(240,93,114,.55); color: #f05d72; }
+.prSektorKn.pr--zhyoltyy { border-color: rgba(245,173,50,.55); color: #f5ad32; }

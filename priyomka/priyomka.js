@@ -28,6 +28,7 @@
 
   let dannye = null;
   let filtr = null;
+  let sektorNaKarte = null;
 
   function plitka(zagolovok, znachenie, podpis, klass) {
     return `<article class="prPlitka ${klass || ""}">
@@ -192,6 +193,7 @@
 
     const kolonki = new Map(ETAPY.map((e) => [e.key, []]));
     (dannye.секторы || []).forEach((s) => {
+      if (sektorNaKarte && s.сектор !== sektorNaKarte) return;
       (s.зоны || []).forEach((z) => {
         if (!kolonki.has(z.назначение)) return;
         if (!z.штук) return;
@@ -359,7 +361,8 @@
       + '<span><i style="background:#27c46b"></i>идёт в срок</span>'
       + '<span><i style="background:#5b6b82"></i>мест нет или движения не видно</span>'
       + '<span class="prLegenda__pr">на хранении цвет по занятости, не по времени</span>'
-      + '</div>';
+      + '</div>'
+      + '<div class="prSektory" id="prSektory"></div>';
     const holst = document.createElement("div");
     holst.className = "prKartaHolst";
     holst.appendChild(svg);
@@ -371,6 +374,7 @@
       + "сколько штук, сколько мест, сколько лежит и что с SLA.</p>";
     holst.appendChild(bok);
     uzel.appendChild(holst);
+    narisovatKnopkiSektorov();
     uzel.hidden = false;
   }
 
@@ -427,7 +431,35 @@
     pereschyot = setTimeout(() => { if (dannye) narisovatKartu(); }, 200);
   });
 
+  // Кнопки секторов: по ним карта сужается до одного сектора. Без этого
+  // таблица секторов и карта жили порознь — «Сектор Ж 89,4%» есть, а где
+  // он на карте, непонятно.
+  function narisovatKnopkiSektorov() {
+    const ryad = el("prSektory");
+    if (!ryad) return;
+    const spisok = (dannye.секторы || []).filter((s) => (s.зоны || [])
+      .some((z) => z.штук && ETAPY.some((e) => e.key === z.назначение)));
+    if (spisok.length < 2) return;
+
+    const knopka = (imya, podpis, cvet) =>
+      `<button type="button" class="prSektorKn ${cvet || ""}${sektorNaKarte === imya ? " is-on" : ""}"
+        data-sektor="${escape(imya || "")}">${escape(podpis)}</button>`;
+
+    ryad.innerHTML = knopka("", "весь склад")
+      + spisok.map((s) => knopka(s.сектор, s.сектор.replace(/^\d+\s*(Сектор\s*)?/i, ""),
+                                 (CVETA[s.цвет] || {}).klass)).join("");
+
+    ryad.querySelectorAll(".prSektorKn").forEach((kn) => {
+      kn.addEventListener("click", () => {
+        sektorNaKarte = kn.dataset.sektor || null;
+        narisovatKartu();
+      });
+    });
+  }
+
   function otkrytSektor(imya) {
+    sektorNaKarte = imya;
+    narisovatKartu();
     filtr = null;
     narisovatTablicu();
     const stroki = [...document.querySelectorAll("#prTable .prRow")];
@@ -556,7 +588,13 @@
 
     el("prTable").addEventListener("click", (event) => {
       const row = event.target.closest(".prRow");
-      if (row) razvernut(row);
+      if (!row) return;
+      razvernut(row);
+      const imya = row.querySelector("b") ? row.querySelector("b").textContent : "";
+      if (imya) {
+        sektorNaKarte = imya;
+        narisovatKartu();
+      }
     });
     el("prFilters").addEventListener("click", (event) => {
       const knopka = event.target.closest(".prFiltr");
