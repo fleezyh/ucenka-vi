@@ -131,7 +131,7 @@
     "размещение": "#a985ff",
     "хранение": "#f5ad32",
   };
-  const KOL_W = 240;
+  const KOL_W_MIN = 190;
   const OTSTUP_SVERHU = 58;
   const OTSTUP_SNIZU = 34;
   const SHAG_Y = 78;
@@ -213,6 +213,10 @@
     });
 
     const rows = polosy.map((e) => kolonki.get(e.key).length);
+    // Панель разбора съедает свои 250 плюс отступ, если открыта.
+    const bokOtkryt = el("prKartaBok") && !el("prKartaBok").hidden;
+    const dostupno = Math.max(600, (uzel.clientWidth || 1200) - (bokOtkryt ? 268 : 0));
+    const KOL_W = Math.max(KOL_W_MIN, Math.floor(dostupno / polosy.length));
     const W = KOL_W * polosy.length;
     const H = OTSTUP_SVERHU + OTSTUP_SNIZU + SHAG_Y * Math.max(...rows, 1);
     const maksVKolonke = new Map(polosy.map((e) =>
@@ -228,7 +232,7 @@
     const svg = document.createElementNS(SVG_NS, "svg");
     svg.setAttribute("viewBox", "0 0 " + W + " " + H);
     svg.setAttribute("class", "prKartaSvg");
-    svg.style.maxWidth = W + "px";
+    svg.style.maxWidth = "100%";
     svg.setAttribute("role", "img");
 
     const stil = document.createElementNS(SVG_NS, "style");
@@ -385,6 +389,12 @@
     const knopka = bok.querySelector(".prBokKnopka");
     if (knopka) knopka.addEventListener("click", () => otkrytSektor(z.сектор));
   }
+
+  let pereschyot = null;
+  window.addEventListener("resize", () => {
+    clearTimeout(pereschyot);
+    pereschyot = setTimeout(() => { if (dannye) narisovatKartu(); }, 200);
+  });
 
   function otkrytSektor(imya) {
     filtr = null;
