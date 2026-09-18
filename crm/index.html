@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CRM продаж · Уценка</title>
+  <link rel="icon" href="../assets/favicon.svg">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../site-header.css">
+  <link rel="stylesheet" href="crm.css">
+</head>
+<body>
+  <div id="siteHeader"></div>
+
+  <main class="wrap">
+    <section class="heroPerf">
+      <div>
+        <p class="eyebrow">Продажи</p>
+        <h1>CRM продаж</h1>
+        <p class="lead">Лоты от размещения до отгрузки и счета операторов.
+          Окупаемость считается сама — цена отгрузки к себестоимости.</p>
+      </div>
+      <div class="perfTools">
+        <nav class="crmVidy" aria-label="Что показываем">
+          <button class="crmVid is-on" type="button" data-vid="loty">Лоты</button>
+          <button class="crmVid" type="button" data-vid="scheta">Счета</button>
+        </nav>
+        <p class="stamp" id="stamp"></p>
+      </div>
+    </section>
+
+    <p class="message" id="message">Загружаю…</p>
+
+    <section class="crmPlitki" id="crmPlitki" hidden></section>
+
+    <section class="crmPanel" id="crmPanel" hidden>
+      <div class="crmPanel__head">
+        <div class="crmFiltry" id="crmFiltry"></div>
+        <div class="crmPanel__act">
+          <input class="crmPoisk" id="crmPoisk" type="search" placeholder="Поиск: лот, КА, комментарий">
+          <button class="crmKn crmKn--glav" type="button" id="crmNovyy">Новый лот</button>
+        </div>
+      </div>
+      <p class="crmSchyot" id="crmSchyot"></p>
+      <div class="crmTabl" id="crmTabl"></div>
+    </section>
+
+    <div class="crmOkno" id="crmOkno" hidden>
+      <div class="crmOkno__fon" id="crmOknoFon"></div>
+      <article class="crmOkno__doc" role="dialog" aria-modal="true" id="crmOknoDoc"></article>
+    </div>
+  </main>
+
+  <script src="../nav.js"></script>
+  <script src="crm.js"></script>
+</body>
+</html>
