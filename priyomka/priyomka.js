@@ -152,6 +152,11 @@
     return z.мест ? z.цвет : "нет данных";
   }
 
+  function obrezat(text, predel) {
+    const s = String(text || "");
+    return s.length > predel ? s.slice(0, predel - 1) + "…" : s;
+  }
+
   function razbit(text, predel) {
     const slova = String(text).split(/\s+/);
     const stroki = [];
@@ -283,7 +288,7 @@
       const spisok = kolonki.get(etap.key);
       const prostor = H - OTSTUP_SVERHU - OTSTUP_SNIZU;
       const shag = prostor / spisok.length;
-      const potolok = Math.max(9, (shag - 54) / 2);
+      const potolok = Math.max(9, (shag - 46) / 2);
 
       const vsegoShtuk = spisok.reduce((n, z) => n + (z.штук || 0), 0);
       const prosrocheno = spisok.reduce((n, z) => {
@@ -322,17 +327,21 @@
             + (z.мест ? "\n" + chislo(z.занято) + " из " + chislo(z.мест) + " мест · " + z.процент + "%" : "")
             + (v && v.просрочено ? "\nстарше 48 ч: " + chislo(v.просрочено) + " шт, до " + chislo(v.часов) + " ч" : "");
 
-        const stroki = razbit(korotko(z.зона), 26);
-        stroki.forEach((stroka, nomer) => {
-          dobavit("text", { x, y: y + r + 19 + nomer * 16, class: "imya",
-                            "text-anchor": "middle" }, gruppa).textContent = stroka;
-        });
-        dobavit("text", { x, y: y + r + 19 + stroki.length * 16, class: "chislo",
-                          "text-anchor": "middle" }, gruppa).textContent = chislo(z.штук);
+        // Подпись держим в двух строках: имя и «штуки · причина». Раньше
+        // строк было три — имя в две плюс число плюс причина, — и нижняя
+        // наезжала на следующий узел.
+        dobavit("text", { x, y: y + r + 18, class: "imya", "text-anchor": "middle" }, gruppa)
+          .textContent = obrezat(korotko(z.зона), 30);
         const povod = pochemu(z, v);
+        const nizhnyaya = dobavit("text", { x, y: y + r + 35, class: "chislo",
+                                            "text-anchor": "middle" }, gruppa);
+        nizhnyaya.textContent = chislo(z.штук);
         if (povod) {
-          dobavit("text", { x, y: y + r + 19 + stroki.length * 16 + 15, class: "povod",
-                            fill: ton, "text-anchor": "middle" }, gruppa).textContent = povod;
+          const hvost = document.createElementNS(SVG_NS, "tspan");
+          hvost.setAttribute("class", "povod");
+          hvost.setAttribute("fill", ton);
+          hvost.textContent = "  ·  " + povod;
+          nizhnyaya.appendChild(hvost);
         }
 
         if (!z.свёрнутая) {
@@ -370,10 +379,10 @@
     if (z.свёрнутая) return "";
     if (v && v.штук) {
       const dolya = Math.round(100 * v.просрочено / v.штук);
-      if (v.просрочено) return chislo(v.просрочено) + " шт > 48 ч · " + dolya + "%";
+      if (v.просрочено) return dolya + "% за SLA";
       return "в срок";
     }
-    if (z.мест) return "занято " + z.процент + "%";
+    if (z.мест) return z.процент + "% занято";
     return "";
   }
 
