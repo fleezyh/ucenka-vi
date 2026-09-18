@@ -58,6 +58,9 @@
 .crmTabl tbody tr { cursor: pointer; }
 .crmTabl tbody tr:hover { background: rgba(223,231,242,.06); }
 .crmTabl .crmNum { text-align: right; font-variant-numeric: tabular-nums; }
+/* Точка в дате при моноширинных цифрах занимает целую ячейку и дата
+   читается как «18 . 09 . 2026» — датам табличные цифры не нужны. */
+.crmTabl td.crmData, .crmTabl td.crmData * { font-variant-numeric: normal; }
 
 .crmStatus { font-size: 11.5px; padding: 2px 9px; border-radius: 999px;
   border: 1px solid currentColor; white-space: nowrap; }
@@ -156,3 +159,9 @@
   rgba(143,156,173,.5); color: var(--muted, #8f9cad); font-variant-numeric: tabular-nums; }
 .crmPlanStroka__plan:hover { color: #dfe7f2; border-color: #dfe7f2; }
 .crmPlanStroka__pod { font-size: 11.5px; color: var(--muted, #8f9cad); }
+
+/* Двухэтажная шапка: сверху группы колонок, как в исходной таблице. */
+.crmShapkaGruppy th { background: #0b1220; font-size: 10.5px; letter-spacing: .08em;
+  color: #6b7a8f; border-bottom: 1px solid rgba(143,156,173,.18); text-align: center; }
+.crmShapkaGruppy th.crmGruppa:not(:last-child) { border-right: 1px solid rgba(143,156,173,.18); }
+.crmTabl thead tr:nth-child(2) th { top: 27px; }

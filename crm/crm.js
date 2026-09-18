@@ -48,33 +48,69 @@
     { pole: "kommentariy", imya: "Комментарий", shirokoe: true },
   ];
 
-  // Колонки простыни: что показываем в таблице лотов.
+  // Колонки простыни: те же и в том же порядке, что в листе «Предложения КА».
   const STOLBCY = [
-    { pole: "nomer", imya: "Лот", shirina: 70 },
-    { pole: "data_vystavleniya", imya: "Выставлен", tip: "data", shirina: 92 },
-    { pole: "menedzher", imya: "Менеджер", shirina: 130 },
-    { pole: "ka", imya: "Контрагент", shirina: 170 },
-    { pole: "ploshchadka", imya: "Площадка", shirina: 90 },
-    { pole: "status", imya: "Статус", tip: "status", shirina: 175 },
-    { pole: "cena_otgruzki", imya: "Цена", tip: "dengi", shirina: 105 },
-    { pole: "cena_sbs", imya: "Себестоимость", tip: "dengi", shirina: 115 },
-    { pole: "okup", imya: "Окуп", tip: "dolya", shirina: 70 },
-    { pole: "pallet", imya: "Паллет", tip: "chislo", shirina: 70 },
-    { pole: "tovarov", imya: "Товаров", tip: "chislo", shirina: 72 },
-    { pole: "kommentariy", imya: "Комментарий", shirina: 0 },
+    { gruppa: "Лот и идентификация", pole: "nomer", imya: "№ лота", shirina: 74 },
+    { gruppa: "Лот и идентификация", pole: "data_vystavleniya", imya: "Дата выставления", tip: "data", shirina: 96 },
+    { gruppa: "Лот и идентификация", pole: "mesyac_otgruzki", imya: "Месяц отгрузки", shirina: 100 },
+    { gruppa: "Лот и идентификация", pole: "nedelya_plan", imya: "Неделя отгрузки план", shirina: 110 },
+    { gruppa: "Лот и идентификация", pole: "menedzher", imya: "Менеджер", shirina: 130 },
+    { gruppa: "Лот и идентификация", pole: "region", imya: "Регион", shirina: 80 },
+    { gruppa: "Лот и идентификация", pole: "kategoriya", imya: "Категория", shirina: 120 },
+    { gruppa: "Статус", pole: "status", imya: "Статус лота", tip: "status", shirina: 170 },
+    { gruppa: "Решение", pole: "ka", imya: "КА", shirina: 165 },
+    { gruppa: "Решение", pole: "ploshchadka", imya: "Площадка продажи", shirina: 96 },
+    { gruppa: "Решение", pole: "cena_otgruzki", imya: "Цена отгрузки с НДС", tip: "dengi", shirina: 110 },
+    { gruppa: "Решение", pole: "cena_sbs", imya: "Цена по СБС с НДС", tip: "dengi", shirina: 115 },
+    { gruppa: "Решение", pole: "okup", imya: "Окуп", tip: "dolya", shirina: 66 },
+    { gruppa: "Факт отгрузки", pole: "data_oplaty", imya: "Дата оплаты", tip: "data", shirina: 96 },
+    { gruppa: "Факт отгрузки", pole: "otgruzka1", imya: "Отгрузка 1", tip: "otgruzka", nomer: 0, shirina: 110 },
+    { gruppa: "Факт отгрузки", pole: "otgruzka1d", imya: "Дата отгрузки 1", tip: "otgruzkaData", nomer: 0, shirina: 96 },
+    { gruppa: "Факт отгрузки", pole: "otgruzka2", imya: "Отгрузка 2", tip: "otgruzka", nomer: 1, shirina: 110 },
+    { gruppa: "Факт отгрузки", pole: "otgruzka2d", imya: "Дата отгрузки 2", tip: "otgruzkaData", nomer: 1, shirina: 96 },
+    { gruppa: "Факт отгрузки", pole: "otgruzka3", imya: "Отгрузка 3", tip: "otgruzka", nomer: 2, shirina: 110 },
+    { gruppa: "Факт отгрузки", pole: "otgruzka3d", imya: "Дата отгрузки 3", tip: "otgruzkaData", nomer: 2, shirina: 96 },
+    { gruppa: "Товарная часть", pole: "pallet", imya: "Кол-во паллет", tip: "chislo", shirina: 84 },
+    { gruppa: "Товарная часть", pole: "pallet_ubrano", imya: "Убранные паллеты", tip: "chislo", shirina: 92 },
+    { gruppa: "Товарная часть", pole: "tovarov", imya: "Количество товаров", tip: "chislo", shirina: 92 },
+    { gruppa: "Товарная часть", pole: "rrc", imya: "РРЦ", tip: "dengi", shirina: 105 },
+    { gruppa: "Товарная часть", pole: "zakupochnaya", imya: "Закупочная стоимость", tip: "dengi", shirina: 115 },
+    { gruppa: "Товарная часть", pole: "startovaya_cena", imya: "Стартовая цена", tip: "dengi", shirina: 105 },
+    { gruppa: "Товарная часть", pole: "startovyy_okup", imya: "Стартовый окуп", tip: "dolya", shirina: 80 },
+    { gruppa: "Товарная часть", pole: "kommentariy", imya: "Комментарии, примечания", shirina: 230 },
+    { gruppa: "Окончание лота", pole: "konec_bidzaar", imya: "Bidzaar", tip: "data", shirina: 96 },
+    { gruppa: "Окончание лота", pole: "konec_b2b", imya: "B2B Center", tip: "data", shirina: 96 },
+    { gruppa: "Окончание лота", pole: "dney_oplata_otgruzka", imya: "Дней оплата-отгрузка", tip: "chislo", shirina: 92 },
+    { gruppa: "Окончание лота", pole: "nomera_zakazov", imya: "Номера заказов", shirina: 160 },
   ];
 
   const STOLBCY_SCHETOV = [
-    { pole: "lot", imya: "Лот", shirina: 70 },
-    { pole: "data_zaprosa", imya: "Запрос", tip: "data", shirina: 92 },
-    { pole: "menedzher", imya: "Менеджер", shirina: 130 },
-    { pole: "ka", imya: "Контрагент", shirina: 160 },
-    { pole: "prioritet", imya: "Приоритет", shirina: 90 },
-    { pole: "operator", imya: "Оператор", shirina: 130 },
-    { pole: "status_operatora", imya: "Статус", tip: "status", shirina: 150 },
-    { pole: "data_gotovnosti", imya: "Готов", tip: "data", shirina: 92 },
-    { pole: "cena_otgruzki", imya: "Цена", tip: "dengi", shirina: 105 },
-    { pole: "okup", imya: "Окуп", tip: "dolya", shirina: 70 },
+    { gruppa: "Менеджер / заявка", pole: "lot", imya: "№ лота", shirina: 74 },
+    { gruppa: "Менеджер / заявка", pole: "menedzher", imya: "Менеджер", shirina: 130 },
+    { gruppa: "Менеджер / заявка", pole: "ka", imya: "КА", shirina: 160 },
+    { gruppa: "Менеджер / заявка", pole: "data_zaprosa", imya: "Дата запроса", tip: "data", shirina: 96 },
+    { gruppa: "Менеджер / заявка", pole: "prioritet", imya: "Приоритет", shirina: 88 },
+    { gruppa: "Менеджер / заявка", pole: "kommentariy_menedzhera", imya: "Комментарий", shirina: 180 },
+    { gruppa: "Менеджер / заявка", pole: "status_lota", imya: "Статус лота", tip: "status", shirina: 165 },
+    { gruppa: "Менеджер / заявка", pole: "inn", imya: "ИНН", shirina: 110 },
+    { gruppa: "Менеджер / заявка", pole: "region", imya: "Регион", shirina: 80 },
+    { gruppa: "Менеджер / заявка", pole: "kategoriya", imya: "Категория", shirina: 120 },
+    { gruppa: "Менеджер / заявка", pole: "ploshchadka", imya: "Площадка", shirina: 94 },
+    { gruppa: "Менеджер / заявка", pole: "cena_otgruzki", imya: "Цена отгрузки с НДС", tip: "dengi", shirina: 110 },
+    { gruppa: "Менеджер / заявка", pole: "cena_sbs", imya: "СБС с НДС", tip: "dengi", shirina: 110 },
+    { gruppa: "Менеджер / заявка", pole: "okup", imya: "Окуп", tip: "dolya", shirina: 66 },
+    { gruppa: "Менеджер / заявка", pole: "pallet", imya: "Паллеты", tip: "chislo", shirina: 78 },
+    { gruppa: "Менеджер / заявка", pole: "tovarov", imya: "Товаров", tip: "chislo", shirina: 78 },
+    { gruppa: "Оператор / счёт", pole: "operator", imya: "Оператор", shirina: 130 },
+    { gruppa: "Оператор / счёт", pole: "status_operatora", imya: "Статус оператора", tip: "status", shirina: 150 },
+    { gruppa: "Оператор / счёт", pole: "data_gotovnosti", imya: "Дата готовности счёта", tip: "data", shirina: 96 },
+    { gruppa: "Оператор / счёт", pole: "data_prinyatiya", imya: "Дата принятия в работу", tip: "data", shirina: 96 },
+    { gruppa: "Оператор / счёт", pole: "nedelya", imya: "№ недели", shirina: 80 },
+    { gruppa: "Оператор / счёт", pole: "ssylka_na_schet", imya: "Ссылка на счёт", shirina: 170 },
+    { gruppa: "Оператор / счёт", pole: "kommentariy_operatora", imya: "Комментарий", shirina: 180 },
+    { gruppa: "Оператор / счёт", pole: "proverka", imya: "Проверка", shirina: 100 },
+    { gruppa: "Оператор / счёт", pole: "status", imya: "Статус", shirina: 110 },
+    { gruppa: "Оператор / счёт", pole: "kolvo", imya: "Кол-во", tip: "chislo", shirina: 78 },
   ];
 
   // Поля, которые правятся прямо в таблице. Остальные (окуп, например)
@@ -306,20 +342,36 @@
   function narisovatTablicu() {
     const vidimye = stroki().filter(podhodit);
     const kol = stolbcy();
-    const shapka = kol.map((s) =>
+    const gruppy = [];
+    kol.forEach((s) => {
+      const posledn = gruppy[gruppy.length - 1];
+      if (posledn && posledn.imya === (s.gruppa || "")) posledn.skolko += 1;
+      else gruppy.push({ imya: s.gruppa || "", skolko: 1 });
+    });
+    const verh = gruppy.map((g) =>
+      `<th class="crmGruppa" colspan="${g.skolko}">${escape(g.imya)}</th>`).join("");
+    const niz = kol.map((s) =>
       `<th${s.shirina ? ` style="width:${s.shirina}px"` : ""}>${escape(s.imya)}</th>`).join("");
+    const shapka = `<tr class="crmShapkaGruppy">${verh}</tr><tr>${niz}</tr>`;
     const mozhno = vid === "loty";
     const telo = vidimye.slice(0, 600).map((z, nomer) => {
       const yachejki = kol.map((s) => {
-        const v = z[s.pole];
+        let v = z[s.pole];
+        if (s.tip === "otgruzka" || s.tip === "otgruzkaData") {
+          const para = (z.otgruzki || [])[s.nomer] || {};
+          v = s.tip === "otgruzka" ? para["что"] : para["когда"];
+        }
         const pravimo = mozhno && PRAVIMYE[s.pole];
         const meta = pravimo ? ` data-pole="${s.pole}" class="crmPravka` : ' class="';
+        const datovoe = s.tip === "data" || s.tip === "otgruzkaData";
         const chislovoe = s.tip === "dengi" || s.tip === "chislo"
-                       || s.tip === "dolya" || s.tip === "data";
-        const klass = `${meta}${chislovoe ? " crmNum" : ""}"`;
+                       || s.tip === "dolya" || datovoe;
+        const klass = `${meta}${chislovoe ? " crmNum" : ""}${datovoe ? " crmData" : ""}"`;
         if (s.tip === "dengi" || s.tip === "chislo") return `<td${klass}>${chislo(v)}</td>`;
         if (s.tip === "dolya") return `<td${klass}>${dolya(v)}</td>`;
-        if (s.tip === "data") return `<td${klass}>${data(v)}</td>`;
+        if (s.tip === "data" || s.tip === "otgruzkaData") {
+          return `<td${klass}>${data(v)}</td>`;
+        }
         if (s.tip === "status") {
           return `<td${klass}><span class="crmStatus ${klassStatusa(v)}">${
             escape(v || "—")}</span></td>`;
@@ -332,7 +384,7 @@
     el("crmSchyot").textContent = vidimye.length > 600
       ? `Показаны первые 600 из ${vidimye.length}`
       : `Строк: ${vidimye.length}`;
-    el("crmTabl").innerHTML = `<table><thead><tr>${shapka}</tr></thead><tbody>${telo}</tbody></table>`;
+    el("crmTabl").innerHTML = `<table><thead>${shapka}</thead><tbody>${telo}</tbody></table>`;
 
     el("crmTabl").querySelectorAll("tbody tr").forEach((tr) => {
       tr.addEventListener("click", (event) => {
