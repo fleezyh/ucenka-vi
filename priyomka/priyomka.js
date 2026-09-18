@@ -131,10 +131,10 @@
     "размещение": "#a985ff",
     "хранение": "#f5ad32",
   };
-  const KOL_W = 150;
-  const OTSTUP_SVERHU = 34;
-  const OTSTUP_SNIZU = 28;
-  const SHAG_Y = 62;
+  const KOL_W = 240;
+  const OTSTUP_SVERHU = 44;
+  const OTSTUP_SNIZU = 34;
+  const SHAG_Y = 78;
   const V_KOLONKE = 12;
 
   function cvetZony(z, vozrastPoZonam) {
@@ -230,9 +230,9 @@
     const stil = document.createElementNS(SVG_NS, "style");
     stil.textContent = [
       '.prKartaSvg text { font-family: "VI Sans", system-ui, sans-serif; }',
-      ".prKartaSvg .etap { font: 600 10px 'VI Sans', system-ui, sans-serif; fill: #8f9cad; letter-spacing: .08em; }",
-      ".prKartaSvg .imya { font: 500 9px 'VI Sans', system-ui, sans-serif; fill: #dfe7f2; }",
-      ".prKartaSvg .chislo { font: 600 9px 'VI Sans', system-ui, sans-serif; fill: #8f9cad; }",
+      ".prKartaSvg .etap { font: 600 12px 'VI Sans', system-ui, sans-serif; fill: #8f9cad; letter-spacing: .08em; }",
+      ".prKartaSvg .imya { font: 500 12px 'VI Sans', system-ui, sans-serif; fill: #dfe7f2; }",
+      ".prKartaSvg .chislo { font: 600 12px 'VI Sans', system-ui, sans-serif; fill: #8f9cad; }",
       ".prKartaSvg .potok { fill: none; opacity: .34; }",
       ".prKartaSvg .uzel { cursor: pointer; }",
       ".prKartaSvg .uzel circle { transition: fill-opacity .25s ease; }",
@@ -253,15 +253,15 @@
       const spisok = kolonki.get(etap.key);
       const prostor = H - OTSTUP_SVERHU - OTSTUP_SNIZU;
       const shag = prostor / spisok.length;
-      const potolok = Math.max(5, (shag - 32) / 2);
+      const potolok = Math.max(7, (shag - 42) / 2);
 
-      dobavit("text", { x: KOL_W * i + KOL_W / 2, y: 18, class: "etap", "text-anchor": "middle" }, svg)
+      dobavit("text", { x: KOL_W * i + KOL_W / 2, y: 24, class: "etap", "text-anchor": "middle" }, svg)
         .textContent = etap.name.toUpperCase();
 
       spisok.forEach((z, k) => {
         const x = KOL_W * i + KOL_W / 2;
         const y = OTSTUP_SVERHU + shag * (k + 0.5);
-        const r = Math.min(6 + 13 * Math.sqrt((z.штук || 0) / maks), potolok);
+        const r = Math.min(8 + 17 * Math.sqrt((z.штук || 0) / maks), potolok);
 
         const cvet = z.свёрнутая ? "нет данных" : cvetZony(z, vozrastPoZonam);
         const ton = SVETOFOR[cvet] || SVETOFOR["нет данных"];
@@ -269,7 +269,7 @@
         // Красное кольцо снаружи — зона за SLA. Видно издалека, даже когда
         // кружок маленький и цвет заливки читается плохо.
         if (cvet === "красный") {
-          dobavit("circle", { cx: x, cy: y, r: (r + 3).toFixed(1), fill: "none",
+          dobavit("circle", { cx: x, cy: y, r: (r + 4).toFixed(1), fill: "none",
                               stroke: ton, "stroke-width": 1, "stroke-opacity": .45 }, gruppa);
         }
         dobavit("circle", { cx: x, cy: y, r: r.toFixed(1), fill: ton,
@@ -283,12 +283,12 @@
             + (z.мест ? "\n" + chislo(z.занято) + " из " + chislo(z.мест) + " мест · " + z.процент + "%" : "")
             + (v && v.просрочено ? "\nстарше 48 ч: " + chislo(v.просрочено) + " шт, до " + chislo(v.часов) + " ч" : "");
 
-        const stroki = razbit(korotko(z.зона), 24);
+        const stroki = razbit(korotko(z.зона), 22);
         stroki.forEach((stroka, nomer) => {
-          dobavit("text", { x, y: y + r + 11 + nomer * 10, class: "imya",
+          dobavit("text", { x, y: y + r + 15 + nomer * 13, class: "imya",
                             "text-anchor": "middle" }, gruppa).textContent = stroka;
         });
-        dobavit("text", { x, y: y + r + 11 + stroki.length * 10, class: "chislo",
+        dobavit("text", { x, y: y + r + 15 + stroki.length * 13, class: "chislo",
                           "text-anchor": "middle" }, gruppa).textContent = chislo(z.штук);
 
         if (!z.свёрнутая && z.сектор) {
