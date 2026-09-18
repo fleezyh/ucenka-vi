@@ -93,3 +93,29 @@
 .prVozrast__tab td { padding: 8px 10px; border-bottom: 1px solid var(--line-soft, #f1f5f9); }
 .prVozrast__tab .prNum { text-align: right; font-variant-numeric: tabular-nums; }
 .prVozrast__tab .prKrit { color: #b91c1c; }
+
+
+/* Карта склада: блоки складa, внутри — секторы полосами по ширине мест. */
+.prKarta { margin: 22px 0 26px; }
+.prKarta__zag { font-size: 17px; font-weight: 700; margin: 0 0 4px; }
+.prBlok { margin-top: 16px; }
+.prBlok__zag { display: flex; justify-content: space-between; align-items: baseline;
+  font-size: 13px; font-weight: 600; margin: 0 0 6px; }
+.prBlok__zag span { font-weight: 500; color: var(--muted, #64748b); }
+.prBlok__setka { display: flex; flex-wrap: wrap; gap: 6px; }
+.prKl { flex: 1 1 120px; min-width: 120px; text-align: left; cursor: pointer;
+  border: 1px solid var(--line, #e2e8f0); border-radius: 12px; padding: 10px 12px;
+  background: #fff; font: inherit; display: flex; flex-direction: column; gap: 4px;
+  transition: transform .12s ease, box-shadow .12s ease; }
+.prKl:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(15,23,42,.12); }
+.prKl__imya { font-size: 12px; font-weight: 600; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; }
+.prKl__proc { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.prKl__polosa { display: block; height: 4px; border-radius: 3px; background: rgba(15,23,42,.10); }
+.prKl__polosa i { display: block; height: 100%; border-radius: 3px; background: currentColor; }
+.prKl__mest { font-size: 11px; color: var(--muted, #64748b); font-variant-numeric: tabular-nums; }
+.prKl.pr--krasnyy { color: #b91c1c; border-color: #fca5a5; background: #fef2f2; }
+.prKl.pr--zhyoltyy { color: #a16207; border-color: #fcd34d; background: #fffbeb; }
+.prKl.pr--zelyonyy { color: #15803d; border-color: #86efac; background: #f0fdf4; }
+.prKl.pr--nedogruz { color: #475569; border-color: #e2e8f0; background: #f8fafc; }
+.prKl.pr--net { color: #94a3b8; border-color: #e2e8f0; background: #fff; }

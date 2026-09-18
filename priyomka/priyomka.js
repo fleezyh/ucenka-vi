@@ -110,6 +110,74 @@
     uzel.hidden = false;
   }
 
+
+  // Карта склада: секторы блоками, сгруппированные по блоку склада.
+  // Таблицей это читалось плохо — 87 строк, глазом пробки не видно.
+  // Ширина блока пропорциональна числу мест хранения: маленькая служебная
+  // зона не должна выглядеть так же весомо, как сектор на 20 тысяч мест.
+  function narisovatKartu() {
+    const uzel = el("prKarta");
+    if (!uzel) return;
+    const sektory = (dannye.секторы || []).filter((s) => s.мест_хранения > 0);
+    if (!sektory.length) return;
+
+    const bloki = new Map();
+    sektory.forEach((s) => {
+      if (!bloki.has(s.блок)) bloki.set(s.блок, []);
+      bloki.get(s.блок).push(s);
+    });
+
+    const maks = Math.max(...sektory.map((s) => s.мест_хранения));
+    const gruppy = [...bloki.entries()]
+      .sort((a, b) => b[1].reduce((n, s) => n + s.мест_хранения, 0)
+                    - a[1].reduce((n, s) => n + s.мест_хранения, 0))
+      .map(([blok, spisok]) => {
+        const mest = spisok.reduce((n, s) => n + s.мест_хранения, 0);
+        const zanyato = spisok.reduce((n, s) => n + s.занято_хранения, 0);
+        const pl = spisok
+          .sort((a, b) => b.процент_хранения - a.процент_хранения)
+          .map((s) => {
+            const cvet = CVETA[s.цвет] || CVETA["нет данных"];
+            // Доля ширины: корень сглаживает разрыв, иначе мелкие секторы
+            // превращаются в нечитаемые полоски.
+            const ves = Math.max(0.28, Math.sqrt(s.мест_хранения / maks));
+            return `<button type="button" class="prKl ${cvet.klass}"
+              style="flex-grow:${(ves * 100).toFixed(0)}"
+              data-sektor="${escape(s.сектор)}"
+              title="${escape(s.сектор)} · ${s.процент_хранения}% · ${chislo(s.занято_хранения)} из ${chislo(s.мест_хранения)}">
+              <span class="prKl__imya">${escape(s.сектор.replace(/^\d+\s*/, ""))}</span>
+              <span class="prKl__proc">${s.процент_хранения}%</span>
+              <span class="prKl__polosa"><i style="width:${Math.min(100, s.процент_хранения)}%"></i></span>
+              <span class="prKl__mest">${chislo(s.занято_хранения)} / ${chislo(s.мест_хранения)}</span>
+            </button>`;
+          }).join("");
+        const proc = mest ? (100 * zanyato / mest).toFixed(1) : "0.0";
+        return `<div class="prBlok">
+          <p class="prBlok__zag">${escape(blok)}<span>${proc}% · ${chislo(zanyato)} из ${chislo(mest)}</span></p>
+          <div class="prBlok__setka">${pl}</div>
+        </div>`;
+      }).join("");
+
+    uzel.innerHTML = `<h2 class="prKarta__zag">Карта склада</h2>
+      <p class="prHint">ширина блока — сколько в секторе мест хранения · клик открывает зоны сектора</p>
+      ${gruppy}`;
+    uzel.hidden = false;
+
+    uzel.querySelectorAll(".prKl").forEach((knopka) => {
+      knopka.addEventListener("click", () => {
+        const imya = knopka.dataset.sektor;
+        filtr = null;
+        narisovatTablicu();
+        const stroki = [...document.querySelectorAll("#prTable .prRow")];
+        const nuzhnaya = stroki.find((r) => r.querySelector("b")?.textContent === imya);
+        if (nuzhnaya) {
+          nuzhnaya.click();
+          nuzhnaya.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      });
+    });
+  }
+
   function narisovatFiltry() {
     const sektory = dannye.секторы || [];
     // «Нет данных» тоже нужен отдельной кнопкой: это три десятка зон, где
@@ -211,6 +279,7 @@
     el("stamp").textContent = `${dannye.склад} · обновлено ${dannye.обновлено}`;
 
     narisovatPlitki();
+    narisovatKartu();
     narisovatVozrast();
     narisovatFiltry();
     narisovatTablicu();
