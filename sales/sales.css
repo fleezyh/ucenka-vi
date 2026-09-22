@@ -388,9 +388,8 @@ button.total__label:hover { color: #fff; }
 .vtHint { margin: 4px 0 0; font-size: 13px; color: var(--vt-muted); }
 
 /* ── путь к цели ────────────────────────────────────────────────────── */
-/* Подписи меток ушли в шапку панели, поэтому над полосой ничего не
-   зарезервировано — только просвет под точки. */
-.vtBar { position: relative; margin: 22px 0 16px; }
+/* Сверху ровно столько, сколько занимает плашка метки над точкой. */
+.vtBar { position: relative; margin: 74px 0 18px; }
 .vtBar__zhelob {
   display: flex; height: 54px; border-radius: 12px; overflow: hidden;
   background: var(--vt-zhelob);
@@ -405,6 +404,22 @@ button.total__label:hover { color: #fff; }
    стоят строго на значении, а подпись отводится вбок, чтобы соседняя
    метка (план и цель различаются на копейки) не наезжала. */
 .vtMetka { position: absolute; top: 0; bottom: 0; width: 0; }
+/* Плашка стоит над точкой и подписывает её словами и суммой: только по
+   цветной точке никто не угадает, где план, а где цель с отставанием. */
+.vtMetka__plashka {
+  position: absolute; bottom: calc(100% + 14px); left: 0; transform: translateX(-50%);
+  display: grid; gap: 1px; justify-items: center; white-space: nowrap;
+  padding: 7px 12px; border-radius: 12px; font: inherit; text-align: center;
+  background: var(--vt-card); border: 1px solid var(--vt-line); box-shadow: var(--vt-shadow);
+}
+.vtMetka--vlevo  .vtMetka__plashka { transform: translateX(calc(-100% - 8px)); }
+.vtMetka--vpravo .vtMetka__plashka { transform: translateX(8px); }
+.vtMetka__plashka--knopka { cursor: pointer; }
+.vtMetka__plashka--knopka:hover { border-color: var(--vt-amber); }
+.vtMetka__t { font-size: 13px; color: var(--vt-muted); }
+.vtMetka__v { font-size: 19px; font-weight: 800; color: var(--vt-amber); }
+.vtMetka--goal .vtMetka__v { color: var(--vt-violet); }
+.vtMetka--goal .vtMetka__plashka--knopka:hover { border-color: var(--vt-violet); }
 .vtMetka__liniya { position: absolute; left: -1px; top: -12px; bottom: -22px; width: 0; border-left: 2px dashed var(--vt-amber); }
 .vtMetka__tochka { position: absolute; left: -4.5px; top: -16px; width: 9px; height: 9px; border-radius: 50%; background: var(--vt-amber); }
 

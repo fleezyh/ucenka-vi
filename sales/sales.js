@@ -414,8 +414,17 @@
     // за полосу. Запас 6% — чтобы подпись у правого края не обрезалась.
     const scale = Math.max(v.pot, v.plan, v.goal) * 1.06 || 1;
     const pct = (value) => (value / scale) * 100;
-    const metka = (mod, value) => value ? `
-      <div class="vtMetka ${mod}" style="left:${pct(value)}%">
+    // Плашка с названием и суммой висит прямо над точкой: так план и цель
+    // видно на самой шкале, а не только в легенде (просьба Рахманова).
+    // Когда они почти совпадают, плашки расходятся в разные стороны.
+    const tesno = v.plan && v.goal && Math.abs(pct(v.goal) - pct(v.plan)) < 18;
+    const metka = (mod, title, value, storona, pravka) => value ? `
+      <div class="vtMetka ${mod} ${storona}" style="left:${pct(value)}%">
+        <${pravka ? 'button type="button" class="vtMetka__plashka vtMetka__plashka--knopka"' : 'span class="vtMetka__plashka"'}
+          ${pravka ? 'title="Изменить план месяца и пересчитать цель"' : ""}>
+          <span class="vtMetka__t">${title}</span>
+          <b class="vtMetka__v">${dec2(value)} млн ₽</b>
+        </${pravka ? "button" : "span"}>
         <span class="vtMetka__tochka"></span><span class="vtMetka__liniya"></span>
       </div>` : "";
     // Подписи меток живут в шапке панели, а не над полосой: ярус подписей
@@ -438,13 +447,11 @@
       <div class="vtLegenda">
         ${legenda("vtLeg--ship", "Отгружено", v.ship)}
         ${legenda("vtLeg--work", "В работе", v.work)}
-        ${legenda("vtLeg--plan", "План месяца", v.plan, canEditFunnelPlan)}
-        ${legenda("vtLeg--goal", "Цель с отставанием", v.goal)}
         ${legenda("vtLeg--pot", "Потенциал", v.pot)}
       </div>
       <div class="vtBar">
-        ${metka("", v.plan)}
-        ${metka("vtMetka--goal", v.goal)}
+        ${metka("", "План месяца", v.plan, tesno ? "vtMetka--vlevo" : "", canEditFunnelPlan)}
+        ${metka("vtMetka--goal", "Цель с отставанием", v.goal, tesno ? "vtMetka--vpravo" : "")}
         <div class="vtBar__zhelob">
           <div class="vtBar__seg vtBar__seg--ship" style="width:${pct(v.ship)}%">${dec2(v.ship)}</div>
           <div class="vtBar__seg vtBar__seg--work" style="width:${pct(v.work)}%">${v.work ? dec2(v.work) : ""}</div>
@@ -454,7 +461,7 @@
     // План правится прямо с графика — тем же диалогом, что и раньше.
     // Правка плана двумя путями: кнопкой в шапке панели и кликом по самой
     // метке на графике — по метке не все догадаются, кнопка привычнее.
-    for (const knopka of panel.querySelectorAll(".vtLeg--knopka, .vtPravkaPlana")) {
+    for (const knopka of panel.querySelectorAll(".vtMetka__plashka--knopka, .vtPravkaPlana")) {
       knopka.addEventListener("click", () => { hideTip(); openFunnelPlan("sale"); });
     }
     return panel;
