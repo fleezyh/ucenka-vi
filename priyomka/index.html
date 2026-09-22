@@ -8,13 +8,15 @@
   <link rel="icon" type="image/svg+xml" href="../assets/brand/vi-mark.svg">
   <link rel="preload" href="../assets/fonts/VI_Sans_Regular.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="../style.css?v=20260911-3">
-  <link rel="stylesheet" href="../perf/perf.css?v=20260913-1">
-  <link rel="stylesheet" href="priyomka.css?v=20260916-1">
+  <link rel="stylesheet" href="../perf/perf.css?v=20260921-2">
+  <link rel="stylesheet" href="priyomka.css?v=20260921-2">
+  <link rel="stylesheet" href="dvor.css?v=20260922-1">
   <link rel="stylesheet" href="../reeded-bg.css?v=20260907-6">
-  <link rel="stylesheet" href="../site-header.css?v=20260914-2">
+  <link rel="stylesheet" href="../site-header.css?v=20260921-1">
   <script src="../reeded-bg.js?v=20260906-7" defer></script>
-  <script src="priyomka.js?v=20260916-1" defer></script>
-  <script src="../nav.js?v=20260914-1" defer></script>
+  <script src="priyomka.js?v=20260921-2" defer></script>
+  <script src="dvor.js?v=20260922-1" defer></script>
+  <script src="../nav.js?v=20260921-1" defer></script>
 </head>
 <body data-mode="perf">
   <main class="shell">
@@ -58,6 +60,33 @@
       </div>
     </section>
 
+    <!-- Двор: машины от КПП до конца разгрузки. Вход склада начинается
+         не в ячейках, а у шлагбаума — поэтому этот блок первым. -->
+    <section class="dvor" id="dvor" hidden aria-labelledby="dvorTitle">
+      <div class="dvor__head">
+        <div>
+          <h2 id="dvorTitle">Двор сейчас</h2>
+          <p class="prHint" id="dvorStamp"></p>
+        </div>
+        <div class="dvor__instrumenty">
+          <div class="prFilters" id="dvorSklady" role="group" aria-label="Склад"></div>
+        </div>
+      </div>
+      <div class="prPlitki" id="dvorPlitki"></div>
+      <div id="dvorEtapy"></div>
+      <div class="dvor__dve">
+        <section class="prPanel">
+          <h3>Поток по часам</h3>
+          <div id="dvorPotok"></div>
+        </section>
+        <section class="prPanel">
+          <h3>Кто на дворе</h3>
+          <p class="prHint" id="dvorPravilo"></p>
+          <div class="dvOchered" id="dvorOchered"></div>
+        </section>
+      </div>
+    </section>
+
     <p class="message" id="message">Загружаю монитор…</p>
 
     <section class="prPlitki" id="prPlitki" hidden></section>
@@ -69,13 +98,19 @@
         <div>
           <h2>Секторы</h2>
           <p class="prHint">клик по строке разворачивает зоны сектора · порядок — от самого забитого</p>
+          <p class="prHint" id="prPravilo"></p>
         </div>
-        <div class="prFilters" id="prFilters" role="group" aria-label="Фильтр по цвету"></div>
+        <div class="prPanel__knopki">
+          <div class="prFilters" id="prFilters" role="group" aria-label="Фильтр по цвету"></div>
+          <button type="button" class="prVygruzka" id="prVygruzka">Скачать в Excel</button>
+        </div>
       </div>
       <div class="prTable" id="prTable"></div>
     </section>
 
     <section class="prVozrast" id="prVozrast" hidden></section>
+
+    <section class="prVisyaki" id="prVisyaki" hidden></section>
 
 
 

@@ -1,0 +1,59 @@
+/* Блок «Двор» на странице приёмки: машины от КПП до конца разгрузки. */
+
+.dvor { display: grid; gap: 14px; margin-bottom: 22px; }
+.dvor[hidden] { display: none; }
+.dvor__head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.dvor__head h2 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.015em; }
+.dvor__head .prHint { margin-top: 4px; }
+.dvor__instrumenty { display: flex; align-items: center; gap: 12px; }
+
+.dvor .prPlitki { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+@media (max-width: 1100px) { .dvor .prPlitki { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 640px)  { .dvor .prPlitki { grid-template-columns: 1fr 1fr; } }
+
+/* Этапы полосой */
+.dvEtapy { display: flex; height: 46px; border-radius: 12px; overflow: hidden; background: #101823; }
+.dvEtap {
+  display: flex; align-items: center; justify-content: center; gap: 7px; min-width: 70px;
+  color: #fff; font-size: 13px; white-space: nowrap; overflow: hidden;
+}
+.dvEtap b { font-size: 17px; font-weight: 700; }
+.dvEtap span { opacity: .85; }
+.dvEtap--zhdut { background: #d9a441; color: #1b1407; }
+.dvEtap--razgruzka { background: #4d8df7; }
+.dvEtap--gotovo { background: #1f8f58; }
+
+/* Поток по часам */
+.dvor__dve { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 14px; }
+@media (max-width: 1100px) { .dvor__dve { grid-template-columns: 1fr; } }
+.dvor .prPanel h3 { margin: 0 0 12px; font-size: 16px; font-weight: 600; }
+
+.dvChasy { display: flex; align-items: flex-end; gap: 6px; height: 170px; padding-top: 18px; }
+.dvChas { flex: 1; display: grid; grid-template-rows: 1fr auto auto; height: 100%; min-width: 0; }
+.dvChas__stolbiki { display: flex; align-items: flex-end; justify-content: center; gap: 2px; height: 100%; }
+.dvChas__stolbiki i { width: 42%; max-width: 16px; min-height: 2px; border-radius: 3px 3px 0 0; }
+.dvChas__priehalo { background: #d9a441; }
+.dvChas__vorota { background: #4d8df7; }
+.dvChas__rost { height: 16px; font-size: 11px; text-align: center; color: transparent; }
+.dvChas__rost.is-rost { color: #f05d72; font-weight: 700; }
+.dvChas__chas { font-size: 11.5px; color: var(--muted); text-align: center; }
+.dvLegenda { margin: 10px 0 0; font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.dvLegenda i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; }
+.dvLegenda span { opacity: .8; }
+
+/* Очередь */
+.dvOchered { max-height: 360px; overflow: auto; }
+.dvTablica { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.dvTablica th {
+  position: sticky; top: 0; background: var(--panel, #121a25); text-align: left;
+  font-size: 11.5px; font-weight: 600; color: var(--muted); padding: 6px 10px 6px 0;
+  border-bottom: 1px solid var(--line);
+}
+.dvTablica td { padding: 7px 10px 7px 0; border-bottom: 1px solid rgba(38, 51, 69, .55); white-space: nowrap; }
+.dvTablica td em { font-style: normal; font-size: 11px; color: #f05d72; }
+.dvTochka { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
+.dv--krasnyy .dvTochka { background: #f05d72; }
+.dv--zhyoltyy .dvTochka { background: #d9a441; }
+.dv--zelyonyy .dvTochka { background: #2fc97c; }
+.dv--siniy .dvTochka { background: #4d8df7; }
+.dv--krasnyy td b { color: #f05d72; }
