@@ -67,7 +67,7 @@
 .vtPlitka--ship .vtPlitka__teg { color: var(--vt-green); }
 .vtPlitka__val { font-size: 40px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.1; white-space: nowrap; }
 .vtPlitka__val small { font-size: 20px; font-weight: 700; margin-left: 6px; letter-spacing: -0.01em; }
-.vtPlitka__pod { font-size: 13px; color: var(--vt-muted); line-height: 1.5; margin-top: 6px; }
+.vtPlitka__pod { display: grid; gap: 2px; font-size: 13px; color: var(--vt-muted); line-height: 1.45; margin-top: 8px; }
 .vtPlitka__pod b { color: var(--vt-text); font-weight: 700; white-space: nowrap; }
 
 /* ── панель ─────────────────────────────────────────────────────────── */

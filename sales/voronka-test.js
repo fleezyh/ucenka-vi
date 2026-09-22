@@ -39,23 +39,26 @@
       <span class="vtPlitka__znak">${znak}</span>
       <span class="vtPlitka__teg">${teg}</span>
       <span class="vtPlitka__val">${val}${unit ? `<small>${unit}</small>` : ""}</span>
-      <span class="vtPlitka__pod">${pod || ""}</span>
+      <span class="vtPlitka__pod">${(pod || []).map((line) => `<span>${line}</span>`).join("")}</span>
     </article>`;
 
   const renderPlitki = (v) => {
-    const planPod = !v.plan ? "план на месяц не задан"
+    /* Подпись у всех плиток ровно двухстрочная: иначе карточки в ряду
+       тянутся по самой высокой и под короткими висит пустота. */
+    const planPod = !v.plan ? ["План на месяц", "не задан"]
       : v.ship >= v.plan
-        ? `Выполнен на <b>${Math.round((v.ship / v.plan) * 100)}%</b><br>сверху <b>${dec(v.ship - v.plan)} млн ₽</b>`
-        : `Выполнено <b>${Math.round((v.ship / v.plan) * 100)}%</b><br>осталось <b>${dec(v.plan - v.ship)} млн ₽</b>`;
+        ? [`Выполнен на <b>${Math.round((v.ship / v.plan) * 100)}%</b>`, `сверху <b>${dec(v.ship - v.plan)} млн ₽</b>`]
+        : [`Выполнено <b>${Math.round((v.ship / v.plan) * 100)}%</b>`, `осталось <b>${dec(v.plan - v.ship)} млн ₽</b>`];
     const potPod = v.pot >= v.goal
-      ? `Если закрыть все сделки —<br>цель с отставанием <b>закрывается</b>`
-      : `Если закрыть все сделки —<br>до цели не хватает <b>${dec(v.goal - v.pot)} млн ₽</b>`;
+      ? ["Если закрыть все сделки —", "цель с отставанием <b>закрывается</b>"]
+      : ["Если закрыть все сделки —", `до цели не хватает <b>${dec(v.goal - v.pot)} млн ₽</b>`];
 
     $("vtPlitki").innerHTML = [
       plitka({ mod: "vtPlitka--ship", znak: IKONKI.korobka, teg: "Отгружено", val: dec(v.ship), unit: "млн ₽",
-        pod: `<b>${num(v.shipPallets)}</b> паллет · <b>${v.shipOkup}</b> окупаемость` }),
+        pod: [`<b>${num(v.shipPallets)}</b> паллет`, `окупаемость <b>${v.shipOkup}</b>`] }),
       plitka({ znak: IKONKI.mishen, teg: "В работе", val: dec(v.work), unit: "млн ₽",
-        pod: `<b>${num(v.workPallets)}</b> паллет · <b>${v.workStages}</b> ${v.workStages === 1 ? "этап" : "этапа"}` }),
+        pod: [`<b>${num(v.workPallets)}</b> паллет`,
+              `<b>${v.workStages}</b> ${v.workStages === 1 ? "этап" : "этапа"} до отгрузки`] }),
       plitka({ mod: "vtPlitka--plan", znak: IKONKI.stolbiki, teg: "План месяца", val: dec(v.plan), unit: "млн ₽", pod: planPod }),
       plitka({ mod: "vtPlitka--pot", znak: IKONKI.rost, teg: "Потенциал", val: dec(v.pot), unit: "млн ₽", pod: potPod }),
     ].join("");
