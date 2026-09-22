@@ -17,6 +17,102 @@
   const funnelRefresh = $("funnelRefresh");
 
   let funnelData = null;
+  let canEditFunnelPlan = false;
+  let planMonthKey = null;
+  let planRequest = 0;
+  let planSaving = false;
+  const planDialog = $("funnelPlan");
+  const planFields = { sale: $("funnelPlanSale"), cost: $("funnelPlanCost"), pallets: $("funnelPlanPallets") };
+
+  function planStatus(text, error = false) {
+    $("funnelPlanStatus").textContent = text;
+    $("funnelPlanStatus").classList.toggle("is-error", error);
+  }
+
+  async function openFunnelPlan(focusField = "sale") {
+    if (!canEditFunnelPlan || planSaving) return;
+    const row = (funnelData?.поМесяцам?.[monthSelect.value] || funnelData?.ступени || [])[0];
+    if (!row || !/^\d{4}-\d{2}$/.test(row.month_key || "")) {
+      say("Не удалось определить месяц цели. Обновите воронку.", "error");
+      return;
+    }
+    planMonthKey = row.month_key;
+    const request = ++planRequest;
+    $("funnelPlanMonth").textContent = `${monthSelect.value} ${planMonthKey.slice(0, 4)}`;
+    $("funnelPlanSave").disabled = true;
+    Object.values(planFields).forEach((field) => { field.value = ""; field.disabled = true; });
+    planStatus("Загружаю сохранённый план…");
+    planDialog.showModal();
+    try {
+      const response = await fetch(`/__funnel/plan?month_key=${encodeURIComponent(planMonthKey)}`, {
+        credentials: "same-origin", cache: "no-store"
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "не удалось прочитать план");
+      if (request !== planRequest || !planDialog.open) return;
+      for (const [key, field] of Object.entries(planFields)) {
+        field.value = data.plan?.[key] == null ? "" : number(data.plan[key]);
+        field.disabled = false;
+      }
+      $("funnelPlanSave").disabled = false;
+      planStatus(data.plan?.source === "вручную" ? "Сейчас установлен ручной план." : "");
+      planFields[focusField].focus();
+      planFields[focusField].select();
+    } catch (error) {
+      if (request === planRequest && planDialog.open) planStatus(`Не удалось загрузить цель: ${error.message}`, true);
+    }
+  }
+
+  $("funnelPlanCancel")?.addEventListener("click", () => planDialog.close());
+  planDialog?.addEventListener("close", () => { planRequest += 1; });
+  planDialog?.addEventListener("cancel", (event) => { if (planSaving) event.preventDefault(); });
+  $("funnelPlanForm")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (planSaving || $("funnelPlanSave").disabled) return;
+    const values = Object.fromEntries(Object.entries(planFields).map(([key, field]) =>
+      [key, Number(field.value.trim().replace(/\s/g, "").replace(",", "."))]));
+    if (Object.values(values).some((value) => !Number.isFinite(value) || value <= 0) ||
+        !Number.isSafeInteger(values.pallets)) {
+      planStatus("Введите положительные суммы и целое число паллет.", true);
+      return;
+    }
+    const selectedMonth = monthSelect.value;
+    planSaving = true;
+    for (const control of [...Object.values(planFields), $("funnelPlanSave"), $("funnelPlanCancel"), monthSelect, funnelRefresh]) control.disabled = true;
+    planStatus("Сохраняю цель и пересчитываю график…");
+    try {
+      const response = await fetch("/__funnel/plan", {
+        method: "POST", credentials: "same-origin", cache: "no-store",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ month_num: Number(planMonthKey.slice(5)), month_key: planMonthKey, ...values })
+      });
+      const latest = await response.json();
+      if (!response.ok) throw new Error(latest.error || "сервер не сохранил цель");
+      if (latest.plan_saved && latest.refresh_pending) {
+        planStatus("Цель сохранена. Обновить график пока не удалось — нажмите «Обновить из таблицы» позже.", true);
+        return;
+      }
+      if (!latest.поМесяцам) throw new Error("нет подтверждения пересчёта графика");
+      funnelData = latest;
+      fillMonths(latest.месяц);
+      if ([...monthSelect.options].some((option) => option.value === selectedMonth)) monthSelect.value = selectedMonth;
+      renderFunnel(monthSelect.value);
+      planDialog.close();
+      say(`Цель на ${selectedMonth.toLowerCase()} сохранена. График пересчитан.`);
+    } catch (error) {
+      planStatus(`Не удалось завершить сохранение: ${error.message}`, true);
+    } finally {
+      planSaving = false;
+      for (const control of [...Object.values(planFields), $("funnelPlanSave"), $("funnelPlanCancel"), monthSelect, funnelRefresh]) control.disabled = false;
+    }
+  });
+
+  fetch("/__me", { credentials: "same-origin", cache: "no-store" })
+    .then((response) => response.ok ? response.json() : null)
+    .then((user) => {
+      canEditFunnelPlan = ["admin", "chief"].includes(user?.role || user?.роль);
+      if (funnelData) renderFunnel(monthSelect.value);
+    }).catch(() => {});
 
   function say(text, type = "") {
     message.textContent = text;
@@ -232,139 +328,203 @@
 
   // --- Воронка отгрузок ------------------------------------------------------
 
-  /** Ширина ступени: самая широкая — максимум паллет за месяц. */
-  function widthOf(stage, all) {
-    const max = Math.max(...all.map((s) => Number(s.pallets_txt) || 0), 1);
-    return Math.max(18, ((Number(stage.pallets_txt) || 0) / max) * 100);
+  /** «5.23 млн» → 5230000: запрос отдаёт подписанные строки, для ширины нужно число. */
+  const MNOZHITELI = { "тыс": 1e3, "млн": 1e6, "млрд": 1e9 };
+  function summa(text) {
+    const s = String(text ?? "").replace(",", ".");
+    const chislo = parseFloat(s);
+    if (!Number.isFinite(chislo)) return 0;
+    const hvost = s.replace(/^[\d.\s]+/, "").trim().toLowerCase();
+    return chislo * (MNOZHITELI[hvost] || 1);
   }
 
-  function renderStage(stage, all, index) {
-    const row = document.createElement("div");
-    row.className = "stage";
+  /** Суммы в json подписаны строкой («5.62 млн»); на графике удобнее млн. */
+  const vMln = (text) => summa(text) / 1e6;
+  const dec2 = (value, digits = 2) => Number(value || 0).toFixed(digits).replace(".", ",");
+  const okupClass = (cls) =>
+    ({ "ok-grn": "vtOkup--good", "ok-amb": "vtOkup--warn", "ok-red": "vtOkup--bad" }[cls] || "");
 
-    const left = document.createElement("div");
-    left.className = "stage__side stage__side--left";
-    left.innerHTML = `<b>${decimal(stage.sale_txt) || "—"}</b><span>в ценах продаж</span>`;
+  const VT_IKONKI = {
+    korobka: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5V8Z"/><path d="M3 8l9 5 9-5"/><path d="M12 13v8"/></svg>',
+    mishen: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg>',
+    stolbiki: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 20V11"/><path d="M12 20V4"/><path d="M18 20v-6"/></svg>',
+    rost: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M21 7v5h-5"/></svg>',
+    summa: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 5H6l6 7-6 7h12"/></svg>',
+    chasy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+  };
 
-    const bar = document.createElement("div");
-    bar.className = `stage__bar ${stage.ink_cls || "light"}`.trim();
-    bar.style.width = `${widthOf(stage, all).toFixed(1)}%`;
-    if (stage.seg_color) bar.style.background = stage.seg_color;
-
-    const value = document.createElement("b");
-    value.className = "stage__value";
-    value.textContent = number(stage.pallets_txt);
-    const name = document.createElement("span");
-    name.className = "stage__name";
-    name.textContent = stage.stage || "";
-    bar.append(value, name);
-
-    const right = document.createElement("div");
-    right.className = "stage__side stage__side--right";
-    const okup = document.createElement("i");
-    okup.className = `stage__okup ${stage.okup_cls || ""}`.trim();
-    okup.textContent = decimal(stage.okup_txt) || "";
-    right.innerHTML = `<b>${decimal(stage.cost_txt) || "—"}</b><span>себестоимость</span>`;
-    right.appendChild(okup);
-
-    // Подсказка на ступени: на полосе помещается только число паллет,
-    // а деньги и конверсия читаются по бокам мелким шрифтом.
-    const share = all[0] && Number(all[0].total_pallets)
-      ? ` · ${((Number(stage.pallets_txt) || 0) / Number(all[0].total_pallets) * 100).toFixed(0)}% месяца`
-      : "";
-    bindTip(bar, `<b>${stage.stage}</b>` +
-      `<span>${number(stage.pallets_txt)} паллет${share}</span>` +
-      `<span>лотов ${number(stage.lots)}</span>` +
-      `<span>в ценах продаж ${decimal(stage.sale_txt)} · себестоимость ${decimal(stage.cost_txt)}</span>` +
-      `<span>окупаемость ${decimal(stage.okup_txt)}</span>` +
-      (stage.conv_txt ? `<span class="tip__hint">к предыдущей ступени ${decimal(stage.conv_txt)}</span>` : ""));
-
-    row.append(left, bar, right);
-
-    // Переход между ступенями — отдельной строкой над следующей полосой.
-    if (index > 0 && stage.conv_txt) {
-      const link = document.createElement("p");
-      link.className = "stage__link";
-      link.textContent = decimal(stage.conv_txt);
-      funnelBox.appendChild(link);
+  /** Отставание — хвост прошлого месяца: сколько он недодал к своему плану.
+   *
+   * Так эту цифру понимают продажи: цель текущего месяца = свой план плюс
+   * чужой долг. Перевыполнение в минус не уходит — цель не опускается ниже
+   * плана. Поля goal_* из json тут не годятся: там накопленная годовая цель.
+   */
+  function otstavanie(head) {
+    const prevNum = Number(head.month_num) - 1;
+    for (const [name, list] of Object.entries(funnelData.поМесяцам || {})) {
+      const first = list[0];
+      if (!first || Number(first.month_num) !== prevNum) continue;
+      return { prevName: name, dolg: Math.max(Number(first.plan_sale_raw || 0) / 1e6 - vMln(first.sale_txt), 0) };
     }
-    return row;
+    return { prevName: "", dolg: 0 };
   }
 
-  /** Итоги месяца против плана и годовой цели. */
-  function renderTotals(first) {
-    const cards = [
-      { title: "Паллет", value: number(first.total_pallets),
-        planText: `план ${number(first.plan_pallets)}`, planPct: first.plan_pal_pct,
-        planWidth: first.plan_pal_w, planClass: first.plan_pal_cls,
-        goalText: "цель с отставанием", goalPct: first.goal_pal_pct,
-        goalWidth: first.goal_pal_w, goalClass: first.goal_pal_cls },
-      { title: "В ценах продаж", value: decimal(first.total_sale_txt),
-        planText: `план ${decimal(first.plan_sale_txt)}`, planPct: first.plan_sale_pct,
-        planWidth: first.plan_sale_w, planClass: first.plan_sale_cls,
-        goalText: "цель с отставанием", goalPct: first.goal_sale_pct,
-        goalWidth: first.goal_sale_w, goalClass: first.goal_sale_cls },
-      { title: "По себестоимости", value: decimal(first.total_cost_txt),
-        planText: `план ${decimal(first.plan_cost_txt)}`, planPct: first.plan_cost_pct,
-        planWidth: first.plan_cost_w, planClass: first.plan_cost_cls,
-        goalText: "цель с отставанием", goalPct: first.goal_cost_pct,
-        goalWidth: first.goal_cost_w, goalClass: first.goal_cost_cls },
-      { title: "Окупаемость", value: decimal(first.total_okup_txt),
-        planText: `план ${decimal(first.plan_okup_txt)}`, planPct: decimal(first.okup_delta_txt),
-        planWidth: null, planClass: first.okup_plan_cls },
-    ];
+  /** Четыре плитки: отгружено, в работе, план, потенциал. */
+  function renderPlitki(v) {
+    // Подпись у всех плиток ровно двухстрочная: иначе карточки в ряду
+    // тянутся по самой высокой и под короткими висит пустота.
+    const planPod = !v.plan ? ["План на месяц", "не задан"]
+      : v.ship >= v.plan
+        ? [`Выполнен на <b>${Math.round((v.ship / v.plan) * 100)}%</b>`, `сверху <b>${dec2(v.ship - v.plan)} млн ₽</b>`]
+        : [`Выполнено <b>${Math.round((v.ship / v.plan) * 100)}%</b>`, `осталось <b>${dec2(v.plan - v.ship)} млн ₽</b>`];
+    const potPod = v.pot >= v.goal
+      ? ["Цель <b>закрывается</b>", `с запасом <b>${dec2(v.pot - v.goal)} млн ₽</b>`]
+      : ["До цели не хватает", `<b>${dec2(v.goal - v.pot)} млн ₽</b>`];
 
-    const wrap = document.createElement("div");
-    wrap.className = "totals";
+    const plitka = ({ mod, znak, teg, val, pod }) => `
+      <article class="vtPlitka ${mod || ""}">
+        <span class="vtPlitka__znak">${znak}</span>
+        <span class="vtPlitka__teg">${teg}</span>
+        <span class="vtPlitka__val">${val}<small>млн ₽</small></span>
+        <span class="vtPlitka__pod">${pod.map((line) => `<span>${line}</span>`).join("")}</span>
+      </article>`;
 
-    for (const card of cards) {
-      if (!card.value) continue;
-      const item = document.createElement("article");
-      item.className = "total";
+    const box = document.createElement("div");
+    box.className = "vtPlitki";
+    box.innerHTML = [
+      plitka({ mod: "vtPlitka--ship", znak: VT_IKONKI.korobka, teg: "Отгружено", val: dec2(v.ship),
+        pod: [`<b>${number(v.shipPallets)}</b> паллет`, `окупаемость <b>${decimal(v.shipOkup)}</b>`] }),
+      plitka({ znak: VT_IKONKI.mishen, teg: "В работе", val: dec2(v.work),
+        pod: [`<b>${number(v.workPallets)}</b> паллет`,
+              `<b>${v.workStages}</b> ${v.workStages === 1 ? "этап" : "этапа"} до отгрузки`] }),
+      plitka({ mod: "vtPlitka--plan", znak: VT_IKONKI.stolbiki, teg: "План месяца", val: dec2(v.plan), pod: planPod }),
+      plitka({ mod: "vtPlitka--pot", znak: VT_IKONKI.rost, teg: "Потенциал", val: dec2(v.pot), pod: potPod }),
+    ].join("");
+    return box;
+  }
 
-      const head = document.createElement("p");
-      head.className = "total__title";
-      head.textContent = card.title;
-      const value = document.createElement("b");
-      value.className = "total__value";
-      value.textContent = card.value;
-      item.append(head, value);
+  /** Путь к цели: отгружено и в работе одной полосой, план и цель — метками. */
+  function renderPut(v) {
+    // Шкала берётся по самому дальнему ориентиру, иначе метка цели уедет
+    // за полосу. Запас 6% — чтобы подпись у правого края не обрезалась.
+    const scale = Math.max(v.pot, v.plan, v.goal) * 1.06 || 1;
+    const pct = (value) => (value / scale) * 100;
+    // План и цель стоят почти вплотную, когда долг мал: тогда подписи
+    // расходятся в разные стороны от своих линий.
+    const tesno = v.plan && v.goal && Math.abs(pct(v.goal) - pct(v.plan)) < 16;
+    const metka = (mod, title, value, pravka) => value ? `
+      <div class="vtMetka ${mod}" style="left:${pct(value)}%">
+        <button type="button" class="vtMetka__podpis"${pravka ? ' data-plan="1"' : " disabled"}>
+          <span class="vtMetka__t">${title}</span>
+          <span class="vtMetka__v">${dec2(value)} млн ₽</span>
+          ${pravka ? '<span class="vtMetka__pravka">изменить план</span>' : ""}
+        </button>
+        <span class="vtMetka__tochka"></span><span class="vtMetka__liniya"></span>
+      </div>` : "";
 
-      for (const kind of ["plan", "goal"]) {
-        const text = card[`${kind}Text`];
-        const pct = card[`${kind}Pct`];
-        if (!text || !pct) continue;
+    const dolg = v.dolg > 0
+      ? `Цель с отставанием: план <b>${dec2(v.plan)}</b> + долг за ${v.prevName.toLowerCase()} <b>${dec2(v.dolg)} млн ₽</b>`
+      : `Прошлый месяц закрыт, отставания нет: цель равна плану — <b>${dec2(v.goal)} млн ₽</b>`;
 
-        const row = document.createElement("div");
-        row.className = "total__row";
-        const label = document.createElement("span");
-        label.className = "total__label";
-        label.textContent = text;
-        const share = document.createElement("i");
-        share.className = `total__pct ${card[`${kind}Class`] || ""}`.trim();
-        share.textContent = pct;
-        row.append(label, share);
-        item.appendChild(row);
+    const panel = document.createElement("section");
+    panel.className = "vtPanel";
+    panel.innerHTML = `
+      <h2>Путь к цели</h2>
+      <div class="vtBar">
+        ${metka(tesno ? "vtMetka--vlevo" : "", "План месяца", v.plan, canEditFunnelPlan)}
+        ${metka(`vtMetka--goal ${tesno ? "vtMetka--vpravo" : ""}`, "Цель с отставанием", v.goal)}
+        <div class="vtBar__zhelob">
+          <div class="vtBar__seg vtBar__seg--ship" style="width:${pct(v.ship)}%">${dec2(v.ship)}</div>
+          <div class="vtBar__seg vtBar__seg--work" style="width:${pct(v.work)}%">${v.work ? dec2(v.work) : ""}</div>
+        </div>
+        <div class="vtBar__podpis">
+          <span style="width:${pct(v.ship)}%">Отгружено</span>
+          <span style="width:${pct(v.work)}%">В работе</span>
+        </div>
+      </div>
+      <div class="vtItogi">
+        <div class="vtItog"><span class="vtItog__znak">${VT_IKONKI.rost}</span>
+          Потенциал при закрытии всех сделок: <b>${dec2(v.pot)} млн ₽</b></div>
+        <div class="vtItog vtItog--net"><span class="vtItog__znak">${VT_IKONKI.mishen}</span>${dolg}</div>
+      </div>`;
 
-        const width = card[`${kind}Width`];
-        if (width !== null && width !== undefined && width !== "") {
-          const track = document.createElement("div");
-          track.className = "total__track";
-          const fill = document.createElement("i");
-          fill.style.width = `${Math.min(100, Number(width) || 0)}%`;
-          if (card[`${kind}Class`]) fill.className = card[`${kind}Class`];
-          track.appendChild(fill);
-          item.appendChild(track);
-        }
-      }
-      if (card.planText && card.planPct) {
-        bindTip(item, `<b>${card.title}</b><span>факт ${card.value}</span>` +
-          `<span>${card.planText} — ${card.planPct}</span>` +
-          (card.goalPct ? `<span>цель с отставанием — ${card.goalPct}</span>` : ""));
-      }
-      wrap.appendChild(item);
+    // План правится прямо с графика — тем же диалогом, что и раньше.
+    panel.querySelector('.vtMetka__podpis[data-plan]')
+      ?.addEventListener("click", () => { hideTip(); openFunnelPlan("sale"); });
+    return panel;
+  }
+
+  /** Этапы сделки таблицей: снизу вверх, от переговоров к отгрузке. */
+  function renderEtapy(list) {
+    const rows = [...list].reverse();
+    const max = Math.max(...rows.map((r) => vMln(r.sale_txt)), 0.001);
+    const panel = document.createElement("section");
+    panel.className = "vtPanel";
+    panel.innerHTML = `
+      <div class="vtPanel__head">
+        <h2>Сделки по этапам</h2>
+        <p class="vtHint">Сумма в ценах продаж, млн ₽</p>
+      </div>
+      <div class="vtTable">
+        <table>
+          <thead><tr>
+            <th></th><th>Этап</th><th></th>
+            <th>Лоты</th><th>Паллеты</th><th>Себест., млн ₽</th><th>Окупаемость</th>
+          </tr></thead>
+          <tbody>${rows.map((r, i) => {
+            const sale = vMln(r.sale_txt);
+            const ship = Number(r.stage_ord) === 1;
+            return `<tr class="${ship ? "is-ship" : ""}">
+              <td><span class="vtNum">${i + 1}</span></td>
+              <td>${r.stage}</td>
+              <td><span class="vtPoloska"><i style="width:${Math.max((sale / max) * 100, 2)}%"></i><b>${dec2(sale)}</b></span></td>
+              <td>${number(r.lots)}</td>
+              <td>${number(r.pallets_txt)}</td>
+              <td>${dec2(vMln(r.cost_txt))}</td>
+              <td class="${okupClass(r.okup_cls)}">${decimal(r.okup_txt) || "—"}</td>
+            </tr>`;
+          }).join("")}</tbody>
+        </table>
+      </div>`;
+
+    // Подсказка на строке — то, что не влезло в колонки: доля месяца и конверсия.
+    const vsego = summa(list[0] && list[0].total_sale_txt);
+    panel.querySelectorAll("tbody tr").forEach((row, i) => {
+      const stage = rows[i];
+      const share = vsego ? ` · ${(summa(stage.sale_txt) / vsego * 100).toFixed(0)}% месяца` : "";
+      bindTip(row, `<b>${stage.stage}</b>` +
+        `<span>${decimal(stage.sale_txt)} в ценах продаж${share}</span>` +
+        `<span>${number(stage.pallets_txt)} паллет · лотов ${number(stage.lots)}</span>` +
+        `<span>себестоимость ${decimal(stage.cost_txt)}</span>` +
+        (stage.conv_txt ? `<span class="tip__hint">к предыдущей ступени ${decimal(stage.conv_txt)}</span>` : ""));
+    });
+    return panel;
+  }
+
+  /** Итоги квартала: факт, потенциал и бюджет по месяцам до текущего. */
+  function renderKvartal(head) {
+    const kv = Math.floor((Number(head.month_num) - 1) / 3);
+    let fact = 0, potential = 0, budget = 0;
+    for (const list of Object.values(funnelData.поМесяцам || {})) {
+      const first = list[0];
+      if (!first || Math.floor((Number(first.month_num) - 1) / 3) !== kv) continue;
+      if (Number(first.month_num) > Number(head.month_num)) continue;
+      fact += vMln(first.sale_txt);
+      potential += vMln(first.total_sale_txt);
+      budget += Number(first.plan_sale_raw || 0) / 1e6;
     }
-    return wrap;
+    const kart = (znak, teg, val) => `
+      <article class="vtKv"><span class="vtKv__znak">${znak}</span>
+        <span class="vtKv__teg">${teg}</span>
+        <span class="vtKv__val">${dec2(val)}<small>млн ₽</small></span>
+      </article>`;
+    const box = document.createElement("div");
+    box.className = "vtKvartal";
+    box.innerHTML =
+      kart(VT_IKONKI.stolbiki, `${["I", "II", "III", "IV"][kv]} квартал — факт`, fact) +
+      kart(VT_IKONKI.summa, "С учётом всех сделок в работе", potential) +
+      kart(VT_IKONKI.chasy, "Бюджет квартала", budget);
+    return box;
   }
 
   function renderFunnel(month) {
@@ -372,18 +532,36 @@
     funnelBox.replaceChildren();
     if (!list.length) return;
 
-    const head = document.createElement("div");
-    head.className = "funnelHead";
-    const lots = list.reduce((sum, s) => sum + (Number(s.lots) || 0), 0);
-    head.innerHTML =
-      `<b>${month}</b>` +
-      `<span>${number(list[0].total_pallets ?? "")} паллет · ${lots} лотов` +
-      `${list[0].total_okup_txt ? ` · окупаемость ${decimal(list[0].total_okup_txt)}` : ""}</span>`;
-    funnelBox.appendChild(head);
+    const head = list[0];
+    const shipRow = list.find((r) => Number(r.stage_ord) === 1) || head;
+    const workRows = list.filter((r) => Number(r.stage_ord) !== 1);
+    const { prevName, dolg } = otstavanie(head);
+    const plan = Number(head.plan_sale_raw || 0) / 1e6;
 
-    list.forEach((stage, index) => funnelBox.appendChild(renderStage(stage, list, index)));
-    funnelBox.appendChild(renderTotals(list[0]));
+    const v = {
+      ship: vMln(shipRow.sale_txt),
+      shipPallets: shipRow.pallets_txt,
+      shipOkup: shipRow.okup_txt,
+      work: workRows.reduce((sum, r) => sum + vMln(r.sale_txt), 0),
+      workPallets: workRows.reduce((sum, r) => sum + (Number(r.pallets_txt) || 0), 0),
+      workStages: workRows.length,
+      pot: vMln(head.total_sale_txt),
+      plan, prevName, dolg, goal: plan + dolg,
+    };
+
+    funnelBox.dataset.tema = localStorage.getItem("vt-tema") === "svet" ? "svet" : "temno";
+    funnelBox.append(renderPlitki(v), renderPut(v), renderEtapy(list), renderKvartal(head));
   }
+
+  /** Тема блока: тёмная как вся страница, светлая — по кнопке, с памятью. */
+  const temaKnopka = $("funnelTema");
+  temaKnopka?.addEventListener("click", () => {
+    const tema = funnelBox.dataset.tema === "svet" ? "temno" : "svet";
+    localStorage.setItem("vt-tema", tema);
+    funnelBox.dataset.tema = tema;
+    temaKnopka.textContent = tema === "svet" ? "Тёмная тема" : "Светлая тема";
+  });
+  if (temaKnopka && localStorage.getItem("vt-tema") === "svet") temaKnopka.textContent = "Тёмная тема";
 
   function fillMonths(current) {
     const months = funnelData.месяцы?.length ? [...funnelData.месяцы].reverse() : [current];
