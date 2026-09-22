@@ -1,0 +1,202 @@
+/* Черновик новой раскладки воронки. Светлая тема живёт целиком здесь и
+   перебивает тёмные переменные сайта: страница тестовая, боевой style.css
+   ради неё трогать незачем. */
+
+.vtBody {
+  --vt-bg: #eef3fa;
+  --vt-card: #ffffff;
+  --vt-line: #dfe7f2;
+  --vt-text: #10203a;
+  --vt-muted: #5f7189;
+  --vt-green: #1aa85c;
+  --vt-green-soft: #e7f7ee;
+  --vt-blue: #2f7ff0;
+  --vt-blue-soft: #e7f0fe;
+  --vt-amber: #e9942a;
+  --vt-amber-soft: #fdf1e0;
+  --vt-violet: #6d5ae6;
+  --vt-violet-soft: #ede9fd;
+  --vt-red: #d8445a;
+  --vt-shadow: 0 2px 10px rgba(16, 32, 58, 0.06);
+
+  margin: 0; background: var(--vt-bg); color: var(--vt-text);
+  font-family: "VI Sans", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  /* tabular-nums в VI Sans растягивает запятую и рвёт крупные суммы —
+     поэтому цифры идут обычными пропорциональными. */
+  font-variant-numeric: normal;
+}
+
+.vtShell { max-width: 1360px; margin: 0 auto; padding: 28px 26px 60px; }
+
+.vtTop { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; }
+.vtTop h1 { margin: 0; font-size: 40px; font-weight: 800; letter-spacing: -0.03em; }
+.vtTop__pod { margin: 4px 0 0; font-size: 14px; color: var(--vt-muted); }
+.vtVybor { font-size: 13px; color: var(--vt-muted); display: inline-flex; align-items: center; gap: 8px; }
+.vtVybor select {
+  font: inherit; font-size: 14px; color: var(--vt-text); padding: 7px 12px;
+  border: 1px solid var(--vt-line); border-radius: 10px; background: var(--vt-card);
+}
+.vtMessage { color: var(--vt-muted); }
+
+.vt { display: grid; gap: 16px; }
+.vt[hidden] { display: none; }
+
+/* ── четыре плитки сверху ───────────────────────────────────────────── */
+.vtPlitki { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; align-items: stretch; }
+@media (max-width: 1100px) { .vtPlitki { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 640px)  { .vtPlitki { grid-template-columns: 1fr; } }
+
+/* Плитка — цельный блок: иконка слева на всю высоту, текст одной колонкой,
+   подпись прижата к низу, поэтому карточки в ряду выглядят одинаковыми. */
+.vtPlitka {
+  display: grid; grid-template-columns: 48px 1fr; grid-template-rows: auto auto auto;
+  gap: 2px 14px; padding: 18px 20px; align-content: start;
+  background: var(--vt-card); border: 1px solid var(--vt-line); border-radius: 16px;
+  box-shadow: var(--vt-shadow);
+}
+.vtPlitka__znak {
+  grid-row: 1 / span 3; width: 48px; height: 48px; border-radius: 14px;
+  display: grid; place-items: center; background: var(--vt-blue-soft); color: var(--vt-blue);
+}
+.vtPlitka__znak svg { width: 24px; height: 24px; }
+.vtPlitka--ship .vtPlitka__znak { background: var(--vt-green-soft); color: var(--vt-green); }
+.vtPlitka--plan .vtPlitka__znak { background: var(--vt-amber-soft); color: var(--vt-amber); }
+.vtPlitka--pot  .vtPlitka__znak { background: var(--vt-violet-soft); color: var(--vt-violet); }
+
+.vtPlitka__teg { font-size: 14px; font-weight: 650; color: var(--vt-muted); align-self: center; }
+.vtPlitka--ship .vtPlitka__teg { color: var(--vt-green); }
+.vtPlitka__val { font-size: 40px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.1; white-space: nowrap; }
+.vtPlitka__val small { font-size: 20px; font-weight: 700; margin-left: 6px; letter-spacing: -0.01em; }
+.vtPlitka__pod { font-size: 13px; color: var(--vt-muted); line-height: 1.5; margin-top: 6px; }
+.vtPlitka__pod b { color: var(--vt-text); font-weight: 700; white-space: nowrap; }
+
+/* ── панель ─────────────────────────────────────────────────────────── */
+.vtPanel {
+  padding: 22px 24px; background: var(--vt-card);
+  border: 1px solid var(--vt-line); border-radius: 18px; box-shadow: var(--vt-shadow);
+}
+.vtPanel h2 { margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.02em; }
+.vtPanel__head { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; flex-wrap: wrap; }
+.vtHint { margin: 4px 0 0; font-size: 13px; color: var(--vt-muted); }
+
+/* ── путь к цели ────────────────────────────────────────────────────── */
+.vtBar { position: relative; margin: 100px 0 16px; }
+.vtBar__zhelob {
+  display: flex; height: 54px; border-radius: 12px; overflow: hidden;
+  background: repeating-linear-gradient(135deg, #f1f5fb 0 7px, #e7eef8 7px 14px);
+}
+.vtBar__seg { display: grid; place-items: center; min-width: 0; font-size: 22px; font-weight: 750; color: #fff; }
+.vtBar__seg--ship { background: var(--vt-green); }
+.vtBar__seg--work { background: var(--vt-blue); }
+.vtBar__podpis { display: flex; margin-top: 7px; font-size: 13px; color: var(--vt-muted); }
+.vtBar__podpis span { text-align: center; }
+
+/* Метка — нулевой по ширине якорь на своей отметке шкалы: линия и точка
+   стоят строго на значении, а подпись отводится вбок, чтобы соседняя
+   метка (план и цель различаются на копейки) не наезжала. */
+.vtMetka { position: absolute; top: 0; bottom: 0; width: 0; }
+.vtMetka__podpis {
+  position: absolute; bottom: calc(100% + 14px); left: 0; transform: translateX(-50%);
+  display: grid; gap: 1px; font: inherit; color: inherit;
+  text-align: center; white-space: nowrap; padding: 4px 8px; border-radius: 9px;
+  background: transparent; border: 1px solid transparent; cursor: pointer;
+}
+.vtMetka__podpis:hover { background: #fff; border-color: var(--vt-line); box-shadow: var(--vt-shadow); }
+.vtMetka--vlevo  .vtMetka__podpis { transform: translateX(calc(-100% - 6px)); text-align: right; }
+.vtMetka--vpravo .vtMetka__podpis { transform: translateX(6px); text-align: left; }
+.vtMetka__t { font-size: 13px; color: var(--vt-muted); }
+.vtMetka__v { font-size: 16px; font-weight: 750; }
+.vtMetka__pravka { font-size: 11.5px; color: var(--vt-blue); visibility: hidden; }
+.vtMetka__podpis:hover .vtMetka__pravka { visibility: visible; }
+.vtMetka__liniya { position: absolute; left: -1px; top: -12px; bottom: -22px; width: 0; border-left: 2px dashed var(--vt-amber); }
+.vtMetka__tochka { position: absolute; left: -4.5px; top: -16px; width: 9px; height: 9px; border-radius: 50%; background: var(--vt-amber); }
+.vtMetka--goal .vtMetka__v { color: var(--vt-violet); }
+.vtMetka--goal .vtMetka__liniya { border-color: var(--vt-violet); }
+.vtMetka--goal .vtMetka__tochka { background: var(--vt-violet); }
+
+.vtItogi {
+  display: grid; grid-template-columns: 1fr 1fr; align-items: center;
+  border: 1px solid var(--vt-line); border-radius: 14px; background: #f7fafe;
+}
+@media (max-width: 820px) { .vtItogi { grid-template-columns: 1fr; } }
+.vtItog { display: flex; align-items: center; gap: 12px; padding: 16px 20px; font-size: 15px; color: var(--vt-muted); }
+.vtItogi .vtItog + .vtItog { border-left: 1px solid var(--vt-line); }
+@media (max-width: 820px) { .vtItogi .vtItog + .vtItog { border-left: 0; border-top: 1px solid var(--vt-line); } }
+.vtItog b { font-size: 21px; font-weight: 800; color: var(--vt-text); white-space: nowrap; }
+.vtItog__znak {
+  flex: none; width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center;
+  background: var(--vt-violet-soft); color: var(--vt-violet);
+}
+.vtItog__znak svg { width: 18px; height: 18px; }
+.vtItog--net .vtItog__znak { background: var(--vt-blue-soft); color: var(--vt-blue); }
+
+/* ── таблица этапов ─────────────────────────────────────────────────── */
+.vtTable { margin-top: 14px; overflow-x: auto; }
+.vtTable table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+/* У сайта своя тёмная заливка шапок таблиц — на светлой странице её гасим. */
+.vtTable thead, .vtTable thead tr, .vtTable th { background: transparent; }
+.vtTable th {
+  font-size: 12.5px; font-weight: 650; color: var(--vt-muted); text-align: right;
+  padding: 0 14px 10px; border-bottom: 1px solid var(--vt-line); white-space: nowrap;
+}
+.vtTable th:first-child, .vtTable th:nth-child(2) { text-align: left; }
+.vtTable td { padding: 11px 14px; border-bottom: 1px solid #eef3f9; text-align: right; white-space: nowrap; }
+.vtTable td:first-child, .vtTable td:nth-child(2) { text-align: left; }
+.vtTable tbody tr:hover td { background: #f6f9fe; }
+.vtTable tr.is-ship td { background: var(--vt-green-soft); font-weight: 700; }
+.vtTable tr.is-ship:hover td { background: #ddf2e6; }
+
+.vtNum {
+  display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%;
+  font-size: 12.5px; font-weight: 750; background: var(--vt-blue-soft); color: var(--vt-blue);
+}
+.is-ship .vtNum { background: var(--vt-green); color: #fff; }
+
+.vtPoloska { display: flex; align-items: center; gap: 12px; min-width: 300px; }
+.vtPoloska i { display: block; height: 18px; border-radius: 5px; background: #8fbcf8; }
+.is-ship .vtPoloska i { background: var(--vt-green); }
+.vtPoloska b { font-weight: 700; }
+
+.vtOkup--good { color: var(--vt-green); }
+.vtOkup--warn { color: var(--vt-amber); }
+.vtOkup--bad  { color: var(--vt-red); }
+
+/* ── ввод плана прямо с графика ─────────────────────────────────────── */
+.vtPlan {
+  border: 1px solid var(--vt-line); border-radius: 18px; padding: 22px 24px;
+  background: var(--vt-card); color: var(--vt-text); max-width: 360px; box-shadow: 0 24px 60px rgba(16,32,58,.18);
+}
+.vtPlan::backdrop { background: rgba(16, 32, 58, 0.32); }
+.vtPlan h3 { margin: 0; font-size: 20px; font-weight: 800; }
+.vtPlan__mesyac { margin: 2px 0 14px; font-size: 13px; color: var(--vt-muted); }
+.vtPlan label { display: grid; gap: 5px; font-size: 13px; color: var(--vt-muted); margin-bottom: 12px; }
+.vtPlan input {
+  font: inherit; font-size: 15px; color: var(--vt-text); padding: 9px 12px;
+  border: 1px solid var(--vt-line); border-radius: 10px; background: #fbfdff;
+}
+.vtPlan__note { font-size: 12px; color: var(--vt-muted); line-height: 1.5; margin: 0 0 8px; }
+.vtPlan__status { font-size: 12.5px; color: var(--vt-muted); min-height: 18px; margin: 0 0 10px; }
+.vtPlan__status.is-error { color: var(--vt-red); }
+.vtPlan__knopki { display: flex; justify-content: flex-end; gap: 10px; }
+.vtPlan__knopki button {
+  font: inherit; font-size: 14px; padding: 9px 16px; border-radius: 10px; cursor: pointer;
+  border: 1px solid var(--vt-line); background: #fff; color: var(--vt-text);
+}
+.vtPlan__knopki .is-main { background: var(--vt-blue); border-color: var(--vt-blue); color: #fff; font-weight: 650; }
+
+/* ── квартал ────────────────────────────────────────────────────────── */
+.vtKvartal { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+@media (max-width: 900px) { .vtKvartal { grid-template-columns: 1fr; } }
+.vtKv {
+  display: grid; grid-template-columns: 46px 1fr; gap: 2px 14px; align-items: center;
+  padding: 18px 20px; background: var(--vt-card); border: 1px solid var(--vt-line);
+  border-radius: 16px; box-shadow: var(--vt-shadow);
+}
+.vtKv__znak {
+  grid-row: 1 / span 2; width: 46px; height: 46px; border-radius: 13px; display: grid; place-items: center;
+  background: var(--vt-blue-soft); color: var(--vt-blue);
+}
+.vtKv__znak svg { width: 22px; height: 22px; }
+.vtKv__teg { font-size: 13px; color: var(--vt-muted); }
+.vtKv__val { font-size: 30px; font-weight: 800; letter-spacing: -0.03em; white-space: nowrap; }
+.vtKv__val small { font-size: 17px; font-weight: 700; margin-left: 5px; }

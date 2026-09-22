@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#eef3fa">
+  <title>Уценка · Воронка (тест раскладки)</title>
+  <link rel="icon" type="image/svg+xml" href="../assets/brand/vi-mark.svg">
+  <link rel="preload" href="../assets/fonts/VI_Sans_Regular.woff2" as="font" type="font/woff2" crossorigin>
+  <!-- Только ради шрифтового @font-face; тему страница задаёт свою, светлую. -->
+  <link rel="stylesheet" href="../style.css?v=20260911-3">
+  <link rel="stylesheet" href="voronka-test.css?v=20260922-3">
+  <script src="voronka-test.js?v=20260922-3" defer></script>
+</head>
+<body class="vtBody">
+  <main class="vtShell">
+    <header class="vtTop">
+      <div>
+        <h1>Продажи уценки</h1>
+        <p class="vtTop__pod">Воронка отгрузок · <span id="vtMesyac"></span> · <span id="stamp"></span></p>
+      </div>
+      <label class="vtVybor">Месяц
+        <select id="month" aria-label="Месяц"></select>
+      </label>
+    </header>
+
+    <p class="vtMessage" id="message">Загружаю воронку…</p>
+
+    <div class="vt" id="vt" hidden>
+      <div class="vtPlitki" id="vtPlitki"></div>
+
+      <section class="vtPanel vtPut">
+        <h2>Путь к цели</h2>
+        <div class="vtBar" id="vtBar"></div>
+        <div class="vtItogi" id="vtItogi"></div>
+      </section>
+
+      <section class="vtPanel">
+        <div class="vtPanel__head">
+          <h2>Сделки по этапам</h2>
+          <p class="vtHint">Сумма в ценах продаж, млн ₽</p>
+        </div>
+        <div class="vtTable" id="vtTable"></div>
+      </section>
+
+      <div class="vtKvartal" id="vtKvartal"></div>
+    </div>
+
+    <dialog class="vtPlan" id="vtPlan" aria-labelledby="vtPlanTitle">
+      <form id="vtPlanForm">
+        <h3 id="vtPlanTitle">План месяца</h3>
+        <p class="vtPlan__mesyac" id="vtPlanMesyac"></p>
+        <label>В ценах продаж, ₽<input id="vtPlanSale" inputmode="decimal" autocomplete="off" required></label>
+        <label>По себестоимости, ₽<input id="vtPlanCost" inputmode="decimal" autocomplete="off" required></label>
+        <label>Паллет<input id="vtPlanPallets" inputmode="numeric" autocomplete="off" required></label>
+        <p class="vtPlan__note">Суммы без НДС. Цель с отставанием пересчитается сама: план плюс недобор прошлого месяца.</p>
+        <p class="vtPlan__status" id="vtPlanStatus" role="status" aria-live="polite"></p>
+        <div class="vtPlan__knopki">
+          <button type="button" id="vtPlanCancel">Отмена</button>
+          <button type="submit" class="is-main">Сохранить</button>
+        </div>
+      </form>
+    </dialog>
+  </main>
+</body>
+</html>
