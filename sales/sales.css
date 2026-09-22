@@ -36,7 +36,13 @@
 
 /* Легенда и выбор месяца стоят в шапке блока, а не отдельной строкой. */
 .salesHead .stockLegend { flex: 0 0 auto; gap: 5px; }
-.salesHead .periodBox { flex: 0 0 auto; gap: 5px; }
+/* Инструменты воронки — одной строкой справа от заголовка. Раньше они шли
+   сеткой в столбик и забирали три строки высоты над блоком. */
+.salesHead .periodBox {
+  flex: 0 0 auto; display: flex; align-items: center; gap: 10px; justify-items: initial;
+}
+.salesHead .periodBox .periodLabel { display: none; }
+.salesHead .periodBox select { min-width: 132px; }
 #funnelRefresh { min-height: 36px; padding: 7px 12px; white-space: nowrap; }
 
 .salesHistoryView { display: grid; gap: 16px; font-family: var(--ui); }
