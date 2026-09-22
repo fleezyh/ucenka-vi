@@ -409,18 +409,17 @@
     // за полосу. Запас 6% — чтобы подпись у правого края не обрезалась.
     const scale = Math.max(v.pot, v.plan, v.goal) * 1.06 || 1;
     const pct = (value) => (value / scale) * 100;
-    // План и цель стоят почти вплотную, когда долг мал: тогда подписи
-    // расходятся в разные стороны от своих линий.
-    const tesno = v.plan && v.goal && Math.abs(pct(v.goal) - pct(v.plan)) < 16;
-    const metka = (mod, title, value, pravka) => value ? `
+    const metka = (mod, value) => value ? `
       <div class="vtMetka ${mod}" style="left:${pct(value)}%">
-        <button type="button" class="vtMetka__podpis"${pravka ? ' data-plan="1"' : " disabled"}>
-          <span class="vtMetka__t">${title}</span>
-          <span class="vtMetka__v">${dec2(value)} млн ₽</span>
-          ${pravka ? '<span class="vtMetka__pravka">изменить план</span>' : ""}
-        </button>
         <span class="vtMetka__tochka"></span><span class="vtMetka__liniya"></span>
       </div>` : "";
+    // Подписи меток живут в шапке панели, а не над полосой: ярус подписей
+    // занимал всю ширину блока ради двух цифр у правого края.
+    const legenda = (mod, title, value, pravka) => value ? `
+      <${pravka ? 'button type="button" class="vtLeg vtLeg--knopka' : 'span class="vtLeg'} ${mod}"
+        ${pravka ? 'title="Изменить план месяца и пересчитать цель"' : ""}>
+        <i></i><span class="vtLeg__t">${title}</span><b>${dec2(value)} млн ₽</b>
+      </${pravka ? "button" : "span"}>` : "";
 
     const dolg = v.dolg > 0
       ? `Цель с отставанием: план <b>${dec2(v.plan)}</b> + долг за ${v.prevName.toLowerCase()} <b>${dec2(v.dolg)} млн ₽</b>`
@@ -431,11 +430,15 @@
     panel.innerHTML = `
       <div class="vtPanel__head">
         <h2>Путь к цели</h2>
+        <div class="vtLegenda">
+          ${legenda("vtLeg--plan", "План месяца", v.plan, canEditFunnelPlan)}
+          ${legenda("vtLeg--goal", "Цель с отставанием", v.goal)}
+        </div>
         ${canEditFunnelPlan ? '<button type="button" class="action action--secondary vtPravkaPlana">Изменить цель</button>' : ""}
       </div>
       <div class="vtBar">
-        ${metka(tesno ? "vtMetka--vlevo" : "", "План месяца", v.plan, canEditFunnelPlan)}
-        ${metka(`vtMetka--goal ${tesno ? "vtMetka--vpravo" : ""}`, "Цель с отставанием", v.goal)}
+        ${metka("", v.plan)}
+        ${metka("vtMetka--goal", v.goal)}
         <div class="vtBar__zhelob">
           <div class="vtBar__seg vtBar__seg--ship" style="width:${pct(v.ship)}%">${dec2(v.ship)}</div>
           <div class="vtBar__seg vtBar__seg--work" style="width:${pct(v.work)}%">${v.work ? dec2(v.work) : ""}</div>
@@ -454,7 +457,7 @@
     // План правится прямо с графика — тем же диалогом, что и раньше.
     // Правка плана двумя путями: кнопкой в шапке панели и кликом по самой
     // метке на графике — по метке не все догадаются, кнопка привычнее.
-    for (const knopka of panel.querySelectorAll('.vtMetka__podpis[data-plan], .vtPravkaPlana')) {
+    for (const knopka of panel.querySelectorAll(".vtLeg--knopka, .vtPravkaPlana")) {
       knopka.addEventListener("click", () => { hideTip(); openFunnelPlan("sale"); });
     }
     return panel;

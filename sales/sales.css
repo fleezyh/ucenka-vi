@@ -388,9 +388,9 @@ button.total__label:hover { color: #fff; }
 .vtHint { margin: 4px 0 0; font-size: 13px; color: var(--vt-muted); }
 
 /* ── путь к цели ────────────────────────────────────────────────────── */
-/* Сверху ровно столько, сколько занимает подпись метки: больше — и под
-   заголовком повисает пустая полоса. */
-.vtBar { position: relative; margin: 62px 0 16px; }
+/* Подписи меток ушли в шапку панели, поэтому над полосой ничего не
+   зарезервировано — только просвет под точки. */
+.vtBar { position: relative; margin: 22px 0 16px; }
 .vtBar__zhelob {
   display: flex; height: 54px; border-radius: 12px; overflow: hidden;
   background: var(--vt-zhelob);
@@ -405,22 +405,23 @@ button.total__label:hover { color: #fff; }
    стоят строго на значении, а подпись отводится вбок, чтобы соседняя
    метка (план и цель различаются на копейки) не наезжала. */
 .vtMetka { position: absolute; top: 0; bottom: 0; width: 0; }
-.vtMetka__podpis {
-  position: absolute; bottom: calc(100% + 14px); left: 0; transform: translateX(-50%);
-  display: grid; gap: 1px; font: inherit; color: inherit;
-  text-align: center; white-space: nowrap; padding: 4px 8px; border-radius: 9px;
-  background: transparent; border: 1px solid transparent; cursor: pointer;
-}
-.vtMetka__podpis:hover { background: var(--vt-card); border-color: var(--vt-line); box-shadow: var(--vt-shadow); }
-.vtMetka--vlevo  .vtMetka__podpis { transform: translateX(calc(-100% - 6px)); text-align: right; }
-.vtMetka--vpravo .vtMetka__podpis { transform: translateX(6px); text-align: left; }
-.vtMetka__t { font-size: 13px; color: var(--vt-muted); }
-.vtMetka__v { font-size: 16px; font-weight: 750; }
-.vtMetka__pravka { font-size: 11.5px; color: var(--vt-blue); visibility: hidden; }
-.vtMetka__podpis:hover .vtMetka__pravka { visibility: visible; }
 .vtMetka__liniya { position: absolute; left: -1px; top: -12px; bottom: -22px; width: 0; border-left: 2px dashed var(--vt-amber); }
 .vtMetka__tochka { position: absolute; left: -4.5px; top: -16px; width: 9px; height: 9px; border-radius: 50%; background: var(--vt-amber); }
-.vtMetka--goal .vtMetka__v { color: var(--vt-violet); }
+
+/* Легенда в шапке: цветная точка, подпись и значение. У плана она кликается
+   и открывает тот же диалог плана, что кнопка справа. */
+.vtLegenda { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; margin-left: auto; }
+.vtLeg {
+  display: inline-flex; align-items: center; gap: 7px; font: inherit; font-size: 13px;
+  color: var(--vt-muted); padding: 5px 9px; border: 1px solid transparent; border-radius: 9px;
+  background: transparent;
+}
+.vtLeg b { font-size: 15px; font-weight: 750; color: var(--vt-text); }
+.vtLeg i { width: 9px; height: 9px; border-radius: 50%; background: var(--vt-amber); }
+.vtLeg--goal i { background: var(--vt-violet); }
+.vtLeg--goal b { color: var(--vt-violet); }
+.vtLeg--knopka { cursor: pointer; }
+.vtLeg--knopka:hover { border-color: var(--vt-line); background: var(--vt-card); }
 .vtMetka--goal .vtMetka__liniya { border-color: var(--vt-violet); }
 .vtMetka--goal .vtMetka__tochka { background: var(--vt-violet); }
 
