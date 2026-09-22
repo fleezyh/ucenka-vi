@@ -427,14 +427,6 @@
         </${pravka ? "button" : "span"}>
         <span class="vtMetka__tochka"></span><span class="vtMetka__liniya"></span>
       </div>` : "";
-    // Подписи меток живут в шапке панели, а не над полосой: ярус подписей
-    // занимал всю ширину блока ради двух цифр у правого края.
-    const legenda = (mod, title, value, pravka) => value ? `
-      <${pravka ? 'button type="button" class="vtLeg vtLeg--knopka' : 'span class="vtLeg'} ${mod}"
-        ${pravka ? 'title="Изменить план месяца и пересчитать цель"' : ""}>
-        <i></i><span class="vtLeg__t">${title}</span><b>${dec2(value)} млн ₽</b>
-      </${pravka ? "button" : "span"}>` : "";
-
     const panel = document.createElement("section");
     panel.className = "vtPanel";
     // Под полосой больше ничего нет: все четыре величины названы в легенде
@@ -444,17 +436,15 @@
         <h2>Путь к цели</h2>
         ${canEditFunnelPlan ? '<button type="button" class="action action--secondary vtPravkaPlana">Изменить цель</button>' : ""}
       </div>
-      <div class="vtLegenda">
-        ${legenda("vtLeg--ship", "Отгружено", v.ship)}
-        ${legenda("vtLeg--work", "В работе", v.work)}
-        ${legenda("vtLeg--pot", "Потенциал", v.pot)}
-      </div>
       <div class="vtBar">
+        <p class="vtBar__pot">Потенциал <b>${dec2(v.pot)} млн ₽</b></p>
         ${metka("", "План месяца", v.plan, tesno ? "vtMetka--vlevo" : "", canEditFunnelPlan)}
         ${metka("vtMetka--goal", "Цель с отставанием", v.goal, tesno ? "vtMetka--vpravo" : "")}
         <div class="vtBar__zhelob">
-          <div class="vtBar__seg vtBar__seg--ship" style="width:${pct(v.ship)}%">${dec2(v.ship)}</div>
-          <div class="vtBar__seg vtBar__seg--work" style="width:${pct(v.work)}%">${v.work ? dec2(v.work) : ""}</div>
+          <div class="vtBar__seg vtBar__seg--ship" style="width:${pct(v.ship)}%">
+            <b>${dec2(v.ship)}</b><span>Отгружено</span></div>
+          <div class="vtBar__seg vtBar__seg--work" style="width:${pct(v.work)}%">
+            ${v.work ? `<b>${dec2(v.work)}</b><span>В работе</span>` : ""}</div>
         </div>
       </div>`;
 
@@ -462,7 +452,7 @@
     // Правка плана двумя путями: кнопкой в шапке панели и кликом по самой
     // метке на графике — по метке не все догадаются, кнопка привычнее.
     for (const knopka of panel.querySelectorAll(".vtMetka__plashka--knopka, .vtPravkaPlana")) {
-      knopka.addEventListener("click", () => { hideTip(); openFunnelPlan("sale"); });
+      knopka.addEventListener("click", () => { hideTip(); otkrytCeli(); });
     }
     return panel;
   }
@@ -570,15 +560,141 @@
     funnelBox.append(renderPlitki(v), renderPut(v), renderEtapy(list), renderKvartal(head));
   }
 
+  // ---- Цели года ----------------------------------------------------------
+  // Раньше план приезжал из книги отдела продаж и правился по одному месяцу.
+  // Теперь все двенадцать месяцев вводятся здесь и живут у нас: задача из
+  // книги месяцы с источником «вручную» не перезаписывает.
+  const MESYATSY = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
+                    "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
+  const celiDialog = $("vtCeli");
+
+  const celiChislo = (mesyac, imya) => {
+    const pole = document.querySelector(
+      `#vtCeliTablica input[data-month="${mesyac}"][data-field="${imya}"]`);
+    return Number(String(pole?.value || "").replace(/\s/g, "").replace(",", ".")) || 0;
+  };
+  const celiMln = (value) => (value / 1e6).toFixed(2).replace(".", ",");
+
+  /** Кварталы и год — сумма месяцев: отдельно их никто не вводит. */
+  function celiItogi() {
+    const svod = (mesyacy) => {
+      const sale = mesyacy.reduce((sum, m) => sum + celiChislo(m, "sale"), 0);
+      const cost = mesyacy.reduce((sum, m) => sum + celiChislo(m, "cost"), 0);
+      const pallets = mesyacy.reduce((sum, m) => sum + celiChislo(m, "pallets"), 0);
+      return `<b>${celiMln(sale)} млн ₽</b><span>себестоимость ${celiMln(cost)} млн · ` +
+        `${Math.round(pallets).toLocaleString("ru-RU")} паллет` +
+        `${cost ? ` · окупаемость ${(sale / cost * 100).toFixed(1).replace(".", ",")}%` : ""}</span>`;
+    };
+    for (const kvartal of [1, 2, 3, 4]) {
+      const yacheika = document.querySelector(`#vtCeliTablica [data-kvartal="${kvartal}"]`);
+      if (yacheika) yacheika.innerHTML = svod([kvartal * 3 - 2, kvartal * 3 - 1, kvartal * 3]);
+    }
+    const god = document.querySelector("#vtCeliTablica [data-god]");
+    if (god) god.innerHTML = svod([...Array(12).keys()].map((i) => i + 1));
+  }
+
+  function narisovatCeli(plany) {
+    const poMesyacam = new Map((plany || []).map((p) => [Number(p.month_num), p]));
+    const stroka = (nomer) => {
+      const plan = poMesyacam.get(nomer) || {};
+      const znachenie = (imya) => plan[imya] ? Math.round(Number(plan[imya])) : "";
+      const izKnigi = plan.source && plan.source !== "вручную";
+      const pole = (imya, podskazka, rezhim) =>
+        `<input data-month="${nomer}" data-field="${imya}" inputmode="${rezhim}" ` +
+        `autocomplete="off" placeholder="${podskazka}" value="${znachenie(imya)}">`;
+      return `<div class="vtCeli__stroka">
+        <span class="vtCeli__mesyac">${MESYATSY[nomer - 1]}` +
+        `${izKnigi ? '<i title="Значение приехало из книги отдела продаж">из книги</i>' : ""}</span>
+        ${pole("sale", "продажи", "decimal")}
+        ${pole("cost", "себестоимость", "decimal")}
+        ${pole("pallets", "паллет", "numeric")}
+      </div>`;
+    };
+    const kvartal = (nomer) => `<div class="vtCeli__kvartal"><span>${nomer} квартал</span>
+      <div class="vtCeli__svod" data-kvartal="${nomer}"></div></div>`;
+
+    $("vtCeliTablica").innerHTML = `
+      <div class="vtCeli__shapka"><span>Месяц</span><span>В ценах продаж, ₽</span>
+        <span>По себестоимости, ₽</span><span>Паллет</span></div>` +
+      [1, 2, 3, 4].map((k) => [k * 3 - 2, k * 3 - 1, k * 3].map(stroka).join("") + kvartal(k)).join("") +
+      `<div class="vtCeli__kvartal vtCeli__kvartal--god"><span>Год</span>
+        <div class="vtCeli__svod" data-god="1"></div></div>`;
+    for (const pole of document.querySelectorAll("#vtCeliTablica input")) {
+      pole.addEventListener("input", celiItogi);
+    }
+    celiItogi();
+  }
+
+  async function otkrytCeli() {
+    $("vtCeliStatus").textContent = "";
+    $("vtCeliTablica").innerHTML = '<p class="vtCeli__zagruzka">Загружаю цели…</p>';
+    celiDialog.showModal();
+    try {
+      const otvet = await fetch("/__funnel/plans", { credentials: "same-origin", cache: "no-store" });
+      const dannye = await otvet.json();
+      if (!otvet.ok) throw new Error(dannye.error || "не загрузились");
+      narisovatCeli(dannye.plans);
+    } catch (error) {
+      $("vtCeliTablica").innerHTML = "";
+      $("vtCeliStatus").textContent = `Не удалось загрузить цели: ${error.message}`;
+    }
+  }
+
+  $("vtCeliCancel")?.addEventListener("click", () => celiDialog.close());
+  $("vtCeliForm")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const plans = [];
+    for (const mesyac of [...Array(12).keys()].map((i) => i + 1)) {
+      const sale = celiChislo(mesyac, "sale");
+      const cost = celiChislo(mesyac, "cost");
+      const pallets = celiChislo(mesyac, "pallets");
+      // Пустой месяц — «ещё не планировали», а не ноль: такой пропускаем.
+      if (!sale && !cost && !pallets) continue;
+      if (!(sale > 0 && cost > 0 && pallets > 0) || !Number.isInteger(pallets)) {
+        $("vtCeliStatus").textContent =
+          `${MESYATSY[mesyac - 1]}: нужны положительные суммы и целое число паллет.`;
+        return;
+      }
+      plans.push({ month_num: mesyac, sale, cost, pallets });
+    }
+    if (!plans.length) { $("vtCeliStatus").textContent = "Не заполнен ни один месяц."; return; }
+
+    $("vtCeliSave").disabled = true;
+    $("vtCeliStatus").textContent = "Сохраняю цели и пересчитываю воронку…";
+    try {
+      const otvet = await fetch("/__funnel/plans", {
+        method: "POST", credentials: "same-origin", cache: "no-store",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plans }),
+      });
+      const svezhee = await otvet.json();
+      if (!otvet.ok) throw new Error(svezhee.error || "сервер не сохранил цели");
+      if (svezhee.поМесяцам) {
+        const vybran = monthSelect.value;
+        funnelData = svezhee;
+        fillMonths(svezhee.месяц);
+        if ([...monthSelect.options].some((o) => o.value === vybran)) monthSelect.value = vybran;
+        renderFunnel(monthSelect.value);
+      }
+      celiDialog.close();
+      say(`Цели сохранены: месяцев — ${plans.length}.`);
+    } catch (error) {
+      $("vtCeliStatus").textContent = `Не удалось сохранить: ${error.message}`;
+    } finally {
+      $("vtCeliSave").disabled = false;
+    }
+  });
+
   /** Тема блока: тёмная как вся страница, светлая — по кнопке, с памятью. */
   const temaKnopka = $("funnelTema");
+  const pokazatTemu = (tema) => temaKnopka?.setAttribute("aria-pressed", tema === "svet" ? "true" : "false");
   temaKnopka?.addEventListener("click", () => {
     const tema = funnelBox.dataset.tema === "svet" ? "temno" : "svet";
     localStorage.setItem("vt-tema", tema);
     funnelBox.dataset.tema = tema;
-    temaKnopka.textContent = tema === "svet" ? "Тёмная тема" : "Светлая тема";
+    pokazatTemu(tema);
   });
-  if (temaKnopka && localStorage.getItem("vt-tema") === "svet") temaKnopka.textContent = "Тёмная тема";
+  pokazatTemu(localStorage.getItem("vt-tema"));
 
   function fillMonths(current) {
     const months = funnelData.месяцы?.length ? [...funnelData.месяцы].reverse() : [current];

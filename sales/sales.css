@@ -385,16 +385,41 @@ button.total__label:hover { color: #fff; }
 .vtPanel h2 { margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.02em; }
 .vtPanel__head { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; flex-wrap: wrap; }
 .vtPravkaPlana { flex: 0 0 auto; }
+
+/* Тема переключается тумблером: кнопка со словами занимала полстроки. */
+.vtTema {
+  display: inline-flex; align-items: center; gap: 7px; padding: 0; border: 0;
+  background: transparent; color: var(--muted); font: inherit; font-size: 12px; cursor: pointer;
+}
+.vtTema__ryad {
+  position: relative; width: 38px; height: 21px; border-radius: 99px;
+  background: #101722; border: 1px solid var(--line); transition: background 140ms;
+}
+.vtTema__ryad::after {
+  content: ""; position: absolute; top: 2px; left: 2px; width: 15px; height: 15px;
+  border-radius: 50%; background: var(--muted); transition: transform 140ms, background 140ms;
+}
+.vtTema[aria-pressed="true"] .vtTema__ryad { background: #dfe7f2; border-color: #c6d3e4; }
+.vtTema[aria-pressed="true"] .vtTema__ryad::after { transform: translateX(17px); background: #f5a623; }
 .vtHint { margin: 4px 0 0; font-size: 13px; color: var(--vt-muted); }
 
 /* ── путь к цели ────────────────────────────────────────────────────── */
-/* Сверху ровно столько, сколько занимает плашка метки над точкой. */
-.vtBar { position: relative; margin: 74px 0 18px; }
+/* Ярус над полосой занят: слева потенциал, справа плашки плана и цели.
+   Отдельной строки-легенды нет — названия сегментов пишутся прямо на них,
+   иначе слева от плашек оставалась пустая полоса. */
+.vtBar { position: relative; margin: 78px 0 18px; }
+.vtBar__pot {
+  position: absolute; left: 0; bottom: calc(100% + 16px); margin: 0;
+  font-size: 15px; color: var(--vt-muted);
+}
+.vtBar__pot b { font-size: 18px; font-weight: 800; color: var(--vt-text); margin-left: 6px; }
 .vtBar__zhelob {
-  display: flex; height: 54px; border-radius: 12px; overflow: hidden;
+  display: flex; height: 62px; border-radius: 12px; overflow: hidden;
   background: var(--vt-zhelob);
 }
-.vtBar__seg { display: grid; place-items: center; min-width: 0; font-size: 26px; font-weight: 750; color: #fff; }
+.vtBar__seg { display: grid; place-items: center; align-content: center; min-width: 0; color: #fff; overflow: hidden; }
+.vtBar__seg b { font-size: 26px; font-weight: 780; line-height: 1.1; }
+.vtBar__seg span { font-size: 13px; opacity: .85; white-space: nowrap; }
 .vtBar__seg--ship { background: var(--vt-green); }
 .vtBar__seg--work { background: var(--vt-blue); }
 .vtBar__podpis { display: flex; margin-top: 7px; font-size: 13px; color: var(--vt-muted); }
@@ -425,7 +450,7 @@ button.total__label:hover { color: #fff; }
 
 /* Легенда в шапке: цветная точка, подпись и значение. У плана она кликается
    и открывает тот же диалог плана, что кнопка справа. */
-.vtLegenda { display: flex; align-items: center; gap: 10px 22px; flex-wrap: wrap; margin-top: 14px; }
+.vtLegenda { display: flex; align-items: center; gap: 10px 22px; flex-wrap: wrap; margin-top: 10px; min-height: 30px; }
 .vtLeg {
   display: inline-flex; align-items: center; gap: 8px; font: inherit; font-size: 15px;
   color: var(--vt-muted); padding: 6px 10px; border: 1px solid transparent; border-radius: 9px;
@@ -509,3 +534,57 @@ button.total__label:hover { color: #fff; }
 .vtKv__val { font-size: 34px; font-weight: 800; letter-spacing: -0.03em; white-space: nowrap; }
 .vtKv__val small { font-size: 17px; font-weight: 700; margin-left: 5px; }
 .vtTable th.vtTable__shkala { text-align: left; }
+
+/* ── Цели года ───────────────────────────────────────────────────────────
+   Двенадцать месяцев одним экраном: кварталы и год не вводятся, а считаются
+   суммой прямо во время набора. */
+.vtCeli {
+  width: min(880px, 94vw); max-height: 88vh; padding: 0; border: 1px solid var(--line);
+  border-radius: 20px; background: var(--panel); color: var(--text); box-shadow: var(--shadow);
+}
+.vtCeli::backdrop { background: rgba(6, 10, 16, 0.62); }
+.vtCeli form { display: grid; grid-template-rows: auto 1fr auto auto; max-height: 88vh; }
+.vtCeli__head { display: flex; justify-content: space-between; gap: 16px; padding: 20px 24px 12px; }
+.vtCeli__head h3 { margin: 0; font-size: 21px; font-weight: 700; }
+.vtCeli__pod { margin: 4px 0 0; font-size: 13px; color: var(--muted); max-width: 60ch; }
+.vtCeli__zakryt {
+  flex: none; width: 32px; height: 32px; border: 1px solid var(--line); border-radius: 9px;
+  background: transparent; color: var(--muted); font-size: 18px; line-height: 1; cursor: pointer;
+}
+.vtCeli__zakryt:hover { color: var(--text); border-color: var(--line-strong); }
+
+.vtCeli__tablica { overflow: auto; padding: 0 24px; }
+.vtCeli__zagruzka { color: var(--muted); font-size: 14px; }
+.vtCeli__shapka, .vtCeli__stroka {
+  display: grid; grid-template-columns: 150px repeat(3, minmax(0, 1fr)); gap: 8px; align-items: center;
+}
+.vtCeli__shapka {
+  position: sticky; top: 0; z-index: 1; padding: 8px 0; background: var(--panel);
+  font-size: 12px; color: var(--muted); border-bottom: 1px solid var(--line);
+}
+.vtCeli__stroka { padding: 5px 0; }
+.vtCeli__mesyac { display: flex; align-items: baseline; gap: 8px; font-size: 14px; font-weight: 600; }
+.vtCeli__mesyac i { font-size: 11px; font-style: normal; color: var(--amber); }
+.vtCeli__stroka input {
+  width: 100%; padding: 8px 11px; border: 1px solid var(--line); border-radius: 9px;
+  background: rgba(8, 13, 20, 0.6); color: var(--text); font: inherit; font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.vtCeli__stroka input:focus { outline: 2px solid rgba(77, 141, 247, 0.5); outline-offset: 1px; }
+
+.vtCeli__kvartal {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 16px;
+  margin: 6px 0 12px; padding: 9px 12px; border-radius: 11px; background: rgba(12, 19, 29, 0.55);
+  font-size: 13px; color: var(--muted);
+}
+.vtCeli__kvartal--god { background: rgba(77, 141, 247, 0.12); }
+.vtCeli__svod { text-align: right; }
+.vtCeli__svod b { display: block; font-size: 17px; font-weight: 750; color: var(--text); }
+.vtCeli__svod span { font-size: 12px; color: var(--muted); }
+
+.vtCeli__status { margin: 0; padding: 0 24px; min-height: 20px; font-size: 13px; color: var(--muted); }
+.vtCeli__knopki {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 14px 24px 20px;
+}
+.vtCeli__note { font-size: 12px; color: var(--muted); }

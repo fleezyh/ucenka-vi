@@ -11,12 +11,12 @@
   <!-- Стили обоих блоков: классы не пересекаются, дублировать их незачем. -->
   <link rel="stylesheet" href="../funnel/funnel.css?v=20260921-2">
   <link rel="stylesheet" href="../stock/stock.css?v=20260907-6">
-  <link rel="stylesheet" href="sales.css?v=20260922-6">
+  <link rel="stylesheet" href="sales.css?v=20260922-8">
   <link rel="stylesheet" href="../reeded-bg.css?v=20260907-6">
   <link rel="stylesheet" href="../site-header.css?v=20260921-1">
   <link rel="stylesheet" href="../section-assistant.css?v=20260910-2">
   <script src="../reeded-bg.js?v=20260906-7" defer></script>
-  <script src="sales.js?v=20260922-6" defer></script>
+  <script src="sales.js?v=20260922-8" defer></script>
   <script src="history.js?v=20260916-3" defer></script>
   <script src="../nav.js?v=20260921-1" defer></script>
 </head>
@@ -96,12 +96,31 @@
         </div>
         <div class="periodBox">
           <button class="action action--secondary" id="funnelRefresh" type="button" title="Забрать свежие данные из Google-таблицы и пересчитать воронку">Обновить из таблицы</button>
-          <button class="action action--secondary" id="funnelTema" type="button" title="Переключить тему блока воронки">Светлая тема</button>
+          <button class="vtTema" id="funnelTema" type="button" role="switch" aria-pressed="false"
+                  title="Светлая тема блока воронки"><span class="vtTema__ryad"></span>светлая</button>
           <label class="periodLabel" for="month">Месяц</label>
           <select id="month" aria-label="Месяц"></select>
         </div>
       </div>
       <div class="funnelWrap" id="funnel" aria-live="polite"></div>
+      <dialog class="vtCeli" id="vtCeli" aria-labelledby="vtCeliTitle">
+        <form id="vtCeliForm">
+          <div class="vtCeli__head">
+            <div>
+              <h3 id="vtCeliTitle">Цели года</h3>
+              <p class="vtCeli__pod">План по месяцам. Кварталы и год считаются суммой — вводить их отдельно не нужно.</p>
+            </div>
+            <button type="button" class="vtCeli__zakryt" id="vtCeliCancel" aria-label="Закрыть">×</button>
+          </div>
+          <div class="vtCeli__tablica" id="vtCeliTablica"></div>
+          <p class="vtCeli__status" id="vtCeliStatus" role="status" aria-live="polite"></p>
+          <div class="vtCeli__knopki">
+            <span class="vtCeli__note">Суммы без НДС, в рублях</span>
+            <button type="submit" class="action" id="vtCeliSave">Сохранить цели</button>
+          </div>
+        </form>
+      </dialog>
+
       <dialog class="funnelPlan" id="funnelPlan" aria-labelledby="funnelPlanTitle">
         <form id="funnelPlanForm">
           <h3 id="funnelPlanTitle">План и цель месяца</h3>
