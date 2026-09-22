@@ -287,7 +287,7 @@ button.total__label:hover { color: #fff; }
    сайта. Светлая включается атрибутом data-tema="svet" на самом блоке —
    переменные переопределяются в одном месте, разметка не меняется. */
 .funnelWrap {
-  --vt-card: rgba(15, 23, 34, 0.55);
+  --vt-card: var(--panel);
   --vt-line: var(--line);
   --vt-text: var(--text);
   --vt-muted: var(--muted);
@@ -301,8 +301,8 @@ button.total__label:hover { color: #fff; }
   --vt-violet-soft: rgba(165, 141, 255, 0.16);
   --vt-red: #f05d72;
   --vt-zhelob: repeating-linear-gradient(135deg, rgba(255,255,255,.05) 0 7px, rgba(255,255,255,.02) 7px 14px);
-  --vt-itogi: rgba(12, 19, 29, 0.45);
-  --vt-pole: rgba(8, 13, 20, 0.6);
+  --vt-itogi: var(--panel-soft);
+  --vt-pole: rgba(8, 13, 20, 0.75);
   --vt-row-hover: rgba(77, 141, 247, 0.08);
   --vt-row-line: rgba(38, 51, 69, 0.55);
   --vt-shadow: none;
@@ -384,10 +384,13 @@ button.total__label:hover { color: #fff; }
 }
 .vtPanel h2 { margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.02em; }
 .vtPanel__head { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; flex-wrap: wrap; }
+.vtPravkaPlana { flex: 0 0 auto; }
 .vtHint { margin: 4px 0 0; font-size: 13px; color: var(--vt-muted); }
 
 /* ── путь к цели ────────────────────────────────────────────────────── */
-.vtBar { position: relative; margin: 100px 0 16px; }
+/* Сверху ровно столько, сколько занимает подпись метки: больше — и под
+   заголовком повисает пустая полоса. */
+.vtBar { position: relative; margin: 62px 0 16px; }
 .vtBar__zhelob {
   display: flex; height: 54px; border-radius: 12px; overflow: hidden;
   background: var(--vt-zhelob);

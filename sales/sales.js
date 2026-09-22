@@ -429,7 +429,10 @@
     const panel = document.createElement("section");
     panel.className = "vtPanel";
     panel.innerHTML = `
-      <h2>Путь к цели</h2>
+      <div class="vtPanel__head">
+        <h2>Путь к цели</h2>
+        ${canEditFunnelPlan ? '<button type="button" class="action action--secondary vtPravkaPlana">Изменить цель</button>' : ""}
+      </div>
       <div class="vtBar">
         ${metka(tesno ? "vtMetka--vlevo" : "", "План месяца", v.plan, canEditFunnelPlan)}
         ${metka(`vtMetka--goal ${tesno ? "vtMetka--vpravo" : ""}`, "Цель с отставанием", v.goal)}
@@ -449,8 +452,11 @@
       </div>`;
 
     // План правится прямо с графика — тем же диалогом, что и раньше.
-    panel.querySelector('.vtMetka__podpis[data-plan]')
-      ?.addEventListener("click", () => { hideTip(); openFunnelPlan("sale"); });
+    // Правка плана двумя путями: кнопкой в шапке панели и кликом по самой
+    // метке на графике — по метке не все догадаются, кнопка привычнее.
+    for (const knopka of panel.querySelectorAll('.vtMetka__podpis[data-plan], .vtPravkaPlana')) {
+      knopka.addEventListener("click", () => { hideTip(); openFunnelPlan("sale"); });
+    }
     return panel;
   }
 
