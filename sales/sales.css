@@ -52,16 +52,16 @@
 .salesHistorySummary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; padding: 11px; border: 1px solid var(--line); border-radius: 17px; background: #171d25; }
 .salesHistoryDay { min-width: 0; padding: 8px 11px; background: transparent; }
 .salesHistoryDay time { display: block; color: var(--muted); font: 12px var(--ui); font-variant-numeric: tabular-nums; letter-spacing: 0; word-spacing: 0; }
-.salesHistoryDay strong { display: block; margin: 7px 0 1px; font-family: var(--ui); font-weight: 400; font-size: clamp(27px, 3vw, 40px); line-height: 1; letter-spacing: -0.035em; }
+.salesHistoryDay strong { display: block; margin: 7px 0 1px; font-family: var(--ui); font-weight: 600; font-size: clamp(27px, 3vw, 40px); line-height: 1; letter-spacing: -0.035em; }
 .salesHistoryDay small { color: var(--muted); font-size: 11px; letter-spacing: 0; }
 .salesHistoryGrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
 .salesHistoryRegionCard { min-width: 0; padding: 15px 18px 12px; border: 1px solid var(--line); border-radius: 14px; background: #171d25; }
 .salesHistoryRegionHead { display: flex; justify-content: space-between; gap: 10px; color: var(--muted); font-size: 13px; }
-.salesHistoryRegionHead b { font-family: var(--ui); font-weight: 500; }
+.salesHistoryRegionHead b { font-family: var(--ui); font-weight: 600; }
 .salesHistoryRegionHead span { font-variant-numeric: tabular-nums; }
 .salesHistoryRegionHead .is-up { color: #f27486; }
 .salesHistoryRegionHead .is-down { color: #45cfaa; }
-.salesHistoryRegionValue { display: block; margin-top: 9px; font-family: var(--ui); font-weight: 400; font-size: clamp(30px, 3vw, 42px); line-height: 1; }
+.salesHistoryRegionValue { display: block; margin-top: 9px; font-family: var(--ui); font-weight: 600; font-size: clamp(30px, 3vw, 42px); line-height: 1; }
 .salesHistorySpark { display: block; width: 100%; height: auto; margin-top: 3px; }
 .salesHistoryPointDates { display: grid; grid-template-columns: repeat(4, 1fr); color: var(--muted); font: 11px var(--ui); font-variant-numeric: tabular-nums; letter-spacing: 0; word-spacing: 0; }
 .salesHistoryPointDates span:nth-child(2), .salesHistoryPointDates span:nth-child(3) { text-align: center; }
