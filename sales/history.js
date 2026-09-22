@@ -140,8 +140,14 @@
           summary.append(card);
         }
         grid.replaceChildren();
-        const ranked = regions.map((region) => ({ region, latest: value(end, region) || 0 }))
-          .sort((a, b) => b.latest - a.latest);
+        const ranked = regions.map((region) => ({
+          region,
+          latest: value(end, region) || 0,
+          // Пустой регион — тот, где в окне нет ни одного ненулевого снимка.
+          // Такие в сетку не кладём: раньше так висела карточка
+          // «001 Хранение продаж уценки ДНЛ» с нулём на всё окно.
+          est: points.some((date) => (value(date, region) || 0) > 0),
+        })).filter((item) => item.est).sort((a, b) => b.latest - a.latest);
         for (const { region } of ranked) {
           const values = points.map((date) => value(date, region));
           const first = values[0], last = values.at(-1);

@@ -48,10 +48,10 @@
 .salesHistoryArrow { width: 34px; height: 34px; flex: 0 0 auto; border: 1px solid var(--line); border-radius: 9px; background: #101722; color: var(--text); font: inherit; cursor: pointer; }
 .salesHistoryArrow:disabled { opacity: .35; cursor: default; }
 .salesHistorySlider { flex: 1 1 auto; min-width: 50px; accent-color: #55cdb1; cursor: pointer; }
-.salesHistoryRange { min-width: 90px; text-align: right; font: 12px var(--ui); color: var(--muted); font-variant-numeric: tabular-nums; letter-spacing: 0; }
+.salesHistoryRange { min-width: 108px; text-align: right; font: 600 12.5px var(--ui); color: var(--muted); font-variant-numeric: normal; }
 .salesHistorySummary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; padding: 11px; border: 1px solid var(--line); border-radius: 17px; background: #171d25; }
 .salesHistoryDay { min-width: 0; padding: 8px 11px; background: transparent; }
-.salesHistoryDay time { display: block; color: var(--muted); font: 12px var(--ui); font-variant-numeric: tabular-nums; letter-spacing: 0; word-spacing: 0; }
+.salesHistoryDay time { display: block; color: var(--muted); font: 600 12.5px var(--ui); font-variant-numeric: normal; }
 .salesHistoryDay strong { display: block; margin: 7px 0 1px; font-family: var(--ui); font-weight: 600; font-size: clamp(27px, 3vw, 40px); line-height: 1; letter-spacing: -0.035em; }
 .salesHistoryDay small { color: var(--muted); font-size: 11px; letter-spacing: 0; }
 .salesHistoryGrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
@@ -63,7 +63,9 @@
 .salesHistoryRegionHead .is-down { color: #45cfaa; }
 .salesHistoryRegionValue { display: block; margin-top: 9px; font-family: var(--ui); font-weight: 600; font-size: clamp(30px, 3vw, 42px); line-height: 1; }
 .salesHistorySpark { display: block; width: 100%; height: auto; margin-top: 3px; }
-.salesHistoryPointDates { display: grid; grid-template-columns: repeat(4, 1fr); color: var(--muted); font: 11px var(--ui); font-variant-numeric: tabular-nums; letter-spacing: 0; word-spacing: 0; }
+/* Подписи дат: обычные пропорциональные цифры. Табличные в VI Sans дают
+   широкие просветы, и «01.09» читается как «01 . 09». */
+.salesHistoryPointDates { display: grid; grid-template-columns: repeat(4, 1fr); color: var(--muted); font: 600 12px var(--ui); font-variant-numeric: normal; }
 .salesHistoryPointDates span:nth-child(2), .salesHistoryPointDates span:nth-child(3) { text-align: center; }
 .salesHistoryPointDates span:last-child { text-align: right; }
 .salesHistoryNote { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.45; }

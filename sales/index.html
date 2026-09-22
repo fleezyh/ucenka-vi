@@ -11,13 +11,13 @@
   <!-- Стили обоих блоков: классы не пересекаются, дублировать их незачем. -->
   <link rel="stylesheet" href="../funnel/funnel.css?v=20260921-2">
   <link rel="stylesheet" href="../stock/stock.css?v=20260907-6">
-  <link rel="stylesheet" href="sales.css?v=20260922-11">
+  <link rel="stylesheet" href="sales.css?v=20260922-12">
   <link rel="stylesheet" href="../reeded-bg.css?v=20260907-6">
   <link rel="stylesheet" href="../site-header.css?v=20260921-1">
   <link rel="stylesheet" href="../section-assistant.css?v=20260910-2">
   <script src="../reeded-bg.js?v=20260906-7" defer></script>
-  <script src="sales.js?v=20260922-9" defer></script>
-  <script src="history.js?v=20260916-3" defer></script>
+  <script src="sales.js?v=20260922-12" defer></script>
+  <script src="history.js?v=20260922-1" defer></script>
   <script src="../nav.js?v=20260921-1" defer></script>
 </head>
 <body data-mode="sales">
@@ -59,34 +59,6 @@
     </section>
 
     <p class="message" id="message">Загружаю данные…</p>
-
-    <section class="salesBlock" aria-labelledby="stockTitle">
-      <div class="salesHead">
-        <div>
-          <h2 id="stockTitle">Остатки паллет</h2>
-          <p class="salesLead">Сколько паллет лежит по регионам и что из них уже зарезервировано под отгрузку.</p>
-        </div>
-        <div class="stockTools">
-          <div class="stockLegend">
-            <span class="legendItem legendItem--res"><i></i>зарезервировано</span>
-            <span class="legendItem legendItem--free"><i></i>свободно</span>
-          </div>
-          <a class="action action--manage" href="/__admin/pallets">＋ Добавить / убрать</a>
-          <button class="action action--secondary" id="stockExport" type="button" disabled>Скачать Excel</button>
-        </div>
-      </div>
-      <div class="stockWrap" id="stock" aria-live="polite"></div>
-    </section>
-
-    <section class="salesBlock salesHistory" aria-labelledby="historyTitle">
-      <div class="salesHead">
-        <div>
-          <h2 id="historyTitle">История остатков</h2>
-          <p class="salesLead">Четыре недельные точки из ежедневных снимков. Окно можно сдвигать по дням.</p>
-        </div>
-      </div>
-      <div id="stockHistory" aria-live="polite"><p class="salesLead">Загружаю историю…</p></div>
-    </section>
 
     <section class="salesBlock" aria-labelledby="funnelTitle">
       <div class="salesHead">
@@ -136,6 +108,34 @@
           </div>
         </form>
       </dialog>
+    </section>
+
+    <section class="salesBlock" aria-labelledby="stockTitle">
+      <div class="salesHead">
+        <div>
+          <h2 id="stockTitle">Остатки паллет</h2>
+          <p class="salesLead">Сколько паллет лежит по регионам и что из них уже зарезервировано под отгрузку.</p>
+        </div>
+        <div class="stockTools">
+          <div class="stockLegend">
+            <span class="legendItem legendItem--res"><i></i>зарезервировано</span>
+            <span class="legendItem legendItem--free"><i></i>свободно</span>
+          </div>
+          <a class="action action--manage" href="/__admin/pallets">＋ Добавить / убрать</a>
+          <button class="action action--secondary" id="stockExport" type="button" disabled>Скачать Excel</button>
+        </div>
+      </div>
+      <div class="stockWrap" id="stock" aria-live="polite"></div>
+    </section>
+
+    <section class="salesBlock salesHistory" aria-labelledby="historyTitle">
+      <div class="salesHead">
+        <div>
+          <h2 id="historyTitle">История остатков</h2>
+          <p class="salesLead">Четыре недельные точки из ежедневных снимков. Окно можно сдвигать по дням.</p>
+        </div>
+      </div>
+      <div id="stockHistory" aria-live="polite"><p class="salesLead">Загружаю историю…</p></div>
     </section>
 
     <p class="stockNote">
