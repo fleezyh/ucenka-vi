@@ -6,7 +6,6 @@
    цифры — сколько стоит и сколько времени, — и цвет. */
 (() => {
   const box = document.getElementById("cepochka");
-  if (!box) return;
 
   const num = (v) => Math.round(Number(v) || 0).toLocaleString("ru-RU");
   const chmm = (minut) => {
@@ -16,7 +15,9 @@
   const dolya = (a, b) => b ? Math.round(a / b * 100) : 0;
   const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
-  const zveno = ({ imya, glavnoe, pod, cvet, yakor, vremya }) => `
+  // Звено — данные, а не разметка: ту же цепочку рисует экран руководителя.
+  const zveno = (model) => model;
+  const html = ({ imya, glavnoe, pod, cvet, yakor, vremya }) => `
     <a class="cepZveno cep--${cvet}" href="#${yakor}">
       <span class="cepZveno__imya">${esc(imya)}</span>
       <b class="cepZveno__glavnoe">${glavnoe}</b>
@@ -48,8 +49,8 @@
       zvenya.push(zveno({
         imya: "Ворота и разгрузка", yakor: "dvor", cvet: cvetSrednee(dmd.среднее_ожидание_мин),
         glavnoe: `${num(dmd.на_разгрузке)} на воротах`,
-        pod: `разгружено ${num(dmd.разгружено)} машин · ${num(dmd.паллет_разгружено)} паллет`,
-        vremya: `ожидание ворот ${chmm(dmd.среднее_ожидание_мин)} · разгрузка ${chmm(dmd.средняя_разгрузка_мин)}`,
+        pod: `разгружено ${num(dmd.разгружено)} · по ${chmm(dmd.средняя_разгрузка_мин)}`,
+        vremya: `ожидание ${chmm(dmd.среднее_ожидание_мин)} в ср.`,
       }));
     }
 
@@ -93,13 +94,16 @@
     return zvenya;
   }
 
+  window.PrCepochka = { sobrat };
+  if (!box) return;
+
   function zagruzit() {
     const vzyat = (url) => fetch(url, { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
     Promise.all([vzyat("../data/dvor.json"), vzyat("../data/priyomka.json")]).then(([dvor, priyomka]) => {
       const zvenya = sobrat(dvor, priyomka);
       if (!zvenya.length) { box.hidden = true; return; }
       box.hidden = false;
-      box.querySelector(".cepRyad").innerHTML = zvenya.join('<span class="cepStrelka" aria-hidden="true">→</span>');
+      box.querySelector(".cepRyad").innerHTML = zvenya.map(html).join('<span class="cepStrelka" aria-hidden="true">→</span>');
       box.querySelector(".cepStamp").textContent =
         `двор: ${dvor?.обновлено || "—"} · зоны и висяки: ${priyomka?.обновлено || "—"}`;
     });

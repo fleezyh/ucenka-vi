@@ -90,3 +90,6 @@
   .cepStrelka { display: none; }
   .cepZveno { flex: 1 1 30%; }
 }
+
+/* Ссылка на экран для стены рядом с «Как это считается» — та же кнопка. */
+a.prZapOtkryt { display: inline-block; margin-left: 8px; text-decoration: none; }
