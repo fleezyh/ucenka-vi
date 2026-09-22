@@ -349,14 +349,17 @@ button.total__label:hover { color: #fff; }
 
 /* Плитка — цельный блок: иконка слева на всю высоту, текст одной колонкой,
    подпись прижата к низу, поэтому карточки в ряду выглядят одинаковыми. */
+/* Одна колонка и три яруса одинаковой высоты: шапка, суммы, показатели.
+   Иконка больше не висит сбоку и не ломает выравнивание чисел. */
 .vtPlitka {
-  display: grid; grid-template-columns: 48px 1fr; grid-template-rows: auto auto auto;
-  gap: 2px 14px; padding: 18px 20px; align-content: start;
+  display: grid; grid-template-rows: auto auto auto; gap: 12px;
+  padding: 18px 20px; align-content: start;
   background: var(--vt-card); border: 1px solid var(--vt-line); border-radius: 16px;
   box-shadow: var(--vt-shadow);
 }
+.vtPlitka__shapka { display: flex; align-items: center; gap: 12px; }
 .vtPlitka__znak {
-  grid-row: 1 / span 3; width: 48px; height: 48px; border-radius: 14px;
+  flex: none; width: 40px; height: 40px; border-radius: 12px;
   display: grid; place-items: center; background: var(--vt-blue-soft); color: var(--vt-blue);
 }
 .vtPlitka__znak svg { width: 24px; height: 24px; }
@@ -364,18 +367,27 @@ button.total__label:hover { color: #fff; }
 .vtPlitka--plan .vtPlitka__znak { background: var(--vt-amber-soft); color: var(--vt-amber); }
 .vtPlitka--pot  .vtPlitka__znak { background: var(--vt-violet-soft); color: var(--vt-violet); }
 
-.vtPlitka__teg { font-size: 15px; font-weight: 650; color: var(--vt-muted); align-self: center; }
+.vtPlitka__teg { font-size: 15px; font-weight: 650; color: var(--vt-muted); }
 .vtPlitka--ship .vtPlitka__teg { color: var(--vt-green); }
-.vtPlitka__val { font-size: 44px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.1; white-space: nowrap; }
-.vtPlitka__val small { font-size: 22px; font-weight: 700; margin-left: 6px; letter-spacing: -0.01em; }
-/* Три строки одинаковой высоты во всех плитках: себестоимость, паллеты,
-   окупаемость. Фиксированная сетка держит карточки ряда вровень. */
-.vtPlitka__pod {
-  display: grid; grid-template-rows: repeat(3, 22px); gap: 2px;
-  font-size: 15px; color: var(--vt-muted); line-height: 22px; margin-top: 10px;
+.vtPlitka__val {
+  margin: 0; display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap;
+  letter-spacing: -0.03em; line-height: 1.05;
 }
-.vtPlitka__pod span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.vtPlitka__pod b { color: var(--vt-text); font-weight: 700; white-space: nowrap; }
+.vtPlitka__val b { font-size: 34px; font-weight: 800; }
+.vtPlitka__val i { font-size: 24px; font-style: normal; color: var(--vt-line); }
+.vtPlitka__val em { font-size: 24px; font-style: normal; font-weight: 700; color: var(--vt-muted); }
+.vtPlitka__val small { font-size: 16px; font-weight: 700; color: var(--vt-muted); letter-spacing: 0; }
+/* Показатели двумя колонками: подпись слева, число справа — так цифры
+   соседних плиток стоят на одной линии. */
+.vtPlitka__pokazateli { margin: 0; display: grid; gap: 4px; }
+.vtPlitka__pokazateli > div {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  padding-top: 4px; border-top: 1px solid var(--vt-line);
+}
+.vtPlitka__pokazateli dt { font-size: 14px; color: var(--vt-muted); }
+.vtPlitka__pokazateli dd {
+  margin: 0; font-size: 16px; font-weight: 700; color: var(--vt-text); white-space: nowrap;
+}
 
 /* ── панель ─────────────────────────────────────────────────────────── */
 .vtPanel {
@@ -414,7 +426,7 @@ button.total__label:hover { color: #fff; }
 }
 .vtBar__pot b { font-size: 18px; font-weight: 800; color: var(--vt-text); margin-left: 6px; }
 .vtBar__zhelob {
-  display: flex; height: 62px; border-radius: 12px; overflow: hidden;
+  display: flex; height: 86px; border-radius: 14px; overflow: hidden;
   background: var(--vt-zhelob);
 }
 .vtBar__seg { display: grid; place-items: center; align-content: center; min-width: 0; color: #fff; overflow: hidden; }
@@ -443,6 +455,7 @@ button.total__label:hover { color: #fff; }
 .vtMetka__plashka--knopka:hover { border-color: var(--vt-amber); }
 .vtMetka__t { font-size: 13px; color: var(--vt-muted); }
 .vtMetka__v { font-size: 19px; font-weight: 800; color: var(--vt-amber); }
+.vtMetka__dolya { font-size: 12.5px; color: var(--vt-muted); }
 .vtMetka--goal .vtMetka__v { color: var(--vt-violet); }
 .vtMetka--goal .vtMetka__plashka--knopka:hover { border-color: var(--vt-violet); }
 .vtMetka__liniya { position: absolute; left: -1px; top: -12px; bottom: -22px; width: 0; border-left: 2px dashed var(--vt-amber); }

@@ -378,32 +378,32 @@
    * Так плитки читаются как один ряд сравнимых цифр, а не как четыре разных
    * рассказа: правка Рахманова от 22.09.2026. */
   function renderPlitki(v) {
-    const plitka = ({ mod, znak, teg, val, pod }) => `
+    // Крупной строкой обе суммы: продажи и себестоимость через дробь —
+    // себестоимость тоже деньги и должна читаться рядом, а не в мелочи.
+    const plitka = ({ mod, znak, teg, prodazha, sebes, pallet, okup }) => `
       <article class="vtPlitka ${mod || ""}">
-        <span class="vtPlitka__znak">${znak}</span>
-        <span class="vtPlitka__teg">${teg}</span>
-        <span class="vtPlitka__val">${val}<small>млн ₽</small></span>
-        <span class="vtPlitka__pod">${pod.map((line) => `<span>${line}</span>`).join("")}</span>
+        <header class="vtPlitka__shapka">
+          <span class="vtPlitka__znak">${znak}</span>
+          <span class="vtPlitka__teg">${teg}</span>
+        </header>
+        <p class="vtPlitka__val"><b>${dec2(prodazha)}</b><i>/</i><em>${dec2(sebes)}</em><small>млн ₽</small></p>
+        <dl class="vtPlitka__pokazateli">
+          <div><dt>Паллет</dt><dd>${number(pallet)}</dd></div>
+          <div><dt>Окупаемость</dt><dd>${okup}</dd></div>
+        </dl>
       </article>`;
-    const podpisi = (sebes, pallet, okup) => [
-      `себестоимость <b>${dec2(sebes)} млн ₽</b>`,
-      `<b>${number(pallet)}</b> паллет`,
-      `окупаемость <b>${okup}</b>`,
-    ];
 
     const box = document.createElement("div");
     box.className = "vtPlitki";
     box.innerHTML = [
-      plitka({ mod: "vtPlitka--ship", znak: VT_IKONKI.korobka, teg: "Отгружено", val: dec2(v.ship),
-        pod: podpisi(v.shipCost, v.shipPallets, decimal(v.shipOkup)) }),
-      plitka({ znak: VT_IKONKI.mishen, teg: "В работе", val: dec2(v.work),
-        pod: podpisi(v.workCost, v.workPallets, okupProc(v.work, v.workCost)) }),
-      plitka({ mod: "vtPlitka--plan", znak: VT_IKONKI.stolbiki, teg: "План месяца", val: dec2(v.plan),
-        pod: v.plan
-          ? podpisi(v.planCost, v.planPallets, okupProc(v.plan, v.planCost))
-          : ["план на месяц", "не задан", ""] }),
-      plitka({ mod: "vtPlitka--pot", znak: VT_IKONKI.rost, teg: "Потенциал", val: dec2(v.pot),
-        pod: podpisi(v.potCost, v.potPallets, okupProc(v.pot, v.potCost)) }),
+      plitka({ mod: "vtPlitka--ship", znak: VT_IKONKI.korobka, teg: "Отгружено",
+        prodazha: v.ship, sebes: v.shipCost, pallet: v.shipPallets, okup: decimal(v.shipOkup) }),
+      plitka({ znak: VT_IKONKI.mishen, teg: "В работе",
+        prodazha: v.work, sebes: v.workCost, pallet: v.workPallets, okup: okupProc(v.work, v.workCost) }),
+      plitka({ mod: "vtPlitka--plan", znak: VT_IKONKI.stolbiki, teg: "План месяца",
+        prodazha: v.plan, sebes: v.planCost, pallet: v.planPallets, okup: okupProc(v.plan, v.planCost) }),
+      plitka({ mod: "vtPlitka--pot", znak: VT_IKONKI.rost, teg: "Потенциал",
+        prodazha: v.pot, sebes: v.potCost, pallet: v.potPallets, okup: okupProc(v.pot, v.potCost) }),
     ].join("");
     return box;
   }
@@ -418,15 +418,18 @@
     // видно на самой шкале, а не только в легенде (просьба Рахманова).
     // Когда они почти совпадают, плашки расходятся в разные стороны.
     const tesno = v.plan && v.goal && Math.abs(pct(v.goal) - pct(v.plan)) < 18;
-    const metka = (mod, title, value, storona, pravka) => value ? `
+    const metka = (mod, title, value, storona, pravka, vypolnenie) => value ? `
       <div class="vtMetka ${mod} ${storona}" style="left:${pct(value)}%">
         <${pravka ? 'button type="button" class="vtMetka__plashka vtMetka__plashka--knopka"' : 'span class="vtMetka__plashka"'}
-          ${pravka ? 'title="Изменить план месяца и пересчитать цель"' : ""}>
+          ${pravka ? 'title="Изменить цели и пересчитать воронку"' : ""}>
           <span class="vtMetka__t">${title}</span>
           <b class="vtMetka__v">${dec2(value)} млн ₽</b>
+          ${vypolnenie ? `<span class="vtMetka__dolya">${vypolnenie}</span>` : ""}
         </${pravka ? "button" : "span"}>
         <span class="vtMetka__tochka"></span><span class="vtMetka__liniya"></span>
       </div>` : "";
+    // Процент выполнения считаем от отгруженного: в работе — ещё не деньги.
+    const dolya = (ot) => ot > 0 ? `отгружено ${Math.round(v.ship / ot * 100)}%` : "";
     const panel = document.createElement("section");
     panel.className = "vtPanel";
     // Под полосой больше ничего нет: все четыре величины названы в легенде
@@ -438,8 +441,8 @@
       </div>
       <div class="vtBar">
         <p class="vtBar__pot">Потенциал <b>${dec2(v.pot)} млн ₽</b></p>
-        ${metka("", "План месяца", v.plan, tesno ? "vtMetka--vlevo" : "", canEditFunnelPlan)}
-        ${metka("vtMetka--goal", "Цель с отставанием", v.goal, tesno ? "vtMetka--vpravo" : "")}
+        ${metka("", "План месяца", v.plan, tesno ? "vtMetka--vlevo" : "", canEditFunnelPlan, dolya(v.plan))}
+        ${metka("vtMetka--goal", "Цель с отставанием", v.goal, tesno ? "vtMetka--vpravo" : "", false, dolya(v.goal))}
         <div class="vtBar__zhelob">
           <div class="vtBar__seg vtBar__seg--ship" style="width:${pct(v.ship)}%">
             <b>${dec2(v.ship)}</b><span>Отгружено</span></div>
