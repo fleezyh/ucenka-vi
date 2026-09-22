@@ -7,6 +7,14 @@
   const STOCK_URL = "../data/pallets-stock.json";
   const FUNNEL_URL = "../data/funnel.json";
 
+  // Режим снимка: ?blok=voronka|ostatki|istoriya. Страница оставляет один
+  // блок, чтобы генератор PNG получил ровно его, без шапки и кнопок.
+  const BLOKI_SNIMKA = new Set(["voronka", "ostatki", "istoriya"]);
+  const blokSnimka = new URLSearchParams(location.search).get("blok");
+  if (blokSnimka && BLOKI_SNIMKA.has(blokSnimka)) document.body.dataset.blok = blokSnimka;
+
+
+
   const $ = (id) => document.getElementById(id);
   const message = $("message");
   const stockBox = $("stock");

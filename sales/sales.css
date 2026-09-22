@@ -609,3 +609,26 @@ button.total__label:hover { color: #fff; }
   padding: 14px 24px 20px;
 }
 .vtCeli__note { font-size: 12px; color: var(--muted); }
+
+/* ── Режим снимка ────────────────────────────────────────────────────────
+   ?blok=voronka | ostatki | istoriya — страница показывает один блок и
+   прячет всё, что не нужно на картинке: шапку сайта, соседние разделы,
+   кнопки и помощника. Обрезать PNG по элементу браузер не умеет, поэтому
+   кадрируем самой страницей. */
+body[data-blok] .topbar,
+body[data-blok] .heroSales,
+body[data-blok] .message,
+body[data-blok] .stockNote,
+body[data-blok] .sectionAssistant,
+body[data-blok] .periodBox,
+body[data-blok] .stockTools .action,
+body[data-blok] .vtPravkaPlana,
+body[data-blok] .salesHistoryToolbar { display: none; }
+body[data-blok] .shell { padding-top: 26px; }
+body[data-blok] .salesBlock { margin-bottom: 0; }
+body[data-blok="voronka"] #blokOstatki,
+body[data-blok="voronka"] #blokIstoriya,
+body[data-blok="ostatki"] #blokVoronka,
+body[data-blok="ostatki"] #blokIstoriya,
+body[data-blok="istoriya"] #blokVoronka,
+body[data-blok="istoriya"] #blokOstatki { display: none; }

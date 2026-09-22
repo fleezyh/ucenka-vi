@@ -11,12 +11,12 @@
   <!-- Стили обоих блоков: классы не пересекаются, дублировать их незачем. -->
   <link rel="stylesheet" href="../funnel/funnel.css?v=20260921-2">
   <link rel="stylesheet" href="../stock/stock.css?v=20260907-6">
-  <link rel="stylesheet" href="sales.css?v=20260922-13">
+  <link rel="stylesheet" href="sales.css?v=20260922-14">
   <link rel="stylesheet" href="../reeded-bg.css?v=20260907-6">
   <link rel="stylesheet" href="../site-header.css?v=20260921-1">
   <link rel="stylesheet" href="../section-assistant.css?v=20260910-2">
   <script src="../reeded-bg.js?v=20260906-7" defer></script>
-  <script src="sales.js?v=20260922-12" defer></script>
+  <script src="sales.js?v=20260922-14" defer></script>
   <script src="history.js?v=20260922-1" defer></script>
   <script src="../nav.js?v=20260921-1" defer></script>
 </head>
@@ -60,7 +60,7 @@
 
     <p class="message" id="message">Загружаю данные…</p>
 
-    <section class="salesBlock" aria-labelledby="funnelTitle">
+    <section class="salesBlock" id="blokVoronka" aria-labelledby="funnelTitle">
       <div class="salesHead">
         <div>
           <h2 id="funnelTitle">Воронка отгрузок</h2>
@@ -109,7 +109,7 @@
       </dialog>
     </section>
 
-    <section class="salesBlock" aria-labelledby="stockTitle">
+    <section class="salesBlock" id="blokOstatki" aria-labelledby="stockTitle">
       <div class="salesHead">
         <div>
           <h2 id="stockTitle">Остатки паллет</h2>
@@ -127,7 +127,7 @@
       <div class="stockWrap" id="stock" aria-live="polite"></div>
     </section>
 
-    <section class="salesBlock salesHistory" aria-labelledby="historyTitle">
+    <section class="salesBlock salesHistory" id="blokIstoriya" aria-labelledby="historyTitle">
       <div class="salesHead">
         <div>
           <h2 id="historyTitle">История остатков</h2>
