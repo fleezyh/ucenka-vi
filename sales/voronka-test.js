@@ -50,8 +50,8 @@
         ? [`Выполнен на <b>${Math.round((v.ship / v.plan) * 100)}%</b>`, `сверху <b>${dec(v.ship - v.plan)} млн ₽</b>`]
         : [`Выполнено <b>${Math.round((v.ship / v.plan) * 100)}%</b>`, `осталось <b>${dec(v.plan - v.ship)} млн ₽</b>`];
     const potPod = v.pot >= v.goal
-      ? ["Если закрыть все сделки —", "цель с отставанием <b>закрывается</b>"]
-      : ["Если закрыть все сделки —", `до цели не хватает <b>${dec(v.goal - v.pot)} млн ₽</b>`];
+      ? ["Цель <b>закрывается</b>", `с запасом <b>${dec(v.pot - v.goal)} млн ₽</b>`]
+      : ["До цели не хватает", `<b>${dec(v.goal - v.pot)} млн ₽</b>`];
 
     $("vtPlitki").innerHTML = [
       plitka({ mod: "vtPlitka--ship", znak: IKONKI.korobka, teg: "Отгружено", val: dec(v.ship), unit: "млн ₽",
@@ -188,7 +188,6 @@
       plan, prevName, dolg, goal: plan + dolg,
     };
 
-    $("vtMesyac").textContent = `${month} ${String(head.month_key || "").slice(0, 4)}`;
     renderPlitki(v);
     renderBar(v);
     renderTable(list);
@@ -198,6 +197,20 @@
   };
 
   monthSelect.addEventListener("change", () => render(monthSelect.value));
+
+  /* Тема блока. По умолчанию тёмная — как вся страница продаж; выбор
+     запоминается, чтобы не переключать каждый заход. */
+  const temaKnopka = $("vtTema");
+  const postavitTemu = (tema) => {
+    root.dataset.tema = tema;
+    temaKnopka.textContent = tema === "svet" ? "Тёмная тема" : "Светлая тема";
+  };
+  postavitTemu(localStorage.getItem("vt-tema") === "svet" ? "svet" : "temno");
+  temaKnopka?.addEventListener("click", () => {
+    const tema = root.dataset.tema === "svet" ? "temno" : "svet";
+    localStorage.setItem("vt-tema", tema);
+    postavitTemu(tema);
+  });
 
   /* Цель вписывается прямо на графике: клик по метке плана разворачивает
      три поля той же ручки /__funnel/plan, что и у боевой воронки. */

@@ -2,8 +2,38 @@
    перебивает тёмные переменные сайта: страница тестовая, боевой style.css
    ради неё трогать незачем. */
 
-.vtBody {
-  --vt-bg: #eef3fa;
+/* Блок живёт внутри страницы продаж и по умолчанию берёт тёмную тему
+   сайта. Светлая включается атрибутом data-tema="svet" на самом блоке —
+   переменные переопределяются в одном месте, разметка не меняется. */
+.vt {
+  --vt-card: rgba(15, 23, 34, 0.55);
+  --vt-line: var(--line);
+  --vt-text: var(--text);
+  --vt-muted: var(--muted);
+  --vt-green: #27c46b;
+  --vt-green-soft: rgba(39, 196, 107, 0.16);
+  --vt-blue: #4d8df7;
+  --vt-blue-soft: rgba(77, 141, 247, 0.16);
+  --vt-amber: #f5ad32;
+  --vt-amber-soft: rgba(245, 173, 50, 0.16);
+  --vt-violet: #a58dff;
+  --vt-violet-soft: rgba(165, 141, 255, 0.16);
+  --vt-red: #f05d72;
+  --vt-zhelob: repeating-linear-gradient(135deg, rgba(255,255,255,.05) 0 7px, rgba(255,255,255,.02) 7px 14px);
+  --vt-itogi: rgba(12, 19, 29, 0.45);
+  --vt-pole: rgba(8, 13, 20, 0.6);
+  --vt-row-hover: rgba(77, 141, 247, 0.08);
+  --vt-row-line: rgba(38, 51, 69, 0.55);
+  --vt-shadow: none;
+
+  display: grid; gap: 16px; color: var(--vt-text);
+  /* tabular-nums в VI Sans растягивает запятую и рвёт крупные суммы —
+     поэтому цифры идут обычными пропорциональными. */
+  font-variant-numeric: normal;
+}
+.vt[hidden] { display: none; }
+
+.vt[data-tema="svet"] {
   --vt-card: #ffffff;
   --vt-line: #dfe7f2;
   --vt-text: #10203a;
@@ -17,29 +47,17 @@
   --vt-violet: #6d5ae6;
   --vt-violet-soft: #ede9fd;
   --vt-red: #d8445a;
+  --vt-zhelob: repeating-linear-gradient(135deg, #f1f5fb 0 7px, #e7eef8 7px 14px);
+  --vt-itogi: #f7fafe;
+  --vt-pole: #fbfdff;
+  --vt-row-hover: #f6f9fe;
+  --vt-row-line: #eef3f9;
   --vt-shadow: 0 2px 10px rgba(16, 32, 58, 0.06);
 
-  margin: 0; background: var(--vt-bg); color: var(--vt-text);
-  font-family: "VI Sans", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
-  /* tabular-nums в VI Sans растягивает запятую и рвёт крупные суммы —
-     поэтому цифры идут обычными пропорциональными. */
-  font-variant-numeric: normal;
+  /* На светлой теме блоку нужна своя подложка, иначе он висит дырой
+     на тёмной странице. */
+  background: #eef3fa; padding: 18px; border-radius: 20px;
 }
-
-.vtShell { max-width: 1360px; margin: 0 auto; padding: 28px 26px 60px; }
-
-.vtTop { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; }
-.vtTop h1 { margin: 0; font-size: 40px; font-weight: 800; letter-spacing: -0.03em; }
-.vtTop__pod { margin: 4px 0 0; font-size: 14px; color: var(--vt-muted); }
-.vtVybor { font-size: 13px; color: var(--vt-muted); display: inline-flex; align-items: center; gap: 8px; }
-.vtVybor select {
-  font: inherit; font-size: 14px; color: var(--vt-text); padding: 7px 12px;
-  border: 1px solid var(--vt-line); border-radius: 10px; background: var(--vt-card);
-}
-.vtMessage { color: var(--vt-muted); }
-
-.vt { display: grid; gap: 16px; }
-.vt[hidden] { display: none; }
 
 /* ── четыре плитки сверху ───────────────────────────────────────────── */
 .vtPlitki { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; align-items: stretch; }
@@ -67,7 +85,13 @@
 .vtPlitka--ship .vtPlitka__teg { color: var(--vt-green); }
 .vtPlitka__val { font-size: 40px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.1; white-space: nowrap; }
 .vtPlitka__val small { font-size: 20px; font-weight: 700; margin-left: 6px; letter-spacing: -0.01em; }
-.vtPlitka__pod { display: grid; gap: 2px; font-size: 13px; color: var(--vt-muted); line-height: 1.45; margin-top: 8px; }
+/* Ровно две строки одинаковой высоты во всех плитках: только так карточки
+   в ряду совпадают по низу, а не тянутся по самой словоохотливой. */
+.vtPlitka__pod {
+  display: grid; grid-template-rows: repeat(2, 19px); gap: 2px;
+  font-size: 13px; color: var(--vt-muted); line-height: 19px; margin-top: 8px;
+}
+.vtPlitka__pod span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .vtPlitka__pod b { color: var(--vt-text); font-weight: 700; white-space: nowrap; }
 
 /* ── панель ─────────────────────────────────────────────────────────── */
@@ -83,7 +107,7 @@
 .vtBar { position: relative; margin: 100px 0 16px; }
 .vtBar__zhelob {
   display: flex; height: 54px; border-radius: 12px; overflow: hidden;
-  background: repeating-linear-gradient(135deg, #f1f5fb 0 7px, #e7eef8 7px 14px);
+  background: var(--vt-zhelob);
 }
 .vtBar__seg { display: grid; place-items: center; min-width: 0; font-size: 22px; font-weight: 750; color: #fff; }
 .vtBar__seg--ship { background: var(--vt-green); }
@@ -101,7 +125,7 @@
   text-align: center; white-space: nowrap; padding: 4px 8px; border-radius: 9px;
   background: transparent; border: 1px solid transparent; cursor: pointer;
 }
-.vtMetka__podpis:hover { background: #fff; border-color: var(--vt-line); box-shadow: var(--vt-shadow); }
+.vtMetka__podpis:hover { background: var(--vt-card); border-color: var(--vt-line); box-shadow: var(--vt-shadow); }
 .vtMetka--vlevo  .vtMetka__podpis { transform: translateX(calc(-100% - 6px)); text-align: right; }
 .vtMetka--vpravo .vtMetka__podpis { transform: translateX(6px); text-align: left; }
 .vtMetka__t { font-size: 13px; color: var(--vt-muted); }
@@ -116,7 +140,7 @@
 
 .vtItogi {
   display: grid; grid-template-columns: 1fr 1fr; align-items: center;
-  border: 1px solid var(--vt-line); border-radius: 14px; background: #f7fafe;
+  border: 1px solid var(--vt-line); border-radius: 14px; background: var(--vt-itogi);
 }
 @media (max-width: 820px) { .vtItogi { grid-template-columns: 1fr; } }
 .vtItog { display: flex; align-items: center; gap: 12px; padding: 16px 20px; font-size: 15px; color: var(--vt-muted); }
@@ -140,11 +164,11 @@
   padding: 0 14px 10px; border-bottom: 1px solid var(--vt-line); white-space: nowrap;
 }
 .vtTable th:first-child, .vtTable th:nth-child(2) { text-align: left; }
-.vtTable td { padding: 11px 14px; border-bottom: 1px solid #eef3f9; text-align: right; white-space: nowrap; }
+.vtTable td { padding: 11px 14px; border-bottom: 1px solid var(--vt-row-line); text-align: right; white-space: nowrap; }
 .vtTable td:first-child, .vtTable td:nth-child(2) { text-align: left; }
-.vtTable tbody tr:hover td { background: #f6f9fe; }
+.vtTable tbody tr:hover td { background: var(--vt-row-hover); }
 .vtTable tr.is-ship td { background: var(--vt-green-soft); font-weight: 700; }
-.vtTable tr.is-ship:hover td { background: #ddf2e6; }
+.vtTable tr.is-ship:hover td { background: color-mix(in srgb, var(--vt-green) 22%, transparent); }
 
 .vtNum {
   display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%;
@@ -153,7 +177,7 @@
 .is-ship .vtNum { background: var(--vt-green); color: #fff; }
 
 .vtPoloska { display: flex; align-items: center; gap: 12px; min-width: 300px; }
-.vtPoloska i { display: block; height: 18px; border-radius: 5px; background: #8fbcf8; }
+.vtPoloska i { display: block; height: 18px; border-radius: 5px; background: var(--vt-blue); opacity: .6; }
 .is-ship .vtPoloska i { background: var(--vt-green); }
 .vtPoloska b { font-weight: 700; }
 
@@ -172,7 +196,7 @@
 .vtPlan label { display: grid; gap: 5px; font-size: 13px; color: var(--vt-muted); margin-bottom: 12px; }
 .vtPlan input {
   font: inherit; font-size: 15px; color: var(--vt-text); padding: 9px 12px;
-  border: 1px solid var(--vt-line); border-radius: 10px; background: #fbfdff;
+  border: 1px solid var(--vt-line); border-radius: 10px; background: var(--vt-pole);
 }
 .vtPlan__note { font-size: 12px; color: var(--vt-muted); line-height: 1.5; margin: 0 0 8px; }
 .vtPlan__status { font-size: 12.5px; color: var(--vt-muted); min-height: 18px; margin: 0 0 10px; }
@@ -180,7 +204,7 @@
 .vtPlan__knopki { display: flex; justify-content: flex-end; gap: 10px; }
 .vtPlan__knopki button {
   font: inherit; font-size: 14px; padding: 9px 16px; border-radius: 10px; cursor: pointer;
-  border: 1px solid var(--vt-line); background: #fff; color: var(--vt-text);
+  border: 1px solid var(--vt-line); background: var(--vt-pole); color: var(--vt-text);
 }
 .vtPlan__knopki .is-main { background: var(--vt-blue); border-color: var(--vt-blue); color: #fff; font-weight: 650; }
 
