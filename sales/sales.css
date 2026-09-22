@@ -364,15 +364,15 @@ button.total__label:hover { color: #fff; }
 .vtPlitka--plan .vtPlitka__znak { background: var(--vt-amber-soft); color: var(--vt-amber); }
 .vtPlitka--pot  .vtPlitka__znak { background: var(--vt-violet-soft); color: var(--vt-violet); }
 
-.vtPlitka__teg { font-size: 14px; font-weight: 650; color: var(--vt-muted); align-self: center; }
+.vtPlitka__teg { font-size: 15px; font-weight: 650; color: var(--vt-muted); align-self: center; }
 .vtPlitka--ship .vtPlitka__teg { color: var(--vt-green); }
-.vtPlitka__val { font-size: 40px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.1; white-space: nowrap; }
-.vtPlitka__val small { font-size: 20px; font-weight: 700; margin-left: 6px; letter-spacing: -0.01em; }
-/* Ровно две строки одинаковой высоты во всех плитках: только так карточки
-   в ряду совпадают по низу, а не тянутся по самой словоохотливой. */
+.vtPlitka__val { font-size: 44px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.1; white-space: nowrap; }
+.vtPlitka__val small { font-size: 22px; font-weight: 700; margin-left: 6px; letter-spacing: -0.01em; }
+/* Три строки одинаковой высоты во всех плитках: себестоимость, паллеты,
+   окупаемость. Фиксированная сетка держит карточки ряда вровень. */
 .vtPlitka__pod {
-  display: grid; grid-template-rows: repeat(2, 19px); gap: 2px;
-  font-size: 13px; color: var(--vt-muted); line-height: 19px; margin-top: 8px;
+  display: grid; grid-template-rows: repeat(3, 22px); gap: 2px;
+  font-size: 15px; color: var(--vt-muted); line-height: 22px; margin-top: 10px;
 }
 .vtPlitka__pod span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .vtPlitka__pod b { color: var(--vt-text); font-weight: 700; white-space: nowrap; }
@@ -382,7 +382,7 @@ button.total__label:hover { color: #fff; }
   padding: 22px 24px; background: var(--vt-card);
   border: 1px solid var(--vt-line); border-radius: 18px; box-shadow: var(--vt-shadow);
 }
-.vtPanel h2 { margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.02em; }
+.vtPanel h2 { margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.02em; }
 .vtPanel__head { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; flex-wrap: wrap; }
 .vtPravkaPlana { flex: 0 0 auto; }
 .vtHint { margin: 4px 0 0; font-size: 13px; color: var(--vt-muted); }
@@ -395,7 +395,7 @@ button.total__label:hover { color: #fff; }
   display: flex; height: 54px; border-radius: 12px; overflow: hidden;
   background: var(--vt-zhelob);
 }
-.vtBar__seg { display: grid; place-items: center; min-width: 0; font-size: 22px; font-weight: 750; color: #fff; }
+.vtBar__seg { display: grid; place-items: center; min-width: 0; font-size: 26px; font-weight: 750; color: #fff; }
 .vtBar__seg--ship { background: var(--vt-green); }
 .vtBar__seg--work { background: var(--vt-blue); }
 .vtBar__podpis { display: flex; margin-top: 7px; font-size: 13px; color: var(--vt-muted); }
@@ -410,15 +410,20 @@ button.total__label:hover { color: #fff; }
 
 /* Легенда в шапке: цветная точка, подпись и значение. У плана она кликается
    и открывает тот же диалог плана, что кнопка справа. */
-.vtLegenda { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; margin-left: auto; }
+.vtLegenda { display: flex; align-items: center; gap: 10px 22px; flex-wrap: wrap; margin-top: 14px; }
 .vtLeg {
-  display: inline-flex; align-items: center; gap: 7px; font: inherit; font-size: 13px;
-  color: var(--vt-muted); padding: 5px 9px; border: 1px solid transparent; border-radius: 9px;
+  display: inline-flex; align-items: center; gap: 8px; font: inherit; font-size: 15px;
+  color: var(--vt-muted); padding: 6px 10px; border: 1px solid transparent; border-radius: 9px;
   background: transparent;
 }
-.vtLeg b { font-size: 15px; font-weight: 750; color: var(--vt-text); }
-.vtLeg i { width: 9px; height: 9px; border-radius: 50%; background: var(--vt-amber); }
+.vtLeg b { font-size: 18px; font-weight: 750; color: var(--vt-text); }
+.vtLeg i { width: 12px; height: 12px; border-radius: 50%; background: var(--vt-amber); }
 .vtLeg--goal i { background: var(--vt-violet); }
+.vtLeg--ship i { background: var(--vt-green); }
+.vtLeg--ship b { color: var(--vt-green); }
+.vtLeg--work i { background: var(--vt-blue); }
+.vtLeg--work b { color: var(--vt-blue); }
+.vtLeg--pot i { background: transparent; border: 2px solid var(--vt-muted); }
 .vtLeg--goal b { color: var(--vt-violet); }
 .vtLeg--knopka { cursor: pointer; }
 .vtLeg--knopka:hover { border-color: var(--vt-line); background: var(--vt-card); }
@@ -443,28 +448,28 @@ button.total__label:hover { color: #fff; }
 
 /* ── таблица этапов ─────────────────────────────────────────────────── */
 .vtTable { margin-top: 14px; overflow-x: auto; }
-.vtTable table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+.vtTable table { width: 100%; border-collapse: collapse; font-size: 17px; }
 /* У сайта своя тёмная заливка шапок таблиц — на светлой странице её гасим. */
 .vtTable thead, .vtTable thead tr, .vtTable th { background: transparent; }
 .vtTable th {
-  font-size: 12.5px; font-weight: 650; color: var(--vt-muted); text-align: right;
+  font-size: 14px; font-weight: 650; color: var(--vt-muted); text-align: right;
   padding: 0 14px 10px; border-bottom: 1px solid var(--vt-line); white-space: nowrap;
 }
 .vtTable th:first-child, .vtTable th:nth-child(2) { text-align: left; }
-.vtTable td { padding: 11px 14px; border-bottom: 1px solid var(--vt-row-line); text-align: right; white-space: nowrap; }
+.vtTable td { padding: 13px 14px; border-bottom: 1px solid var(--vt-row-line); text-align: right; white-space: nowrap; }
 .vtTable td:first-child, .vtTable td:nth-child(2) { text-align: left; }
 .vtTable tbody tr:hover td { background: var(--vt-row-hover); }
 .vtTable tr.is-ship td { background: var(--vt-green-soft); font-weight: 700; }
 .vtTable tr.is-ship:hover td { background: color-mix(in srgb, var(--vt-green) 22%, transparent); }
 
 .vtNum {
-  display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%;
-  font-size: 12.5px; font-weight: 750; background: var(--vt-blue-soft); color: var(--vt-blue);
+  display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%;
+  font-size: 14px; font-weight: 750; background: var(--vt-blue-soft); color: var(--vt-blue);
 }
 .is-ship .vtNum { background: var(--vt-green); color: #fff; }
 
 .vtPoloska { display: flex; align-items: center; gap: 12px; min-width: 300px; }
-.vtPoloska i { display: block; height: 18px; border-radius: 5px; background: var(--vt-blue); opacity: .6; }
+.vtPoloska i { display: block; height: 22px; border-radius: 5px; background: var(--vt-blue); opacity: .6; }
 .is-ship .vtPoloska i { background: var(--vt-green); }
 .vtPoloska b { font-weight: 700; }
 
@@ -485,6 +490,7 @@ button.total__label:hover { color: #fff; }
   background: var(--vt-blue-soft); color: var(--vt-blue);
 }
 .vtKv__znak svg { width: 22px; height: 22px; }
-.vtKv__teg { font-size: 13px; color: var(--vt-muted); }
-.vtKv__val { font-size: 30px; font-weight: 800; letter-spacing: -0.03em; white-space: nowrap; }
+.vtKv__teg { font-size: 15px; color: var(--vt-muted); }
+.vtKv__val { font-size: 34px; font-weight: 800; letter-spacing: -0.03em; white-space: nowrap; }
 .vtKv__val small { font-size: 17px; font-weight: 700; margin-left: 5px; }
+.vtTable th.vtTable__shkala { text-align: left; }

@@ -369,18 +369,15 @@
     return { prevName: "", dolg: 0 };
   }
 
-  /** Четыре плитки: отгружено, в работе, план, потенциал. */
-  function renderPlitki(v) {
-    // Подпись у всех плиток ровно двухстрочная: иначе карточки в ряду
-    // тянутся по самой высокой и под короткими висит пустота.
-    const planPod = !v.plan ? ["План на месяц", "не задан"]
-      : v.ship >= v.plan
-        ? [`Выполнен на <b>${Math.round((v.ship / v.plan) * 100)}%</b>`, `сверху <b>${dec2(v.ship - v.plan)} млн ₽</b>`]
-        : [`Выполнено <b>${Math.round((v.ship / v.plan) * 100)}%</b>`, `осталось <b>${dec2(v.plan - v.ship)} млн ₽</b>`];
-    const potPod = v.pot >= v.goal
-      ? ["Цель <b>закрывается</b>", `с запасом <b>${dec2(v.pot - v.goal)} млн ₽</b>`]
-      : ["До цели не хватает", `<b>${dec2(v.goal - v.pot)} млн ₽</b>`];
+  /** Окупаемость: сколько процентов себестоимости вернули ценой продажи. */
+  const okupProc = (prodazha, sebes) => sebes > 0 ? `${(prodazha / sebes * 100).toFixed(1).replace(".", ",")}%` : "—";
 
+  /** Четыре плитки: отгружено, в работе, план, потенциал.
+   *
+   * Набор подписей у всех одинаковый — себестоимость, паллеты, окупаемость.
+   * Так плитки читаются как один ряд сравнимых цифр, а не как четыре разных
+   * рассказа: правка Рахманова от 22.09.2026. */
+  function renderPlitki(v) {
     const plitka = ({ mod, znak, teg, val, pod }) => `
       <article class="vtPlitka ${mod || ""}">
         <span class="vtPlitka__znak">${znak}</span>
@@ -388,17 +385,25 @@
         <span class="vtPlitka__val">${val}<small>млн ₽</small></span>
         <span class="vtPlitka__pod">${pod.map((line) => `<span>${line}</span>`).join("")}</span>
       </article>`;
+    const podpisi = (sebes, pallet, okup) => [
+      `себестоимость <b>${dec2(sebes)} млн ₽</b>`,
+      `<b>${number(pallet)}</b> паллет`,
+      `окупаемость <b>${okup}</b>`,
+    ];
 
     const box = document.createElement("div");
     box.className = "vtPlitki";
     box.innerHTML = [
       plitka({ mod: "vtPlitka--ship", znak: VT_IKONKI.korobka, teg: "Отгружено", val: dec2(v.ship),
-        pod: [`<b>${number(v.shipPallets)}</b> паллет`, `окупаемость <b>${decimal(v.shipOkup)}</b>`] }),
+        pod: podpisi(v.shipCost, v.shipPallets, decimal(v.shipOkup)) }),
       plitka({ znak: VT_IKONKI.mishen, teg: "В работе", val: dec2(v.work),
-        pod: [`<b>${number(v.workPallets)}</b> паллет`,
-              `<b>${v.workStages}</b> ${v.workStages === 1 ? "этап" : "этапа"} до отгрузки`] }),
-      plitka({ mod: "vtPlitka--plan", znak: VT_IKONKI.stolbiki, teg: "План месяца", val: dec2(v.plan), pod: planPod }),
-      plitka({ mod: "vtPlitka--pot", znak: VT_IKONKI.rost, teg: "Потенциал", val: dec2(v.pot), pod: potPod }),
+        pod: podpisi(v.workCost, v.workPallets, okupProc(v.work, v.workCost)) }),
+      plitka({ mod: "vtPlitka--plan", znak: VT_IKONKI.stolbiki, teg: "План месяца", val: dec2(v.plan),
+        pod: v.plan
+          ? podpisi(v.planCost, v.planPallets, okupProc(v.plan, v.planCost))
+          : ["план на месяц", "не задан", ""] }),
+      plitka({ mod: "vtPlitka--pot", znak: VT_IKONKI.rost, teg: "Потенциал", val: dec2(v.pot),
+        pod: podpisi(v.potCost, v.potPallets, okupProc(v.pot, v.potCost)) }),
     ].join("");
     return box;
   }
@@ -421,20 +426,21 @@
         <i></i><span class="vtLeg__t">${title}</span><b>${dec2(value)} млн ₽</b>
       </${pravka ? "button" : "span"}>` : "";
 
-    const dolg = v.dolg > 0
-      ? `Цель с отставанием: план <b>${dec2(v.plan)}</b> + долг за ${v.prevName.toLowerCase()} <b>${dec2(v.dolg)} млн ₽</b>`
-      : `Прошлый месяц закрыт, отставания нет: цель равна плану — <b>${dec2(v.goal)} млн ₽</b>`;
-
     const panel = document.createElement("section");
     panel.className = "vtPanel";
+    // Под полосой больше ничего нет: все четыре величины названы в легенде
+    // сверху, включая цвета сегментов. Правка Рахманова от 22.09.2026.
     panel.innerHTML = `
       <div class="vtPanel__head">
         <h2>Путь к цели</h2>
-        <div class="vtLegenda">
-          ${legenda("vtLeg--plan", "План месяца", v.plan, canEditFunnelPlan)}
-          ${legenda("vtLeg--goal", "Цель с отставанием", v.goal)}
-        </div>
         ${canEditFunnelPlan ? '<button type="button" class="action action--secondary vtPravkaPlana">Изменить цель</button>' : ""}
+      </div>
+      <div class="vtLegenda">
+        ${legenda("vtLeg--ship", "Отгружено", v.ship)}
+        ${legenda("vtLeg--work", "В работе", v.work)}
+        ${legenda("vtLeg--plan", "План месяца", v.plan, canEditFunnelPlan)}
+        ${legenda("vtLeg--goal", "Цель с отставанием", v.goal)}
+        ${legenda("vtLeg--pot", "Потенциал", v.pot)}
       </div>
       <div class="vtBar">
         ${metka("", v.plan)}
@@ -443,15 +449,6 @@
           <div class="vtBar__seg vtBar__seg--ship" style="width:${pct(v.ship)}%">${dec2(v.ship)}</div>
           <div class="vtBar__seg vtBar__seg--work" style="width:${pct(v.work)}%">${v.work ? dec2(v.work) : ""}</div>
         </div>
-        <div class="vtBar__podpis">
-          <span style="width:${pct(v.ship)}%">Отгружено</span>
-          <span style="width:${pct(v.work)}%">В работе</span>
-        </div>
-      </div>
-      <div class="vtItogi">
-        <div class="vtItog"><span class="vtItog__znak">${VT_IKONKI.rost}</span>
-          Потенциал при закрытии всех сделок: <b>${dec2(v.pot)} млн ₽</b></div>
-        <div class="vtItog vtItog--net"><span class="vtItog__znak">${VT_IKONKI.mishen}</span>${dolg}</div>
       </div>`;
 
     // План правится прямо с графика — тем же диалогом, что и раньше.
@@ -472,12 +469,11 @@
     panel.innerHTML = `
       <div class="vtPanel__head">
         <h2>Сделки по этапам</h2>
-        <p class="vtHint">Сумма в ценах продаж, млн ₽</p>
       </div>
       <div class="vtTable">
         <table>
           <thead><tr>
-            <th></th><th>Этап</th><th></th>
+            <th></th><th>Этап</th><th class="vtTable__shkala">В ценах продаж, млн ₽</th>
             <th>Лоты</th><th>Паллеты</th><th>Себест., млн ₽</th><th>Окупаемость</th>
           </tr></thead>
           <tbody>${rows.map((r, i) => {
@@ -549,12 +545,17 @@
 
     const v = {
       ship: vMln(shipRow.sale_txt),
+      shipCost: vMln(shipRow.cost_txt),
       shipPallets: shipRow.pallets_txt,
       shipOkup: shipRow.okup_txt,
       work: workRows.reduce((sum, r) => sum + vMln(r.sale_txt), 0),
+      workCost: workRows.reduce((sum, r) => sum + vMln(r.cost_txt), 0),
       workPallets: workRows.reduce((sum, r) => sum + (Number(r.pallets_txt) || 0), 0),
-      workStages: workRows.length,
       pot: vMln(head.total_sale_txt),
+      potCost: vMln(head.total_cost_txt),
+      potPallets: head.total_pallets,
+      planCost: Number(head.plan_cost_raw || 0) / 1e6,
+      planPallets: Number(head.plan_pal_raw || 0),
       plan, prevName, dolg, goal: plan + dolg,
     };
 
