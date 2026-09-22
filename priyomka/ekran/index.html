@@ -7,20 +7,21 @@
   <title>Склад ДМД · обстановка</title>
   <link rel="icon" type="image/svg+xml" href="../../assets/brand/vi-mark.svg">
   <link rel="preload" href="../../assets/fonts/VI_Sans_Regular.woff2" as="font" type="font/woff2" crossorigin>
-  <!-- Только ради шрифта и переменных темы: экран живёт без шапки сайта. -->
+  <!-- Только ради шрифта: экран живёт без шапки сайта. -->
   <link rel="stylesheet" href="../../style.css?v=20260911-3">
-  <link rel="stylesheet" href="ekran.css?v=20260923-1">
+  <link rel="stylesheet" href="ekran.css?v=20260923-2">
   <script src="../cepochka.js?v=20260923-4" defer></script>
-  <script src="ekran.js?v=20260923-1" defer></script>
+  <script src="ekran.js?v=20260923-4" defer></script>
 </head>
 <body class="ekran">
-  <!-- Экран для стены: один взгляд — и видно, где на входе склада горит.
-       Без меню и прокрутки, всё на одном полотне, обновляется само. -->
+  <!-- Карта склада сверху: двор, здание, стена приёмки. Обстановку видно по
+       движению и цвету, а не по цифрам: машины едут точками, товар бежит от
+       ворот внутрь, забитые места краснеют. -->
   <main class="ek">
     <header class="ekShapka">
       <div class="ekShapka__imya">
         <img src="../../assets/brand/vi-mark.svg" alt="" width="34" height="34">
-        <div><b>Склад Домодедово</b><span>обстановка на входе · от шлагбаума до ячейки</span></div>
+        <div><b>Склад Домодедово</b><span>вход: от шлагбаума до ячейки</span></div>
       </div>
       <div class="ekStatus" id="ekStatus">загружаю…</div>
       <div class="ekVremya">
@@ -30,29 +31,13 @@
       <button type="button" class="ekPolnyi" id="ekPolnyi" title="Во весь экран">⛶</button>
     </header>
 
-    <section class="ekCep" id="ekCep" aria-label="Цепочка входа"></section>
-
-    <section class="ekSeredina">
-      <div class="ekBlok ekKarta">
-        <h2>Схема входа <span id="ekKartaPod"></span></h2>
-        <div class="ekKarta__holst" id="ekKarta"></div>
-        <p class="ekLegenda">Толщина линий: двор → ворота — машин встало на ворота за последний час;
-          ворота → приёмка — поступило за сутки; приёмка → сектор — ждёт размещения дольше 48 часов.
-          Тёмное кольцо вокруг зоны приёмки — доля товара, который лежит дольше недели.</p>
-      </div>
-      <aside class="ekBlok ekTrevogi">
-        <h2>Тревоги</h2>
-        <ol id="ekTrevogi"></ol>
-      </aside>
-    </section>
+    <section class="ekKarta" id="ekKarta" aria-label="Карта склада"></section>
 
     <section class="ekNiz">
-      <div class="ekBlok ekOchered">
-        <h2>Двор сейчас <span id="ekOcheredPod"></span></h2>
-        <div class="ekMashiny" id="ekMashiny"></div>
-      </div>
-      <div class="ekBlok ekKrivaya">
-        <h2>Очередь у ворот за сутки <span class="ekKrivaya__leg"><i class="is-segodnya"></i>сегодня <i class="is-vchera"></i>вчера <i class="is-vorota"></i>на воротах</span></h2>
+      <ol class="ekTrevogi" id="ekTrevogi" aria-label="Тревоги"></ol>
+      <div class="ekKrivaya">
+        <div class="ekKrivaya__zag">очередь у ворот за сутки
+          <span><i class="is-segodnya"></i>сегодня <i class="is-vchera"></i>вчера</span></div>
         <div class="ekKrivaya__holst" id="ekKrivaya"></div>
       </div>
     </section>
