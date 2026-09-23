@@ -43,7 +43,7 @@
 }
 .salesHead .periodBox .periodLabel { display: none; }
 .salesHead .periodBox select { min-width: 132px; }
-#funnelRefresh { min-height: 36px; padding: 7px 12px; white-space: nowrap; }
+#funnelRefresh, #voronkaVChat { min-height: 36px; padding: 7px 12px; white-space: nowrap; }
 
 .salesHistoryView { display: grid; gap: 16px; font-family: var(--ui); }
 .salesHistoryToolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px 22px; flex-wrap: wrap; }
