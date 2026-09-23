@@ -212,7 +212,7 @@
   // Колонки, которые нужны всегда. Остальные открываются кнопкой «Все
   // колонки»: они нужны при разборе конкретного лота, а не при просмотре.
   const GLAVNYE = ["nomer", "data_vystavleniya", "menedzher", "ka", "status",
-                   "ploshchadka", "cena_otgruzki", "cena_sbs", "okup",
+                   "ploshchadka", "cena_otgruzki", "cena_sbs", "okup", "pallet",
                    "nedelya_plan", "kommentariy"];
   const GLAVNYE_SCHETOV = ["lot", "menedzher", "ka", "data_zaprosa", "status_lota",
                            "operator", "status_operatora", "data_gotovnosti",
@@ -674,6 +674,16 @@
    * размещении её не заполняют, зато есть стартовая. Берём что есть и честно
    * помечаем, что это старт, иначе половина доски выглядит как «цены нет».
    */
+  /* Паллеты лота прямо на карточке — просьба продаж 23.09: «добавить инфу по
+     кол-ву паллет, чтобы не проваливаться в сам лот». Убранные из лота
+     вычитаем: на карточке нужно, сколько поедет. */
+  function palletLota(z) {
+    const vsego = Number(z.pallet) || 0;
+    const ubrano = Number(z.pallet_ubrano) || 0;
+    return { skolko: Math.max(0, vsego - ubrano), ubrano };
+  }
+  const palletTekst = (n) => `${chislo(n)} ${sklonenie(n, "паллета", "паллеты", "паллет")}`;
+
   function dengiLota(z) {
     if (z.cena_otgruzki !== null && z.cena_otgruzki !== undefined && z.cena_otgruzki !== "") {
       return { summa: Number(z.cena_otgruzki), start: false };
@@ -718,6 +728,8 @@
       <p class="crmKarta__ka">${escape(z.ka || "контрагент не указан")}</p>
       <p class="crmKarta__dengi">
         <b>${summa ? chislo(summa) + " ₽" + (start ? " старт" : "") : "цены нет"}</b>
+        ${palletLota(z).skolko ? `<span class="crmKarta__pallet" title="${palletLota(z).ubrano
+          ? "убрано из лота " + palletLota(z).ubrano : "паллет в лоте"}">${palletTekst(palletLota(z).skolko)}</span>` : ""}
         <span class="crmOkup${klassOkupa(okup.znachenie)}">${
           okup.znachenie ? dolya(okup.znachenie) + (okup.start ? " ст" : "") : "—"}</span>
       </p>
@@ -756,7 +768,10 @@
       shapka.innerHTML = `<p class="crmStolbec__imya">${
         escape(status.replace(/^\d+\.\s*/, ""))}</p>
         <p class="crmStolbec__svod"><b>${svoi.length}</b>${
-          summa ? " · " + chislo(summa) + " ₽" : ""}</p>`;
+          summa ? " · " + chislo(summa) + " ₽" : ""}${(() => {
+            const n = svoi.reduce((s, z) => s + palletLota(z).skolko, 0);
+            return n ? " · " + palletTekst(n) : "";
+          })()}</p>`;
       stolbec.appendChild(shapka);
 
       const mesto = document.createElement("div");

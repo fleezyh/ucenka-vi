@@ -112,6 +112,7 @@
 .crmKarta__dengi { margin: 6px 0 0; display: flex; justify-content: space-between;
   align-items: baseline; gap: 8px; font-size: 12.5px; }
 .crmOkup { font-size: 11.5px; color: var(--muted, #8f9cad); }
+.crmKarta__pallet { margin-right: auto; margin-left: 6px; font-size: 11.5px; color: #c9d6e6; white-space: nowrap; }
 .crmOkup--horosho { color: #7ee2a8; }
 .crmOkup--sredne { color: #f0c479; }
 .crmOkup--ploho { color: #f0788a; }

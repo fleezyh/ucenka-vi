@@ -146,3 +146,7 @@ body.is-svetlo .ctSvyaz, body.is-svetlo .ctSvyazKn { background: #fff; }
    Ни ExtraBold, ни тонкого Regular: иерархия — размером и цветом. */
 .crmTest main * { font-weight: 600 !important; }
 .crmTest main :is(input, textarea, select)::placeholder { font-weight: 500 !important; }
+
+/* Паллеты лота — рядом с суммой, по колонке — под суммой этапа. */
+.ctKarta__pallet { color: #c9d6e6; font-size: 12px; white-space: nowrap; }
+.ctShapkaEtapa__pallet { margin: 2px 0 0; color: var(--muted); font-size: 12px; }
