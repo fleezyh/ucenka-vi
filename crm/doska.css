@@ -207,3 +207,28 @@ body.ctSvyazOtkryt .ctSvyazKn { display: none; }
 .ctSvyaz__messendzher p { margin: 0 0 12px; }
 .ctSvyaz__messendzher .crmKn { display: inline-block; margin-bottom: 12px; text-decoration: none; }
 .ctMessendzher__okno { height: calc(100vh - 220px); margin-bottom: 12px; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+
+/* Крупнее на доске (23.09: «слабо читается»). Всё +1,5–2 px; фиксированные
+   высоты строк подняты вместе со шрифтом, колонки чуть шире — карточки
+   остаются одинаковыми. */
+.crmTest .crmStolbec { flex-basis: 290px; width: 290px; min-width: 290px; max-width: 290px; }
+.crmTest .ctShapkaEtapa__imya { font-size: 15px; }
+.crmTest .ctShapkaEtapa__summa { font-size: 22px; }
+.crmTest .ctKarta { padding: 10px 12px 9px; }
+.crmTest .ctKarta__verh { height: 21px; line-height: 21px; }
+.crmTest .ctKarta__nomer { font-size: 15px; }
+.crmTest .ctKarta__dni { font-size: 12.5px; }
+.crmTest .ctKarta__ka { height: 42px; line-height: 21px; font-size: 14px; }
+.crmTest .crmKarta__cifry i { font-size: 12px; }
+.crmTest .crmKarta__cifry b { font-size: 15px; line-height: 23px; }
+.crmTest .crmKarta__cifry .crmOkup { font-size: 15px; }
+.crmTest .ctKarta__pallet { font-size: 14px; }
+.crmTest .crmKarta__daty { height: 25px; font-size: 13.5px; }
+.crmTest .crmKarta__nedelya { font-size: 13.5px; }
+.crmTest .ctKarta__kto { height: 40px; line-height: 20px; font-size: 13.5px; }
+.crmTest .ctKarta .ctMetki { height: 24px; }
+.crmTest .ctKarta .ctMetka { font-size: 12px; line-height: 20px; }
+.crmTest .ctMetki__chisto { font-size: 12.5px; line-height: 24px; }
+.crmTest .ctKarta__kn { font-size: 13px; padding: 6px 6px; }
+.crmTest .ctDelo { font-size: 13.5px; }
+.crmTest .ctDelo i { font-size: 12.5px; }

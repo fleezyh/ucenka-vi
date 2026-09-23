@@ -1776,6 +1776,66 @@
     return null;
   }
 
+  /** Новый контрагент прямо из CRM (23.09: «нет функции добавить нового КА»).
+   *  Сервер держит его через утреннюю перезаливку из книги продаж, пока в
+   *  книге не появится то же имя. */
+  function otkrytNovogoKa() {
+    const ya = (dannye.кто && dannye.кто.имя) || "";
+    const menedzhery = spisokPolya("menedzher") || [];
+    const polya = [
+      { pole: "ka", imya: "Название", nuzhno: true, mesto: "как в договоре или как зовём" },
+      { pole: "yur_lico", imya: "Юрлицо", mesto: "ООО «…»" },
+      { pole: "inn", imya: "ИНН", mesto: "10 или 12 цифр" },
+      { pole: "menedzher", imya: "Менеджер", spisok: menedzhery },
+      { pole: "kontakty", imya: "Телефон и имя", mesto: "Иванов Иван, 7 900 000 00 00" },
+      { pole: "email", imya: "Почта", mesto: "mail@example.ru" },
+      { pole: "telegram", imya: "Телеграм", mesto: "@username" },
+      { pole: "whatsapp", imya: "WhatsApp", mesto: "79000000000" },
+      { pole: "region", imya: "Регион", mesto: "Москва" },
+      { pole: "zametka", imya: "Заметка", mesto: "откуда пришёл, что берёт", shirokoe: true },
+    ];
+    el("crmOknoDoc").innerHTML = `
+      <div class="crmOkno__top">
+        <span class="crmOkno__teg">Новый контрагент</span>
+        <div class="crmOkno__act"><button class="crmKn" type="button" data-zakryt>Закрыть</button></div>
+      </div>
+      <h2>Новый контрагент</h2>
+      <p class="crmPodskazka">Появится в базе сразу. Когда его внесут в книгу продаж, данные возьмутся оттуда, а контакты отсюда сохранятся.</p>
+      <form class="crmForma" id="crmFormaKa">${polya.map((p) => `
+        <label class="crmPole${p.shirokoe ? " crmPole--shirokoe" : ""}"><span>${escape(p.imya)}</span>${p.spisok
+          ? `<select name="${p.pole}"><option value=""></option>${p.spisok.map((s) =>
+              `<option${s === ya ? " selected" : ""}>${escape(s)}</option>`).join("")}</select>`
+          : `<input name="${p.pole}" placeholder="${escape(p.mesto || "")}"${p.nuzhno ? " required" : ""}>`}</label>`).join("")}
+        <div class="crmForma__niz">
+          <button class="crmKn crmKn--glav" type="submit">Добавить</button>
+          <span class="crmOtvet" id="crmOtvetKa"></span>
+        </div>
+      </form>`;
+    el("crmOkno").hidden = false;
+    el("crmFormaKa").querySelector("input").focus();
+    el("crmFormaKa").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const otvet = el("crmOtvetKa");
+      const knopka = event.target.querySelector("button[type=submit]");
+      knopka.disabled = true;
+      otvet.textContent = "добавляю…";
+      const polyaFormy = Object.fromEntries(new FormData(event.target).entries());
+      const zapros = await fetch("/__crm/obshchenie", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ действие: "новый_ка", поля: polyaFormy }),
+      });
+      if (!zapros.ok) {
+        const oshibka = await zapros.json().catch(() => ({}));
+        otvet.textContent = oshibka.ошибка || "не добавился";
+        knopka.disabled = false;
+        return;
+      }
+      otvet.textContent = "добавлен";
+      await zagruzit();
+      setTimeout(() => { el("crmOkno").hidden = true; }, 500);
+    });
+  }
+
   function otkrytFormu(z) {
     const est = z || {};
     // Новый лот сразу с сегодняшней датой и собой в менеджерах: это почти
@@ -2776,6 +2836,7 @@
     el("crmKto").hidden = baza || zadachi || pochta || sverkaVid;
     if (el("crmSklad")) el("crmSklad").hidden = el("crmKto").hidden;
     el("crmNovyy").hidden = baza || zadachi || pochta || sverkaVid;
+    if (el("crmNovyyKa")) el("crmNovyyKa").hidden = !baza;
     el("crmNabor").hidden = doska || zadachi || pochta || sverkaVid;
     el("crmNabor").textContent = vseKolonki ? "Главные колонки" : "Все колонки";
 
@@ -2914,6 +2975,7 @@
       });
     }
     el("crmNovyy").addEventListener("click", () => otkrytFormu(null));
+    el("crmNovyyKa")?.addEventListener("click", otkrytNovogoKa);
 
     // Боковая панель «Связь»: почту грузим, когда её впервые открыли.
     let pochtaZagruzhena = false;
