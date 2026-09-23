@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CRM продаж · старая версия · Уценка</title>
+  <link rel="icon" type="image/svg+xml" href="../../assets/brand/vi-mark.svg">
+  <link rel="preload" href="../../assets/fonts/VI_Sans_Regular.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="../../style.css?v=20260921-1">
+  <link rel="stylesheet" href="../../perf/perf.css?v=20260921-2">
+  <link rel="stylesheet" href="../crm.css?v=20260923-8">
+  <link rel="stylesheet" href="../../reeded-bg.css?v=20260907-6">
+  <link rel="stylesheet" href="../../site-header.css?v=20260921-1">
+  <script src="../../reeded-bg.js?v=20260906-7" defer></script>
+  <script src="crm.js?v=20260923-9" defer></script>
+  <script src="../../nav.js?v=20260921-1" defer></script>
+</head>
+<body data-mode="perf">
+  <main class="shell">
+    <header class="topbar">
+      <a class="brand" href="../../" aria-label="Уценка — главная">
+        <img class="brand__mark" src="../../assets/brand/vi-mark.svg" alt="" width="36" height="36">
+        <span>Уценка</span>
+      </a>
+      <nav class="siteNav" aria-label="Разделы сайта">
+        <span class="navGroup">
+          <span class="navGroup__label">Уценка</span>
+          <a class="navLink" href="../../antigen/">Антигенерация</a>
+          <a class="navLink" href="../../heatmap/">Хитмап</a>
+          <a class="navLink" href="../../sales/">Продажи</a>
+          <a class="navLink" href="../../perf/">Производительность</a>
+        </span>
+        <span class="navGroup">
+          <span class="navGroup__label">Инструменты</span>
+          <a class="navLink" href="../../picker/">Пикалка</a>
+        </span>
+      </nav>
+    </header>
+
+    <section class="heroPerf">
+      <div>
+        <p class="eyebrow">Продажи</p>
+        <h1>CRM продаж</h1>
+        <p class="lead">Доска воронки: карточку тащат мышью в соседний статус.
+          В таблице правится прямо в ячейке, Ctrl+Z возвращает назад.</p>
+      </div>
+      <div class="perfTools">
+        <nav class="perfViews" aria-label="Раздел продаж">
+          <a class="perfView" href="../../sales/">Остатки и отгрузки</a>
+          <a class="perfView" href="../../sales/analitika/">Аналитика отгрузок</a>
+          <a class="perfView is-on" href="../" aria-current="page">CRM продаж</a>
+        </nav>
+        <p class="stamp" id="stamp"></p>
+      </div>
+    </section>
+
+    <p class="message" id="message">Загружаю…</p>
+
+    <section class="crmPlitki" id="crmPlitki" hidden></section>
+
+    <section class="crmVoronka" id="crmVoronka" hidden></section>
+
+    <section class="crmPanel" id="crmPanel" hidden>
+      <nav class="crmVidy" aria-label="Что показываем">
+        <button class="crmVid is-on" type="button" data-vid="doska">Доска</button>
+        <button class="crmVid" type="button" data-vid="loty">Таблица</button>
+        <button class="crmVid" type="button" data-vid="scheta">Счета</button>
+        <button class="crmVid" type="button" data-vid="ka">База КА</button>
+        <button class="crmVid" type="button" data-vid="zadachi">Задачи</button>
+        <button class="crmVid" type="button" data-vid="pochta">Почта</button>
+        <button class="crmVid" type="button" data-vid="sverka">Сверка</button>
+        <button class="crmVid crmVid--tumbler" type="button" id="crmVoronkaKn">План продаж</button>
+        <button class="crmKolokol" type="button" id="crmKolokol" hidden></button>
+        <button class="crmTema" type="button" id="crmTema">Светлая тема</button>
+      </nav>
+      <div class="crmGorit" id="crmGorit"></div>
+      <div class="crmPanel__head">
+        <div class="crmFiltry" id="crmFiltry"></div>
+        <div class="crmPanel__act">
+          <select class="crmVybor" id="crmKto" aria-label="Менеджер"></select>
+          <select class="crmVybor" id="crmSklad" aria-label="Склад"></select>
+          <input class="crmPoisk" id="crmPoisk" type="search" placeholder="Поиск: лот, КА, комментарий">
+          <button class="crmKn" type="button" id="crmNabor" hidden>Все колонки</button>
+          <button class="crmKn crmKn--glav" type="button" id="crmNovyy">Новый лот</button>
+        </div>
+      </div>
+      <p class="crmSchyot" id="crmSchyot"></p>
+      <div class="crmDoska" id="crmDoska"></div>
+      <div class="crmTabl" id="crmTabl"></div>
+      <div class="crmZadachi" id="crmZadachi" hidden></div>
+      <div class="crmPochtaVid" id="crmPochtaVid" hidden></div>
+      <div class="crmSverka" id="crmSverka" hidden></div>
+    </section>
+
+    <div class="crmOkno" id="crmOkno" hidden>
+      <div class="crmOkno__fon" id="crmOknoFon"></div>
+      <article class="crmOkno__doc" role="dialog" aria-modal="true" id="crmOknoDoc"></article>
+    </div>
+  </main>
+</body>
+</html>

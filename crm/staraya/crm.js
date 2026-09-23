@@ -1,9 +1,4 @@
-/* CRM продаж — ТЕСТОВАЯ версия (/crm/test/): доска как рабочее место.
- *
- * Копия /crm/crm.js с новой доской, метками и следующим шагом на карточке.
- * Боевую не трогает; когда тест примут — заменит её.
- *
- * CRM продаж: простыня лотов и счетов, создание и правка лота.
+/* CRM продаж: простыня лотов и счетов, создание и правка лота.
  *
  * Данные приходят одним куском (около двух тысяч строк) и фильтруются на
  * странице: так фильтры срабатывают мгновенно и не дёргают сервер на каждый
@@ -322,17 +317,7 @@
       otbor: (z) => String(z.status || "").startsWith("6.") && (dney(z) || 0) > 7 },
     { klyuch: "polovina", imya: "Отгружен наполовину", chto: "физика и система разошлись",
       otbor: (z) => /^[89]\./.test(String(z.status || "")) },
-    { klyuch: "bezdaty", imya: "Оплата пришла, даты нет", klass: "is-siniy",
-      chto: "деньги в банке есть, в лоте дата оплаты пустая — поставьте дату",
-      otbor: (z) => lotyBezDaty().has(String(z.nomer)) },
-    { klyuch: "bezshaga", imya: "Нет задачи по лоту", klass: "is-seryy",
-      chto: "лот в работе, а дела по нему нет — про него забудут",
-      otbor: (z) => aktivnyy(z) && !lotySDelom().has(String(z.nomer || "")) },
   ];
-  OCHEREDI[0].klass = "is-krasnyy";
-  OCHEREDI[1].klass = "is-krasnyy";
-  OCHEREDI[2].klass = "is-siniy";
-  OCHEREDI[3].klass = "is-zhyoltyy";
 
   const BEZ_SKLADA = "__bez";
 
@@ -364,148 +349,6 @@
     return daty.length ? `${data(daty[0])} — ${data(daty.at(-1))}` : "";
   }
 
-  /* --- Тест: доска как рабочее место ----------------------------------------
-     Со встречи 23.09: «сделать crm удобнее и конкретнее». Доска — главный
-     экран, на карточке метки вместо цифр и следующее действие одной кнопкой,
-     сверху — что сделать сегодня. Сверка и план по людям ушли из вкладок:
-     полезное из сверки («оплата пришла, даты нет») стало очередью дел. */
-
-  // Цвет этапа — от холодного к тёплому по ходу сделки, оплата зелёная.
-  const CVET_ETAPA = {
-    "1. Лот размещается": "#8093ad",
-    "2. Лот разыгран - перег": "#4d8df7",
-    "3. Заключение договора": "#5f7df5",
-    "4. Подготовка заказов": "#7b6cf2",
-    "5. Подготовка счетов": "#a58dff",
-    "6. Счета выставлены": "#f5ad32",
-    "7. Оплачен": "#27c46b",
-    "8. Отгружен физически": "#22b3a3",
-    "9. Отгружен(системно)": "#1f9fc9",
-  };
-
-  // Подпись кнопки «дальше» — глаголом покороче: полное имя этапа на
-  // карточку не влезает («Лот разыгран - перег»).
-  const KRATKO = {
-    "2. Лот разыгран - перег": "разыгран",
-    "3. Заключение договора": "договор",
-    "4. Подготовка заказов": "заказы",
-    "5. Подготовка счетов": "счета",
-    "6. Счета выставлены": "счёт",
-    "7. Оплачен": "оплачен",
-    "8. Отгружен физически": "отгружен",
-    "9. Отгружен(системно)": "в системе",
-    "10.Отгружен ФИЗ и СИСТ": "закрыть",
-  };
-
-  const mlnS = (v) => ((Number(v) || 0) / 1e6).toLocaleString("ru-RU",
-    { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " млн";
-  const segodnyaIso = () => new Date().toISOString().slice(0, 10);
-  const imyaEtapa = (s) => String(s || "").replace(/^\d+\.\s*/, "");
-
-  /** Номера лотов, по которым деньги в банке есть, а даты оплаты в доске нет. */
-  function lotyBezDaty() {
-    return new Set(((sverka || {}).без_даты_оплаты || []).map((z) => String(z.лот)));
-  }
-
-  /** Лоты, у которых есть открытое дело. */
-  function lotySDelom() {
-    return new Set((((dannye.задачи || {}).задачи) || [])
-      .filter((z) => !z.готово && z.лот).map((z) => String(z.лот)));
-  }
-
-  function delaLota(z) {
-    return (((dannye.задачи || {}).задачи) || [])
-      .filter((d) => !d.готово && String(d.лот || "") === String(z.nomer || ""));
-  }
-
-  /** Куда лот идёт дальше: соседний этап справа, после девятого — конец. */
-  function sleduyushchiy(status) {
-    const i = RABOCHIE.indexOf(status);
-    if (i < 0) return null;
-    return i === RABOCHIE.length - 1 ? KONEC : RABOCHIE[i + 1];
-  }
-
-  /** Метки карточки: то, из-за чего на лот надо посмотреть. Не больше двух: на карточке одна строка меток. */
-  function metkiLota(z) {
-    const metki = [];
-    const d = dney(z) || 0;
-    const st = String(z.status || "");
-    const dela = delaLota(z);
-    if (dela.some((x) => x.просрочена)) metki.push(["дело просрочено", "is-krasnyy"]);
-    if (!String(z.menedzher || "").trim()) metki.push(["без менеджера", "is-krasnyy"]);
-    if (st.startsWith("6.") && d > 7) metki.push([`оплаты нет ${d}д`, "is-zhyoltyy", "счёт выставлен, оплаты нет больше недели"]);
-    if (st.startsWith("7.")) metki.push(["отгрузить", "is-siniy"]);
-    // Никита часто спрашивает про недели отгрузки. Со счёта и до отгрузки она
-    // должна стоять; раньше её ещё не знают, после — уже не нужна.
-    if (/^[567]\./.test(st) && !String(z.nedelya_plan || "").trim()) {
-      metki.push(["нет недели", "is-zhyoltyy", "у лота в работе не стоит неделя отгрузки — клик по «Отгрузка» на карточке"]);
-    }
-    if (lotyBezDaty().has(String(z.nomer))) metki.push(["дата оплаты?", "is-siniy", "деньги в банке есть, в лоте дата оплаты пустая"]);
-    if (d > 30) metki.push([`стоит ${d} дн`, "is-krasnyy"]);
-    else if (d > 14) metki.push([`стоит ${d} дн`, "is-zhyoltyy"]);
-    if (!dela.length && aktivnyy(z)) metki.push(["нет задачи", "is-seryy", "по лоту не заведено ни одной задачи — нажмите «+ дело»"]);
-    if (!dengiLota(z).summa) metki.push(["нет цены", "is-seryy"]);
-    return metki.slice(0, 2);
-  }
-
-  async function sohranitLot(z, polya, soobshchenie) {
-    soobshchit(soobshchenie);
-    const bylo = z.status;
-    try {
-      const otvet = await fetch("/__crm/lot", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: z.id, nomer: z.nomer, ...polya }),
-      });
-      const itog = await otvet.json();
-      if (!otvet.ok) throw new Error(itog.ошибка || "не сохранилось");
-      Object.assign(z, itog);
-      if (polya.status) {
-        z.status_s = new Date().toISOString();
-        otmena.push({ id: z.id, nomer: z.nomer, pole: "status", bylo });
-      }
-      narisovat();
-    } catch (e) {
-      soobshchit("Не сохранилось: " + (e.message || e));
-    }
-  }
-
-  /** Следующий шаг одной кнопкой. Оплату отмечаем вместе с датой — иначе
-      сверка потом снова найдёт «деньги есть, даты нет». */
-  function dalshe(z) {
-    const kuda = sleduyushchiy(z.status);
-    if (!kuda) return;
-    if (kuda === KONEC && !confirm(`Лот ${z.nomer} отгружен физически и в системе?`)) return;
-    const polya = { status: kuda };
-    if (kuda.startsWith("7.") && !z.data_oplaty) polya.data_oplaty = segodnyaIso();
-    sohranitLot(z, polya, `Лот ${z.nomer}: ${imyaEtapa(kuda)}`);
-  }
-
-  function novoeDelo(z) {
-    const tekst = prompt(`Что сделать по лоту ${z.nomer}?`, "");
-    if (!tekst || !tekst.trim()) return;
-    const moyo = (dannye.кто && dannye.кто.имя) || "";
-    poslatZadachu({
-      tekst: tekst.trim(), menedzher: z.menedzher || moyo,
-      srok: segodnyaIso(), vremya: null, lot: z.nomer,
-    });
-  }
-
-  /** Счета лота — прямо в карточке, отдельная вкладка им больше не нужна. */
-  function blokSchetov(z) {
-    const scheta = (dannye.счета || []).filter((s) => String(s.lot || "") === String(z.nomer || ""));
-    if (!scheta.length) return "";
-    return `<div class="ctScheta">
-      <p class="crmZadZag">Счета · ${scheta.length}</p>
-      ${scheta.map((s) => `<div class="ctSchet">
-        <span class="crmStatus ${klassStatusa(s.status_operatora)}">${escape(s.status_operatora || "без статуса")}</span>
-        <span>${escape(s.operator || "оператор не назначен")}</span>
-        <span>${s.data_zaprosa ? "запрошен " + data(s.data_zaprosa) : ""}${
-          s.data_gotovnosti ? " · готов " + data(s.data_gotovnosti) : ""}</span>
-        ${s.ssylka_na_schet ? `<a href="${escape(s.ssylka_na_schet)}" target="_blank" rel="noopener">счёт ↗</a>` : ""}
-      </div>`).join("")}
-    </div>`;
-  }
-
   /** Шапка CRM — выполнение плана за месяц, а не счётчики лотов.
    *
    * Правка от 21.09: «верхний блок виджетов бессмысленен, вместо него нужно
@@ -514,28 +357,74 @@
    */
   function narisovatPlitki() {
     const p = dannye.план || {};
+    const mesyac = p.месяц || "";
+    const loty = (dannye.лоты || []).filter((z) => (z.mesyac_otgruzki || "") === mesyac);
+    const otgruzheno = loty.filter((z) => String(z.status || "").startsWith("10"));
+    const v_rabote = loty.filter((z) => {
+      const s = String(z.status || "");
+      return s && !s.startsWith("10") && !s.startsWith("Снят");
+    });
+    const okupy = otgruzheno.map((z) => Number(z.okup) || 0).filter((x) => x > 0);
+    const sredniy = okupy.length ? okupy.reduce((a, b) => a + b, 0) / okupy.length : 0;
+    const sbs = otgruzheno.reduce((n, z) => n + (Number(z.cena_sbs) || 0), 0);
+
     const fakt = Number(p.факт) || 0;
     const rabota = Number(p.в_работе) || 0;
     const plan = Number(p.план) || 0;
-    const procent = plan ? Math.round(100 * fakt / plan) : 0;
-    const sRabotoy = plan ? Math.min(100 - Math.min(100, procent), Math.round(100 * rabota / plan)) : 0;
-    el("crmPlitki").innerHTML = `
-      <span class="ctPlan__zag">${escape(p.месяц || "")}</span>
-      <b class="ctPlan__fakt">${mlnS(fakt)}</b>
-      <button class="ctPlan__iz" type="button" id="ctPlanPravka" title="Клик — поставить план месяца">${
-        plan ? "из " + mlnS(plan) : "план не задан"}</button>
-      ${plan ? `<span class="ctPlan__polosa"><i style="width:${Math.min(100, procent)}%"></i><i class="is-rabota"
-        style="width:${sRabotoy}%"></i></span>
-      <b class="ctPlan__proc ${procent >= 100 ? "is-ok" : ""}">${procent}%</b>` : ""}
-      <span class="ctPlan__pod">в работе ещё ${mlnS(rabota)}</span>`;
+    const procent = plan ? Math.round(100 * fakt / plan) : null;
+    const sRabotoy = plan ? Math.round(100 * (fakt + rabota) / plan) : null;
+
+    // Карточка с полосой: сверху значение, снизу выполнение плана.
+    const kartochka = ({ zag, znak, pod, polosy = [] }) => `
+      <article class="crmItog">
+        <p class="crmItog__zag">${escape(zag)}</p>
+        <b class="crmItog__znak">${escape(znak)}</b>
+        ${pod ? `<p class="crmItog__pod">${escape(pod)}</p>` : ""}
+        ${polosy.map((x) => `
+          <div class="crmItog__stroka">
+            <span>${escape(x.imya)}</span>
+            <span class="crmItog__proc ${x.klass || ""}">${escape(x.znachenie)}</span>
+          </div>
+          <div class="crmItog__polosa">
+            <i class="${x.klass || ""}" style="width:${Math.max(0, Math.min(100, x.shirina || 0))}%"></i>
+          </div>`).join("")}
+      </article>`;
+
+    el("crmPlitki").innerHTML = [
+      kartochka({
+        zag: `Продажи · ${mesyac}`,
+        znak: `${chislo(fakt)} ₽`,
+        pod: plan ? `план ${chislo(plan)} ₽` : "план не задан — поставьте в блоке «План продаж»",
+        polosy: plan ? [
+          { imya: "выполнение", znachenie: `${procent}%`, shirina: procent,
+            klass: procent >= 100 ? "is-horosho" : "is-malo" },
+          { imya: "с тем, что в работе", znachenie: `${sRabotoy}%`, shirina: sRabotoy,
+            klass: sRabotoy >= 100 ? "is-horosho" : "is-rabota" },
+        ] : [],
+      }),
+      kartochka({
+        zag: "Осталось до плана",
+        znak: plan ? `${chislo(Math.max(0, plan - fakt))} ₽` : "—",
+        pod: plan
+          ? (fakt >= plan ? "план закрыт" : `в работе ${chislo(rabota)} ₽ — хватит с запасом`)
+          : "появится, когда будет план",
+        polosy: [],
+      }),
+      kartochka({
+        zag: "В работе",
+        znak: `${chislo(rabota)} ₽`,
+        pod: `${chislo(v_rabote.length)} ${sklonenie(v_rabote.length, "лот", "лота", "лотов")} не отгружены`,
+        polosy: [],
+      }),
+      kartochka({
+        zag: "Окупаемость месяца",
+        znak: dolya(sredniy),
+        pod: `${chislo(otgruzheno.length)} ${sklonenie(otgruzheno.length, "лот", "лота", "лотов")} отгружено`
+             + (sbs ? ` · себестоимость ${chislo(sbs)} ₽` : ""),
+        polosy: [],
+      }),
+    ].join("");
     el("crmPlitki").hidden = false;
-    el("ctPlanPravka").addEventListener("click", async () => {
-      const otvet = prompt(`План продаж на ${p.месяц}, ₽`, plan ? String(Math.round(plan)) : "");
-      if (otvet === null) return;
-      const summa = otvet.replace(/\s/g, "");
-      await obnovitPlan({ месяц: p.месяц, менеджер: null,
-                          сумма: summa === "" ? null : Number(summa.replace(/[^\d.]/g, "")) });
-    });
   }
 
   // План продаж на месяц: план, отгружено, в работе — и то же по людям.
@@ -626,7 +515,6 @@
     if (!otvet.ok) return;
     dannye.план = await otvet.json();
     narisovatPlan();
-    narisovatPlitki();
   }
 
   function narisovatFiltry() {
@@ -750,30 +638,24 @@
    * браться. Клик по очереди оставляет на доске и в таблице только её лоты.
    */
   function narisovatGorit() {
+    const loty = dannye.лоты || [];
     const uzel = el("crmGorit");
     if (!uzel) return;
-    const kto = filtry.menedzher || "";
-    const dela = (((dannye.задачи || {}).задачи) || [])
-      .filter((z) => !z.готово && (!kto || (z.менеджер || "") === kto));
-    const sklad = filtry.region || "";
-    const loty = (dannye.лоты || []).filter((z) => (!kto || (z.menedzher || "") === kto)
-      && (!sklad || (sklad === BEZ_SKLADA ? !String(z.region || "").trim()
-                                          : String(z.region || "") === sklad)));
-    const punkty = [
-      { klyuch: "__prosr", imya: "дела просрочены", chislo: dela.filter((z) => z.просрочена).length, klass: "is-krasnyy" },
-      { klyuch: "__segodnya", imya: "дела на сегодня", chislo: dela.filter((z) => z.на_сегодня && !z.просрочена).length, klass: "is-siniy" },
-      ...OCHEREDI.map((o) => {
-        const svoi = loty.filter(o.otbor);
-        return { klyuch: o.klyuch, imya: o.imya.toLowerCase(), chto: o.chto, chislo: svoi.length,
-                 summa: svoi.reduce((n, z) => n + dengiLota(z).summa, 0), klass: o.klass || "" };
-      }),
-    ].filter((x) => x.chislo);
-    uzel.innerHTML = `<span class="ctDela__zag">Сегодня</span>` + (punkty.length ? punkty.map((x) => `
-      <button class="ctDelo ${x.klass}${ochered === x.klyuch ? " is-on" : ""}" type="button"
-              data-ochered="${x.klyuch}" title="${escape(x.chto || "")}">
-        <b>${x.chislo}</b><span>${escape(x.imya)}</span>${x.summa ? `<i>${mlnS(x.summa)}</i>` : ""}
-      </button>`).join("") : '<span class="ctDela__chisto">всё чисто — срочного нет</span>')
-      + (ochered ? '<button class="ctDelo ctDelo--sbros" type="button" data-ochered="">× показать все</button>' : "");
+    const knopki = OCHEREDI.map((o) => {
+      const svoi = loty.filter(o.otbor);
+      const summa = svoi.reduce((n, z) => n + dengiLota(z).summa, 0);
+      const pusto = svoi.length === 0;
+      return `<button class="crmOchered${ochered === o.klyuch ? " is-on" : ""}${
+        pusto ? " is-pusto" : ""}" type="button" data-ochered="${o.klyuch}"
+        title="${escape(o.chto)}">
+        <span class="crmOchered__imya">${escape(o.imya)}</span>
+        <b class="crmOchered__chislo">${svoi.length}</b>
+        <span class="crmOchered__summa">${summa ? chislo(summa) + " ₽" : "—"}</span>
+      </button>`;
+    }).join("");
+    uzel.innerHTML = knopki
+      + (ochered ? '<button class="crmOchered crmOchered--sbros" type="button"'
+                 + ' data-ochered="">Показать все</button>' : "");
   }
 
   /* --- Доска воронки ------------------------------------------------------
@@ -938,35 +820,15 @@
 
   function kartaLota(z) {
     const karta = document.createElement("article");
-    karta.className = "crmKarta ctKarta";
+    karta.className = "crmKarta";
     karta.draggable = true;
     karta.dataset.id = z.id;
-    const kuda = sleduyushchiy(z.status);
-    const metki = metkiLota(z);
-    karta.innerHTML = teloKarty(z) + `
-      <div class="ctMetki">${metki.length ? metki.map(([t, k, pod]) =>
-        `<span class="ctMetka ${k}"${pod ? ` title="${escape(pod)}"` : ""}>${escape(t)}</span>`).join("") : '<span class="ctMetki__chisto">без замечаний</span>'}</div>
-      <div class="ctKarta__niz">
-        <button class="ctKarta__kn" type="button" data-delo title="Завести дело по лоту">+ дело</button>
-        ${kuda ? `<button class="ctKarta__kn ctKarta__kn--dalshe" type="button" data-dalshe
-          title="Перевести в «${escape(imyaEtapa(kuda))}»">→ ${escape(KRATKO[kuda] || imyaEtapa(kuda).toLowerCase())}</button>` : ""}
-      </div>`;
+    karta.innerHTML = teloKarty(z);
 
     karta.querySelector("[data-nedelya]").addEventListener("click", (event) => {
       event.stopPropagation();
       postavitNedelyu(z);
     });
-    karta.querySelector("[data-delo]").addEventListener("click", (event) => {
-      event.stopPropagation();
-      novoeDelo(z);
-    });
-    const knDalshe = karta.querySelector("[data-dalshe]");
-    if (knDalshe) {
-      knDalshe.addEventListener("click", (event) => {
-        event.stopPropagation();
-        dalshe(z);
-      });
-    }
     karta.addEventListener("dragstart", (event) => {
       event.dataTransfer.setData("text/plain", String(z.id));
       event.dataTransfer.effectAllowed = "move";
@@ -993,15 +855,15 @@
       // когда лот делает следующий шаг.
       stolbec.className = "crmStolbec" + (svoi.length ? "" : " crmStolbec--tonkiy");
       stolbec.dataset.status = status;
-      stolbec.style.setProperty("--c", CVET_ETAPA[status] || "#8093ad");
       const shapka = document.createElement("header");
-      shapka.className = "crmStolbec__shapka ctShapkaEtapa";
-      shapka.innerHTML = `<p class="ctShapkaEtapa__imya">${escape(imyaEtapa(status))}
-          <span>${svoi.length}</span></p>
-        <p class="ctShapkaEtapa__summa">${summa ? chislo(summa) + " ₽" : "—"}</p>${(() => {
-          const n = svoi.reduce((s, z) => s + palletLota(z).skolko, 0);
-          return `<p class="ctShapkaEtapa__pallet">${n ? palletTekst(n) : "паллет нет"}</p>`;
-        })()}`;
+      shapka.className = "crmStolbec__shapka";
+      shapka.innerHTML = `<p class="crmStolbec__imya">${
+        escape(status.replace(/^\d+\.\s*/, ""))}</p>
+        <p class="crmStolbec__svod"><b>${svoi.length}</b>${
+          summa ? " · " + chislo(summa) + " ₽" : ""}</p>${(() => {
+            const n = svoi.reduce((s, z) => s + palletLota(z).skolko, 0);
+            return `<span class="crmStolbec__pallet">${n ? palletTekst(n) : "паллет нет"}</span>`;
+          })()}`;
       stolbec.appendChild(shapka);
 
       const mesto = document.createElement("div");
@@ -1672,7 +1534,7 @@
       </div>
       <h2>${escape(zag)}</h2>
       ${tip === "ka" ? blokLotovKontragenta(z) : ""}
-      ${tip === "lot" ? blokKontragenta(z) + blokDeneg(z) + blokSchetov(z) : ""}
+      ${tip === "lot" ? blokKontragenta(z) + blokDeneg(z) : ""}
       ${tip === "lot" ? '<div class="crmPallety" id="crmPallety"></div>' : ""}
       ${tip === "lot" || tip === "ka" ? '<div class="crmLenta" id="crmLenta"></div>' : ""}
       ${tip === "ka" || (tip === "lot" && z.ka)
@@ -2181,6 +2043,7 @@
           свой: коллеги видят свою переписку, а не вашу.</p>
         <div class="crmObsh__svyaz"><a class="crmSvyaz" href="/__pochta">Подключить ящик</a></div>
       </div>`;
+      el("crmSchyot").textContent = "почта не подключена";
       return;
     }
 
@@ -2229,6 +2092,8 @@
       });
     });
 
+    el("crmSchyot").textContent = `последние ${pisma.length} писем вашего ящика`
+      + " · переписка с контрагентом видна в его карточке";
   }
 
 
@@ -2767,13 +2632,13 @@
     el("crmDoska").hidden = !doska || zadachi || pochta || sverkaVid;
     el("crmTabl").hidden = doska || zadachi || pochta || sverkaVid;
     el("crmZadachi").hidden = !zadachi;
-    // Почта живёт в боковой панели «Связь», вкладки у неё больше нет.
+    el("crmPochtaVid").hidden = !pochta;
     el("crmSverka").hidden = !sverkaVid;
     // На доске фильтр по статусу не нужен — она и есть разрез по статусам.
     // В базе КА статусов нет вовсе, а очереди, выбор менеджера и «новый лот»
     // к ней не относятся: там свой разрез — деньги и договоры.
     el("crmFiltry").hidden = doska || baza || zadachi || pochta || sverkaVid;
-    el("crmGorit").hidden = baza || pochta || sverkaVid;
+    el("crmGorit").hidden = baza || zadachi || pochta || sverkaVid;
     el("crmKto").hidden = baza || zadachi || pochta || sverkaVid;
     if (el("crmSklad")) el("crmSklad").hidden = el("crmKto").hidden;
     el("crmNovyy").hidden = baza || zadachi || pochta || sverkaVid;
@@ -2823,10 +2688,6 @@
       return;
     }
     dannye = await otvet.json();
-    try {
-      const s = await fetch("/data/sverka-deneg.json", { cache: "no-cache" });
-      sverka = s.ok ? await s.json() : null;
-    } catch (oshibka) { sverka = null; }
     el("stamp").textContent = "обновлено " + (dannye.сводка?.обновлено || "");
     narisovat();
     zapustitNapominaniya();
@@ -2871,22 +2732,14 @@
       narisovatTablicu();
     });
     el("crmGorit").addEventListener("click", (event) => {
-      const kn = event.target.closest(".ctDelo");
+      const kn = event.target.closest(".crmOchered");
       if (!kn) return;
       // Повторный клик по той же очереди снимает её: иначе непонятно, как
       // вернуться ко всем лотам.
       const vybor = kn.dataset.ochered || "";
-      if (vybor === "__prosr" || vybor === "__segodnya") {
-        ochered = "";
-        perekluchit("zadachi");
-        narisovat();
-        return;
-      }
       ochered = ochered === vybor ? "" : vybor;
-      // Лоты «оплата пришла, даты нет» почти все уже отгружены — на доске их
-      // нет, дату ставят в таблице.
-      if (ochered === "bezdaty") perekluchit("loty");
-      else if (ochered && vid !== "doska" && vid !== "loty") perekluchit("doska");
+      // Очередь смотрят на доске — туда и переносим, если человек в счетах.
+      if (ochered && vid === "scheta") perekluchit("doska");
       narisovat();
     });
     el("crmNabor").addEventListener("click", () => {
@@ -2915,73 +2768,6 @@
       });
     }
     el("crmNovyy").addEventListener("click", () => otkrytFormu(null));
-
-    // Боковая панель «Связь»: почту грузим, когда её впервые открыли.
-    let pochtaZagruzhena = false;
-    const svyaz = el("ctSvyaz");
-    el("ctSvyazKn").addEventListener("click", () => {
-      svyaz.hidden = !svyaz.hidden;
-      el("ctSvyazKn").classList.toggle("is-on", !svyaz.hidden);
-      // Панель не накрывает страницу, а сдвигает её: доска остаётся видна целиком.
-      document.body.classList.toggle("ctSvyazOtkryt", !svyaz.hidden);
-      if (!svyaz.hidden && !pochtaZagruzhena) {
-        pochtaZagruzhena = true;
-        narisovatPochtuVid();
-      }
-    });
-    el("ctSvyazZakryt").addEventListener("click", () => {
-      svyaz.hidden = true;
-      el("ctSvyazKn").classList.remove("is-on");
-      document.body.classList.remove("ctSvyazOtkryt");
-    });
-    // Мессенджер: сотрудник один раз входит через Яндекс, токен хранится на
-    // сервере. Само окно чатов — официальный виджет Яндекс 360; встанет сюда,
-    // когда админ получит для сайта его идентификатор (serviceId).
-    const narisovatMessendzher = async () => {
-      const mesto = el("ctMessendzher");
-      mesto.innerHTML = '<p class="crmHint">Проверяю…</p>';
-      let st;
-      try {
-        const otvet = await fetch("/__yandex/status", { credentials: "same-origin", cache: "no-store" });
-        if (!otvet.ok) throw new Error();
-        st = await otvet.json();
-      } catch (error) {
-        mesto.innerHTML = '<p class="crmHint">Не получилось узнать, подключён ли Мессенджер.</p>';
-        return;
-      }
-      if (!st["подключён"]) {
-        mesto.innerHTML = `
-          <p>Подключите свой Яндекс Мессенджер — рабочие чаты будут открываться прямо здесь, не уходя из CRM.</p>
-          <a class="crmKn crmKn--glav" href="/__yandex/podklyuchit?nazad=${encodeURIComponent(location.pathname)}">Подключить Мессенджер</a>
-          <p class="crmHint">Войдёте рабочим аккаунтом Яндекс 360 и разрешите доступ к сообщениям. Пароль сайт не видит.</p>`;
-        return;
-      }
-      mesto.innerHTML = `
-        <p>Подключён: <b>${escape(st["яндекс"] || st["имя"] || "")}</b></p>
-        ${st["виджет_готов"] ? '<div class="ctMessendzher__okno" id="ctMessendzherOkno"></div>'
-          : '<p class="crmHint">Окно чатов появится здесь, как только Яндекс 360 выдаст сайту идентификатор виджета — запрос у администратора.</p>'}
-        <button class="crmKn" type="button" data-otklyuchit>Отключить</button>`;
-      mesto.querySelector("[data-otklyuchit]").addEventListener("click", async () => {
-        if (!confirm("Отключить Мессенджер от CRM?")) return;
-        await fetch("/__yandex/otklyuchit", { method: "POST", credentials: "same-origin" });
-        narisovatMessendzher();
-      });
-    };
-    const pokazatVkladku = (vid) => {
-      svyaz.querySelectorAll("[data-svyaz]").forEach((x) => x.classList.toggle("is-on", x.dataset.svyaz === vid));
-      el("crmPochtaVid").hidden = vid !== "pochta";
-      el("ctMessendzher").hidden = vid !== "messendzher";
-      if (vid === "messendzher") narisovatMessendzher();
-    };
-    svyaz.querySelectorAll("[data-svyaz]").forEach((kn) => {
-      kn.addEventListener("click", () => pokazatVkladku(kn.dataset.svyaz));
-    });
-    // Вернулись из Яндекса после подключения — сразу показываем Мессенджер.
-    if (location.hash === "#svyaz") {
-      history.replaceState(null, "", location.pathname + location.search);
-      el("ctSvyazKn").click();
-      pokazatVkladku("messendzher");
-    }
     el("crmOkno").addEventListener("click", (event) => {
       if (event.target.id === "crmOknoFon" || event.target.hasAttribute("data-zakryt")) {
         el("crmOkno").hidden = true;

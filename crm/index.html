@@ -5,17 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>CRM продаж · Уценка</title>
   <link rel="icon" type="image/svg+xml" href="../assets/brand/vi-mark.svg">
-  <link rel="preload" href="../assets/fonts/VI_Sans_Regular.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="../assets/fonts/VI_Sans_DemiBold.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="../style.css?v=20260921-1">
   <link rel="stylesheet" href="../perf/perf.css?v=20260921-2">
   <link rel="stylesheet" href="crm.css?v=20260923-8">
+  <link rel="stylesheet" href="doska.css?v=20260923-14">
   <link rel="stylesheet" href="../reeded-bg.css?v=20260907-6">
   <link rel="stylesheet" href="../site-header.css?v=20260921-1">
   <script src="../reeded-bg.js?v=20260906-7" defer></script>
-  <script src="crm.js?v=20260923-9" defer></script>
+  <script src="crm.js?v=20260923-17" defer></script>
   <script src="../nav.js?v=20260921-1" defer></script>
 </head>
-<body data-mode="perf">
+<body data-mode="perf" class="crmTest">
+  <!-- CRM продаж: доска как рабочее место. С 23.09.2026 — основная версия
+       (до этого жила в /crm/test/). Прежняя CRM оставлена в /crm/staraya/. -->
   <main class="shell">
     <header class="topbar">
       <a class="brand" href="../" aria-label="Уценка — главная">
@@ -37,60 +40,66 @@
       </nav>
     </header>
 
-    <section class="heroPerf">
-      <div>
-        <p class="eyebrow">Продажи</p>
+    <div class="ctShapka">
+      <div class="ctShapka__imya">
         <h1>CRM продаж</h1>
-        <p class="lead">Доска воронки: карточку тащат мышью в соседний статус.
-          В таблице правится прямо в ячейке, Ctrl+Z возвращает назад.</p>
+        <span class="ctTest"><a href="staraya/">старая версия</a></span>
       </div>
-      <div class="perfTools">
-        <nav class="perfViews" aria-label="Раздел продаж">
-          <a class="perfView" href="../sales/">Остатки и отгрузки</a>
-          <a class="perfView" href="../sales/analitika/">Аналитика отгрузок</a>
-          <a class="perfView is-on" href="./" aria-current="page">CRM продаж</a>
-        </nav>
-        <p class="stamp" id="stamp"></p>
-      </div>
-    </section>
+      <div class="ctPlan" id="crmPlitki"></div>
+      <p class="stamp" id="stamp"></p>
+    </div>
 
     <p class="message" id="message">Загружаю…</p>
 
-    <section class="crmPlitki" id="crmPlitki" hidden></section>
-
     <section class="crmVoronka" id="crmVoronka" hidden></section>
 
-    <section class="crmPanel" id="crmPanel" hidden>
-      <nav class="crmVidy" aria-label="Что показываем">
-        <button class="crmVid is-on" type="button" data-vid="doska">Доска</button>
-        <button class="crmVid" type="button" data-vid="loty">Таблица</button>
-        <button class="crmVid" type="button" data-vid="scheta">Счета</button>
-        <button class="crmVid" type="button" data-vid="ka">База КА</button>
-        <button class="crmVid" type="button" data-vid="zadachi">Задачи</button>
-        <button class="crmVid" type="button" data-vid="pochta">Почта</button>
-        <button class="crmVid" type="button" data-vid="sverka">Сверка</button>
-        <button class="crmVid crmVid--tumbler" type="button" id="crmVoronkaKn">План продаж</button>
-        <button class="crmKolokol" type="button" id="crmKolokol" hidden></button>
-        <button class="crmTema" type="button" id="crmTema">Светлая тема</button>
-      </nav>
-      <div class="crmGorit" id="crmGorit"></div>
-      <div class="crmPanel__head">
-        <div class="crmFiltry" id="crmFiltry"></div>
+    <section class="crmPanel ctPanel" id="crmPanel" hidden>
+      <div class="ctVerh">
+        <nav class="crmVidy ctVidy" aria-label="Что показываем">
+          <button class="crmVid is-on" type="button" data-vid="doska">Доска</button>
+          <button class="crmVid" type="button" data-vid="zadachi">Дела</button>
+          <button class="crmVid" type="button" data-vid="loty">Таблица</button>
+          <button class="crmVid" type="button" data-vid="ka">Контрагенты</button>
+        </nav>
         <div class="crmPanel__act">
           <select class="crmVybor" id="crmKto" aria-label="Менеджер"></select>
           <select class="crmVybor" id="crmSklad" aria-label="Склад"></select>
           <input class="crmPoisk" id="crmPoisk" type="search" placeholder="Поиск: лот, КА, комментарий">
           <button class="crmKn" type="button" id="crmNabor" hidden>Все колонки</button>
-          <button class="crmKn crmKn--glav" type="button" id="crmNovyy">Новый лот</button>
+          <button class="crmKn crmKn--glav" type="button" id="crmNovyy">+ Лот</button>
+          <button class="crmKolokol" type="button" id="crmKolokol" hidden></button>
+          <button class="crmTema" type="button" id="crmTema">Светлая тема</button>
         </div>
       </div>
+      <div class="ctDela" id="crmGorit"></div>
+      <div class="crmPanel__head">
+        <div class="crmFiltry" id="crmFiltry"></div>
+      </div>
       <p class="crmSchyot" id="crmSchyot"></p>
-      <div class="crmDoska" id="crmDoska"></div>
+      <div class="crmDoska ctDoska" id="crmDoska"></div>
       <div class="crmTabl" id="crmTabl"></div>
       <div class="crmZadachi" id="crmZadachi" hidden></div>
-      <div class="crmPochtaVid" id="crmPochtaVid" hidden></div>
       <div class="crmSverka" id="crmSverka" hidden></div>
     </section>
+
+    <!-- Связь — боковой панелью, как виджет мессенджера на сайте: почта уже
+         работает, мессенджер встанет сюда же, когда дадут доступ к API. -->
+    <button class="ctSvyazKn" id="ctSvyazKn" type="button" title="Почта и мессенджер">
+      <span aria-hidden="true">✉</span> Связь
+    </button>
+    <aside class="ctSvyaz" id="ctSvyaz" hidden aria-label="Почта и мессенджер">
+      <header class="ctSvyaz__shapka">
+        <nav class="ctSvyaz__vidy">
+          <button class="is-on" type="button" data-svyaz="pochta">Почта</button>
+          <button type="button" data-svyaz="messendzher">Мессенджер</button>
+        </nav>
+        <button class="ctSvyaz__zakryt" id="ctSvyazZakryt" type="button" title="Закрыть">×</button>
+      </header>
+      <div class="ctSvyaz__telo">
+        <div class="crmPochtaVid" id="crmPochtaVid"></div>
+        <div class="ctSvyaz__messendzher" id="ctMessendzher" hidden></div>
+      </div>
+    </aside>
 
     <div class="crmOkno" id="crmOkno" hidden>
       <div class="crmOkno__fon" id="crmOknoFon"></div>
