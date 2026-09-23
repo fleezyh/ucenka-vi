@@ -850,3 +850,18 @@
         problems.length ? "error" : "");
   });
 })();
+
+// Кнопки «В чат»: снимок блока уходит в канал через бота — то, что по утрам
+// кидают в «Дашборд Продажа Уценка» руками. Без бота или прав кнопок нет.
+(function () {
+  if (!window.Snimok) return;
+  const mesyac = () => document.getElementById("month")?.selectedOptions[0]?.textContent || "";
+  window.Snimok.podklyuchit(document.getElementById("voronkaVChat"), {
+    oblast: () => [document.getElementById("blokVoronka")],
+    podpis: () => `Воронка отгрузок · ${mesyac()}`,
+  });
+  window.Snimok.podklyuchit(document.getElementById("ostatkiVChat"), {
+    oblast: () => [document.getElementById("blokOstatki")],
+    podpis: () => "Остатки паллет",
+  });
+})();
