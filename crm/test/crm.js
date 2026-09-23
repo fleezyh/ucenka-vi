@@ -2890,13 +2890,54 @@
       el("ctSvyazKn").classList.remove("is-on");
       document.body.classList.remove("ctSvyazOtkryt");
     });
-    svyaz.querySelectorAll("[data-svyaz]").forEach((kn) => {
-      kn.addEventListener("click", () => {
-        svyaz.querySelectorAll("[data-svyaz]").forEach((x) => x.classList.toggle("is-on", x === kn));
-        el("crmPochtaVid").hidden = kn.dataset.svyaz !== "pochta";
-        el("ctMessendzher").hidden = kn.dataset.svyaz !== "messendzher";
+    // Мессенджер: сотрудник один раз входит через Яндекс, токен хранится на
+    // сервере. Само окно чатов — официальный виджет Яндекс 360; встанет сюда,
+    // когда админ получит для сайта его идентификатор (serviceId).
+    const narisovatMessendzher = async () => {
+      const mesto = el("ctMessendzher");
+      mesto.innerHTML = '<p class="crmHint">Проверяю…</p>';
+      let st;
+      try {
+        const otvet = await fetch("/__yandex/status", { credentials: "same-origin", cache: "no-store" });
+        if (!otvet.ok) throw new Error();
+        st = await otvet.json();
+      } catch (error) {
+        mesto.innerHTML = '<p class="crmHint">Не получилось узнать, подключён ли Мессенджер.</p>';
+        return;
+      }
+      if (!st["подключён"]) {
+        mesto.innerHTML = `
+          <p>Подключите свой Яндекс Мессенджер — рабочие чаты будут открываться прямо здесь, не уходя из CRM.</p>
+          <a class="crmKn crmKn--glav" href="/__yandex/podklyuchit?nazad=${encodeURIComponent(location.pathname)}">Подключить Мессенджер</a>
+          <p class="crmHint">Войдёте рабочим аккаунтом Яндекс 360 и разрешите доступ к сообщениям. Пароль сайт не видит.</p>`;
+        return;
+      }
+      mesto.innerHTML = `
+        <p>Подключён: <b>${escape(st["яндекс"] || st["имя"] || "")}</b></p>
+        ${st["виджет_готов"] ? '<div class="ctMessendzher__okno" id="ctMessendzherOkno"></div>'
+          : '<p class="crmHint">Окно чатов появится здесь, как только Яндекс 360 выдаст сайту идентификатор виджета — запрос у администратора.</p>'}
+        <button class="crmKn" type="button" data-otklyuchit>Отключить</button>`;
+      mesto.querySelector("[data-otklyuchit]").addEventListener("click", async () => {
+        if (!confirm("Отключить Мессенджер от CRM?")) return;
+        await fetch("/__yandex/otklyuchit", { method: "POST", credentials: "same-origin" });
+        narisovatMessendzher();
       });
+    };
+    const pokazatVkladku = (vid) => {
+      svyaz.querySelectorAll("[data-svyaz]").forEach((x) => x.classList.toggle("is-on", x.dataset.svyaz === vid));
+      el("crmPochtaVid").hidden = vid !== "pochta";
+      el("ctMessendzher").hidden = vid !== "messendzher";
+      if (vid === "messendzher") narisovatMessendzher();
+    };
+    svyaz.querySelectorAll("[data-svyaz]").forEach((kn) => {
+      kn.addEventListener("click", () => pokazatVkladku(kn.dataset.svyaz));
     });
+    // Вернулись из Яндекса после подключения — сразу показываем Мессенджер.
+    if (location.hash === "#svyaz") {
+      history.replaceState(null, "", location.pathname + location.search);
+      el("ctSvyazKn").click();
+      pokazatVkladku("messendzher");
+    }
     el("crmOkno").addEventListener("click", (event) => {
       if (event.target.id === "crmOknoFon" || event.target.hasAttribute("data-zakryt")) {
         el("crmOkno").hidden = true;

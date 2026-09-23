@@ -203,3 +203,7 @@ body.is-svetlo .ctKarta__kto { color: #4a5a70; }
 body.ctSvyazOtkryt .shell { width: auto; margin-right: min(440px, 100vw); transition: margin-right .2s ease; }
 body.ctSvyazOtkryt .ctSvyazKn { display: none; }
 .crmTest .ctKarta .ctMetka { font-size: 10.5px; }
+
+.ctSvyaz__messendzher p { margin: 0 0 12px; }
+.ctSvyaz__messendzher .crmKn { display: inline-block; margin-bottom: 12px; text-decoration: none; }
+.ctMessendzher__okno { height: calc(100vh - 220px); margin-bottom: 12px; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
