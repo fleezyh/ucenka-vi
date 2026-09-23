@@ -1311,6 +1311,31 @@
    * цена меняется» — значит правка цены должна быть в один клик из карточки,
    * а не через форму на двадцать полей. Окуп пересчитывает сервер.
    */
+  /** Когда выставлен последний счёт по лоту — как на карточке доски. */
+  function dataScheta(z) {
+    const daty = (dannye.счета || []).filter((s) => String(s.lot || "") === String(z.nomer || ""))
+      .map((s) => s.data_gotovnosti || s.data_prinyatiya || s.data_zaprosa).filter(Boolean).sort();
+    return daty[daty.length - 1] || (String(z.status || "").startsWith("6.") ? z.status_s : "");
+  }
+
+  /** Даты сделки в окне лота: продажи спрашивали 23.09 — «дата оплаты есть,
+      а в выставленном счёте этого не пахнет». Пустая дата оплаты у оплаченного
+      лота подсвечена: её надо поставить. */
+  function blokDat(z) {
+    const st = String(z.status || "");
+    const oplachen = /^([789]|10)\./.test(st);
+    const pole = (imya, znachenie, klass = "") => `<div class="crmDengi__pole">
+          <i>${imya}</i><b class="${klass}">${znachenie}</b></div>`;
+    const schet = dataScheta(z);
+    return `<div class="crmDengi__ryad crmDengi__ryad--daty">
+        ${pole("Лот от", z.data_vystavleniya ? data(z.data_vystavleniya) : "—")}
+        ${pole("Счёт выставлен", schet ? data(schet) : "—")}
+        ${pole("Оплата", z.data_oplaty ? data(z.data_oplaty) : (oplachen ? "дата не стоит" : "—"),
+               !z.data_oplaty && oplachen ? "is-malo" : "")}
+        ${pole("Неделя отгрузки", z.nedelya_plan ? escape(z.nedelya_plan) : "—")}
+      </div>`;
+  }
+
   function blokDeneg(z) {
     const cena = Number(z.cena_otgruzki) || 0;
     const sbs = Number(z.cena_sbs) || 0;
@@ -1343,6 +1368,7 @@
           Сохранить цену
         </button>
       </div>
+      ${blokDat(z)}
       <p class="crmDengi__pod" id="crmCenaOtvet">себестоимость не трогаем — правится только цена,
         окуп пересчитается сам</p>
     </div>`;

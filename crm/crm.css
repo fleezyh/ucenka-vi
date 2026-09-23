@@ -774,3 +774,7 @@ body.is-svetlo .crmPallety__svoy { color: #1d2c42; }
 body.is-svetlo .crmKv > b, body.is-svetlo .crmKv__nedelya { color: #16243a; }
 body.is-svetlo .crmKarta__ka { color: #2f6fd6; }
 body.is-svetlo .crmKv__nedelya.is-net { color: #a86400; }
+
+/* Даты сделки в окне лота: счёт, оплата, неделя отгрузки. */
+.crmDengi__ryad--daty { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+.crmDengi__ryad--daty .crmDengi__pole b { font-size: 14px; }
