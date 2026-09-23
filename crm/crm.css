@@ -44,6 +44,8 @@
 .crmFiltr.crm--v-rabote { color: #f5ad32; border-color: rgba(245,173,50,.4); }
 .crmFiltr.crm--snyat { color: #8f9cad; }
 
+.crmVybor { font: inherit; font-size: 13px; padding: 7px 11px; border-radius: 999px;
+  border: 1px solid rgba(143,156,173,.3); background: #0f172a; color: inherit; }
 .crmPoisk { font: inherit; font-size: 13px; padding: 7px 13px; border-radius: 999px;
   border: 1px solid rgba(143,156,173,.3); background: transparent; color: inherit;
   min-width: 230px; }
@@ -55,7 +57,78 @@
   color: #7ee2a8; font-weight: 600; }
 
 .crmSchyot { font-size: 12px; color: var(--muted, #8f9cad); margin: 10px 0 6px; }
+
+/* Полоса «что горит»: очереди, с которых начинается рабочий день. */
+.crmGorit { display: flex; flex-wrap: wrap; gap: 8px; margin: 2px 0 14px; }
+.crmOchered { cursor: pointer; font: inherit; text-align: left; padding: 8px 13px;
+  border-radius: 12px; border: 1px solid rgba(240,120,138,.35);
+  background: rgba(240,120,138,.08); color: inherit; display: grid;
+  grid-template-columns: auto auto; gap: 0 10px; align-items: baseline; }
+.crmOchered:hover { border-color: rgba(240,120,138,.7); }
+.crmOchered.is-on { background: rgba(240,120,138,.2); border-color: #f0788a; }
+.crmOchered.is-pusto { border-color: rgba(143,156,173,.25);
+  background: transparent; opacity: .55; }
+.crmOchered__imya { font-size: 12px; color: var(--muted, #8f9cad); }
+.crmOchered__chislo { font-size: 17px; font-weight: 700; grid-row: 1 / span 2;
+  grid-column: 2; align-self: center; }
+.crmOchered__summa { font-size: 11.5px; color: var(--muted, #8f9cad); }
+.crmOchered--sbros { border-color: rgba(143,156,173,.35); background: transparent;
+  grid-template-columns: auto; align-items: center; }
+
+/* Доска воронки: колонка — статус, карточка — лот, перетаскиванием меняется
+   статус. Колонки не сжимаются: карточку надо читать, а не угадывать. */
+.crmDoska { display: flex; gap: 12px; overflow-x: auto; padding: 4px 2px 12px;
+  align-items: flex-start; }
+.crmDoska[hidden] { display: none; }
+.crmStolbec { flex: 0 0 236px; border-radius: 14px; padding: 10px;
+  border: 1px solid rgba(143,156,173,.2); background: rgba(10,16,28,.55);
+  max-height: 64vh; display: flex; flex-direction: column; }
+.crmStolbec.is-cel { border-color: #7ee2a8; background: rgba(39,196,107,.1); }
+.crmStolbec__shapka { margin-bottom: 8px; }
+.crmStolbec__imya { margin: 0; font-size: 12.5px; font-weight: 600; }
+.crmStolbec__svod { margin: 2px 0 0; font-size: 11.5px; color: var(--muted, #8f9cad); }
+.crmStolbec__svod b { font-size: 14px; color: #dfe7f2; }
+.crmStolbec__karty { display: flex; flex-direction: column; gap: 8px;
+  overflow-y: auto; padding-right: 2px; }
+.crmStolbec__pusto, .crmStolbec__eshche { margin: 4px 0; font-size: 11.5px;
+  color: var(--muted, #8f9cad); }
+.crmStolbec--tonkiy { flex: 0 0 138px; opacity: .7; }
+.crmStolbec--tonkiy:hover, .crmStolbec--tonkiy.is-cel { opacity: 1; }
+.crmStolbec--itog { flex: 0 0 176px; background: rgba(15,23,42,.3); }
+.crmStolbec__kn { margin-top: 8px; font-size: 12px; padding: 6px 10px; }
+
+.crmKarta { cursor: grab; border-radius: 11px; padding: 9px 10px;
+  border: 1px solid rgba(143,156,173,.22); background: #0e1726; }
+.crmKarta:hover { border-color: rgba(223,231,242,.5); }
+.crmKarta.is-tashchat { opacity: .45; }
+.crmKarta__verh { display: flex; justify-content: space-between; align-items: baseline;
+  gap: 8px; }
+.crmKarta__nomer { font-size: 13px; }
+.crmKarta__dni { font-size: 11px; color: var(--muted, #8f9cad); white-space: nowrap; }
+.crmDni--tak-sebe { color: #f0c479; }
+.crmDni--ploho { color: #f0788a; font-weight: 600; }
+.crmKarta__ka { margin: 5px 0 0; font-size: 12px; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap; }
+.crmKarta__dengi { margin: 6px 0 0; display: flex; justify-content: space-between;
+  align-items: baseline; gap: 8px; font-size: 12.5px; }
+.crmOkup { font-size: 11.5px; color: var(--muted, #8f9cad); }
+.crmOkup--horosho { color: #7ee2a8; }
+.crmOkup--sredne { color: #f0c479; }
+.crmOkup--ploho { color: #f0788a; }
+.crmKarta__niz { margin: 5px 0 0; font-size: 11px; color: var(--muted, #8f9cad);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.crmKarta__niz--net { color: #f0788a; }
+
 .crmTabl { overflow-x: auto; max-height: 62vh; overflow-y: auto; }
+.crmTabl[hidden] { display: none; }
+/* Первая колонка прилипает: иначе при листании вбок не видно, чья строка. */
+.crmTabl td.crmLipkiy, .crmTabl th.crmLipkiy { position: sticky; left: 0; z-index: 2;
+  background: #0f172a; }
+.crmTabl thead th.crmLipkiy { z-index: 3; }
+.crmTabl tbody tr:hover td.crmLipkiy { background: #16223a; }
+.crmSort { cursor: pointer; }
+.crmSort:hover { color: #dfe7f2; }
+.crmSort.is-on { color: #dfe7f2; }
 .crmTabl table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
 .crmTabl th { position: sticky; top: 0; z-index: 1; text-align: left; font-weight: 600;
   font-size: 11px; letter-spacing: .04em; text-transform: uppercase;
@@ -188,3 +261,429 @@
 .crmTabl thead th:first-child { z-index: 3; }
 .crmTabl tbody tr:hover td:first-child { background: #16203400; }
 .crmShapkaGruppy th:first-child { background: #0b1220; }
+
+/* ---- Задачи менеджеров ---------------------------------------------------- */
+
+.crmZadNovaya { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0 16px; }
+.crmZadNovaya input, .crmZadNovaya select {
+  border: 1px solid var(--line, rgba(143,156,173,.25)); border-radius: 9px;
+  background: #101823; color: var(--text, #dfe7f2); font: inherit; font-size: 13px;
+  padding: 7px 10px;
+}
+.crmZadNovaya input[name="tekst"] { flex: 1 1 320px; }
+.crmZadNovaya input[name="lot"] { width: 120px; }
+
+.crmZadSvod { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.crmZadKto {
+  border: 1px solid var(--line, rgba(143,156,173,.25)); border-radius: 12px;
+  background: #101823; color: var(--text, #dfe7f2); font: inherit; cursor: pointer;
+  padding: 8px 12px; text-align: left;
+}
+.crmZadKto:hover { border-color: rgba(240,93,114,.5); }
+.crmZadKto.is-on { border-color: #f05d72; background: rgba(240,93,114,.12); }
+.crmZadKto b { display: block; font-size: 13px; }
+.crmZadKto span { font-size: 11.5px; color: var(--muted, #8f9cad); }
+
+.crmZadSpisok { display: grid; gap: 6px; }
+.crmZadZag { font-size: 12px; color: var(--muted, #8f9cad); margin: 18px 0 8px; }
+
+.crmZad {
+  display: grid; grid-template-columns: 26px 1fr 26px; gap: 10px; align-items: center;
+  border: 1px solid var(--line, rgba(143,156,173,.25)); border-left-width: 3px;
+  border-radius: 10px; padding: 9px 12px; background: #0f1621;
+}
+/* Цвет слева — единственный признак срочности: список читают по диагонали. */
+.crmZad.is-segodnya { border-left-color: #f5ad32; }
+.crmZad.is-prosrochena { border-left-color: #f05d72; }
+.crmZad.is-gotovo { opacity: .55; }
+.crmZad.is-gotovo .crmZad__tekst { text-decoration: line-through; }
+
+.crmZad__gal {
+  width: 22px; height: 22px; border-radius: 7px; cursor: pointer;
+  border: 1px solid var(--line, rgba(143,156,173,.4)); background: transparent;
+  color: #27c46b; font-size: 14px; line-height: 1;
+}
+.crmZad__gal:hover { border-color: #27c46b; }
+.crmZad__tekst { margin: 0; font-size: 13.5px; }
+.crmZad__pod { margin: 2px 0 0; font-size: 11.5px; color: var(--muted, #8f9cad); }
+.crmZad.is-prosrochena .crmZad__srok { color: #f05d72; }
+.crmZad.is-segodnya .crmZad__srok { color: #f5ad32; }
+.crmZad__ubrat {
+  border: 0; background: transparent; color: var(--muted, #8f9cad);
+  font-size: 17px; cursor: pointer; line-height: 1;
+}
+.crmZad__ubrat:hover { color: #f05d72; }
+
+/* ---- Шапка: выполнение плана ---------------------------------------------- */
+/* Похоже на итоги воронки, но не одно и то же: там месяц против плана и цели,
+   здесь — деньги месяца, остаток и то, что ещё может доехать. */
+
+.crmPlitki {
+  display: grid; gap: 10px; margin-bottom: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+}
+.crmItog {
+  border: 1px solid var(--line, rgba(143,156,173,.25)); border-radius: 14px;
+  padding: 13px 15px 14px; background: #0f1621;
+}
+.crmItog__zag { margin: 0 0 6px; font-size: 11px; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--muted, #8f9cad); }
+.crmItog__znak { display: block; font-size: 25px; font-weight: 700; letter-spacing: -.01em; }
+.crmItog__pod { margin: 4px 0 0; font-size: 12px; color: var(--muted, #8f9cad); }
+.crmItog__stroka { display: flex; justify-content: space-between; align-items: baseline;
+  font-size: 11.5px; color: var(--muted, #8f9cad); margin: 10px 0 3px; }
+.crmItog__proc { font-weight: 700; }
+.crmItog__polosa { height: 4px; border-radius: 3px; background: rgba(143,156,173,.18); overflow: hidden; }
+.crmItog__polosa i { display: block; height: 100%; border-radius: 3px; background: #8f9cad; }
+.crmItog__polosa i.is-horosho, .crmItog__proc.is-horosho { background: #27c46b; }
+.crmItog__proc.is-horosho { background: none; color: #27c46b; }
+.crmItog__polosa i.is-malo { background: #f05d72; }
+.crmItog__proc.is-malo { color: #f05d72; }
+.crmItog__polosa i.is-rabota { background: #f5ad32; }
+.crmItog__proc.is-rabota { color: #f5ad32; }
+
+/* Группы по срокам: просрочка наверху, дальше сегодня, завтра, остальное. */
+.crmZadZag.is-prosrochena { color: #f05d72; }
+.crmZadZag.is-segodnya { color: #f5ad32; }
+.crmZadZag.is-vnimanie { color: #a985ff; margin-top: 22px; }
+
+.crmZad { grid-template-columns: 26px 1fr auto auto 26px; }
+.crmZad__lot, .crmZad__perenos {
+  border: 1px solid var(--line, rgba(143,156,173,.25)); border-radius: 8px;
+  background: transparent; color: var(--muted, #8f9cad); font: inherit; font-size: 11.5px;
+  padding: 4px 9px; cursor: pointer; white-space: nowrap;
+}
+.crmZad__lot:hover, .crmZad__perenos:hover { border-color: #4d8df7; color: var(--text, #dfe7f2); }
+.crmZad__perenos { font-size: 14px; padding: 2px 9px; }
+
+.crmZadBez { display: grid; gap: 6px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+.crmZadBez__lot {
+  border: 1px solid rgba(169,133,255,.35); border-radius: 10px; background: #0f1621;
+  color: var(--text, #dfe7f2); font: inherit; text-align: left; padding: 9px 12px; cursor: pointer;
+}
+.crmZadBez__lot:hover { border-color: #a985ff; }
+.crmZadBez__lot b { display: block; font-size: 13px; }
+.crmZadBez__lot span { display: block; font-size: 11.5px; color: var(--muted, #8f9cad); }
+
+/* ---- Контрагент в карточке лота ------------------------------------------- */
+
+.crmKa {
+  border: 1px solid var(--line, rgba(143,156,173,.25)); border-radius: 12px;
+  padding: 11px 13px; margin: 0 0 14px; background: rgba(77,141,247,.06);
+}
+.crmKa__zag { margin: 0 0 3px; font-size: 14px; font-weight: 700; }
+.crmKa__chuzhoy {
+  font-size: 11px; font-weight: 400; color: #f5ad32; border: 1px solid rgba(245,173,50,.4);
+  border-radius: 999px; padding: 1px 8px; margin-left: 6px; vertical-align: 2px;
+}
+.crmKa__stroka { margin: 0; font-size: 12.5px; color: var(--muted, #8f9cad); }
+.crmKa__stroka b { color: var(--text, #dfe7f2); }
+.crmKa__net { margin: 0; font-size: 12.5px; color: var(--muted, #8f9cad); }
+.crmKa__svoystva { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 8px; font-size: 12px; }
+.crmKa__svoystva span { color: var(--text, #dfe7f2); }
+.crmKa__svoystva i { display: block; font-style: normal; font-size: 10.5px;
+  letter-spacing: .05em; text-transform: uppercase; color: var(--muted, #8f9cad); }
+.crmKa__loty { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+.crmKa__lot {
+  border: 1px solid var(--line, rgba(143,156,173,.25)); border-radius: 8px;
+  background: transparent; color: var(--muted, #8f9cad); font: inherit; font-size: 11.5px;
+  padding: 4px 9px; cursor: pointer;
+}
+.crmKa__lot:hover { border-color: #4d8df7; color: var(--text, #dfe7f2); }
+.crmKa__lot.is-etot { border-color: #4d8df7; color: var(--text, #dfe7f2); background: rgba(77,141,247,.12); }
+
+/* ---- Деньги лота и история правок ----------------------------------------- */
+
+.crmDengi {
+  border: 1px solid var(--line, rgba(143,156,173,.25)); border-radius: 12px;
+  padding: 11px 13px; margin: 0 0 14px; background: rgba(39,196,107,.05);
+}
+.crmDengi__ryad { display: flex; gap: 16px; align-items: flex-end; flex-wrap: wrap; }
+.crmDengi__pole i { display: block; font-style: normal; font-size: 10.5px;
+  letter-spacing: .05em; text-transform: uppercase; color: var(--muted, #8f9cad); margin-bottom: 3px; }
+.crmDengi__pole b { font-size: 16px; }
+.crmDengi__pole b.is-horosho { color: #27c46b; }
+.crmDengi__pole b.is-malo { color: #f5ad32; }
+.crmDengi__vvod {
+  border: 1px solid var(--line, rgba(143,156,173,.3)); border-radius: 9px;
+  background: #101823; color: var(--text, #dfe7f2); font: inherit; font-size: 16px;
+  padding: 5px 9px; width: 150px;
+}
+.crmDengi__delta { font-size: 11.5px; color: var(--muted, #8f9cad); }
+.crmDengi__kn { margin-left: auto; }
+.crmDengi__pod { margin: 9px 0 0; font-size: 11.5px; color: var(--muted, #8f9cad); }
+
+.crmIstoriya { margin-top: 16px; }
+.crmIstoriya__zag { font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--muted, #8f9cad); margin: 0 0 8px; }
+.crmIstoriya__spisok { display: grid; gap: 4px; max-height: 260px; overflow-y: auto; }
+.crmIstoriya__stroka {
+  display: grid; grid-template-columns: 130px 1fr auto; gap: 10px; align-items: baseline;
+  font-size: 12px; padding: 5px 8px; border-radius: 8px; background: rgba(143,156,173,.06);
+}
+.crmIstoriya__stroka.is-dengi { background: rgba(39,196,107,.09); }
+.crmIstoriya__pole { color: var(--muted, #8f9cad); }
+.crmIstoriya__kto { color: var(--muted, #8f9cad); font-size: 11px; white-space: nowrap; }
+
+/* ---- Светлая тема ---------------------------------------------------------
+   В разделе много подложек прописано цветом, а не переменной, — переопределяем
+   их одним блоком, чтобы не переписывать всю вёрстку. */
+
+body.is-svetlo .crmItog,
+body.is-svetlo .crmZad,
+body.is-svetlo .crmZadKto,
+body.is-svetlo .crmZadBez__lot,
+body.is-svetlo .crmZadNovaya input,
+body.is-svetlo .crmZadNovaya select,
+body.is-svetlo .crmDengi__vvod,
+body.is-svetlo .crmFiltr,
+body.is-svetlo .crmVygruzka { background: #ffffff; color: var(--text); }
+
+body.is-svetlo .crmKa { background: rgba(77, 141, 247, 0.07); }
+body.is-svetlo .crmDengi { background: rgba(39, 196, 107, 0.08); }
+body.is-svetlo .crmIstoriya__stroka { background: rgba(93, 107, 126, 0.08); }
+body.is-svetlo .crmIstoriya__stroka.is-dengi { background: rgba(39, 196, 107, 0.12); }
+body.is-svetlo .crmItog__polosa { background: rgba(93, 107, 126, 0.18); }
+body.is-svetlo .crmZad__gal { border-color: var(--line); }
+
+/* Кнопка переключения темы в панели видов. */
+.crmTema {
+  margin-left: auto; border: 1px solid var(--line, rgba(143,156,173,.25));
+  border-radius: 9px; background: transparent; color: var(--muted, #8f9cad);
+  font: inherit; font-size: 12.5px; padding: 6px 12px; cursor: pointer;
+}
+.crmTema:hover { border-color: var(--red, #f05d72); color: var(--text); }
+
+/* Общий фон сайта рисует canvas из reeded-bg с !important — в светлом режиме
+   перекрываем его тут же, иначе светлые карточки висят на тёмном полотне. */
+body.is-svetlo { background: var(--bg) !important; }
+body.is-svetlo::after { display: none !important; }
+body.is-svetlo .flowCanvas { display: none; }
+body.is-svetlo .topbar, body.is-svetlo .heroPerf { color: var(--text); }
+body.is-svetlo .crmPanel { background: rgba(255,255,255,.72); }
+body.is-svetlo .crmTabl table { background: #fff; }
+html:has(body.is-svetlo) { background: #eef1f6 !important; }
+body.is-svetlo .perfViews { background: rgba(255,255,255,.9); }
+body.is-svetlo .perfView.is-on { color: #fff; background: var(--red, #f05d72); }
+body.is-svetlo .crmVidy { background: rgba(255,255,255,.9); }
+body.is-svetlo .crmVoronka, body.is-svetlo .crmOkno__doc { background: #fff; }
+body.is-svetlo .crmKarta, body.is-svetlo .crmStolbec { background: #fff; }
+body.is-svetlo .crmPoisk, body.is-svetlo .crmVybor, body.is-svetlo .crmKn { background: #fff; color: var(--text); }
+body.is-svetlo .brand, body.is-svetlo .brand span { color: var(--text); }
+body.is-svetlo .navLink, body.is-svetlo .navGroup__label { color: var(--muted); }
+body.is-svetlo .siteNav { background: rgba(255,255,255,.9); }
+body.is-svetlo .eyebrow { color: var(--green-deep, #0f6b39); }
+
+/* ---- Телефон --------------------------------------------------------------
+   Вкладок стало шесть плюс тумблер плана и кнопка темы — в одну строку на
+   узком экране они не влезают и уезжают за край. Переносим на несколько строк
+   и растягиваем панель на всю ширину. */
+
+@media (max-width: 720px) {
+  .crmVidy { display: flex; flex-wrap: wrap; width: 100%; }
+  .crmVid { padding: 8px 11px; font-size: 12.5px; }
+  .crmTema { margin-left: 0; }
+  .crmPlitki { grid-template-columns: 1fr; }
+  .crmZadNovaya input, .crmZadNovaya select { flex: 1 1 100%; width: auto; }
+  .crmZadNovaya input[name="lot"] { width: auto; }
+  .crmZad { grid-template-columns: 26px 1fr 26px; }
+  .crmZad__lot, .crmZad__perenos { grid-column: 2; justify-self: start; }
+  .crmDengi__ryad { gap: 10px; }
+  .crmDengi__kn { margin-left: 0; width: 100%; }
+  .crmIstoriya__stroka { grid-template-columns: 1fr; gap: 2px; }
+}
+
+/* Активная вкладка в светлой теме: белым по белому её не было видно вовсе. */
+body.is-svetlo .crmVid.is-on { color: #fff; background: var(--red, #f05d72); }
+body.is-svetlo .crmVid { color: var(--muted); }
+body.is-svetlo .crmOchered { background: #fff; }
+body.is-svetlo .crmStolbec__shapka { background: transparent; }
+
+/* ---- Общение с контрагентом ----------------------------------------------- */
+
+.crmObsh, .crmKontakty {
+  border: 1px solid var(--line, rgba(143,156,173,.25)); border-radius: 12px;
+  padding: 12px 14px; margin: 0 0 14px; background: rgba(169,133,255,.06);
+}
+.crmObsh__verh { display: flex; justify-content: space-between; align-items: center;
+  gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.crmObsh__zag { margin: 0; font-size: 11px; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--muted, #8f9cad); }
+.crmObsh__svyaz { display: flex; gap: 6px; flex-wrap: wrap; }
+.crmSvyaz {
+  border: 1px solid rgba(169,133,255,.45); border-radius: 9px; padding: 5px 11px;
+  font-size: 12px; color: var(--text, #dfe7f2); text-decoration: none; white-space: nowrap;
+}
+.crmSvyaz:hover { background: rgba(169,133,255,.16); }
+
+.crmObsh__forma { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.crmObsh__forma select, .crmObsh__forma input {
+  border: 1px solid var(--line, rgba(143,156,173,.25)); border-radius: 9px;
+  background: #101823; color: var(--text, #dfe7f2); font: inherit; font-size: 13px;
+  padding: 6px 9px;
+}
+.crmObsh__forma input { flex: 1 1 260px; }
+
+.crmObsh__spisok { display: grid; gap: 5px; max-height: 300px; overflow-y: auto; }
+.crmObsh__stroka {
+  display: grid; grid-template-columns: 24px 1fr 22px; gap: 8px; align-items: start;
+  padding: 7px 9px; border-radius: 9px; background: rgba(143,156,173,.07);
+}
+.crmObsh__znachok { font-size: 14px; line-height: 1.3; }
+.crmObsh__tekst { margin: 0; font-size: 13px; }
+.crmObsh__pod { margin: 2px 0 0; font-size: 11px; color: var(--muted, #8f9cad); }
+.crmObsh__ubrat { border: 0; background: transparent; color: var(--muted, #8f9cad);
+  font-size: 15px; cursor: pointer; line-height: 1; }
+.crmObsh__ubrat:hover { color: #f05d72; }
+
+.crmKontakty__forma { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 8px; }
+.crmKontakty__forma input {
+  border: 1px solid var(--line, rgba(143,156,173,.25)); border-radius: 9px;
+  background: #101823; color: var(--text, #dfe7f2); font: inherit; font-size: 13px;
+  padding: 6px 9px; width: 100%;
+}
+.crmKontakty__niz { grid-column: 1 / -1; display: flex; gap: 10px; align-items: center; }
+
+body.is-svetlo .crmObsh, body.is-svetlo .crmKontakty { background: rgba(169,133,255,.09); }
+body.is-svetlo .crmObsh__forma select, body.is-svetlo .crmObsh__forma input,
+body.is-svetlo .crmKontakty__forma input { background: #fff; color: var(--text); }
+body.is-svetlo .crmObsh__stroka { background: rgba(93,107,126,.08); }
+
+@media (max-width: 720px) {
+  .crmObsh__forma input, .crmObsh__forma select { flex: 1 1 100%; }
+  .crmKontakty__forma { grid-template-columns: 1fr; }
+}
+
+/* Правимые ячейки помечаем пунктиром: без подсказки их просто не замечали —
+   «не увидел в таблицах выпадающие списки». */
+.crmTabl td.crmPravka { border-bottom: 1px dashed rgba(143,156,173,.35); }
+.crmTabl td.crmPravka:hover { border-bottom-color: var(--blue, #4d8df7); }
+body.is-svetlo .crmTabl td.crmPravka { border-bottom-color: rgba(93,107,126,.4); }
+
+/* Светлая тема для таблицы: шапка, липкая первая колонка и группы колонок
+   были прописаны тёмным цветом и оставались чёрными полосами на белом. */
+body.is-svetlo .crmTabl th,
+body.is-svetlo .crmTabl td.crmLipkiy,
+body.is-svetlo .crmTabl th.crmLipkiy,
+body.is-svetlo .crmTabl th:first-child,
+body.is-svetlo .crmTabl td:first-child { background: #f7f9fc; color: var(--muted); }
+body.is-svetlo .crmShapkaGruppy th,
+body.is-svetlo .crmShapkaGruppy th:first-child { background: #eef2f8; color: #5d6b7e; }
+body.is-svetlo .crmTabl tbody tr:hover { background: rgba(93,107,126,.07); }
+body.is-svetlo .crmTabl tbody tr:hover td.crmLipkiy,
+body.is-svetlo .crmTabl tbody tr:hover td:first-child { background: #eef2f8; }
+body.is-svetlo .crmTabl td { color: var(--text); }
+body.is-svetlo .crmSort:hover, body.is-svetlo .crmSort.is-on { color: var(--text); }
+body.is-svetlo .crmTabl { scrollbar-color: rgba(93,107,126,.5) rgba(238,242,248,.8); }
+body.is-svetlo .crmTabl::-webkit-scrollbar-track { background: rgba(238,242,248,.9); }
+body.is-svetlo .crmTabl::-webkit-scrollbar-thumb { background: rgba(93,107,126,.45); }
+
+/* План продаж: имена менеджеров были светло-серыми на белом. */
+body.is-svetlo .crmPlanStroka__imya,
+body.is-svetlo .crmPlanStroka__pod,
+body.is-svetlo .crmPlanPodval { color: var(--muted); }
+body.is-svetlo .crmPlanStroka__chislo, body.is-svetlo .crmPlanItog__fakt { color: var(--text); }
+body.is-svetlo .crmPlanStroka__polosa, body.is-svetlo .crmPlanPolosa { background: rgba(93,107,126,.15); }
+body.is-svetlo .crmPlanMesyac { background: #fff; color: var(--text); }
+
+/* Письма в карточке контрагента. */
+.crmPochta { border: 1px solid var(--line, rgba(143,156,173,.25)); border-radius: 12px;
+  padding: 12px 14px; margin: 0 0 14px; background: rgba(77,141,247,.05); }
+.crmPismo { padding: 8px 10px; border-radius: 9px; background: rgba(143,156,173,.07);
+  border-left: 3px solid rgba(143,156,173,.4); }
+.crmPismo.is-nashe { border-left-color: #4d8df7; }
+.crmPismo__tema { margin: 0; font-size: 13px; font-weight: 600; }
+.crmPismo__pod { margin: 2px 0 0; font-size: 11px; color: var(--muted, #8f9cad); }
+.crmPismo__tekst { margin: 6px 0 0; font-size: 12px; color: var(--muted, #8f9cad);
+  white-space: pre-wrap; max-height: 90px; overflow: hidden; }
+body.is-svetlo .crmPochta { background: rgba(77,141,247,.08); }
+body.is-svetlo .crmPismo { background: rgba(93,107,126,.08); }
+.crmPochta__poisk { display: flex; gap: 6px; flex: 1 1 260px; }
+.crmPochta__poisk input {
+  flex: 1; border: 1px solid var(--line, rgba(143,156,173,.25)); border-radius: 9px;
+  background: #101823; color: var(--text, #dfe7f2); font: inherit; font-size: 12.5px;
+  padding: 5px 9px;
+}
+body.is-svetlo .crmPochta__poisk input { background: #fff; color: var(--text); }
+
+/* Вкладка «Почта». */
+.crmPochtaVid { display: grid; gap: 12px; }
+.crmPochta__poisk--vid { flex: 1 1 100%; align-items: center; }
+.crmPochta__poisk--vid .crmSvyaz { margin-left: auto; }
+.crmPochta__spisok { max-height: none; }
+
+/* Колокольчик напоминаний в панели видов. */
+.crmKolokol {
+  margin-left: auto; border: 1px solid var(--line, rgba(143,156,173,.25));
+  border-radius: 9px; background: transparent; color: var(--muted, #8f9cad);
+  font: inherit; font-size: 12.5px; padding: 6px 12px; cursor: pointer; white-space: nowrap;
+}
+.crmKolokol.is-est { border-color: #f5ad32; color: var(--text, #dfe7f2); }
+.crmKolokol.is-est b { color: #f5ad32; }
+.crmKolokol span { color: var(--muted, #8f9cad); }
+.crmKolokol + .crmTema { margin-left: 6px; }
+body.is-svetlo .crmKolokol { background: #fff; }
+@media (max-width: 720px) { .crmKolokol { margin-left: 0; } }
+
+/* Чек-листы этапов на вкладке задач. */
+.crmCheklistKn {
+  border: 1px solid var(--line, rgba(143,156,173,.25)); border-radius: 9px;
+  background: transparent; color: var(--muted, #8f9cad); font: inherit; font-size: 12px;
+  padding: 5px 11px; cursor: pointer;
+}
+.crmCheklistKn:hover { border-color: #a985ff; color: var(--text, #dfe7f2); }
+.crmCheklisty { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+.crmCheklist { border: 1px solid var(--line, rgba(143,156,173,.25)); border-radius: 12px;
+  padding: 10px 12px; background: rgba(169,133,255,.05); }
+.crmCheklist__zag { margin: 0 0 8px; font-size: 12px; font-weight: 700; }
+.crmCheklist__stroka { display: grid; grid-template-columns: 24px 1fr auto 22px;
+  gap: 8px; align-items: center; padding: 4px 0; font-size: 12.5px; }
+.crmCheklist__stroka.is-vykl { opacity: .45; }
+.crmCheklist__srok { font-size: 11px; color: var(--muted, #8f9cad); }
+body.is-svetlo .crmCheklist { background: rgba(169,133,255,.08); }
+body.is-svetlo .crmCheklistKn { background: #fff; }
+
+/* Единая лента по клиенту. */
+.crmLenta { border: 1px solid var(--line, rgba(143,156,173,.25)); border-radius: 12px;
+  padding: 12px 14px; margin: 0 0 14px; background: rgba(39,196,107,.04); }
+.crmLenta__spisok { display: grid; gap: 4px; max-height: 320px; overflow-y: auto; }
+.crmLenta__stroka { display: grid; grid-template-columns: 22px 1fr; gap: 8px;
+  align-items: start; padding: 6px 8px; border-radius: 8px; }
+.crmLenta__stroka:nth-child(odd) { background: rgba(143,156,173,.06); }
+.crmLenta__stroka.is-tusklo { opacity: .6; }
+.crmLenta__znachok { font-size: 13px; line-height: 1.4; }
+.crmLenta__tekst { margin: 0; font-size: 12.5px; }
+.crmLenta__pod { margin: 1px 0 0; font-size: 11px; color: var(--muted, #8f9cad); }
+body.is-svetlo .crmLenta { background: rgba(39,196,107,.07); }
+body.is-svetlo .crmLenta__stroka:nth-child(odd) { background: rgba(93,107,126,.07); }
+
+/* На доске фильтры по статусу скрыты — и шапка панели оставляла широкую пустоту
+   слева от поиска. Когда фильтров нет, прижимаем строку действий к левому краю. */
+.crmPanel__head:has(> .crmFiltry[hidden]) { justify-content: flex-start; }
+.crmPanel__head:has(> .crmFiltry[hidden]) .crmPanel__act { margin-left: 0; }
+
+/* Паллеты лота. */
+.crmPallety { border: 1px solid var(--line, rgba(143,156,173,.25)); border-radius: 12px;
+  padding: 12px 14px; margin: 0 0 14px; background: rgba(245,173,50,.05); }
+.crmPallety__spisok { display: grid; gap: 4px; max-height: 260px; overflow-y: auto; margin-bottom: 10px; }
+.crmPallet { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; align-items: center;
+  padding: 6px 9px; border-radius: 9px; background: rgba(143,156,173,.07); }
+.crmPallet--vybor { grid-template-columns: 20px 1fr; cursor: pointer; }
+.crmPallet--vybor .crmPallet__pod { grid-column: 2; }
+.crmPallet__imya { font-size: 12.5px; font-weight: 600; }
+.crmPallet__pod { grid-column: 1 / -1; font-size: 11px; color: var(--muted, #8f9cad); }
+.crmPallety__poisk { display: flex; gap: 6px; flex-wrap: wrap; }
+.crmPallety__poisk input { flex: 1 1 240px; border: 1px solid var(--line, rgba(143,156,173,.25));
+  border-radius: 9px; background: #101823; color: var(--text, #dfe7f2); font: inherit;
+  font-size: 12.5px; padding: 6px 9px; }
+.crmPallety__vybor { margin-top: 10px; }
+body.is-svetlo .crmPallety { background: rgba(245,173,50,.1); }
+body.is-svetlo .crmPallet { background: rgba(93,107,126,.08); }
+body.is-svetlo .crmPallety__poisk input { background: #fff; color: var(--text); }
+
+/* Сверка с банком. */
+.crmSverka { display: grid; gap: 12px; }
+.crmSverka__plitki { display: grid; gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.crmSverka__tabl { max-height: none; }
+.crmSverka__tabl td.crmNum .crmHint { display: block; font-size: 10.5px; }

@@ -746,7 +746,9 @@
     const kto = filtry.menedzher || "";
     const dela = (((dannye.задачи || {}).задачи) || [])
       .filter((z) => !z.готово && (!kto || (z.менеджер || "") === kto));
-    const loty = (dannye.лоты || []).filter((z) => !kto || (z.menedzher || "") === kto);
+    const sklad = filtry.region || "";
+    const loty = (dannye.лоты || []).filter((z) => (!kto || (z.menedzher || "") === kto)
+      && (!sklad || String(z.region || "") === sklad));
     const punkty = [
       { klyuch: "__prosr", imya: "дела просрочены", chislo: dela.filter((z) => z.просрочена).length, klass: "is-krasnyy" },
       { klyuch: "__segodnya", imya: "дела на сегодня", chislo: dela.filter((z) => z.на_сегодня && !z.просрочена).length, klass: "is-siniy" },
@@ -1707,6 +1709,24 @@
     vybor.innerHTML = '<option value="">Все менеджеры</option>'
       + spisok.map((imya) => `<option${imya === teper ? " selected" : ""}>${
         escape(imya)}</option>`).join("");
+
+    // Склад — это «Регион» лота (ДМД, СПБ, НСК…). Попросили продажи 23.09:
+    // «можно сделать фильтр по складу? не нашёл». Сверху — где больше живых лотов.
+    const sklad = el("crmSklad");
+    if (sklad) {
+      const zhivye = new Map();
+      (dannye.лоты || []).forEach((z) => {
+        const r = String(z.region || "").trim();
+        if (!r) return;
+        zhivye.set(r, (zhivye.get(r) || 0) + (aktivnyy(z) ? 1 : 0));
+      });
+      const sklady = [...zhivye.keys()].sort((a, b) =>
+        (zhivye.get(b) - zhivye.get(a)) || a.localeCompare(b, "ru"));
+      const vybran = filtry.region || "";
+      sklad.innerHTML = '<option value="">Все склады</option>'
+        + sklady.map((r) => `<option value="${escape(r)}"${r === vybran ? " selected" : ""}>${
+          escape(r)}${zhivye.get(r) ? ` · ${zhivye.get(r)} в работе` : ""}</option>`).join("");
+    }
   }
 
   /* --- Задачи менеджеров ----------------------------------------------------
@@ -2519,6 +2539,7 @@
     el("crmFiltry").hidden = doska || baza || zadachi || pochta || sverkaVid;
     el("crmGorit").hidden = baza || pochta || sverkaVid;
     el("crmKto").hidden = baza || zadachi || pochta || sverkaVid;
+    if (el("crmSklad")) el("crmSklad").hidden = el("crmKto").hidden;
     el("crmNovyy").hidden = baza || zadachi || pochta || sverkaVid;
     el("crmNabor").hidden = doska || zadachi || pochta || sverkaVid;
     el("crmNabor").textContent = vseKolonki ? "Главные колонки" : "Все колонки";
@@ -2638,6 +2659,10 @@
     });
     el("crmKto").addEventListener("change", (event) => {
       filtry.menedzher = event.target.value;
+      narisovat();
+    });
+    el("crmSklad")?.addEventListener("change", (event) => {
+      filtry.region = event.target.value;
       narisovat();
     });
     el("crmPoisk").addEventListener("input", (event) => {
