@@ -8,12 +8,13 @@
   <link rel="icon" type="image/svg+xml" href="../assets/brand/vi-mark.svg">
   <link rel="preload" href="../assets/fonts/VI_Sans_Medium.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="../style.css?v=20260911-3">
-  <link rel="stylesheet" href="zp.css?v=20260914-8">
+  <link rel="stylesheet" href="zp.css?v=20260923-1">
   <link rel="stylesheet" href="../reeded-bg.css?v=20260907-6">
-  <link rel="stylesheet" href="../site-header.css?v=20260914-2">
+  <link rel="stylesheet" href="../site-header.css?v=20260921-1">
   <script src="../reeded-bg.js?v=20260906-7" defer></script>
-  <script src="zp.js?v=20260914-8" defer></script>
-  <script src="../nav.js?v=20260914-1" defer></script>
+  <script src="svodka.js?v=20260923-1" defer></script>
+  <script src="zp.js?v=20260923-1" defer></script>
+  <script src="../nav.js?v=20260921-1" defer></script>
 </head>
 <body data-mode="zp">
   <main class="shell">
@@ -48,6 +49,7 @@
       <div class="zpTools">
         <nav class="zpViews" id="views" aria-label="Что показать" hidden>
           <button class="zpView is-on" type="button" data-view="me">Моя</button>
+          <button class="zpView" type="button" data-view="svodka" hidden>Сводка</button>
           <button class="zpView" type="button" data-view="team">Панель</button>
         </nav>
         <p class="stamp" id="stamp"></p>
@@ -56,7 +58,8 @@
 
     <p class="message" id="message">Считаю…</p>
 
-    <section class="zpMe" id="me" hidden></section>
+    <section class="zpMe zpMe--concealed" id="me" hidden></section>
+    <section class="zpSvodka" id="svodka" hidden></section>
     <section class="zpTeam" id="team" hidden></section>
 
     <p class="stockNote" id="note" hidden>

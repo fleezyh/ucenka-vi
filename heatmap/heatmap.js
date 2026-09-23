@@ -537,69 +537,318 @@
     return `${day}.${month}`;
   }
 
-  function renderDailyChart(list, ghost = [], fromZero = true) {
-    const width = 1000;
-    const height = 260;
-    // Сверху нужен запас: над самой высокой точкой встаёт её подпись.
-    const padTop = 34;
-    const padBottom = 26;
+  /* ── График по дням ────────────────────────────────────────────────────
+     Как в производительности: линия дня с мягкой заливкой, поверх неё
+     скользящее среднее за неделю, пунктиром медиана, выброс красным и не
+     давит шкалу. Число стоит над каждой точкой: у пика — сверху, у провала —
+     снизу, чтобы подпись не садилась на линию. */
 
-    // Шкалу считаем по обоим рядам: иначе прошлый месяц, который был выше,
-    // уезжает за верхний край и сравнение теряет смысл.
-    const values = list.map((p) => p.значение).concat(ghost.map((p) => p.значение));
+  const DNI_NEDELI = ["вс", "пн", "вт", "ср", "чт", "пт", "сб"];
+
+  function quantile(sorted, q) {
+    if (!sorted.length) return 0;
+    const pos = (sorted.length - 1) * q;
+    const low = Math.floor(pos);
+    return sorted[low + 1] !== undefined
+      ? sorted[low] + (pos - low) * (sorted[low + 1] - sorted[low])
+      : sorted[low];
+  }
+
+  function rolling(values, window) {
+    return values.map((_, index) => {
+      const slice = values.slice(Math.max(0, index - window + 1), index + 1);
+      return slice.reduce((sum, value) => sum + value, 0) / slice.length;
+    });
+  }
+
+  /** Ровные деления шкалы: 0, 0,5 млн, 1 млн — а не 1 601 516. */
+  function niceTicks(low, high, count = 4) {
+    const raw = (high - low || Math.abs(high) || 1) / count;
+    const power = 10 ** Math.floor(Math.log10(raw));
+    const step = [1, 2, 2.5, 5, 10].map((k) => k * power).find((s) => s >= raw * 0.999);
+    const from = Math.floor(low / step + 1e-9) * step;
+    const to = Math.ceil(high / step - 1e-9) * step || step;
+    const ticks = [];
+    for (let v = from; v <= to + step / 2; v += step) ticks.push(Number(v.toPrecision(12)));
+    return { ticks, from, to };
+  }
+
+  /** Плавная линия, которая не уходит за точки (монотонный сплайн): обычная
+      кривая Безье рисовала бы на провале минус там, где его нет. */
+  function smoothPath(pts) {
+    const f = (v) => v.toFixed(1);
+    if (pts.length < 3) return pts.map((p, i) => `${i ? "L" : "M"}${f(p[0])},${f(p[1])}`).join(" ");
+    const n = pts.length;
+    const m = [];
+    for (let i = 0; i < n - 1; i++) m[i] = (pts[i + 1][1] - pts[i][1]) / (pts[i + 1][0] - pts[i][0]);
+    const t = [m[0]];
+    for (let i = 1; i < n - 1; i++) t[i] = m[i - 1] * m[i] <= 0 ? 0 : (m[i - 1] + m[i]) / 2;
+    t[n - 1] = m[n - 2];
+    for (let i = 0; i < n - 1; i++) {
+      if (!m[i]) { t[i] = 0; t[i + 1] = 0; continue; }
+      const a = t[i] / m[i];
+      const b = t[i + 1] / m[i];
+      const s = a * a + b * b;
+      if (s > 9) { const k = 3 / Math.sqrt(s); t[i] = k * a * m[i]; t[i + 1] = k * b * m[i]; }
+    }
+    let d = `M${f(pts[0][0])},${f(pts[0][1])}`;
+    for (let i = 0; i < n - 1; i++) {
+      const h = (pts[i + 1][0] - pts[i][0]) / 3;
+      d += ` C${f(pts[i][0] + h)},${f(pts[i][1] + t[i] * h)} ${f(pts[i + 1][0] - h)},${f(pts[i + 1][1] - t[i + 1] * h)} ${f(pts[i + 1][0])},${f(pts[i + 1][1])}`;
+    }
+    return d;
+  }
+
+  function svgNode(name, attrs, parent) {
+    const node = document.createElementNS(SVG_NS, name);
+    for (const [key, value] of Object.entries(attrs || {})) node.setAttribute(key, value);
+    if (parent) parent.appendChild(node);
+    return node;
+  }
+
+  let dailyTip = null;
+
+  function showDailyTip(html, event) {
+    if (!dailyTip) {
+      dailyTip = document.createElement("div");
+      dailyTip.className = "dtip";
+      document.body.appendChild(dailyTip);
+    }
+    dailyTip.innerHTML = html;
+    dailyTip.hidden = false;
+    const box = dailyTip.getBoundingClientRect();
+    let left = event.clientX + 16;
+    let top = event.clientY - box.height - 14;
+    if (left + box.width > window.innerWidth - 8) left = event.clientX - box.width - 16;
+    if (top < 8) top = event.clientY + 16;
+    dailyTip.style.left = `${Math.max(8, left)}px`;
+    dailyTip.style.top = `${Math.max(8, top)}px`;
+  }
+
+  function hideDailyTip() {
+    if (dailyTip) dailyTip.hidden = true;
+  }
+
+  function dailyGraph(list, ghost, entry, unit, previousLabel) {
+    const flow = !entry.вид;
+    const fromZero = entry.вид !== "уровень";
+    const values = list.map((p) => p.значение);
+    const n = list.length;
+    const sorted = [...values].sort((a, b) => a - b);
+
+    // Выброс не должен сплющивать месяц: если день выше обычного в разы,
+    // потолок ставим по 95-му перцентилю, а сам день рисуем у потолка
+    // красным — число над ним остаётся настоящим.
+    let cap = Infinity;
+    if (flow && n >= 10) {
+      const p90 = quantile(sorted, 0.9);
+      if (p90 > 0 && sorted[n - 1] > p90 * 2.5) {
+        cap = Math.max(quantile(sorted, 0.95) * 1.15, p90 * 1.6);
+      }
+    }
+    const shown = (v) => Math.min(v, cap);
+    const seen = values.map(shown).concat(ghost.map((p) => shown(p.значение)));
+    let low = fromZero ? Math.min(0, ...seen) : Math.min(...seen);
+    let high = fromZero ? Math.max(0, ...seen) : Math.max(...seen);
     // Остаток от нуля не рисуем: резерв гуляет в пределах процента от своих
     // 645 миллионов, и на шкале от нуля это была бы ровная черта.
-    let low = fromZero ? Math.min(...values, 0) : Math.min(...values);
-    let high = fromZero ? Math.max(...values, 0) : Math.max(...values);
-    if (high === low) { high = low + 1; }
-    const span = high - low;
+    if (!fromZero) {
+      const pad = (high - low) * 0.15 || Math.abs(high) * 0.01 || 1;
+      low -= pad;
+      high += pad;
+    }
+    if (high === low) high = low + 1;
+    // Деления ровные, но край шкалы — по данным: иначе ряд до 1,6 млн
+    // рисовался под потолком в 2 млн, и пятая часть графика пустовала.
+    const nice = niceTicks(low, high, 4);
+    const from = fromZero ? nice.from : Math.max(nice.from, low);
+    const to = Math.min(nice.to, high + (high - low) * 0.06);
+    const ticks = nice.ticks.filter((tick) => tick >= from - 1e-9 && tick <= to + 1e-9);
 
-    const x = (i) => (list.length === 1 ? width / 2 : (i / (list.length - 1)) * width);
-    const y = (v) => padTop + (1 - (v - low) / span) * (height - padTop - padBottom);
+    // Подписи: до месяца — строкой над каждой точкой, до четырёх месяцев —
+    // столбиком (так влезают все), дальше — через одну-две, иначе каша.
+    const mode = n <= 31 ? "flat" : n <= 125 ? "tall" : "sparse";
+    const W = 1000;
+    const H = 280;
+    const padTop = mode === "flat" ? 30 : 62;
+    const padBottom = mode === "flat" ? 24 : 10;
+    const padX = n > 1 ? 16 : 0;
+    const x = (i) => (n === 1 ? W / 2 : padX + (i / (n - 1)) * (W - 2 * padX));
+    const y = (v) => padTop + (1 - (shown(v) - from) / (to - from)) * (H - padTop - padBottom);
+    const pct = (v, total) => `${((v / total) * 100).toFixed(3)}%`;
 
-    const svg = document.createElementNS(SVG_NS, "svg");
-    svg.setAttribute("class", "daily__svg");
-    svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
-    svg.setAttribute("preserveAspectRatio", "none");
+    const svg = svgNode("svg", { class: "dgraph__svg", viewBox: `0 0 ${W} ${H}`,
+                                 preserveAspectRatio: "none", "aria-hidden": "true" });
+    const defs = svgNode("defs", {}, svg);
+    const gradient = svgNode("linearGradient", { id: "dgraphFill", x1: 0, y1: 0, x2: 0, y2: 1 }, defs);
+    svgNode("stop", { offset: "0%", "stop-color": "#4d8df7", "stop-opacity": 0.36 }, gradient);
+    svgNode("stop", { offset: "100%", "stop-color": "#4d8df7", "stop-opacity": 0.02 }, gradient);
 
-    // Нулевая линия рисуется, только если ряд её пересекает: у большинства
-    // метрик ноль — это дно шкалы, и лишняя черта по низу только мусорит.
-    if (low < 0 && high > 0) {
-      const zero = document.createElementNS(SVG_NS, "line");
-      zero.setAttribute("class", "daily__zero");
-      zero.setAttribute("x1", 0); zero.setAttribute("x2", width);
-      zero.setAttribute("y1", y(0)); zero.setAttribute("y2", y(0));
-      svg.appendChild(zero);
+    for (const tick of ticks) {
+      svgNode("line", { class: tick === 0 && from < 0 ? "dgraph__zero" : "dgraph__grid",
+                        x1: 0, x2: W, y1: y(tick), y2: y(tick) }, svg);
     }
 
-    const path = list.map((p, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(p.значение).toFixed(1)}`).join(" ");
+    const median = quantile(sorted, 0.5);
+    const withMedian = flow && n >= 5;
+    if (withMedian) {
+      svgNode("line", { class: "dgraph__median", x1: 0, x2: W, y1: y(median), y2: y(median) }, svg);
+    }
 
-    // Прошлый период рисуем первым и пунктиром — он фон, а не второй герой.
     if (ghost.length > 1) {
-      const shadow = document.createElementNS(SVG_NS, "path");
-      shadow.setAttribute("class", "daily__ghost");
-      shadow.setAttribute("d", ghost
-        .map((p, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(p.значение).toFixed(1)}`).join(" "));
-      svg.appendChild(shadow);
+      svgNode("path", { class: "dgraph__ghost",
+                        d: smoothPath(ghost.map((p, i) => [x(i), y(p.значение)])) }, svg);
     }
 
-    const area = document.createElementNS(SVG_NS, "path");
-    area.setAttribute("class", "daily__area");
-    area.setAttribute("d", `${path} L${x(list.length - 1).toFixed(1)},${y(low)} L${x(0).toFixed(1)},${y(low)} Z`);
-    svg.appendChild(area);
+    const line = smoothPath(values.map((v, i) => [x(i), y(v)]));
+    const base = (fromZero ? y(Math.max(0, from)) : H - padBottom).toFixed(1);
+    svgNode("path", { class: "dgraph__area",
+                      d: `${line} L${x(n - 1).toFixed(1)},${base} L${x(0).toFixed(1)},${base} Z` }, svg);
+    svgNode("path", { class: "dgraph__line", d: line }, svg);
 
-    const line = document.createElementNS(SVG_NS, "path");
-    line.setAttribute("class", "daily__line");
-    line.setAttribute("d", path);
-    svg.appendChild(line);
+    // Неделя — это семь дней, но у денег выходных в ряду нет: там неделя —
+    // пять точек подряд.
+    const weekend = (point) => [0, 6].includes(new Date(`${point.день}T12:00:00`).getDay());
+    const trend = rolling(values, list.some(weekend) ? 7 : 5);
+    const withTrend = flow && n >= 10;
+    if (withTrend) {
+      svgNode("path", { class: "dgraph__trend", d: smoothPath(trend.map((v, i) => [x(i), y(v)])) }, svg);
+    }
 
-    return { svg, low, high, x, y, width, height };
+    const canvas = document.createElement("div");
+    canvas.className = "dgraph__canvas";
+    canvas.appendChild(svg);
+
+    const layer = document.createElement("div");
+    layer.className = "dgraph__dots";
+    const guide = document.createElement("span");
+    guide.className = "dgraph__guide";
+    guide.hidden = true;
+    layer.appendChild(guide);
+
+    const every = mode === "sparse" ? Math.ceil(n / 60) : 1;
+    const dots = [];
+    list.forEach((point, i) => {
+      const left = pct(x(i), W);
+      const top = pct(y(point.значение), H);
+      const over = point.значение > cap;
+      const dot = document.createElement("i");
+      dot.className = `${over ? "is-over" : ""}${i === n - 1 ? " is-last" : ""}`;
+      dot.style.left = left;
+      dot.style.top = top;
+      layer.appendChild(dot);
+      dots.push(dot);
+
+      const extreme = point.значение === sorted[n - 1] || point.значение === sorted[0];
+      if (i % every && !extreme && i !== n - 1) return;
+      const prev = values[i - 1];
+      const next = values[i + 1];
+      // Провал — ниже обоих соседей: подпись под точкой, иначе она легла бы
+      // прямо на линию, которая уходит от него вверх.
+      const valley = mode === "flat" && n > 2 && !over
+        && (prev === undefined || point.значение < prev)
+        && (next === undefined || point.значение < next);
+      const pin = document.createElement("b");
+      pin.className = "dgraph__pin"
+        + (valley ? " is-below" : "")
+        + (mode !== "flat" ? " is-tall" : "")
+        + (i === 0 && mode === "flat" ? " is-first" : "")
+        + (i === n - 1 ? " is-last" : "")
+        + (over ? " is-over" : "");
+      pin.textContent = shortNumber(point.значение);
+      pin.style.left = left;
+      pin.style.top = top;
+      layer.appendChild(pin);
+    });
+    canvas.appendChild(layer);
+
+    // Подсказка по всей высоте: мышью не нужно попадать в кружок в пять
+    // пикселей, достаточно встать над нужным днём.
+    const indexAt = (event) => {
+      const box = canvas.getBoundingClientRect();
+      const u = ((event.clientX - box.left) / box.width) * W;
+      if (n === 1) return 0;
+      return Math.max(0, Math.min(n - 1, Math.round(((u - padX) / (W - 2 * padX)) * (n - 1))));
+    };
+    const tipFor = (i) => {
+      const point = list[i];
+      const date = new Date(`${point.день}T12:00:00`);
+      const before = values[i - 1];
+      const delta = before ? (point.значение - before) / Math.abs(before) : null;
+      const old = ghost[i];
+      return `<b>${DNI_NEDELI[date.getDay()]}, ${dayLabel(point.день)}</b>`
+        + `<strong>${niceNumber(point.значение)} ${unit}</strong>`
+        + (withTrend ? `<span>среднее за неделю ${shortNumber(trend[i])}</span>` : "")
+        + (delta === null ? ""
+          : `<span>к прошлому дню ${delta >= 0 ? "+" : "−"}${Math.round(Math.abs(delta) * 100)}%</span>`)
+        + (old ? `<span>${previousLabel}, тот же день: ${shortNumber(old.значение)}</span>` : "")
+        + (point.значение > cap ? "<span class=\"dtip__over\">выброс — выше шкалы</span>" : "");
+    };
+    let active = -1;
+    canvas.addEventListener("mousemove", (event) => {
+      const i = indexAt(event);
+      if (i !== active) {
+        if (active >= 0) dots[active].classList.remove("is-on");
+        active = i;
+        dots[i].classList.add("is-on");
+        guide.style.left = pct(x(i), W);
+        guide.hidden = false;
+      }
+      showDailyTip(tipFor(i), event);
+    });
+    canvas.addEventListener("mouseleave", () => {
+      if (active >= 0) dots[active].classList.remove("is-on");
+      active = -1;
+      guide.hidden = true;
+      hideDailyTip();
+    });
+
+    const scale = document.createElement("div");
+    scale.className = "dgraph__scale";
+    for (const tick of ticks) {
+      const mark = document.createElement("span");
+      mark.textContent = shortNumber(tick);
+      mark.style.top = pct(y(tick), H);
+      scale.appendChild(mark);
+    }
+
+    const plot = document.createElement("div");
+    plot.className = "dgraph__plot";
+    plot.append(scale, canvas);
+
+    // Дата под каждой точкой, ровно по её координате: пять подписей по краям
+    // не отвечали на вопрос «а это какой день». Выходные — приглушённо.
+    const axis = document.createElement("div");
+    axis.className = "dgraph__axis";
+    const axisStep = n <= 31 ? 1 : n <= 62 ? 2 : Math.ceil(n / 30);
+    list.forEach((point, i) => {
+      if (i !== n - 1 && (i % axisStep || n - 1 - i < axisStep)) return;
+      const mark = document.createElement("span");
+      if (weekend(point)) mark.className = "is-weekend";
+      mark.textContent = dayLabel(point.день);
+      mark.style.left = pct(x(i), W);
+      axis.appendChild(mark);
+    });
+
+    const legend = document.createElement("div");
+    legend.className = "dgraph__legend";
+    legend.innerHTML = "<span><i class=\"k k--line\"></i>день</span>"
+      + (withTrend ? "<span><i class=\"k k--trend\"></i>среднее за неделю</span>" : "")
+      + (withMedian ? `<span><i class="k k--median"></i>медиана ${shortNumber(median)}</span>` : "")
+      + (ghost.length > 1 ? `<span><i class="k k--ghost"></i>${previousLabel}, те же дни</span>` : "")
+      + (cap < Infinity ? `<span><i class="k k--over"></i>выше ${shortNumber(cap)} — не в масштабе</span>` : "");
+
+    const wrap = document.createElement("div");
+    wrap.className = `dgraph dgraph--${mode}${n > 12 ? " dgraph--many" : ""}`;
+    wrap.append(legend, plot, axis);
+    return wrap;
   }
 
   function closeDaily() {
     openMetric = null;
     document.querySelectorAll(".tile--open").forEach((el) => el.classList.remove("tile--open"));
     document.getElementById("daily")?.remove();
+    hideDailyTip();
     writeHash(periodSelect.value);
   }
 
@@ -1413,67 +1662,11 @@
         }))
       : [];
 
-    const chart = renderDailyChart(list, ghost, entry.вид !== "уровень");
-    const { low, high } = chart;
-
-    // Точка на каждый день: без них линия читается как накопление, хотя каждый
-    // день здесь сам по себе. Кружки — обычные элементы поверх холста: внутри
-    // SVG, растянутого по ширине, круг стал бы эллипсом.
-    const dots = document.createElement("div");
-    dots.className = "daily__dots";
-    // Подписи над точками помещаются примерно до сорока дней. Дальше они
-    // наезжают друг на друга, поэтому показываем каждую вторую или пятую —
-    // точки при этом остаются все.
-    const step = list.length <= 40 ? 1 : list.length <= 100 ? 2 : 5;
-
-    list.forEach((point, index) => {
-      const left = list.length === 1 ? 50 : (index / (list.length - 1)) * 100;
-      const top = (chart.y(point.значение) / chart.height) * 100;
-
-      const dot = document.createElement("i");
-      dot.style.left = `${left}%`;
-      dot.style.top = `${top}%`;
-      dot.title = `${dayLabel(point.день)} — ${niceNumber(point.значение)} ${unit}`;
-      dots.appendChild(dot);
-
-      if (index % step) return;
-      const label = document.createElement("b");
-      label.className = "daily__pin";
-      label.textContent = shortNumber(point.значение);
-      label.style.left = `${left}%`;
-      label.style.top = `${top}%`;
-      dots.appendChild(label);
-    });
-    if (list.length > 70) dots.classList.add("daily__dots--dense");
-
-    const canvas = document.createElement("div");
-    canvas.className = "daily__canvas";
-    canvas.append(chart.svg, dots);
-
-    const plot = document.createElement("div");
-    plot.className = "daily__plot";
-    const scale = document.createElement("div");
-    scale.className = "daily__scale";
-    const top = document.createElement("span");
-    top.textContent = shortNumber(high);
-    const bottom = document.createElement("span");
-    bottom.textContent = shortNumber(low);
-    scale.append(top, bottom);
-    plot.append(scale, canvas);
-
-    // Дата под каждой точкой, ровно по её координате. Пять подписей по краям
-    // не давали ответа на вопрос «а это какой день» — приходилось считать.
-    // На длинных окнах подписи прореживаются тем же шагом, что и значения.
-    const axis = document.createElement("div");
-    axis.className = "daily__axis";
-    list.forEach((point, index) => {
-      if (index % step) return;
-      const mark = document.createElement("span");
-      mark.className = "daily__day";
-      mark.textContent = dayLabel(point.день);
-      mark.style.left = list.length === 1 ? "50%" : `${(index / (list.length - 1)) * 100}%`;
-      axis.appendChild(mark);
-    });
+    const graph = dailyGraph(list, ghost, entry, unit, periodLabel(previous));
+    // Максимум и размах — по показанным дням. Раньше сюда попадал и прошлый
+    // период с пунктира: «максимум 1,6 млн» в сентябре был пиком августа.
+    const low = Math.min(...list.map((p) => p.значение));
+    const high = Math.max(...list.map((p) => p.значение));
 
     const sum = list.reduce((acc, p) => acc + p.значение, 0);
     const last = list[list.length - 1];
@@ -1520,7 +1713,7 @@
       facts.appendChild(tail);
     }
 
-    box.append(head, plot, axis, facts);
+    box.append(head, graph, facts);
     const how = methodBlock(metricKey);
     if (how) box.append(how);
     if (metricKey === "backlog") box.append(backlogBlock());
@@ -1715,7 +1908,7 @@
     return { period: period || "", metric: metric || "" };
   }
 
-  fetch(DATA_URL, { cache: "no-cache" })
+  fetch(`${DATA_URL}?v=${Date.now()}`, { cache: "no-store" })
     .then((response) => {
       if (!response.ok) throw new Error(`сервер вернул ошибку ${response.status}`);
       return response.json();
@@ -1752,5 +1945,421 @@
     periodSelect.value = period;
     openMetric = wanted.metric && payload.ряды?.[wanted.metric]?.точки?.length ? wanted.metric : null;
     render(period);
+  });
+
+  /* ------------------------------------------------------------------ *
+   * Режим показа: динамика по месяцам.
+   *
+   * Плитки отвечают на вопрос «как сейчас», а на совещаниях спрашивают
+   * другое — «как менялось». До сих пор ответ собирали в Excel руками перед
+   * каждым показом: те же ряды, те же проценты, только вручную. Здесь они
+   * строятся из того, что уже посчитано по периодам.
+   *
+   * Экран на метрику: крупная линия по месяцам, подписи значений, пунктир
+   * тренда и итог словами. Листается стрелками, пробелом и колесом, Escape
+   * закрывает. Считать ничего не надо — данные уже в payload.
+   * ------------------------------------------------------------------ */
+  const POKAZ_NS = "http://www.w3.org/2000/svg";
+  let pokazIndex = 0;
+  let pokazSpisok = [];
+
+  const MESYACY_KOROTKO = ["янв", "фев", "мар", "апр", "май", "июн",
+                           "июл", "авг", "сен", "окт", "ноя", "дек"];
+
+  function mesyacPodpis(klyuch) {
+    const [god, mesyac] = klyuch.split("-");
+    return MESYACY_KOROTKO[Number(mesyac) - 1] + " " + god.slice(2);
+  }
+
+  const bezNbsp = (text) => String(text || "").replace(/ /g, " ");
+
+  /** Ряд по месяцам для одной метрики: только месяцы и только со значением. */
+  function ryadPoMesyacam(metricKey) {
+    const mesyacy = Object.keys(payload.поПериодам || {})
+      .filter((k) => /^\d{4}-\d{2}$/.test(k))
+      .sort();
+    const tochki = [];
+    for (const mesyac of mesyacy) {
+      const plitka = (payload.поПериодам[mesyac] || [])
+        .find((t) => t.metric_key === metricKey);
+      if (!plitka || typeof plitka.fact_num !== "number") continue;
+      tochki.push({ mesyac, znachenie: plitka.fact_num, podpis: bezNbsp(plitka.fact_txt) });
+    }
+    return tochki;
+  }
+
+  /** Линия тренда по наименьшим квадратам — та же, что рисует Excel. */
+  function trendRyada(tochki) {
+    const n = tochki.length;
+    if (n < 3) return null;
+    let sx = 0, sy = 0, sxy = 0, sxx = 0;
+    tochki.forEach((t, i) => {
+      sx += i; sy += t.znachenie; sxy += i * t.znachenie; sxx += i * i;
+    });
+    const znamenatel = n * sxx - sx * sx;
+    if (!znamenatel) return null;
+    const naklon = (n * sxy - sx * sy) / znamenatel;
+    return { naklon, nachalo: (sy - naklon * sx) / n };
+  }
+
+  function uzelSvg(imya, atributy) {
+    const uzel = document.createElementNS(POKAZ_NS, imya);
+    Object.entries(atributy).forEach(([klyuch, znachenie]) =>
+      uzel.setAttribute(klyuch, znachenie));
+    return uzel;
+  }
+
+  function narisovatPokaz(tochki) {
+    const W = 1000, H = 430, sverhu = 48, snizu = 54, sboku = 56;
+    const znacheniya = tochki.map((t) => t.znachenie);
+    let niz = Math.min(...znacheniya, 0);
+    let verh = Math.max(...znacheniya);
+    if (verh === niz) verh = niz + 1;
+    const zapas = (verh - niz) * 0.18;
+    verh += zapas;
+    if (niz < 0) niz -= zapas;
+
+    const x = (i) => sboku + (tochki.length === 1
+      ? (W - 2 * sboku) / 2
+      : (i / (tochki.length - 1)) * (W - 2 * sboku));
+    const y = (v) => sverhu + (1 - (v - niz) / (verh - niz)) * (H - sverhu - snizu);
+
+    const svg = uzelSvg("svg", {
+      class: "pokazSvg", viewBox: "0 0 " + W + " " + H,
+      preserveAspectRatio: "xMidYMid meet",
+    });
+
+    // Нулевую линию рисуем только там, где ряд её пересекает: у финреза
+    // это важная отметка, у остальных метрик — лишняя черта по низу.
+    if (niz < 0 && verh > 0) {
+      svg.appendChild(uzelSvg("line", {
+        class: "pokazZero", x1: sboku, x2: W - sboku, y1: y(0), y2: y(0),
+      }));
+    }
+
+    const put = tochki.map((t, i) =>
+      (i ? "L" : "M") + x(i).toFixed(1) + "," + y(t.znachenie).toFixed(1)).join(" ");
+    svg.appendChild(uzelSvg("path", {
+      class: "pokazArea",
+      d: put + " L" + x(tochki.length - 1).toFixed(1) + "," + y(niz)
+         + " L" + x(0).toFixed(1) + "," + y(niz) + " Z",
+    }));
+    svg.appendChild(uzelSvg("path", { class: "pokazLine", d: put }));
+
+    const naklon = trendRyada(tochki);
+    if (naklon) {
+      svg.appendChild(uzelSvg("line", {
+        class: "pokazTrend",
+        x1: x(0), y1: y(naklon.nachalo),
+        x2: x(tochki.length - 1),
+        y2: y(naklon.nachalo + naklon.naklon * (tochki.length - 1)),
+      }));
+    }
+
+    // Подписываем каждую точку: пропуск через одну выглядел так, будто у
+    // месяца нет цифры. Чтобы соседние не наезжали, на длинном ряду они идут
+    // по очереди выше и ниже линии, а месяцы снизу — через один: их читают
+    // как шкалу, и там пропуск не мешает.
+    const tesno = tochki.length > 14;
+    tochki.forEach((tochka, i) => {
+      svg.appendChild(uzelSvg("circle", {
+        class: "pokazDot", cx: x(i), cy: y(tochka.znachenie), r: 4,
+      }));
+      const vverh = !tesno || i % 2 === 0;
+      const znachenie = uzelSvg("text", {
+        class: "pokazValue" + (tesno ? " pokazValue--tesno" : ""),
+        x: x(i), y: y(tochka.znachenie) + (vverh ? -14 : 22),
+        "text-anchor": "middle",
+      });
+      znachenie.textContent = tochka.podpis;
+      svg.appendChild(znachenie);
+      if (tesno && i % 2 && i !== tochki.length - 1) return;
+      const mesyac = uzelSvg("text", {
+        class: "pokazMonth", x: x(i), y: H - 18, "text-anchor": "middle",
+      });
+      mesyac.textContent = mesyacPodpis(tochka.mesyac);
+      svg.appendChild(mesyac);
+    });
+    return svg;
+  }
+
+  /** Итог словами: откуда, куда и в какую сторону тренд. */
+  function itogSlovami(tochki) {
+    if (tochki.length < 2) return "";
+    const pervoe = tochki[0];
+    const posledneye = tochki[tochki.length - 1];
+    const naklon = trendRyada(tochki);
+    const kuda = !naklon || Math.abs(naklon.naklon) < 1e-9 ? "держится ровно"
+      : naklon.naklon > 0 ? "растёт" : "снижается";
+    const raznica = posledneye.znachenie - pervoe.znachenie;
+    const chislo = Math.abs(raznica).toLocaleString("ru-RU",
+      { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return mesyacPodpis(pervoe.mesyac) + " → " + mesyacPodpis(posledneye.mesyac) + ": "
+      + pervoe.podpis + " → " + posledneye.podpis
+      + " (" + (raznica > 0 ? "+" : "−") + bezNbsp(chislo) + "), тренд " + kuda;
+  }
+
+
+
+  /* Второй вид показа: блок целиком, по четыре графика на экран.
+   *
+   * Сетка из двадцати трёх карточек оказалась кашей: графики мелкие, цифры
+   * не читаются, и смотреть на них с проектора невозможно. Здесь тот же
+   * обзор, но порциями по смыслу — «Деньги», «Затраты», «Операционка», —
+   * и каждый график крупный настолько, чтобы его было видно из зала.
+   * Клик по любому открывает его на весь экран.
+   */
+  // Какой вид показа открыт: слайды по одному или блок целиком.
+  let pokazVid = "po-odnomu";
+  let blokIndex = 0;
+
+  /** Показатели, разложенные по блокам в том же порядке, что на плитках. */
+  function blokiPokaza() {
+    const poryadok = [];
+    const poBlokam = new Map();
+    (payload.плитки || []).forEach((plitka) => {
+      const blok = plitka.block_name || "Прочее";
+      const nashe = pokazSpisok.find((item) => item.metric_key === plitka.metric_key);
+      if (!nashe) return;
+      if (!poBlokam.has(blok)) { poBlokam.set(blok, []); poryadok.push(blok); }
+      poBlokam.get(blok).push(nashe);
+    });
+    // Блок из одного показателя отдельным экраном не показываем — он
+    // потеряется; подклеиваем к предыдущему.
+    const itog = [];
+    poryadok.forEach((blok) => {
+      const spisok = poBlokam.get(blok);
+      if (spisok.length === 1 && itog.length) {
+        itog[itog.length - 1].spisok.push(...spisok);
+        itog[itog.length - 1].imya += " и " + blok.toLowerCase();
+        return;
+      }
+      itog.push({ imya: blok, spisok });
+    });
+    // Больше четырёх на экран не помещается крупно — режем на страницы.
+    const stranicy = [];
+    itog.forEach((blok) => {
+      for (let i = 0; i < blok.spisok.length; i += 4) {
+        const kusok = blok.spisok.slice(i, i + 4);
+        const nomer = blok.spisok.length > 4 ? ` · ${Math.floor(i / 4) + 1}` : "";
+        stranicy.push({ imya: blok.imya + nomer, spisok: kusok });
+      }
+    });
+    return stranicy;
+  }
+
+  function narisovatBlok() {
+    const sloy = document.getElementById("pokaz");
+    const mesto = sloy?.querySelector(".pokazHolst");
+    if (!mesto) return;
+    const stranicy = blokiPokaza();
+    if (!stranicy.length) return;
+    blokIndex = Math.min(blokIndex, stranicy.length - 1);
+    const stranica = stranicy[blokIndex];
+
+    sloy.querySelector(".pokazTitle").textContent = stranica.imya;
+    sloy.querySelector(".pokazSchet").textContent =
+      (blokIndex + 1) + " из " + stranicy.length;
+    sloy.querySelector(".pokazItog").textContent =
+      "Клик по графику открывает показатель на весь экран";
+
+    const setka = document.createElement("div");
+    setka.className = "pokazBloki";
+    stranica.spisok.forEach((item) => {
+      const karta = document.createElement("button");
+      karta.type = "button";
+      karta.className = "blokKarta";
+      const naklon = trendRyada(item.tochki);
+      const posledneye = item.tochki[item.tochki.length - 1];
+      const kuda = !naklon || Math.abs(naklon.naklon) < 1e-9 ? "flat"
+        : naklon.naklon > 0 ? "up" : "down";
+      karta.innerHTML = '<span class="blokShapka">'
+        + '<span class="blokImya"></span><span class="blokChislo"></span></span>';
+      karta.querySelector(".blokImya").textContent = item.metric;
+      karta.querySelector(".blokChislo").textContent = posledneye.podpis;
+      karta.querySelector(".blokChislo").classList.add("trend-" + kuda);
+      karta.appendChild(narisovatBlokGrafik(item.tochki));
+      karta.addEventListener("click", () => {
+        pokazIndex = pokazSpisok.indexOf(item);
+        pokazVid = "po-odnomu";
+        pokazatEkran();
+      });
+      setka.appendChild(karta);
+    });
+    mesto.replaceChildren(setka);
+  }
+
+  /** График для блока: крупнее мини-спарклайна, но без подписи каждой точки. */
+  function narisovatBlokGrafik(tochki) {
+    const W = 460, H = 178, pole = 26;
+    const znacheniya = tochki.map((t) => t.znachenie);
+    const niz = Math.min(...znacheniya, 0);
+    const verh = Math.max(...znacheniya);
+    const razmah = verh === niz ? 1 : verh - niz;
+    const x = (i) => pole + (i / Math.max(tochki.length - 1, 1)) * (W - 2 * pole);
+    const y = (v) => pole + (1 - (v - niz) / razmah) * (H - 2 * pole - 14);
+
+    const svg = uzelSvg("svg", {
+      class: "blokSvg", viewBox: "0 0 " + W + " " + H, preserveAspectRatio: "none",
+    });
+    const put = tochki.map((t, i) =>
+      (i ? "L" : "M") + x(i).toFixed(1) + "," + y(t.znachenie).toFixed(1)).join(" ");
+    svg.appendChild(uzelSvg("path", {
+      class: "pokazArea",
+      d: put + " L" + x(tochki.length - 1) + "," + y(niz) + " L" + x(0) + "," + y(niz) + " Z",
+    }));
+    svg.appendChild(uzelSvg("path", { class: "pokazLine", d: put }));
+    const naklon = trendRyada(tochki);
+    if (naklon) {
+      svg.appendChild(uzelSvg("line", {
+        class: "pokazTrend", x1: x(0), y1: y(naklon.nachalo),
+        x2: x(tochki.length - 1),
+        y2: y(naklon.nachalo + naklon.naklon * (tochki.length - 1)),
+      }));
+    }
+    // Без цифр график читается как узор: видно колебание, но не видно, о
+    // каких величинах речь. Подписываем то, ради чего на него и смотрят —
+    // начало, конец, пик и провал. Все точки сюда не влезут, а эти четыре
+    // отвечают на вопрос «сколько было и сколько стало».
+    const znachimye = new Map();
+    const maks = znacheniya.indexOf(Math.max(...znacheniya));
+    const min = znacheniya.indexOf(Math.min(...znacheniya));
+    [0, tochki.length - 1, maks, min].forEach((i) => znachimye.set(i, true));
+
+    tochki.forEach((tochka, i) => {
+      if (!znachimye.has(i)) return;
+      svg.appendChild(uzelSvg("circle", {
+        class: "pokazDot", cx: x(i), cy: y(tochka.znachenie), r: 3.5,
+      }));
+      // Подпись уводим от края, иначе крайние значения обрезаются рамкой.
+      const kray = i === 0 ? "start" : i === tochki.length - 1 ? "end" : "middle";
+      const podpis = uzelSvg("text", {
+        class: "blokZnachenie", x: x(i), y: y(tochka.znachenie) - 9,
+        "text-anchor": kray,
+      });
+      podpis.textContent = tochka.podpis;
+      svg.appendChild(podpis);
+    });
+
+    [0, tochki.length - 1].forEach((i) => {
+      const podpis = uzelSvg("text", {
+        class: "blokPodpis", x: x(i), y: H - 4,
+        "text-anchor": i ? "end" : "start",
+      });
+      podpis.textContent = mesyacPodpis(tochki[i].mesyac);
+      svg.appendChild(podpis);
+    });
+    return svg;
+  }
+
+  function pokazatEkran() {
+    const sloy = document.getElementById("pokaz");
+    if (!sloy || !pokazSpisok.length) return;
+    sloy.dataset.vid = pokazVid;
+    sloy.querySelectorAll(".pokazVid").forEach((knopka) => {
+      knopka.classList.toggle("is-on", knopka.dataset.vid === pokazVid);
+    });
+
+    if (pokazVid === "bloki") {
+      narisovatBlok();
+      return;
+    }
+
+    const tekushchiy = pokazSpisok[pokazIndex];
+    sloy.querySelector(".pokazTitle").textContent = tekushchiy.metric;
+    sloy.querySelector(".pokazSchet").textContent =
+      (pokazIndex + 1) + " из " + pokazSpisok.length;
+    sloy.querySelector(".pokazItog").textContent = itogSlovami(tekushchiy.tochki);
+    sloy.querySelector(".pokazHolst").replaceChildren(narisovatPokaz(tekushchiy.tochki));
+  }
+
+  function listatPokaz(shag) {
+    if (!pokazSpisok.length) return;
+    if (pokazVid === "bloki") {
+      const vsego = blokiPokaza().length;
+      blokIndex = (blokIndex + shag + vsego) % vsego;
+    } else {
+      pokazIndex = (pokazIndex + shag + pokazSpisok.length) % pokazSpisok.length;
+    }
+    pokazatEkran();
+  }
+
+  function otkrytPokaz() {
+    // Берём метрики, у которых история хотя бы за полгода: линия из двух
+    // точек — не динамика, а повод для неверных выводов.
+    pokazSpisok = (payload.плитки || [])
+      .map((plitka) => ({
+        metric: plitka.metric,
+        metric_key: plitka.metric_key,
+        tochki: ryadPoMesyacam(plitka.metric_key),
+      }))
+      .filter((item) => item.tochki.length >= 6);
+    if (!pokazSpisok.length) return;
+
+    pokazIndex = 0;
+    let sloy = document.getElementById("pokaz");
+    if (!sloy) {
+      sloy = document.createElement("div");
+      sloy.id = "pokaz";
+      sloy.className = "pokaz";
+      sloy.innerHTML = '<div class="pokazPanel">'
+        + '<div class="pokazShapka"><div>'
+        + '<p class="pokazNad">Динамика по месяцам</p>'
+        + '<h2 class="pokazTitle"></h2></div>'
+        + '<span class="pokazVidy">'
+        + '<button class="pokazVid is-on" data-vid="po-odnomu" type="button">По одному</button>'
+        + '<button class="pokazVid" data-vid="bloki" type="button">По блокам</button>'
+        + '</span>'
+        + '<span class="pokazSchet"></span>'
+        + '<button class="pokazZakryt" type="button" title="Escape">×</button></div>'
+        + '<div class="pokazHolst"></div>'
+        + '<p class="pokazItog"></p>'
+        + '<div class="pokazNiz">'
+        + '<button class="pokazStrelka" data-shag="-1" type="button">← Назад</button>'
+        + '<span class="pokazPodskazka">стрелки, пробел или колесо — следующий показатель</span>'
+        + '<button class="pokazStrelka" data-shag="1" type="button">Вперёд →</button>'
+        + '</div></div>';
+      document.body.appendChild(sloy);
+      sloy.querySelector(".pokazZakryt").addEventListener("click", zakrytPokaz);
+      sloy.addEventListener("click", (event) => {
+        if (event.target === sloy) zakrytPokaz();
+      });
+      sloy.querySelectorAll(".pokazVid").forEach((knopka) => {
+        knopka.addEventListener("click", () => {
+          pokazVid = knopka.dataset.vid;
+          pokazatEkran();
+        });
+      });
+      sloy.querySelectorAll(".pokazStrelka").forEach((knopka) => {
+        knopka.addEventListener("click", () => listatPokaz(Number(knopka.dataset.shag)));
+      });
+      sloy.addEventListener("wheel", (event) => {
+        event.preventDefault();
+        listatPokaz(event.deltaY > 0 ? 1 : -1);
+      }, { passive: false });
+    }
+    sloy.hidden = false;
+    document.body.classList.add("pokaz-on");
+    pokazatEkran();
+  }
+
+  function zakrytPokaz() {
+    const sloy = document.getElementById("pokaz");
+    if (sloy) sloy.hidden = true;
+    document.body.classList.remove("pokaz-on");
+  }
+
+  document.getElementById("pokazBtn")?.addEventListener("click", otkrytPokaz);
+
+  document.addEventListener("keydown", (event) => {
+    const sloy = document.getElementById("pokaz");
+    if (!sloy || sloy.hidden) return;
+    if (event.key === "Escape") { event.preventDefault(); zakrytPokaz(); }
+    if (event.key === "ArrowRight" || event.key === " " || event.key === "PageDown") {
+      event.preventDefault(); listatPokaz(1);
+    }
+    if (event.key === "ArrowLeft" || event.key === "PageUp") {
+      event.preventDefault(); listatPokaz(-1);
+    }
   });
 })();

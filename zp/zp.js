@@ -10,6 +10,7 @@ const stamp = document.getElementById("stamp");
 const views = document.getElementById("views");
 const blockMe = document.getElementById("me");
 const blockTeam = document.getElementById("team");
+const blockSvodka = document.getElementById("svodka");
 const note = document.getElementById("note");
 
 const MESYACY = ["января", "февраля", "марта", "апреля", "мая", "июня",
@@ -361,6 +362,9 @@ function podklyuchitGrafiki(koren) {
 function karta(data, kto) {
   const ya = kto || data["я"];
   if (!ya) return;
+  // Каждую открытую карточку сначала показываем со скрытыми суммами.
+  // Выработка остаётся видимой: это не денежные данные.
+  blockMe.classList.add("zpMe--concealed");
   const norma = Number(data["норма_дней"]) || 0;
   const proshlo = Number(data["прошло_дней"]) || 0;
   const dolya = norma ? Math.min(1, proshlo / norma) : 0;
@@ -407,7 +411,9 @@ function karta(data, kto) {
     <div class="zpTick">
       ${chey}
       <p class="zpTick__label">Заработано в ${V_MESYACE[now.getMonth()]}, на руки</p>
-      <p class="zpTick__value"><span class="zpRoll" id="tickRub"></span><small class="zpRoll" id="tickKop"></small><span class="zpTick__rub">₽</span></p>
+      <p class="zpTick__value"><button class="zpTick__number zpSecret" type="button"
+        aria-label="Показать суммы зарплаты" aria-pressed="false"><span class="zpSecret__text"><span class="zpRoll" id="tickRub"></span><small class="zpRoll" id="tickKop"></small><span class="zpTick__rub">₽</span></span></button></p>
+      <button class="zpPrivacyToggle" type="button">Нажмите, чтобы показать суммы</button>
       <p class="zpTick__state" id="tickState"></p>
       ${otsutstvie}
       <div class="zpTick__bar"><span style="width:${(dolya * 100).toFixed(1)}%"></span></div>
@@ -420,7 +426,7 @@ function karta(data, kto) {
         <p class="zpCheck__cap">Из чего сложилось</p>
         <div class="zpCheck__line">
           <span>Окладная часть<small>${otrabotano} из ${ya["план_дней"]} по графику,
-            оклад ${rubli(ya["оклад_на_руки"])}</small></span>
+            оклад <span class="zpSecret zpSecret--inline">${rubli(ya["оклад_на_руки"])}</span></small></span>
           <b>${rubli(ya["окладная_часть"] * 0.87)}</b>
         </div>
         <div class="zpCheck__line">
@@ -436,7 +442,7 @@ function karta(data, kto) {
           <b>${rubli(ya["надбавка"] * 0.87)}</b>
         </div>` : ""}
         <div class="zpCheck__line">
-          <span>НДФЛ<small>13% с ${rubli(ya["начислено"])}, уходит государству</small></span>
+          <span>НДФЛ<small>13% с <span class="zpSecret zpSecret--inline">${rubli(ya["начислено"])}</span>, уходит государству</small></span>
           <b class="zpCheck__minus">−${rubli(ya["начислено"] - ya["на_руки"])}</b>
         </div>
         <div class="zpCheck__line zpCheck__line--itog">
@@ -456,7 +462,7 @@ function karta(data, kto) {
           <b>${rubli(ya["остаток"])}</b>
         </div>
         <div class="zpCheck__line">
-          <span>НДФЛ за месяц<small>13% с ${rubli(ya["прогноз_месяца"] / 0.87)}, уходит государству</small></span>
+          <span>НДФЛ за месяц<small>13% с <span class="zpSecret zpSecret--inline">${rubli(ya["прогноз_месяца"] / 0.87)}</span>, уходит государству</small></span>
           <b class="zpCheck__minus">−${rubli(ya["прогноз_месяца"] / 0.87 - ya["прогноз_месяца"])}</b>
         </div>
         <div class="zpCheck__line zpCheck__line--itog">
@@ -466,11 +472,30 @@ function karta(data, kto) {
       </div>
     </div>
     ${vyrabotka}`;
+  blockMe.querySelectorAll(".zpCheck__line b, .zpSecret--inline").forEach((amount) => {
+    amount.innerHTML = `<span class="zpSecret__text">${amount.innerHTML}</span>`;
+  });
   blockMe.hidden = false;
   note.hidden = false;
   if (ya["тик"]) schetchik(ya["тик"], Number(data["посчитано_в"]) || 0);
   podklyuchitGrafiki(blockMe);
 }
+
+blockMe.addEventListener("click", (event) => {
+  const main = event.target.closest(".zpTick__number");
+  const toggle = event.target.closest(".zpPrivacyToggle");
+  const hiddenLine = blockMe.classList.contains("zpMe--concealed")
+    && event.target.closest(".zpCheck__line");
+  if (!main && !toggle && !hiddenLine) return;
+  const concealed = blockMe.classList.toggle("zpMe--concealed");
+  const number = blockMe.querySelector(".zpTick__number");
+  const hint = blockMe.querySelector(".zpPrivacyToggle");
+  if (number) {
+    number.setAttribute("aria-pressed", String(!concealed));
+    number.setAttribute("aria-label", concealed ? "Показать суммы зарплаты" : "Скрыть суммы зарплаты");
+  }
+  if (hint) hint.textContent = concealed ? "Нажмите, чтобы показать суммы" : "Скрыть суммы";
+});
 
 /* Панель управления ФОТ.
  *
@@ -1114,26 +1139,49 @@ async function start() {
     if (!data["люди"] || !data["люди"].length) return;
     tablica(data);
     views.hidden = false;
-    views.addEventListener("click", (event) => {
-      const button = event.target.closest(".zpView");
-      if (!button) return;
-      views.querySelectorAll(".zpView").forEach((item) => item.classList.remove("is-on"));
-      button.classList.add("is-on");
-      const team = button.dataset.view === "team";
-      blockTeam.hidden = !team;
-      blockMe.hidden = team;
-      // Своей записи нет — «Моя» возвращает к тому, что открывали последним.
-      if (!team && !blockMe.innerHTML) {
+
+    // Сводка ФОТ — те же права, что у панели: ручка сама решает, что отдать.
+    // Не ответила — вкладки просто не будет, панель от этого не зависит.
+    let estSvodka = false;
+    try {
+      const fot = await fetch("/__fot", { credentials: "same-origin", cache: "no-store" });
+      if (fot.ok && window.ZpSvodka) {
+        window.ZpSvodka.podklyuchit(blockSvodka, await fot.json());
+        views.querySelector('[data-view="svodka"]').hidden = false;
+        estSvodka = true;
+      }
+    } catch (error) {
+      // без сводки — только панель
+    }
+
+    const otkryt = (vid) => {
+      views.querySelectorAll(".zpView")
+        .forEach((item) => item.classList.toggle("is-on", item.dataset.view === vid));
+      blockTeam.hidden = vid !== "team";
+      blockSvodka.hidden = vid !== "svodka";
+      blockMe.hidden = vid !== "me";
+      // Своей записи нет — «Моя» показывает, почему пусто.
+      if (vid === "me" && !blockMe.innerHTML) {
         blockMe.hidden = true;
         message.textContent = moya["почему_пусто"] || "По вам расчёта пока нет.";
+      } else if (svoeyNet) {
+        message.textContent = "";
+        message.className = "message";
       }
+      if (vid !== "me" || location.hash) history.replaceState(null, "", vid === "me" ? location.pathname : "#" + vid);
+    };
+    views.addEventListener("click", (event) => {
+      const button = event.target.closest(".zpView");
+      if (button) otkryt(button.dataset.view);
     });
-    if (svoeyNet) {
-      message.textContent = (moya["почему_пусто"] || "По вам расчёта пока нет.")
-        + " Ниже — расчёт по тем, кто подключён; строка открывает карточку.";
-      blockTeam.hidden = false;
-      views.querySelector('[data-view="me"]').classList.remove("is-on");
-      views.querySelector('[data-view="team"]').classList.add("is-on");
+
+    // Ссылку на сводку можно переслать: /zp/#svodka открывает её сразу.
+    // Без своей записи открываем сводку — это первый экран руководителя.
+    const zhelaemyy = location.hash.slice(1);
+    if (zhelaemyy === "team" || (zhelaemyy === "svodka" && estSvodka)) {
+      otkryt(zhelaemyy);
+    } else if (svoeyNet) {
+      otkryt(estSvodka ? "svodka" : "team");
     }
   } catch (error) {
     // Нет права — вкладки просто не будет, это не ошибка страницы.

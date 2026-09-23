@@ -98,6 +98,118 @@
   font-feature-settings: "tnum" 1;
 }
 
+.zpTick__number {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+}
+.zpTick__number .zpSecret__text {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
+}
+.zpTick__number:focus-visible,
+.zpPrivacyToggle:focus-visible {
+  outline: 2px solid #c6a7ff;
+  outline-offset: 5px;
+}
+.zpPrivacyToggle {
+  display: block;
+  margin: 14px auto 0;
+  padding: 5px 12px;
+  border: 1px solid rgba(255, 255, 255, .18);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.zpPrivacyToggle:hover { background: rgba(255, 255, 255, .06); }
+
+/* Сумма занимает своё место и продолжает считаться, пока закрыта. Отдельно
+   проявляем число и растворяем частицы — без резкой подмены прямоугольника. */
+.zpTick__number,
+.zpCheck__line b,
+.zpSecret--inline {
+  position: relative;
+  isolation: isolate;
+}
+.zpSecret__text {
+  display: inline-block;
+  opacity: 1;
+  filter: blur(0);
+  transform: translateY(0);
+  transition: opacity 420ms ease, filter 480ms ease, transform 480ms ease;
+}
+.zpMe--concealed .zpSecret__text {
+  opacity: 0;
+  filter: blur(10px);
+  transform: translateY(3px);
+}
+.zpMe--concealed .zpCheck__line b,
+.zpMe--concealed .zpSecret--inline {
+  cursor: pointer;
+}
+.zpTick__number::after,
+.zpCheck__line b::after,
+.zpSecret--inline::after {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  inset: -2px -4px;
+  border-radius: .25em;
+  background-color: transparent;
+  background-image:
+    radial-gradient(circle, rgba(255,255,255,.8) 0 .8px, transparent 1.3px),
+    radial-gradient(circle, rgba(238,225,255,.7) 0 .6px, transparent 1.1px),
+    radial-gradient(circle, rgba(255,255,255,.48) 0 .7px, transparent 1.2px);
+  background-size: 23px 19px, 31px 27px, 19px 29px;
+  background-position: 0 0, 5px 7px, 2px 4px;
+  opacity: 0;
+  transform: scale(.92);
+  transition: opacity 480ms ease, transform 480ms cubic-bezier(.2,.8,.2,1);
+  pointer-events: none;
+}
+.zpMe--concealed .zpTick__number::after,
+.zpMe--concealed .zpCheck__line b::after,
+.zpMe--concealed .zpSecret--inline::after {
+  opacity: 1;
+  transform: scale(1);
+  animation: zpSpoilerDust 3.8s linear infinite;
+}
+.zpTick__number::after {
+  width: calc(100% - 16px);
+  height: .78em;
+  inset: auto;
+  left: 50%;
+  top: 50%;
+  border-radius: .18em;
+  transform: translate(-50%, -50%) scale(.92);
+}
+.zpMe--concealed .zpTick__number::after {
+  transform: translate(-50%, -50%) scale(1);
+}
+.zpSecret--inline::after { inset: 1px -4px; }
+@keyframes zpSpoilerDust {
+  to { background-position: 46px 19px, -31px 27px, 19px -29px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .zpSecret__text, .zpTick__number::after,
+  .zpCheck__line b::after, .zpSecret--inline::after {
+    animation: none;
+    transition: none;
+  }
+}
+
 .zpTick__value small {
   font-size: clamp(22px, 4vw, 46px);
   font-weight: 500;
@@ -271,6 +383,15 @@
   color: var(--muted);
   font-size: 12px;
   line-height: 1.4;
+}
+.zpCheck__line small .zpSecret--inline {
+  display: inline-block;
+  font-size: inherit;
+}
+.zpCheck__line b > .zpSecret__text,
+.zpCheck__line small .zpSecret__text {
+  font-size: inherit;
+  font-weight: inherit;
 }
 .zpCheck__line b {
   font-size: 19px;
@@ -650,4 +771,119 @@
   .zpPay { grid-template-columns: 1fr; }
   .zpTick { padding: 34px 18px 26px; }
   .zpTools { align-items: flex-start; }
+}
+
+/* ── Сводка ФОТ ──────────────────────────────────────────────────────────
+   Экран руководителя: три числа, одна большая полоса и по строке на
+   направление. Всё остальное — в панели. Цифры без tabular-nums: VI Sans
+   на них расползается пробелами. */
+.zpSvodka { display: block; margin-top: 18px; }
+.zpSvodka[hidden] { display: none; }
+
+.zpDash { padding: 22px 24px 20px; }
+.zpDash__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.zpDash__head h2 { margin: 0; font-size: 20px; font-weight: 600; }
+.zpDash__head .stamp { margin: 4px 0 0; }
+.zpDash__tools { display: flex; gap: 6px; flex-wrap: wrap; }
+.zpDash__tools .zpView { border: 1px solid var(--line); }
+.zpDash__tools .zpView:hover { color: var(--text); border-color: var(--line-strong); }
+.zpDash__fayl { display: inline-flex; align-items: center; }
+
+.zpDash__tri { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 18px; }
+.zpDash__kpi { padding: 14px 16px 13px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel-soft); }
+.zpDash__kpi small { display: block; color: var(--muted); font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+.zpDash__kpi b { display: block; margin-top: 6px; font-size: 34px; font-weight: 700; line-height: 1.05; letter-spacing: -0.02em; font-feature-settings: "tnum" 0, "pnum" 1; }
+.zpDash__kpi b em { font-size: 16px; font-style: normal; font-weight: 600; color: var(--muted); letter-spacing: 0; }
+.zpDash__kpi i { display: block; margin-top: 6px; color: var(--muted); font-size: 12.5px; font-style: normal; line-height: 1.4; }
+.zpDash__kpi.is-ok { border-color: rgba(39, 196, 107, 0.35); background: rgba(39, 196, 107, 0.08); }
+.zpDash__kpi.is-ok b { color: #58d68a; }
+.zpDash__kpi.is-over { border-color: rgba(224, 110, 90, 0.45); background: rgba(224, 110, 90, 0.1); }
+.zpDash__kpi.is-over b { color: #f0917f; }
+
+/* Полоса: светлее — прогноз месяца, сплошным поверх — начислено на сегодня,
+   белая чёрточка — лимит. Перерасход краснит прогноз целиком. */
+.zpDash__shkala { margin-top: 18px; }
+.zpDash__polosa { position: relative; height: 12px; border-radius: 99px; background: rgba(255, 255, 255, 0.06); }
+.zpDash__polosa--krupno { height: 22px; }
+.zpDash__polosa i { position: absolute; top: 0; bottom: 0; left: 0; border-radius: 99px; }
+.zpDash__prognoz { background: rgba(77, 141, 247, 0.32); }
+.zpDash__seychas { background: linear-gradient(90deg, #3b7be6, #5b9bff); }
+.zpDash__polosa.is-over .zpDash__prognoz { background: rgba(240, 93, 114, 0.4); }
+.zpDash__limit { position: absolute; top: -5px; bottom: -5px; width: 3px; margin-left: -1.5px; border-radius: 2px; background: #fff; box-shadow: 0 0 0 2px rgba(8, 13, 20, 0.7); }
+.zpDash__polosa:not(.zpDash__polosa--krupno) .zpDash__limit { top: -3px; bottom: -3px; width: 2px; margin-left: -1px; }
+.zpDash__legenda { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 10px; color: var(--muted); font-size: 12px; }
+.zpDash__legenda span { display: inline-flex; align-items: center; gap: 7px; }
+.zpDash__legenda .k { display: inline-block; width: 14px; height: 8px; border-radius: 3px; }
+.zpDash__legenda .k--seychas { background: #4d8df7; }
+.zpDash__legenda .k--prognoz { background: rgba(77, 141, 247, 0.32); }
+.zpDash__legenda .k--limit { width: 3px; height: 14px; background: #fff; }
+.zpDash__temp { margin-left: auto; }
+
+/* Строка направления: имя, полоса, цифры. */
+.zpDash__napr { margin-top: 20px; border-top: 1px solid var(--line); }
+.zpDash__row {
+  display: grid;
+  grid-template-columns: minmax(200px, 1.3fr) minmax(160px, 2fr) minmax(210px, auto);
+  align-items: center;
+  gap: 8px 20px;
+  padding: 13px 2px;
+  border-bottom: 1px solid var(--line);
+}
+.zpDash__imya b { display: block; font-size: 14.5px; font-weight: 600; }
+.zpDash__imya span { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; }
+.zpDash__cifry { display: flex; align-items: baseline; justify-content: flex-end; gap: 6px; flex-wrap: wrap; white-space: nowrap; font-feature-settings: "tnum" 0, "pnum" 1; }
+.zpDash__cifry b { font-size: 17px; font-weight: 700; }
+.zpDash__cifry span { color: var(--muted); font-size: 13px; }
+.zpDash__cifry em { min-width: 92px; font-size: 13px; font-style: normal; font-weight: 600; text-align: right; color: var(--muted); }
+.zpDash__cifry em.zpNad { color: #f0917f; }
+.zpDash__cifry em.zpPod { color: #58d68a; }
+.zpDash__ruchnoy { padding: 2px 7px; border-radius: 99px; color: #f5c26b; background: rgba(245, 173, 50, 0.14); font-size: 11px; font-weight: 600; cursor: help; }
+.zpDash__fondy { grid-column: 1 / -1; margin: -2px 0 0; color: var(--muted); font-size: 12px; }
+
+.zpDash__vvod { display: flex; align-items: center; justify-content: flex-end; gap: 7px; }
+.zpDash__vvod input {
+  width: 120px;
+  padding: 8px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: rgba(8, 13, 20, 0.6);
+  color: var(--text);
+  font: 600 15px var(--ui);
+  text-align: right;
+}
+.zpDash__vvod input::placeholder { color: rgba(143, 156, 173, 0.6); font-weight: 500; }
+.zpDash__vvod input:focus { outline: none; border-color: #4d8df7; }
+.zpDash__vvod span { color: var(--muted); font-size: 13px; }
+
+.zpDash__pravka { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+.zpDash__pravka .stamp { flex: 1 1 100%; margin: 0 0 4px; }
+.zpDash__pravka .zpView { border: 1px solid var(--line); }
+.zpDash__otvet { color: var(--muted); font-size: 13px; }
+
+/* Предпросмотр нового ШР: таблица «было → стало» и кнопка применить. */
+.zpShr { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
+.zpShr[hidden] { display: none; }
+.zpShr__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.zpShr__head h3 { margin: 0; font-size: 16px; font-weight: 600; }
+.zpShr__head label { color: var(--muted); font-size: 13px; }
+.zpShr__head select { margin-left: 6px; padding: 6px 8px; border: 1px solid var(--line-strong); border-radius: 8px; background: rgba(8, 13, 20, 0.6); color: var(--text); font: inherit; }
+.zpShr table { font-size: 12.5px; }
+.zpShr td.num { text-align: right; white-space: nowrap; font-feature-settings: "tnum" 0, "pnum" 1; }
+.zpShr .src { color: var(--muted); font-size: 11px; }
+.zpShr__chto { max-width: 520px; color: var(--muted); line-height: 1.45; }
+.zpShr__note { margin: 8px 0 12px; color: var(--muted); font-size: 12.5px; line-height: 1.5; }
+.zpDash__pravka .zpShr__note { flex: 1 1 100%; margin: 0 0 4px; }
+
+body.is-svetlo .zpDash__polosa { background: rgba(20, 35, 60, 0.08); }
+body.is-svetlo .zpDash__limit { background: #0b1a30; box-shadow: 0 0 0 2px #fff; }
+body.is-svetlo .zpDash__legenda .k--limit { background: #0b1a30; }
+body.is-svetlo .zpDash__vvod input { background: #fff; }
+
+@media (max-width: 860px) {
+  .zpDash { padding: 16px 14px; }
+  .zpDash__tri { grid-template-columns: minmax(0, 1fr); }
+  .zpDash__kpi b { font-size: 28px; }
+  .zpDash__row { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .zpDash__cifry, .zpDash__vvod { justify-content: flex-start; }
+  .zpDash__temp { margin-left: 0; }
 }
