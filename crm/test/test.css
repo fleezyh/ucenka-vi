@@ -66,10 +66,11 @@
 .crmTest .crmStolbec--itog .crmStolbec__shapka { padding: 10px 12px 0; }
 .crmTest .crmStolbec--itog .crmStolbec__kn { margin: 8px 12px 0; }
 .crmTest .crmStolbec.is-cel { outline: 2px solid var(--c, #7ee2a8); background: rgba(39, 196, 107, 0.08); }
-.ctShapkaEtapa { margin: 0; padding: 9px 12px 10px; border-top: 4px solid var(--c); border-radius: 4px 4px 0 0; background: color-mix(in srgb, var(--c) 14%, rgba(10, 16, 28, 0.9)); }
-.ctShapkaEtapa__imya { display: flex; justify-content: space-between; gap: 8px; margin: 0; font-size: 12.5px; font-weight: 700; }
-.ctShapkaEtapa__imya span { color: var(--muted); font-weight: 600; }
-.ctShapkaEtapa__summa { margin: 3px 0 0; font-size: 17px; font-weight: 800; letter-spacing: -0.01em; }
+/* Шапка этапа по центру: имя с числом лотов, под ним сумма. */
+.ctShapkaEtapa { margin: 0; padding: 9px 12px 11px; border-top: 4px solid var(--c); border-radius: 4px 4px 0 0; background: color-mix(in srgb, var(--c) 14%, rgba(10, 16, 28, 0.9)); text-align: center; }
+.ctShapkaEtapa__imya { margin: 0; font-size: 13px; }
+.ctShapkaEtapa__imya span { margin-left: 4px; color: var(--muted); }
+.ctShapkaEtapa__summa { margin: 4px 0 0; font-size: 19px; letter-spacing: -0.01em; }
 .crmTest .crmStolbec__karty { gap: 6px; padding: 8px; }
 
 /* ── карточка ── */
@@ -112,3 +113,34 @@ body.is-svetlo .ctPlan, body.is-svetlo .ctDelo, body.is-svetlo.crmTest .crmStolb
 body.is-svetlo .ctKarta { background: #fff; border-color: #dfe7f2; }
 body.is-svetlo .ctShapkaEtapa { background: color-mix(in srgb, var(--c) 12%, #fff); }
 body.is-svetlo .ctKarta__ka { color: #2f6fd6; }
+
+/* ── боковая панель «Связь»: почта сейчас, мессенджер — когда дадут API ── */
+.ctSvyazKn {
+  position: fixed; right: 22px; bottom: 22px; z-index: 40;
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 10px 16px; border: 1px solid rgba(143, 156, 173, 0.35); border-radius: 6px;
+  background: #0f1726; color: var(--text); font: inherit; font-size: 14px; cursor: pointer;
+  box-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.8);
+}
+.ctSvyazKn:hover, .ctSvyazKn.is-on { border-color: #4d8df7; }
+.ctSvyaz {
+  position: fixed; top: 0; right: 0; bottom: 0; z-index: 45;
+  display: flex; flex-direction: column; width: min(440px, 100vw);
+  border-left: 1px solid rgba(143, 156, 173, 0.25); background: #0b121d;
+  box-shadow: -20px 0 40px -20px rgba(0, 0, 0, 0.8);
+}
+.ctSvyaz[hidden] { display: none; }
+.ctSvyaz__shapka { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; border-bottom: 1px solid rgba(143, 156, 173, 0.18); }
+.ctSvyaz__vidy { display: inline-flex; gap: 3px; padding: 3px; border: 1px solid rgba(143, 156, 173, 0.25); border-radius: 6px; }
+.ctSvyaz__vidy button { padding: 6px 14px; border: 0; border-radius: 4px; background: transparent; color: var(--muted); font: inherit; font-size: 13px; cursor: pointer; }
+.ctSvyaz__vidy button.is-on { color: var(--text); background: rgba(255, 255, 255, 0.1); }
+.ctSvyaz__zakryt { width: 32px; height: 32px; border: 0; border-radius: 4px; background: transparent; color: var(--muted); font-size: 22px; cursor: pointer; }
+.ctSvyaz__zakryt:hover { color: var(--text); background: rgba(255, 255, 255, 0.08); }
+.ctSvyaz__telo { flex: 1; overflow-y: auto; padding: 14px; }
+.ctSvyaz__telo .crmPochtaVid[hidden], .ctSvyaz__messendzher[hidden] { display: none; }
+.ctSvyaz__telo .crmPochta__poisk--vid { flex-wrap: wrap; }
+.ctSvyaz__messendzher { color: var(--muted); font-size: 13.5px; line-height: 1.5; }
+body.is-svetlo .ctSvyaz, body.is-svetlo .ctSvyazKn { background: #fff; }
+
+/* Жирного нет: VI Sans Regular везде, иерархия — размером и цветом. */
+.crmTest main * { font-weight: 400 !important; }

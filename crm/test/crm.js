@@ -1955,7 +1955,6 @@
           свой: коллеги видят свою переписку, а не вашу.</p>
         <div class="crmObsh__svyaz"><a class="crmSvyaz" href="/__pochta">Подключить ящик</a></div>
       </div>`;
-      el("crmSchyot").textContent = "почта не подключена";
       return;
     }
 
@@ -2004,8 +2003,6 @@
       });
     });
 
-    el("crmSchyot").textContent = `последние ${pisma.length} писем вашего ящика`
-      + " · переписка с контрагентом видна в его карточке";
   }
 
 
@@ -2514,7 +2511,7 @@
     el("crmDoska").hidden = !doska || zadachi || pochta || sverkaVid;
     el("crmTabl").hidden = doska || zadachi || pochta || sverkaVid;
     el("crmZadachi").hidden = !zadachi;
-    el("crmPochtaVid").hidden = !pochta;
+    // Почта живёт в боковой панели «Связь», вкладки у неё больше нет.
     el("crmSverka").hidden = !sverkaVid;
     // На доске фильтр по статусу не нужен — она и есть разрез по статусам.
     // В базе КА статусов нет вовсе, а очереди, выбор менеджера и «новый лот»
@@ -2657,6 +2654,29 @@
       });
     }
     el("crmNovyy").addEventListener("click", () => otkrytFormu(null));
+
+    // Боковая панель «Связь»: почту грузим, когда её впервые открыли.
+    let pochtaZagruzhena = false;
+    const svyaz = el("ctSvyaz");
+    el("ctSvyazKn").addEventListener("click", () => {
+      svyaz.hidden = !svyaz.hidden;
+      el("ctSvyazKn").classList.toggle("is-on", !svyaz.hidden);
+      if (!svyaz.hidden && !pochtaZagruzhena) {
+        pochtaZagruzhena = true;
+        narisovatPochtuVid();
+      }
+    });
+    el("ctSvyazZakryt").addEventListener("click", () => {
+      svyaz.hidden = true;
+      el("ctSvyazKn").classList.remove("is-on");
+    });
+    svyaz.querySelectorAll("[data-svyaz]").forEach((kn) => {
+      kn.addEventListener("click", () => {
+        svyaz.querySelectorAll("[data-svyaz]").forEach((x) => x.classList.toggle("is-on", x === kn));
+        el("crmPochtaVid").hidden = kn.dataset.svyaz !== "pochta";
+        el("ctMessendzher").hidden = kn.dataset.svyaz !== "messendzher";
+      });
+    });
     el("crmOkno").addEventListener("click", (event) => {
       if (event.target.id === "crmOknoFon" || event.target.hasAttribute("data-zakryt")) {
         el("crmOkno").hidden = true;

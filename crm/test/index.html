@@ -9,11 +9,11 @@
   <link rel="stylesheet" href="../../style.css?v=20260921-1">
   <link rel="stylesheet" href="../../perf/perf.css?v=20260921-2">
   <link rel="stylesheet" href="../crm.css?v=20260921-23">
-  <link rel="stylesheet" href="test.css?v=20260923-1">
+  <link rel="stylesheet" href="test.css?v=20260923-2">
   <link rel="stylesheet" href="../../reeded-bg.css?v=20260907-6">
   <link rel="stylesheet" href="../../site-header.css?v=20260921-1">
   <script src="../../reeded-bg.js?v=20260906-7" defer></script>
-  <script src="crm.js?v=20260923-1" defer></script>
+  <script src="crm.js?v=20260923-2" defer></script>
   <script src="../../nav.js?v=20260921-1" defer></script>
 </head>
 <body data-mode="perf" class="crmTest">
@@ -78,9 +78,32 @@
       <div class="crmDoska ctDoska" id="crmDoska"></div>
       <div class="crmTabl" id="crmTabl"></div>
       <div class="crmZadachi" id="crmZadachi" hidden></div>
-      <div class="crmPochtaVid" id="crmPochtaVid" hidden></div>
       <div class="crmSverka" id="crmSverka" hidden></div>
     </section>
+
+    <!-- Связь — боковой панелью, как виджет мессенджера на сайте: почта уже
+         работает, мессенджер встанет сюда же, когда дадут доступ к API. -->
+    <button class="ctSvyazKn" id="ctSvyazKn" type="button" title="Почта и мессенджер">
+      <span aria-hidden="true">✉</span> Связь
+    </button>
+    <aside class="ctSvyaz" id="ctSvyaz" hidden aria-label="Почта и мессенджер">
+      <header class="ctSvyaz__shapka">
+        <nav class="ctSvyaz__vidy">
+          <button class="is-on" type="button" data-svyaz="pochta">Почта</button>
+          <button type="button" data-svyaz="messendzher">Мессенджер</button>
+        </nav>
+        <button class="ctSvyaz__zakryt" id="ctSvyazZakryt" type="button" title="Закрыть">×</button>
+      </header>
+      <div class="ctSvyaz__telo">
+        <div class="crmPochtaVid" id="crmPochtaVid"></div>
+        <div class="ctSvyaz__messendzher" id="ctMessendzher" hidden>
+          <p>Здесь будет Яндекс Мессенджер — чаты с коллегами и контрагентами,
+            не уходя из CRM.</p>
+          <p class="crmHint">встраивается виджетом Яндекс 360; подключим, когда
+            дадут доступ к API.</p>
+        </div>
+      </div>
+    </aside>
 
     <div class="crmOkno" id="crmOkno" hidden>
       <div class="crmOkno__fon" id="crmOknoFon"></div>
