@@ -1,4 +1,4 @@
-// Сводка ФОТ для руководителя — экран в духе HUD: сколько выходит за период,
+// Сводка ФОТ для руководителя: сколько выходит за период,
 // какой лимит по ШР, где запас и где перерасход. Период — месяц, квартал или
 // год; полоса месяцев сверху одновременно и график года, и выбор месяца.
 //
@@ -44,78 +44,82 @@
     return MES_IM[Number(m) - 1] ? `${MES_IM[Number(m) - 1]} ${god}` : s;
   }
 
-  const kvartalMesyaca = (m) => `${m.slice(0, 4)}-Q${Math.floor((Number(m.slice(5, 7)) - 1) / 3) + 1}`;
+  /* ── дуга ─────────────────────────────────────────────────────────────
+     Доля лимита за период: дуга в 240°, шкала до 120 %, лимит — янтарная
+     риска. Всё, что за лимитом, дорисовывается красным. */
+  const IKONKI = {
+    fot: "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"6\" width=\"18\" height=\"13\" rx=\"3\"/><path d=\"M3 10h18M16 14.5h2\"/></svg>",
+    limit: "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"8.5\"/><circle cx=\"12\" cy=\"12\" r=\"4\"/><path d=\"M12 3.5V2M12 22v-1.5\"/></svg>",
+    zapas: "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 3l7 3v6c0 4.4-3 7.6-7 9-4-1.4-7-4.6-7-9V6z\"/><path d=\"M9 12l2 2 4-4\"/></svg>",
+    nad: "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 4l9 16H3z\"/><path d=\"M12 10v4M12 17.5v.01\"/></svg>",
+  };
 
-  /* ── кольцо ───────────────────────────────────────────────────────────
-     Доля лимита, съеденная за период: 54 риски по дуге в 270°, шкала до
-     120 %, лимит — жёлтая риска. Всё, что за лимитом, горит красным. */
-  function kolco(dolya) {
-    const N = 54;
+  function duga(dolya) {
+    const R = 78;
+    const cx = 100;
+    const cy = 100;
+    const START = 150;
+    const SWEEP = 240;
     const MAKS = 1.2;
-    const cx = 110;
-    const cy = 110;
-    const gorit = Math.round(Math.min(dolya, MAKS) / MAKS * N);
-    const granica = Math.round(1 / MAKS * N);
-    const riski = [];
-    for (let i = 0; i < N; i += 1) {
-      const a = (135 + 270 * (i + 0.5) / N) * Math.PI / 180;
-      const r1 = 76;
-      const r2 = i === granica ? 104 : 96;
-      const klass = i < gorit ? (i >= granica ? "is-nad" : "is-on") : "";
-      riski.push(`<line class="cyKolco__r ${klass}" style="--i:${i}" x1="${(cx + r1 * Math.cos(a)).toFixed(1)}"
-        y1="${(cy + r1 * Math.sin(a)).toFixed(1)}" x2="${(cx + r2 * Math.cos(a)).toFixed(1)}" y2="${(cy + r2 * Math.sin(a)).toFixed(1)}"/>`);
-    }
-    const a = (135 + 270 / MAKS) * Math.PI / 180;
-    // Лимит — риска снаружи кольца, внутрь не заходит: там число.
+    const tochka = (ug) => [cx + R * Math.cos(ug * Math.PI / 180), cy + R * Math.sin(ug * Math.PI / 180)];
+    const put = (ot, doo) => {
+      if (doo - ot < 0.5) return "";
+      const [x1, y1] = tochka(ot);
+      const [x2, y2] = tochka(doo);
+      return `M${x1.toFixed(1)},${y1.toFixed(1)} A${R},${R} 0 ${doo - ot > 180 ? 1 : 0} 1 ${x2.toFixed(1)},${y2.toFixed(1)}`;
+    };
+    const ug = (d) => START + SWEEP * Math.min(d, MAKS) / MAKS;
+    const limit = ug(1);
+    const [lx1, ly1] = [cx + (R - 13) * Math.cos(limit * Math.PI / 180), cy + (R - 13) * Math.sin(limit * Math.PI / 180)];
+    const [lx2, ly2] = [cx + (R + 13) * Math.cos(limit * Math.PI / 180), cy + (R + 13) * Math.sin(limit * Math.PI / 180)];
     return `
-      <svg class="cyKolco" viewBox="0 0 220 220" aria-hidden="true">
-        <circle class="cyKolco__fon" cx="${cx}" cy="${cy}" r="66"/>
-        ${riski.join("")}
-        <line class="cyKolco__limit" x1="${(cx + 78 * Math.cos(a)).toFixed(1)}" y1="${(cy + 78 * Math.sin(a)).toFixed(1)}"
-              x2="${(cx + 108 * Math.cos(a)).toFixed(1)}" y2="${(cy + 108 * Math.sin(a)).toFixed(1)}"/>
+      <svg class="fsDuga" viewBox="0 0 200 172" aria-hidden="true">
+        <defs><linearGradient id="fsDugaCvet" x1="0" y1="1" x2="1" y2="0">
+          <stop offset="0" stop-color="#4d8df7"/><stop offset="1" stop-color="#27c46b"/></linearGradient></defs>
+        <path class="fsDuga__fon" d="${put(START, START + SWEEP)}"/>
+        ${dolya > 0 ? `<path class="fsDuga__znach" pathLength="100" d="${put(START, ug(Math.min(dolya, 1)))}"/>` : ""}
+        ${dolya > 1 ? `<path class="fsDuga__nad" pathLength="100" d="${put(limit, ug(dolya))}"/>` : ""}
+        <line class="fsDuga__limit" x1="${lx1.toFixed(1)}" y1="${ly1.toFixed(1)}" x2="${lx2.toFixed(1)}" y2="${ly2.toFixed(1)}"/>
       </svg>`;
   }
 
-  /* ── светодиодная полоса ──────────────────────────────────────────────
-     Сегменты вместо сплошной заливки. Яркие — начислено (или факт), тусклые
-     — сколько добавится, красные — всё, что за лимитом. */
-  function led(fot, cel, nachisleno, n = 40) {
+  /* Полоса «ФОТ против лимита»: светлее — сколько выйдет, насыщенно —
+     начислено на сегодня, янтарная черта — лимит, за ней — красное. */
+  function polosa(fot, cel, nachisleno) {
     if (!cel) {
-      const gorit = fot ? n : 0;
-      return `<div class="cyLed is-bez">${Array.from({ length: n }, (_, i) =>
-        `<i class="${i < gorit ? "is-tusk" : ""}"></i>`).join("")}</div>`;
+      return `<div class="fsPolosa is-bez"><i class="fsPolosa__fot" style="width:${fot ? 100 : 0}%"></i></div>`;
     }
     const shkala = Math.max(fot, cel) * 1.04;
-    const gorit = Math.round(fot / shkala * n);
-    const yarko = nachisleno == null ? gorit : Math.round(nachisleno / shkala * n);
-    const limit = Math.round(cel / shkala * n);
-    return `<div class="cyLed">${Array.from({ length: n }, (_, i) => {
-      let k = "";
-      if (i < gorit) k = i >= limit ? "is-nad" : i < yarko ? "is-on" : "is-tusk";
-      return `<i class="${k}${i === limit ? " is-limit" : ""}" style="--i:${i}"></i>`;
-    }).join("")}</div>`;
+    const pct = (v) => `${Math.min(100, v / shkala * 100).toFixed(2)}%`;
+    return `
+      <div class="fsPolosa${fot > cel ? " is-nad" : ""}" style="--limit:${pct(cel)}">
+        <i class="fsPolosa__fot" style="width:${pct(fot)}"></i>
+        ${nachisleno != null ? `<i class="fsPolosa__seychas" style="width:${pct(Math.min(nachisleno, fot))}"></i>` : ""}
+        <span class="fsPolosa__limit" style="left:${pct(cel)}"></span>
+      </div>`;
   }
 
-  /* ── эквалайзер года ──────────────────────────────────────────────────
-     Столбик на месяц: высота — ФОТ, жёлтая черта — лимит. Щелчок по
-     столбику выбирает месяц. Факт — сплошной циан, прогноз — пурпур,
-     будущее по штату — штриховка, месяц без данных — пустая рамка. */
-  function ekvalayzer(god, period, tekushchiy) {
+  /* ── год по месяцам ───────────────────────────────────────────────────
+     Столбик на месяц: высота — ФОТ, пунктир — лимит, число над столбиком.
+     Щелчок по столбику выбирает месяц; месяцы вне выбранного периода
+     приглушены. */
+  function godGrafik(god, period, tekushchiy) {
     const mesyacy = (god && god["месяцы"]) || [];
-    if (!mesyacy.length) return "";
-    const maks = Math.max(...mesyacy.map((m) => Math.max(m["фот"] || 0, m["цель"] || 0)), 1) * 1.12;
-    const vybrano = new Set(god ? periodMesyacy(period, god) : []);
-    return `<div class="cyEq">${mesyacy.map((m) => {
+    if (!mesyacy.length) return "<div class=\"fsGod__pusto\">загружаю год…</div>";
+    const maks = Math.max(...mesyacy.map((m) => Math.max(m["фот"] || 0, m["цель"] || 0)), 1) * 1.08;
+    const vybrano = new Set(periodMesyacy(period, god));
+    return `<div class="fsGod">${mesyacy.map((m) => {
       const nomer = Number(m["месяц"].slice(5, 7)) - 1;
       const vid = VID_KLASS[m["вид"]] || "net";
       const nad = m["фот"] != null && m["цель"] && m["фот"] > m["цель"];
       return `
-        <button type="button" class="cyEq__col cyEq__col--${vid}${vybrano.has(m["месяц"]) ? " is-vybran" : ""}${
-          m["месяц"] === tekushchiy ? " is-seychas" : ""}${nad ? " is-nad" : ""}" data-period="${m["месяц"]}"
+        <button type="button" class="fsGod__mes fsGod__mes--${vid}${vybrano.has(m["месяц"]) ? " is-vybran" : ""}${
+          m["месяц"] === tekushchiy ? " is-seychas" : ""}" data-period="${m["месяц"]}"
           title="${esc(`${nazvanie(m["месяц"])}: ${VID[m["вид"]]}${m["фот"] != null ? " " + mln(m["фот"]) + " млн" : ""}, лимит ${mln(m["цель"])} млн`)}">
-          <b>${m["фот"] != null ? mlnKor(m["фот"]) : "—"}</b>
-          <span class="cyEq__stakan">
-            <i style="height:${((m["фот"] || 0) / maks * 100).toFixed(1)}%;--l:${nad ? (m["цель"] / m["фот"] * 100).toFixed(1) : 100}%"></i>
+          <span class="fsGod__stolb">
+            ${m["фот"] != null
+              ? `<i style="height:${(m["фот"] / maks * 100).toFixed(1)}%;--l:${nad ? (m["цель"] / m["фот"] * 100).toFixed(1) : 100}%"><b>${mlnKor(m["фот"])}</b></i>`
+              : "<i class=\"is-pusto\"><b>нет<br>данных</b></i>"}
             ${m["цель"] ? `<s style="bottom:${(m["цель"] / maks * 100).toFixed(1)}%"></s>` : ""}
           </span>
           <em>${MES_KOR[nomer]}</em>
@@ -144,85 +148,105 @@
     const dolya = sravn ? (i["фот"] || 0) / sravn : 0;
     const seychas = period === tekushchiy;
     const bez = i["без_данных"] || [];
-    const vidy = [...new Set((data["месяцы"] || []).map((m) => m["вид"]))];
+    const bezTekst = bez.map((m) => MES_ROD[Number(m.slice(5, 7)) - 1]).join(", ");
+    const vidy = [...new Set((data["месяцы"] || []).map((m) => m["вид"]))].filter((v) => v !== "нет данных");
     const god4 = tekushchiy.slice(0, 4);
+    const zagolovok = nazvanie(period);
 
     koren.innerHTML = `
-      <div class="cy">
-        <div class="cy__setka" aria-hidden="true"></div>
-        <header class="cy__head">
+      <div class="fs">
+        <header class="fs__head">
           <div>
-            <p class="cy__tag"><span>ФОТ</span> // ${esc(data["контур"] || "департамент развития")}</p>
-            <h2 class="cy__h" data-text="${esc(nazvanie(period))}">${esc(nazvanie(period))}</h2>
-            <p class="cy__sub">полный ФОТ: гросс + взносы 30,2% + резерв отпусков${seychas
-              ? ` · день ${data["прошло_дней"] || 0} из ${data["норма_дней"] || 0}` : ""}${data["обновлено"]
-              ? ` · расчёт ${esc(String(data["обновлено"]).slice(11, 16) || data["обновлено"])}` : ""}</p>
+            <p class="fs__tag">ФОТ · ${esc(data["контур"] || "департамент развития")}</p>
+            <h2>${esc(zagolovok.charAt(0).toUpperCase() + zagolovok.slice(1))}</h2>
+            <p class="fs__sub">полный ФОТ: гросс + взносы 30,2% + резерв отпусков${seychas
+              ? ` · ${data["прошло_дней"] || 0} из ${data["норма_дней"] || 0} рабочих дней` : ""}${data["обновлено"]
+              ? ` · расчёт ${esc(data["обновлено"])}` : ""}</p>
           </div>
-          <div class="cy__tools">
-            ${mozhno["лимиты"] && !pravka ? "<button class=\"cyBtn\" type=\"button\" data-dash=\"pravka\">Вписать лимит</button>" : ""}
-            ${mozhno["шр"] && !pravka ? `<label class="cyBtn">Загрузить ШР
+          <div class="fs__tools">
+            ${mozhno["лимиты"] && !pravka ? "<button class=\"zpView fsKnopka\" type=\"button\" data-dash=\"pravka\">Вписать лимит</button>" : ""}
+            ${mozhno["шр"] && !pravka ? `<label class="zpView fsKnopka">Загрузить ШР
               <input type="file" accept=".xlsx,.xls,.csv" data-dash="shr" hidden></label>` : ""}
           </div>
         </header>
 
-        <nav class="cy__period" aria-label="Период">
-          <div class="cy__kv">
-            ${[1, 2, 3, 4].map((q) => `<button type="button" class="cyChip${period === `${god4}-Q${q}` ? " is-on" : ""}${
-              kvartalMesyaca(tekushchiy) === `${god4}-Q${q}` ? " is-seychas" : ""}" data-period="${god4}-Q${q}">${RIM[q - 1]} кв</button>`).join("")}
-            <button type="button" class="cyChip${period === god4 ? " is-on" : ""}" data-period="${god4}">год</button>
-            <button type="button" class="cyChip cyChip--seychas${seychas ? " is-on" : ""}" data-period="${tekushchiy}">сейчас</button>
+        <div class="fsPlitki">
+          <div class="fsPlitka fsPlitka--duga">
+            <div class="fsDuga__obertka">
+              ${duga(dolya)}
+              <div class="fsPlitka__duga-centr">
+                <b class="${nad ? "is-nad" : ""}"><span data-schet="${Math.round(dolya * 1000) / 10}" data-format="pct">0</span>%</b>
+              </div>
+            </div>
+            <small class="fsPlitka__duga-pod">${seychas ? "лимита уйдёт к концу месяца" : "лимита использовано"}</small>
           </div>
-          ${ekvalayzer(god, period, tekushchiy)}
-          <div class="cy__legenda">
+          <div class="fsPlitka fsPlitka--fot">
+            <div class="fsPlitka__shapka"><span class="fsPlitka__znak">${IKONKI.fot}</span>
+              <span class="fsPlitka__teg">${vidy.length === 1 && vidy[0] === "факт" ? "Вышло" : "Выйдет"}</span></div>
+            <p class="fsPlitka__val"><b data-schet="${i["фот"] || 0}">0</b><small>млн ₽</small></p>
+            <dl class="fsPlitka__dl">
+              ${seychas ? `<div><dt>начислено на сегодня</dt><dd>${mln(i["начислено_фот"])}</dd></div>` : ""}
+              <div><dt>людей</dt><dd>${i["человек"] || 0}</dd></div>
+              ${!seychas ? `<div><dt>откуда</dt><dd>${vidy.map((v) => VID[v]).join(" + ") || "—"}</dd></div>` : ""}
+            </dl>
+          </div>
+          <div class="fsPlitka fsPlitka--limit">
+            <div class="fsPlitka__shapka"><span class="fsPlitka__znak">${IKONKI.limit}</span>
+              <span class="fsPlitka__teg">Лимит${i["вручную"] ? "" : " по ШР"}</span></div>
+            <p class="fsPlitka__val"><b data-schet="${bez.length ? sravn : i["цель_фот"] || 0}">0</b><small>млн ₽</small></p>
+            <dl class="fsPlitka__dl">
+              <div><dt>ставок</dt><dd>${i["цель_человек"] || 0}${i["цель_вакансий"] ? ` · ${i["цель_вакансий"]} вак.` : ""}</dd></div>
+              ${i["вручную"] ? `<div><dt>вписано руками</dt><dd>${i["вручную"]}</dd></div>` : ""}
+              ${bez.length ? `<div><dt>на весь период</dt><dd>${mln(i["цель_фот"])}</dd></div>` : ""}
+            </dl>
+          </div>
+          <div class="fsPlitka ${nad ? "fsPlitka--nad" : "fsPlitka--zapas"}">
+            <div class="fsPlitka__shapka"><span class="fsPlitka__znak">${nad ? IKONKI.nad : IKONKI.zapas}</span>
+              <span class="fsPlitka__teg">${nad ? "Перерасход" : "Запас"}</span></div>
+            <p class="fsPlitka__val"><b data-schet="${Math.abs(zapas)}">0</b><small>млн ₽</small></p>
+            <dl class="fsPlitka__dl">
+              <div><dt>от лимита</dt><dd>${sravn ? `${(Math.abs(zapas) / sravn * 100).toFixed(1).replace(".", ",")}%` : "—"}</dd></div>
+              ${bez.length ? `<div><dt>без ${esc(bezTekst)}</dt><dd>нет факта</dd></div>` : ""}
+              ${i["цель_фонды"] ? `<div><dt>фонды без людей в лимите</dt><dd>${mln(i["цель_фонды"])}</dd></div>` : ""}
+            </dl>
+          </div>
+        </div>
+
+        ${seychas ? `
+        <section class="fsDen">
+          <div class="fsDen__zag">
+            <span><i class="k k--seychas"></i>начислено ${mln(i["начислено_фот"])}</span>
+            <span><i class="k k--fot"></i>выйдет ${mln(i["фот"])}</span>
+            <span><i class="k k--limit"></i>лимит ${mln(i["цель_фот"])}</span>
+          </div>
+          ${polosa(i["фот"] || 0, i["цель_фот"] || 0, i["начислено_фот"] || 0)}
+        </section>` : ""}
+
+        <section class="fsBlok">
+          <div class="fsBlok__head">
+            <h3>По месяцам</h3>
+            <div class="fsSegment" role="group" aria-label="Период">
+              ${[1, 2, 3, 4].map((q) => `<button type="button" class="${period === `${god4}-Q${q}` ? "is-on" : ""}"
+                data-period="${god4}-Q${q}">${RIM[q - 1]} кв</button>`).join("")}
+              <button type="button" class="${period === god4 ? "is-on" : ""}" data-period="${god4}">Год</button>
+              <button type="button" class="${seychas ? "is-on" : ""}" data-period="${tekushchiy}">Сейчас</button>
+            </div>
+          </div>
+          ${godGrafik(god, period, tekushchiy)}
+          <div class="fsLegenda">
             <span><i class="k k--fakt"></i>факт бухгалтерии</span>
             <span><i class="k k--prognoz"></i>прогноз месяца</span>
             <span><i class="k k--shtat"></i>по нынешнему штату</span>
             <span><i class="k k--limit"></i>лимит ШР</span>
-          </div>
-        </nav>
-
-        <section class="cy__main">
-          <div class="cy__kolco">
-            ${kolco(dolya)}
-            <div class="cy__kolco-centr">
-              <b class="${nad ? "is-nad" : ""}"><span data-schet="${Math.round(dolya * 1000) / 10}" data-format="pct">0</span>%</b>
-              <small>лимита</small>
-            </div>
-          </div>
-          <div class="cy__kpis">
-            <div class="cyKpi cyKpi--cyan">
-              <small>${vidy.length === 1 && vidy[0] === "факт" ? "вышло" : "выйдет"}</small>
-              <b><span data-schet="${i["фот"] || 0}">0</span><em>млн</em></b>
-              <i>${i["человек"] || 0} чел.${seychas ? ` · начислено на сегодня ${mln(i["начислено_фот"])}` : ""}${
-                vidy.length > 1 || vidy[0] !== "прогноз" ? ` · ${vidy.filter((v) => v !== "нет данных").map((v) => VID[v]).join(" + ")}` : ""}</i>
-            </div>
-            <div class="cyKpi cyKpi--yel">
-              <small>лимит${i["вручную"] ? "" : " по ШР"}</small>
-              <b><span data-schet="${bez.length ? sravn : i["цель_фот"] || 0}">0</span><em>млн</em></b>
-              <i>${i["цель_человек"] || 0} ${slovo(i["цель_человек"] || 0, ["ставка", "ставки", "ставок"])}${
-                i["цель_вакансий"] ? ` · ${i["цель_вакансий"]} ${slovo(i["цель_вакансий"], ["вакансия", "вакансии", "вакансий"])}` : ""}${
-                i["вручную"] ? ` · ${i["вручную"]} вписаны руками` : ""}${
-                bez.length ? ` · без ${bez.map((m) => MES_ROD[Number(m.slice(5, 7)) - 1]).join(", ")}; на весь период ${mln(i["цель_фот"])}` : ""}</i>
-            </div>
-            <div class="cyKpi ${nad ? "cyKpi--red" : "cyKpi--grn"}">
-              <small>${nad ? "перерасход" : "запас"}</small>
-              <b><span data-schet="${Math.abs(zapas)}">0</span><em>млн</em></b>
-              <i>${sravn ? `${(Math.abs(zapas) / sravn * 100).toFixed(1).replace(".", ",")}% лимита` : "лимита нет"}${
-                bez.length ? ` · без ${bez.map((m) => MES_ROD[Number(m.slice(5, 7)) - 1]).join(", ")} — нет факта` : ""}</i>
-            </div>
+            <span><i class="k k--nad"></i>сверх лимита</span>
           </div>
         </section>
 
-        ${seychas ? `
-        <section class="cy__den">
-          <div class="cy__den-zag"><span>день ${data["прошло_дней"] || 0}/${data["норма_дней"] || 0}</span>
-            <span>начислено ${mln(i["начислено_фот"])} · прогноз ${mln(i["фот"])} · лимит ${mln(i["цель_фот"])} млн</span></div>
-          ${led(i["фот"] || 0, i["цель_фот"] || 0, i["начислено_фот"] || 0, 72)}
-        </section>` : ""}
-
-        <section class="cy__napr">
-          <div class="cy__napr-zag"><span>направление</span><span>использование лимита</span><span>${
-            pravka ? `лимит на ${esc(nazvanie(period))}, млн` : "ФОТ / лимит, млн"}</span></div>
+        <section class="fsBlok">
+          <div class="fsBlok__head">
+            <h3>По направлениям</h3>
+            <span class="fs__sub">${pravka ? `лимит на ${esc(zagolovok)}, млн ₽` : "ФОТ / лимит, млн ₽"}</span>
+          </div>
           ${spisok.map((n) => {
             const cel = n["цель_сравнимая"] ?? n["цель_фот"] ?? 0;
             const raznica = cel - (n["фот"] || 0);
@@ -231,51 +255,51 @@
             const mes = n["месяцы"] || [];
             const netDannyh = mes.length > 0 && mes.every((t) => t["фот"] == null);
             return `
-            <div class="cyRow${!bezLimita && raznica < 0 ? " is-nad" : ""}">
-              <div class="cyRow__imya">
+            <div class="fsRow${!bezLimita && !netDannyh && raznica < 0 ? " is-nad" : ""}">
+              <div class="fsRow__imya">
                 <b>${esc(n["направление"])}</b>
                 <span>${n["человек"] || 0} чел.${n["цель_человек"] ? ` · ${n["цель_человек"]} ${slovo(n["цель_человек"],
                   ["ставка", "ставки", "ставок"])}` : ""}${n["цель_вакансий"] ? `, ${n["цель_вакансий"]} ${slovo(n["цель_вакансий"],
                   ["вакансия", "вакансии", "вакансий"])}` : ""}</span>
               </div>
-              <div class="cyRow__polosa">
-                ${led(n["фот"] || 0, cel, seychas ? n["начислено_фот"] || 0 : null)}
-                ${mes.length > 1 ? `<div class="cyRow__mes">${mes.map((t) => `<i class="${t["фот"] == null ? "is-net"
+              <div class="fsRow__polosa">
+                ${polosa(n["фот"] || 0, cel, seychas ? n["начислено_фот"] || 0 : null)}
+                ${mes.length > 1 ? `<div class="fsRow__mes">${mes.map((t) => `<i class="${t["фот"] == null ? "is-net"
                   : t["цель"] && t["фот"] > t["цель"] ? "is-nad" : t["цель"] ? "is-ok" : ""}" title="${esc(`${nazvanie(t["месяц"])}: ${
                   t["фот"] == null ? "нет данных" : mln(t["фот"])} / ${mln(t["цель"])} млн`)}"></i>`).join("")}</div>` : ""}
               </div>
               ${pravka ? `
-                <label class="cyRow__vvod">
+                <label class="fsRow__vvod">
                   <input type="text" inputmode="decimal" data-napr="${esc(n["направление"])}"
                          value="${n["цель_источник"] === "вручную" ? mln(n["цель_фот"]) : ""}"
                          placeholder="${n["цель_шр"] ? mln(n["цель_шр"]) : "нет в ШР"}">
                 </label>` : `
-                <div class="cyRow__cifry">
-                  <b>${netDannyh ? "—" : mln(n["фот"])}</b><span>/ ${bezLimita ? "—" : mln(n["цель_фот"])}</span>
-                  <em class="${netDannyh || bezLimita ? "" : raznica < 0 ? "is-nad" : "is-ok"}">${netDannyh ? "нет данных"
-                    : bezLimita ? "нет в ШР" : (raznica < 0 ? "▲ " : "▼ ") + mln(Math.abs(raznica))}</em>
-                  ${n["цель_источник"] === "вручную" ? `<small class="cyRow__ruchnoy"
+                <div class="fsRow__cifry">
+                  <span><b>${netDannyh ? "—" : mln(n["фот"])}</b> / ${bezLimita ? "—" : mln(n["цель_фот"])}</span>
+                  <em class="fsChip ${netDannyh || bezLimita ? "" : raznica < 0 ? "is-nad" : "is-ok"}">${netDannyh ? "нет данных"
+                    : bezLimita ? "нет в ШР" : (raznica < 0 ? "сверх " : "запас ") + mln(Math.abs(raznica))}</em>
+                  ${n["цель_источник"] === "вручную" ? `<small class="fsChip is-ruchnoy"
                     title="${esc(`вписал ${n["цель_кто"]} ${n["цель_когда"]}; по ШР ${mln(n["цель_шр"])} млн`)}">вручную</small>` : ""}
                 </div>`}
-              ${fondy.length && !pravka ? `<p class="cyRow__fondy">в лимите фонды без людей:
+              ${fondy.length && !pravka ? `<p class="fsRow__fondy">в лимите фонды без людей:
                 ${fondy.map((f) => `${esc(f["название"])} — ${mln(f["фот"])} млн в месяц`).join(" · ")}</p>` : ""}
             </div>`;
           }).join("")}
+
+          ${pravka ? `
+            <div class="fs__pravka">
+              <p>Лимит на ${esc(zagolovok)} — полный ФОТ в миллионах. ${period.length > 7
+                ? "Разложится по месяцам пропорционально ШР. " : ""}Пустое поле — лимит по ШР (он серым).</p>
+              <button class="zpView zpView--glavnaya fsKnopka" type="button" data-dash="sohranit">Сохранить</button>
+              <button class="zpView fsKnopka" type="button" data-dash="otmena">Отмена</button>
+              <span class="fs__otvet" data-dash="otvet"></span>
+            </div>` : ""}
         </section>
 
-        ${pravka ? `
-          <div class="cy__pravka">
-            <p>Лимит на ${esc(nazvanie(period))} — полный ФОТ в миллионах. ${period.length > 7
-              ? "Разложится по месяцам пропорционально ШР. " : ""}Пустое поле — лимит по ШР (он серым).</p>
-            <button class="cyBtn cyBtn--glav" type="button" data-dash="sohranit">Сохранить</button>
-            <button class="cyBtn" type="button" data-dash="otmena">Отмена</button>
-            <span class="cy__otvet" data-dash="otvet"></span>
-          </div>` : ""}
-
-        <footer class="cy__foot">
-          ${vidy.includes("факт") ? "<p><b>факт</b> — бухгалтерская выгрузка «Анализ ЗП», ФОТ итого: с отпускными, больничными и квартальными премиями. Поэтому он выше прогноза, который знает только оклады и плановые премии.</p>" : ""}
-          ${vidy.includes("по штату") ? "<p><b>по штату</b> — нынешние люди на полный месяц с плановой премией, без отпусков и замен.</p>" : ""}
-          ${bez.length ? `<p><b>нет данных</b> — ${bez.map((m) => nazvanie(m)).join(", ")}: выгрузки «Анализ ЗП» пока нет, в сумму и запас этот месяц не входит.</p>` : ""}
+        <footer class="fs__foot">
+          ${vidy.includes("факт") ? "<p><b>Факт</b> — бухгалтерская выгрузка «Анализ ЗП», ФОТ итого: с отпускными, больничными и квартальными премиями, поэтому он выше прогноза, который знает только оклады и плановые премии.</p>" : ""}
+          ${vidy.includes("по штату") ? "<p><b>По штату</b> — нынешние люди на полный месяц с плановой премией, без отпусков и замен.</p>" : ""}
+          ${bez.length ? `<p><b>Нет данных</b> — ${bez.map((m) => nazvanie(m)).join(", ")}: выгрузки «Анализ ЗП» пока нет, в сумму и запас этот месяц не входит.</p>` : ""}
         </footer>
 
         <div class="zpShr" data-dash="shrOkno" ${shr ? "" : "hidden"}>${shr || ""}</div>
@@ -353,10 +377,10 @@
         otvet["не_трогаем"].map(esc).join(", ")}</p>` : ""}
       ${otvet["пропущено"]["строк"] ? `<p class="zpShr__note">Пропущено ${otvet["пропущено"]["строк"]} строк с деньгами,
         но без сотрудника (${rub(otvet["пропущено"]["гросс"])} в месяц) — похоже на итоги.</p>` : ""}
-      <div class="cy__pravka">
-        <button class="cyBtn cyBtn--glav" type="button" data-dash="primenit">Применить отмеченные</button>
-        <button class="cyBtn" type="button" data-dash="shrOtmena">Отмена</button>
-        <span class="cy__otvet" data-dash="shrOtvet"></span>
+      <div class="fs__pravka">
+        <button class="zpView zpView--glavnaya fsKnopka" type="button" data-dash="primenit">Применить отмеченные</button>
+        <button class="zpView fsKnopka" type="button" data-dash="shrOtmena">Отмена</button>
+        <span class="fs__otvet" data-dash="shrOtvet"></span>
       </div>`;
   }
 
@@ -381,7 +405,7 @@
       s.period = period;
       s.anim = true;
       s.pravka = false;
-      koren.querySelector(".cy")?.classList.add("is-gruzitsya");
+      koren.querySelector(".fs")?.classList.add("is-gruzitsya");
       try {
         s.data = await zabrat(period);
       } catch (oshibka) {
@@ -422,7 +446,7 @@
       if (chto === "pravka") {
         s.pravka = true;
         narisovat(koren, s);
-        koren.querySelector(".cyRow__vvod input")?.focus();
+        koren.querySelector(".fsRow__vvod input")?.focus();
       } else if (chto === "otmena") {
         s.pravka = false;
         narisovat(koren, s);
@@ -430,7 +454,7 @@
         const otvetEl = koren.querySelector("[data-dash=\"otvet\"]");
         const po = new Map((s.data["направления"] || []).map((n) => [n["направление"], n]));
         const limity = [];
-        for (const pole of koren.querySelectorAll(".cyRow__vvod input")) {
+        for (const pole of koren.querySelectorAll(".fsRow__vvod input")) {
           const n = po.get(pole.dataset.napr);
           const tekst = pole.value.replace(/\s/g, "").replace(",", ".");
           const bylo = n && n["цель_источник"] === "вручную" ? n["цель_фот"] : 0;
@@ -504,7 +528,7 @@
     });
 
     koren.addEventListener("keydown", (event) => {
-      if (event.key === "Enter" && event.target.closest(".cyRow__vvod")) {
+      if (event.key === "Enter" && event.target.closest(".fsRow__vvod")) {
         koren.querySelector("[data-dash=\"sohranit\"]")?.click();
       }
     });
