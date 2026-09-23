@@ -183,12 +183,17 @@
               ? ` · ${data["прошло_дней"] || 0} из ${data["норма_дней"] || 0} рабочих дней` : ""}${data["обновлено"]
               ? ` · расчёт ${esc(data["обновлено"])}` : ""}</p>
           </div>
-          <div class="fs__tools">
-            ${mozhno["лимиты"] && !pravka ? "<button class=\"zpView fsKnopka\" type=\"button\" data-dash=\"pravka\">Вписать лимит</button>" : ""}
-            ${mozhno["шр"] && !pravka ? `<label class="zpView fsKnopka">Загрузить ШР
-              <input type="file" accept=".xlsx,.xls,.csv" data-dash="shr" hidden></label>` : ""}
-          </div>
         </header>
+
+        ${mozhno["лимиты"] || mozhno["шр"] ? `
+        <div class="fsActions">
+          <div class="fsActions__text"><b>${pravka ? "Изменение лимитов" : "Управление ФОТ"}</b>
+            <span>${pravka ? "Впишите суммы по направлениям ниже и сохраните изменения." : "Лимиты по направлениям и штатное расписание"}</span></div>
+          <div class="fs__tools">
+            ${mozhno["лимиты"] ? `<button class="zpView fsKnopka fsKnopka--primary" type="button" data-dash="${pravka ? "otmena" : "pravka"}">${pravka ? "Отменить правку" : "Вписать лимит"}</button>` : ""}
+            ${mozhno["шр"] && !pravka ? `<button class="zpView fsKnopka" type="button" data-dash="shrOpen">Загрузить ШР</button><input type="file" accept=".xlsx,.xls,.csv" data-dash="shr" hidden>` : ""}
+          </div>
+        </div>` : ""}
 
         <section class="fsOverview${nad ? " is-nad" : ""}">
           <div class="fsOverview__main">
@@ -443,6 +448,8 @@
         s.pravka = true;
         narisovat(koren, s);
         koren.querySelector(".fsRow__vvod input")?.focus();
+      } else if (chto === "shrOpen") {
+        koren.querySelector('[data-dash="shr"]')?.click();
       } else if (chto === "otmena") {
         s.pravka = false;
         narisovat(koren, s);
