@@ -695,7 +695,7 @@ body.is-svetlo .crmPallety__poisk input { background: #fff; color: var(--text); 
 /* Карточки одинаковые: четыре строки фиксированной высоты, цифры — тремя
    равными колонками с подписью, пустое — прочерком, а не дырой. */
 .crmKarta__verh, .crmKarta__ka, .crmKarta__niz { height: 18px; line-height: 18px; }
-.crmKarta__cifry { display: grid; grid-template-columns: 1.5fr 1fr 0.9fr; gap: 6px; margin: 7px 0 0;
+.crmKarta__cifry { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin: 7px 0 0;
   padding: 6px 0; border-top: 1px solid rgba(143,156,173,.14); border-bottom: 1px solid rgba(143,156,173,.14); }
 .crmKarta__cifry > div { display: grid; gap: 2px; min-width: 0; }
 .crmKarta__cifry > div:nth-child(2) { justify-items: center; }
@@ -708,3 +708,8 @@ body.is-svetlo .crmPallety__poisk input { background: #fff; color: var(--text); 
 .crmStolbec__shapka { min-height: 72px; }
 .crmStolbec__imya { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .crmStolbec__pallet { margin-left: 0; }
+
+/* Светлая тема: пастельные цвета окупа на белом не читались. */
+body.is-svetlo .crmOkup--horosho { color: #13864a; }
+body.is-svetlo .crmOkup--sredne { color: #a86400; }
+body.is-svetlo .crmOkup--ploho { color: #c0283f; }

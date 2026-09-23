@@ -847,9 +847,10 @@
       </div>
       <div class="ctMetki">${metki.map(([t, k]) =>
         `<span class="ctMetka ${k}">${escape(t)}</span>`).join("")}</div>
+      <p class="ctKarta__kto" title="менеджер · склад · площадка">${escape(
+        [String(z.menedzher || "").trim() || "без менеджера", z.region, z.ploshchadka]
+          .filter(Boolean).join(" · "))}</p>
       <div class="ctKarta__niz">
-        <span class="ctKarta__kto">${escape(String(z.menedzher || "").split(" ")[0] || "—")}${
-          z.ploshchadka ? " · " + escape(z.ploshchadka) : ""}</span>
         <button class="ctKarta__kn" type="button" data-delo title="Завести дело по лоту">+ дело</button>
         ${kuda ? `<button class="ctKarta__kn ctKarta__kn--dalshe" type="button" data-dalshe
           title="Перевести в «${escape(imyaEtapa(kuda))}»">→ ${escape(KRATKO[kuda] || imyaEtapa(kuda).toLowerCase())}</button>` : ""}

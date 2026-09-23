@@ -167,3 +167,17 @@ body.is-svetlo .ctKarta__pallet, body.is-svetlo .ctShapkaEtapa__pallet { backgro
 .crmTest .crmStolbec--itog { width: 180px; min-width: 180px; max-width: 180px; }
 .ctKarta { flex: none; min-width: 0; overflow: hidden; }
 .ctMetki { min-width: 0; overflow: hidden; }
+
+/* Низ карточки: строка «кто · склад · площадка» целиком, под ней две
+   кнопки поровну. Кнопка следующего шага — сплошная, чтобы читалась и на
+   белом. */
+.ctKarta__kto { flex: none; height: 18px; margin: 6px 0 0; overflow: hidden; color: var(--muted); font-size: 12px; line-height: 18px; text-overflow: ellipsis; white-space: nowrap; }
+.ctKarta__niz { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px; }
+.ctKarta__kn { padding: 5px 6px; text-align: center; overflow: hidden; text-overflow: ellipsis; }
+.ctKarta__kn--dalshe { color: #fff; background: #1f9d57; border-color: #1f9d57; }
+.ctKarta__kn--dalshe:hover { background: #27c46b; border-color: #27c46b; }
+.ctKarta__kn:only-child { grid-column: 1 / -1; }
+body.is-svetlo .ctKarta__kn { color: #33445c; border-color: #c6d3e4; }
+body.is-svetlo .ctKarta__kn--dalshe { color: #fff; background: #1a8f4f; border-color: #1a8f4f; }
+body.is-svetlo .ctMetka.is-seryy { color: #3e4d63; background: #e6ecf4; }
+body.is-svetlo .ctKarta__kto { color: #4a5a70; }
