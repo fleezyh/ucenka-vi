@@ -3,7 +3,8 @@
    Снимает браузер человека — штатным захватом вкладки (Chrome спросит
    разрешение), без библиотек и без браузера на сервере. Сервер получает
    готовую картинку и только пересылает её в чат из списка. Перед отправкой —
-   превью и выбор чата: случайно в группу ничего не уйдёт.
+   превью и выбор чата: случайно в группу ничего не уйдёт. Уходит одна
+   картинка, без подписи — как её кидали в канал руками.
 
    Подключение: Snimok.podklyuchit(кнопка, { oblast: () => [элементы],
                                                podpis: () => "Воронка · сентябрь" }) */
@@ -51,7 +52,6 @@
           <p class="snimok__zag">Отправить в чат</p>
           <img class="snimok__kartinka" alt="Снимок">
           <label class="snimok__pole"><span>Куда</span><select></select></label>
-          <label class="snimok__pole"><span>Подпись</span><input type="text" maxlength="200"></label>
           <div class="snimok__knopki">
             <button class="action action--secondary" type="button" data-otmena>Отмена</button>
             <button class="action" type="button" data-otpravit>Отправить</button>
@@ -61,7 +61,6 @@
       fon.querySelector("img").src = png;
       const vybor = fon.querySelector("select");
       chaty.forEach((imya, nomer) => vybor.add(new Option(imya, nomer)));
-      fon.querySelector("input").value = podpis;
       const zakryt = (itog) => { fon.remove(); reshenie(itog); };
       fon.querySelector("[data-otmena]").addEventListener("click", () => zakryt(null));
       fon.addEventListener("click", (event) => { if (event.target === fon) zakryt(null); });
@@ -74,8 +73,7 @@
           const zapros = await fetch("/__bot/kartinka", {
             method: "POST", credentials: "same-origin",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ png, "чат": Number(vybor.value),
-                                   "подпись": fon.querySelector("input").value.trim() }),
+            body: JSON.stringify({ png, "чат": Number(vybor.value) }),
           });
           const dannye = await zapros.json().catch(() => ({}));
           if (!zapros.ok) throw new Error(dannye.error || "бот не отправил");
