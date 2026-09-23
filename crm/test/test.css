@@ -142,5 +142,7 @@ body.is-svetlo .ctKarta__ka { color: #2f6fd6; }
 .ctSvyaz__messendzher { color: var(--muted); font-size: 13.5px; line-height: 1.5; }
 body.is-svetlo .ctSvyaz, body.is-svetlo .ctSvyazKn { background: #fff; }
 
-/* Жирного нет: VI Sans Regular везде, иерархия — размером и цветом. */
-.crmTest main * { font-weight: 400 !important; }
+/* Один вес на всё — VI Sans DemiBold (600), как «Уценка» в шапке сайта.
+   Ни ExtraBold, ни тонкого Regular: иерархия — размером и цветом. */
+.crmTest main * { font-weight: 600 !important; }
+.crmTest main :is(input, textarea, select)::placeholder { font-weight: 500 !important; }
