@@ -1319,6 +1319,13 @@ async function start() {
     }
 
     const otkryt = (vid) => {
+      document.body.classList.toggle("zp-summary-active", vid === "svodka");
+      const zagolovok = document.querySelector(".hero h1");
+      const opisanie = document.querySelector(".hero .lead");
+      if (zagolovok) zagolovok.textContent = vid === "svodka" ? "Фонд оплаты труда" : "Моя зарплата";
+      if (opisanie) opisanie.textContent = vid === "svodka"
+        ? "Прогноз расходов, лимит и отклонения по направлениям."
+        : "Сколько заработано на сегодня и когда это придёт. Считается каждый день по вашему окладу и фактическим выходам — не нужно ждать конца месяца, чтобы понять, что получится.";
       views.querySelectorAll(".zpView")
         .forEach((item) => item.classList.toggle("is-on", item.dataset.view === vid));
       blockTeam.hidden = vid !== "team";
