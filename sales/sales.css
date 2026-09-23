@@ -326,7 +326,7 @@ button.total__label:hover { color: #fff; }
 
 .funnelWrap[data-tema="svet"] {
   --vt-card: #ffffff;
-  --vt-line: #dfe7f2;
+  --vt-line: #d3dce8;
   --vt-text: #10203a;
   --vt-muted: #5f7189;
   --vt-green: #1aa85c;
@@ -343,7 +343,7 @@ button.total__label:hover { color: #fff; }
   --vt-pole: #fbfdff;
   --vt-row-hover: #f6f9fe;
   --vt-row-line: #eef3f9;
-  --vt-shadow: 0 2px 10px rgba(16, 32, 58, 0.06);
+  --vt-shadow: 0 1px 2px rgba(16, 32, 58, 0.06), 0 6px 18px rgba(16, 32, 58, 0.07);
   /* Своей подложки больше нет: светлой становится вся вкладка. Подложка с
      отступом сдвигала блок на 18 px при каждом переключении темы. */
 }
@@ -528,7 +528,7 @@ button.total__label:hover { color: #fff; }
 .is-ship .vtNum { background: var(--vt-green); color: #fff; }
 
 .vtPoloska { display: flex; align-items: center; gap: 12px; min-width: 300px; }
-.vtPoloska i { display: block; height: 22px; border-radius: 5px; background: var(--vt-blue); opacity: .6; }
+.vtPoloska i { display: block; height: 22px; border-radius: 5px; background: var(--vt-blue); }
 .is-ship .vtPoloska i { background: var(--vt-green); }
 .vtPoloska b { font-weight: 700; }
 
@@ -656,7 +656,7 @@ body[data-blok="istoriya"] #blokOstatki { display: none; }
 .vtZakr__shkala { margin: 26px 0 8px; }
 .vtZakr__zhelob { position: relative; height: 22px; border-radius: 99px; background: var(--vt-zhelob); }
 .vtZakr__seg { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 99px; }
-.vtZakr__seg--vse { background: var(--vt-blue); opacity: .55; }
+.vtZakr__seg--vse { background: var(--vt-blue); }
 .vtZakr__seg--fakt { background: var(--vt-green); }
 .vtZakr__flag {
   position: absolute; top: -26px; bottom: -8px; width: 0; border-left: 2px dashed var(--vt-muted);
@@ -710,3 +710,7 @@ body.is-svetlo .perfView { color: var(--muted); }
 body.is-svetlo .perfView:hover { color: var(--text); }
 body.is-svetlo .perfView.is-on { color: #ffffff; background: #10203a; }
 body.is-svetlo .topbar .brand, body.is-svetlo .topbar .brand span { color: var(--text); }
+/* Белые карточки сливались с почти белым фоном (Степан, 23.09): фон
+   страницы чуть темнее, у блоков чёткая рамка и тень. */
+body.is-svetlo { --bg: #e3e9f1; }
+html:has(body.is-svetlo) { background: #e3e9f1 !important; }
