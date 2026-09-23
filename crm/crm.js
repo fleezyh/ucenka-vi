@@ -710,6 +710,55 @@
     return " crmOkup--ploho";
   }
 
+  /* Даты на карточке — просьба продаж 23.09: «у лотов в статусе счёт
+     выставлен есть дата счёта, а у оплаченных не видно даты оплаты», и
+     вопрос Никиты про недели отгрузки. Неделю ставят кликом в любой момент,
+     хоть при заведении лота: в таблице продаж она заполнена у всех. */
+  const korotko = (v) => data(v).slice(0, 5);
+
+  function dataEtapa(z) {
+    const st = String(z.status || "");
+    if (/^[789]\./.test(st)) return z.data_oplaty ? "оплачен " + korotko(z.data_oplaty) : "дата оплаты?";
+    if (st.startsWith("6.")) {
+      const daty = (dannye.счета || []).filter((s) => String(s.lot || "") === String(z.nomer || ""))
+        .map((s) => s.data_gotovnosti || s.data_prinyatiya || s.data_zaprosa).filter(Boolean).sort();
+      const d = daty[daty.length - 1] || z.status_s;
+      return d ? "счёт " + korotko(d) : "дата счёта?";
+    }
+    return z.data_vystavleniya ? "лот от " + korotko(z.data_vystavleniya) : "";
+  }
+
+  /** Следующая неделя в том же виде, что в таблице продаж: «29-05.10». */
+  function sleduyushchayaNedelya() {
+    const d = new Date();
+    const pn = new Date(d.getFullYear(), d.getMonth(), d.getDate() + ((8 - d.getDay()) % 7 || 7));
+    const vs = new Date(pn.getFullYear(), pn.getMonth(), pn.getDate() + 6);
+    const dd = (x) => String(x.getDate()).padStart(2, "0");
+    return `${dd(pn)}-${dd(vs)}.${String(vs.getMonth() + 1).padStart(2, "0")}`;
+  }
+
+  async function postavitNedelyu(z) {
+    const otvet = prompt(`Неделя отгрузки лота ${z.nomer}, например ${sleduyushchayaNedelya()}.
+Пусто — убрать.`,
+                         z.nedelya_plan || sleduyushchayaNedelya());
+    if (otvet === null) return;
+    const zapros = await fetch("/__crm/lot", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: z.id, nomer: z.nomer, nedelya_plan: otvet.trim() || null }),
+    });
+    const itog = await zapros.json().catch(() => ({}));
+    if (!zapros.ok) { alert(itog.ошибка || "не сохранилось"); return; }
+    Object.assign(z, itog);
+    narisovat();
+  }
+
+  function strokaDat(z) {
+    return `<p class="crmKarta__daty"><button class="crmKarta__nedelya${z.nedelya_plan ? "" : " is-net"}"
+        type="button" data-nedelya title="Клик — поставить неделю отгрузки">${
+        z.nedelya_plan ? "отгрузка " + escape(z.nedelya_plan) : "неделя отгрузки?"}</button>
+      <span>${escape(dataEtapa(z))}</span></p>`;
+  }
+
   function kartaLota(z) {
     const karta = document.createElement("article");
     karta.className = "crmKarta";
@@ -733,10 +782,15 @@
         <div><i>окуп</i><b class="crmOkup${klassOkupa(okup.znachenie)}">${
           okup.znachenie ? dolya(okup.znachenie) : "—"}</b></div>
       </div>
+      ${strokaDat(z)}
       <p class="crmKarta__niz${bezMenedzhera ? " crmKarta__niz--net" : ""}">${
         escape([bezMenedzhera ? "без менеджера" : z.menedzher,
                 z.region, z.ploshchadka].filter(Boolean).join(" · "))}</p>`;
 
+    karta.querySelector("[data-nedelya]").addEventListener("click", (event) => {
+      event.stopPropagation();
+      postavitNedelyu(z);
+    });
     karta.addEventListener("dragstart", (event) => {
       event.dataTransfer.setData("text/plain", String(z.id));
       event.dataTransfer.effectAllowed = "move";

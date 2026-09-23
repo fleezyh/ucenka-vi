@@ -80,7 +80,7 @@
 .crmDoska { display: flex; gap: 12px; overflow-x: auto; padding: 4px 2px 12px;
   align-items: flex-start; }
 .crmDoska[hidden] { display: none; }
-.crmStolbec { flex: 0 0 236px; border-radius: 14px; padding: 10px;
+.crmStolbec { flex: 0 0 252px; border-radius: 14px; padding: 10px;
   border: 1px solid rgba(143,156,173,.2); background: rgba(10,16,28,.55);
   max-height: 64vh; display: flex; flex-direction: column; }
 .crmStolbec.is-cel { border-color: #7ee2a8; background: rgba(39,196,107,.1); }
@@ -695,7 +695,7 @@ body.is-svetlo .crmPallety__poisk input { background: #fff; color: var(--text); 
 /* Карточки одинаковые: четыре строки фиксированной высоты, цифры — тремя
    равными колонками с подписью, пустое — прочерком, а не дырой. */
 .crmKarta__verh, .crmKarta__ka, .crmKarta__niz { height: 18px; line-height: 18px; }
-.crmKarta__cifry { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin: 7px 0 0;
+.crmKarta__cifry { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 6px; margin: 7px 0 0;
   padding: 6px 0; border-top: 1px solid rgba(143,156,173,.14); border-bottom: 1px solid rgba(143,156,173,.14); }
 .crmKarta__cifry > div { display: grid; gap: 2px; min-width: 0; }
 .crmKarta__cifry > div:nth-child(2) { justify-items: center; }
@@ -713,3 +713,13 @@ body.is-svetlo .crmPallety__poisk input { background: #fff; color: var(--text); 
 body.is-svetlo .crmOkup--horosho { color: #13864a; }
 body.is-svetlo .crmOkup--sredne { color: #a86400; }
 body.is-svetlo .crmOkup--ploho { color: #c0283f; }
+
+/* Строка дат: неделя отгрузки (клик — поставить) и дата этапа. */
+.crmKarta__daty { display: flex; justify-content: space-between; align-items: center; gap: 6px; height: 22px; margin: 6px 0 0; font-size: 12px; white-space: nowrap; }
+.crmKarta__daty span { overflow: hidden; color: #dfe7f2; text-overflow: ellipsis; }
+.crmKarta__nedelya { padding: 1px 7px; border: 1px solid rgba(143,156,173,.35); border-radius: 4px; background: transparent; color: #dfe7f2; font: inherit; font-size: 12px; cursor: pointer; }
+.crmKarta__nedelya:hover { border-color: #4d8df7; }
+.crmKarta__nedelya.is-net { border-style: dashed; color: #f0c479; }
+body.is-svetlo .crmKarta__daty span, body.is-svetlo .crmKarta__nedelya { color: #1d2c42; }
+body.is-svetlo .crmKarta__nedelya { border-color: #c6d3e4; }
+body.is-svetlo .crmKarta__nedelya.is-net { color: #a86400; }
