@@ -1170,11 +1170,94 @@ function tablica(data) {
         .catch(() => { /* нет выработки — карточка и так полная */ });
     }
     blockTeam.hidden = true;
+    blockCheklist.hidden = true;
     views.querySelectorAll(".zpView").forEach((item) => item.classList.remove("is-on"));
     const svoya = views.querySelector('[data-view="me"]');
     if (svoya) svoya.classList.add("is-on");
     window.scrollTo({ top: 0, behavior: "smooth" });
   });
+}
+
+/* Чек-лист доработок зарплаты. Вопросы со встреч по ФОТ терялись в
+   расшифровках — теперь они висят над панелью, общие на всех, кто её видит,
+   и закрываются галочкой. Закрытые уходят вниз, но не пропадают. */
+const blockCheklist = document.getElementById("cheklist");
+
+function cheklist() {
+  const zashchita = (tekst) => String(tekst ?? "").replace(/[&<>"]/g,
+    (znak) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[znak]));
+  let punkty = [];
+  let pokazatZakrytye = false;
+
+  const otpravit = async (telo) => {
+    const otvet = await fetch("/__zp/cheklist", {
+      method: "POST", credentials: "same-origin",
+      headers: { "Content-Type": "application/json" }, body: JSON.stringify(telo),
+    });
+    if (!otvet.ok) throw new Error((await otvet.json().catch(() => ({}))).error || "не сохранилось");
+    punkty = await otvet.json();
+    narisovat();
+  };
+
+  const punktHtml = (p) => `
+    <li class="zpCheklist__punkt${p["сделано"] ? " is-done" : ""}">
+      <label>
+        <input type="checkbox" data-otmetit="${p.id}"${p["сделано"] ? " checked" : ""}>
+        <span>${zashchita(p["текст"])}</span>
+      </label>
+      <small>${zashchita([p["откуда"], p["сделано"] ? `закрыл ${p["закрыл"]} ${p["закрыто"]}` : ""]
+        .filter(Boolean).join(" · "))}</small>
+      <button class="zpCheklist__ubrat" type="button" data-ubrat="${p.id}" title="Убрать пункт">×</button>
+    </li>`;
+
+  const narisovat = () => {
+    const otkrytye = punkty.filter((p) => !p["сделано"]);
+    const zakrytye = punkty.filter((p) => p["сделано"]);
+    blockCheklist.innerHTML = `
+      <div class="zpCheklist__shapka">
+        <h2>Что закрыть по зарплате</h2>
+        <span class="zpCheklist__schet">открыто ${otkrytye.length} из ${punkty.length}</span>
+      </div>
+      <ul class="zpCheklist__spisok">${otkrytye.map(punktHtml).join("")
+        || '<li class="zpCheklist__pusto">Всё закрыто.</li>'}</ul>
+      ${zakrytye.length ? `
+        <button class="zpView" type="button" data-zakrytye>${pokazatZakrytye ? "Скрыть" : "Показать"} закрытые (${zakrytye.length})</button>
+        ${pokazatZakrytye ? `<ul class="zpCheklist__spisok">${zakrytye.map(punktHtml).join("")}</ul>` : ""}` : ""}
+      <form class="zpCheklist__novyy">
+        <input name="tekst" type="text" maxlength="500" placeholder="Новый пункт" autocomplete="off">
+        <button class="zpView zpView--glavnaya" type="submit">Добавить</button>
+      </form>`;
+  };
+
+  blockCheklist.addEventListener("change", (event) => {
+    const galka = event.target.closest("[data-otmetit]");
+    if (!galka) return;
+    otpravit({ "действие": "otmetit", id: Number(galka.dataset.otmetit) })
+      .catch((error) => { galka.checked = !galka.checked; alert(error.message); });
+  });
+  blockCheklist.addEventListener("click", (event) => {
+    if (event.target.closest("[data-zakrytye]")) {
+      pokazatZakrytye = !pokazatZakrytye;
+      narisovat();
+      return;
+    }
+    const ubrat = event.target.closest("[data-ubrat]");
+    if (!ubrat || !confirm("Убрать пункт из чек-листа?")) return;
+    otpravit({ "действие": "ubrat", id: Number(ubrat.dataset.ubrat) })
+      .catch((error) => alert(error.message));
+  });
+  blockCheklist.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const tekst = event.target.elements.tekst.value.trim();
+    if (!tekst) return;
+    otpravit({ "действие": "dobavit", "текст": tekst })
+      .catch((error) => alert(error.message));
+  });
+
+  return fetch("/__zp/cheklist", { credentials: "same-origin", cache: "no-store" })
+    .then((otvet) => (otvet.ok ? otvet.json() : Promise.reject()))
+    .then((dannye) => { punkty = dannye; narisovat(); return true; })
+    .catch(() => false);
 }
 
 async function start() {
@@ -1218,6 +1301,8 @@ async function start() {
     if (!data["люди"] || !data["люди"].length) return;
     tablica(data);
     views.hidden = false;
+    // Чек-лист — те же права, что у панели; не ответил — панель и без него.
+    const estCheklist = await cheklist();
 
     // Сводка ФОТ — те же права, что у панели: ручка сама решает, что отдать.
     // Не ответила — вкладки просто не будет, панель от этого не зависит.
@@ -1237,6 +1322,7 @@ async function start() {
       views.querySelectorAll(".zpView")
         .forEach((item) => item.classList.toggle("is-on", item.dataset.view === vid));
       blockTeam.hidden = vid !== "team";
+      blockCheklist.hidden = vid !== "team" || !estCheklist;
       blockSvodka.hidden = vid !== "svodka";
       blockMe.hidden = vid !== "me";
       // Своей записи нет — «Моя» показывает, почему пусто.
