@@ -148,5 +148,6 @@ body.is-svetlo .ctSvyaz, body.is-svetlo .ctSvyazKn { background: #fff; }
 .crmTest main :is(input, textarea, select)::placeholder { font-weight: 500 !important; }
 
 /* Паллеты лота — рядом с суммой, по колонке — под суммой этапа. */
-.ctKarta__pallet { color: #c9d6e6; font-size: 12px; white-space: nowrap; }
-.ctShapkaEtapa__pallet { margin: 2px 0 0; color: var(--muted); font-size: 12px; }
+.ctKarta__pallet, .ctShapkaEtapa__pallet { padding: 2px 8px; border-radius: 4px; background: rgba(77, 141, 247, 0.3); color: #fff; font-size: 13px; white-space: nowrap; }
+.ctShapkaEtapa__pallet { display: inline-block; margin: 6px 0 0; }
+body.is-svetlo .ctKarta__pallet, body.is-svetlo .ctShapkaEtapa__pallet { background: #e3edff; color: #1d4fb8; }

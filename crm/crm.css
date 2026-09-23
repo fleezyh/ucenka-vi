@@ -112,7 +112,10 @@
 .crmKarta__dengi { margin: 6px 0 0; display: flex; justify-content: space-between;
   align-items: baseline; gap: 8px; font-size: 12.5px; }
 .crmOkup { font-size: 11.5px; color: var(--muted, #8f9cad); }
-.crmKarta__pallet { margin-right: auto; margin-left: 6px; font-size: 11.5px; color: #c9d6e6; white-space: nowrap; }
+.crmKarta__pallet, .crmStolbec__pallet { margin-right: auto; margin-left: 6px; padding: 2px 8px; border-radius: 4px;
+  background: rgba(77, 141, 247, 0.3); color: #fff; font-size: 13px; font-weight: 600; white-space: nowrap; }
+.crmStolbec__pallet { display: inline-block; margin: 5px 0 0; }
+body.is-svetlo .crmKarta__pallet, body.is-svetlo .crmStolbec__pallet { background: #e3edff; color: #1d4fb8; }
 .crmOkup--horosho { color: #7ee2a8; }
 .crmOkup--sredne { color: #f0c479; }
 .crmOkup--ploho { color: #f0788a; }

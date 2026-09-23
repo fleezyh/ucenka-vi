@@ -768,10 +768,10 @@
       shapka.innerHTML = `<p class="crmStolbec__imya">${
         escape(status.replace(/^\d+\.\s*/, ""))}</p>
         <p class="crmStolbec__svod"><b>${svoi.length}</b>${
-          summa ? " · " + chislo(summa) + " ₽" : ""}${(() => {
+          summa ? " · " + chislo(summa) + " ₽" : ""}</p>${(() => {
             const n = svoi.reduce((s, z) => s + palletLota(z).skolko, 0);
-            return n ? " · " + palletTekst(n) : "";
-          })()}</p>`;
+            return n ? `<span class="crmStolbec__pallet">${palletTekst(n)}</span>` : "";
+          })()}`;
       stolbec.appendChild(shapka);
 
       const mesto = document.createElement("div");

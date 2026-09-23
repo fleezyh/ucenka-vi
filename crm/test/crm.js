@@ -841,7 +841,7 @@
       <p class="ctKarta__dengi"><b>${summa ? chislo(summa) + " ₽" : "—"}</b>${
         start ? '<span class="ctKarta__start">старт</span>' : ""}${
         palletLota(z).skolko ? `<span class="ctKarta__pallet" title="${palletLota(z).ubrano
-          ? "убрано из лота " + palletLota(z).ubrano : "паллет в лоте"}">· ${palletTekst(palletLota(z).skolko)}</span>` : ""}
+          ? "убрано из лота " + palletLota(z).ubrano : "паллет в лоте"}">${palletTekst(palletLota(z).skolko)}</span>` : ""}
         <span class="crmOkup${klassOkupa(okup.znachenie)}">${
           okup.znachenie ? "окуп " + dolya(okup.znachenie) : ""}</span></p>
       ${metki.length ? `<div class="ctMetki">${metki.map(([t, k]) =>
