@@ -723,3 +723,32 @@ body.is-svetlo .crmOkup--ploho { color: #c0283f; }
 body.is-svetlo .crmKarta__daty span, body.is-svetlo .crmKarta__nedelya { color: #1d2c42; }
 body.is-svetlo .crmKarta__nedelya { border-color: #c6d3e4; }
 body.is-svetlo .crmKarta__nedelya.is-net { color: #a86400; }
+
+/* Паллеты лота: шапка ровная с двух сторон, строки — таблицей одной сетки. */
+.crmPallety__shapka { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 0 8px; }
+.crmPallety__shapka .crmObsh__zag { margin: 0; }
+.crmPallety__shapka--vybor { margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(143,156,173,.18); }
+.crmPallety__filtry { display: flex; align-items: center; gap: 10px; }
+.crmPallety__svoy { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: #dfe7f2; cursor: pointer; }
+.crmPallety__filtr { width: 200px; padding: 6px 10px; border: 1px solid rgba(143,156,173,.35); border-radius: 6px; background: transparent; color: inherit; font: inherit; font-size: 12.5px; }
+.crmPallety__tabl { display: grid; max-height: 300px; overflow-y: auto; border: 1px solid rgba(143,156,173,.16); border-radius: 6px; }
+.crmPalletR { display: grid; grid-template-columns: 22px minmax(0, 1fr) 90px 70px 70px 100px 26px; align-items: center; gap: 8px;
+  padding: 6px 10px; border-bottom: 1px solid rgba(143,156,173,.1); font-size: 12.5px; }
+.crmPalletR:last-child { border-bottom: 0; }
+.crmPalletR--vybor { cursor: pointer; }
+.crmPalletR--vybor:hover { background: rgba(77,141,247,.08); }
+.crmPalletR:has(input:checked) { background: rgba(39,196,107,.12); }
+.crmPalletR__imya { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.crmPalletR .crmNum { text-align: right; }
+.crmPallety__niz { display: flex; justify-content: flex-end; margin-top: 10px; }
+.crmPallety__niz .crmKn:disabled { opacity: .5; cursor: default; }
+body.is-svetlo .crmPallety__svoy { color: #1d2c42; }
+
+/* Контрагент в форме — поиск по справочнику, но со стрелкой, как список. */
+.crmPole--spisok input { padding-right: 30px; background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: calc(100% - 17px) 55%, calc(100% - 12px) 55%; background-size: 5px 5px; background-repeat: no-repeat; }
+
+/* Карточка: длинное не режется, а переносится в две строки фиксированной
+   высоты — всё видно, а карточки остаются одинаковыми. */
+.crmKarta__ka, .crmKarta__niz { height: 36px; line-height: 18px; white-space: normal;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }

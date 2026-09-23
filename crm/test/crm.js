@@ -430,11 +430,11 @@
     if (dela.some((x) => x.просрочена)) metki.push(["дело просрочено", "is-krasnyy"]);
     if (!String(z.menedzher || "").trim()) metki.push(["без менеджера", "is-krasnyy"]);
     if (st.startsWith("6.") && d > 7) metki.push([`ждём оплату ${d} дн`, "is-zhyoltyy"]);
-    if (st.startsWith("7.")) metki.push(["оплачен — отгрузить", "is-siniy"]);
-    if (lotyBezDaty().has(String(z.nomer))) metki.push(["оплата пришла, даты нет", "is-siniy"]);
+    if (st.startsWith("7.")) metki.push(["отгрузить", "is-siniy"]);
+    if (lotyBezDaty().has(String(z.nomer))) metki.push(["нет даты оплаты", "is-siniy"]);
     if (d > 30) metki.push([`стоит ${d} дн`, "is-krasnyy"]);
     else if (d > 14) metki.push([`стоит ${d} дн`, "is-zhyoltyy"]);
-    if (!dela.length && aktivnyy(z)) metki.push(["нет следующего шага", "is-seryy"]);
+    if (!dela.length && aktivnyy(z)) metki.push(["нет шага", "is-seryy"]);
     if (!dengiLota(z).summa) metki.push(["нет цены", "is-seryy"]);
     return metki.slice(0, 2);
   }
@@ -1675,16 +1675,59 @@
     });
   }
 
+  /* Выпадающие списки формы лота — «в создании лота не все выпадающие
+     списки» (23.09). Значения берём из уже заведённых лотов; свой вариант —
+     пунктом «другое…», чтобы новый менеджер или склад не ждали правки кода. */
+  const MESYACY_OTGRUZKI = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль",
+    "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
+
+  function nedeliVpered() {
+    const itog = [];
+    const d = new Date();
+    const pn = new Date(d.getFullYear(), d.getMonth(), d.getDate() - ((d.getDay() + 6) % 7) - 14);
+    for (let i = 0; i < 14; i += 1) {
+      const a = new Date(pn.getFullYear(), pn.getMonth(), pn.getDate() + 7 * i);
+      const b = new Date(a.getFullYear(), a.getMonth(), a.getDate() + 6);
+      const dd = (x) => String(x.getDate()).padStart(2, "0");
+      itog.push(`${dd(a)}-${dd(b)}.${String(b.getMonth() + 1).padStart(2, "0")}`);
+    }
+    return itog;
+  }
+
+  function spisokPolya(pole) {
+    const iz = (klyuch) => [...new Set((dannye.лоты || []).map((z) => String(z[klyuch] || "").trim())
+      .filter(Boolean))].sort((a, b) => a.localeCompare(b, "ru"));
+    if (pole === "menedzher") return iz("menedzher");
+    if (pole === "region") return iz("region");
+    if (pole === "kategoriya") return iz("kategoriya");
+    if (pole === "mesyac_otgruzki") return MESYACY_OTGRUZKI;
+    if (pole === "nedelya_plan") return nedeliVpered();
+    return null;
+  }
+
   function otkrytFormu(z) {
     const est = z || {};
+    // Новый лот сразу с сегодняшней датой и собой в менеджерах: это почти
+    // всегда так, а пустые поля потом забывают.
+    const poUmolchaniyu = z ? {} : {
+      data_vystavleniya: new Date().toISOString().slice(0, 10),
+      // Себя подставляем, только если ты и правда менеджер продаж.
+      menedzher: (spisokPolya("menedzher") || []).includes((dannye.кто && dannye.кто.имя) || "")
+        ? dannye.кто.имя : "",
+      mesyac_otgruzki: MESYACY_OTGRUZKI[new Date().getMonth()],
+    };
     const polya = POLYA_FORMY.map((p) => {
-      const znachenie = est[p.pole] == null ? "" : String(est[p.pole]).slice(0, p.tip === "date" ? 10 : 200);
-      const vvod = p.spisok
-        ? `<select name="${p.pole}"><option value=""></option>${p.spisok.map((s) =>
-            `<option${s === znachenie ? " selected" : ""}>${escape(s)}</option>`).join("")}</select>`
+      const syroe = est[p.pole] ?? poUmolchaniyu[p.pole];
+      const znachenie = syroe == null ? "" : String(syroe).slice(0, p.tip === "date" ? 10 : 200);
+      const spisok = p.spisok || spisokPolya(p.pole);
+      const varianty = spisok && znachenie && !spisok.includes(znachenie) ? [znachenie, ...spisok] : spisok;
+      const vvod = varianty
+        ? `<select name="${p.pole}"${p.nuzhno ? " required" : ""}><option value=""></option>${varianty.map((s) =>
+            `<option${s === znachenie ? " selected" : ""}>${escape(s)}</option>`).join("")}${
+            p.spisok ? "" : '<option value="__drugoe">другое…</option>'}</select>`
         : `<input name="${p.pole}" type="${p.tip || "text"}" value="${escape(znachenie)}"
              ${p.podskazka ? `list="${p.podskazka}"` : ""} ${p.nuzhno ? "required" : ""}>`;
-      return `<label class="crmPole${p.shirokoe ? " crmPole--shirokoe" : ""}">
+      return `<label class="crmPole${p.shirokoe ? " crmPole--shirokoe" : ""}${p.podskazka ? " crmPole--spisok" : ""}">
         <span>${escape(p.imya)}</span>${vvod}</label>`;
     }).join("");
 
@@ -1704,6 +1747,18 @@
         </div>
       </form>`;
     el("crmOkno").hidden = false;
+
+    el("crmForma").querySelectorAll("select").forEach((vybor) => {
+      vybor.addEventListener("change", () => {
+        if (vybor.value !== "__drugoe") return;
+        const svoyo = (prompt("Своё значение") || "").trim();
+        if (!svoyo) { vybor.value = ""; return; }
+        const opt = document.createElement("option");
+        opt.textContent = svoyo;
+        vybor.insertBefore(opt, vybor.options[1]);
+        vybor.value = svoyo;
+      });
+    });
 
     el("crmForma").addEventListener("submit", async (event) => {
       event.preventDefault();
@@ -2118,72 +2173,102 @@
     return otvet.json();
   }
 
+  /* Паллеты лота. Свободные показываем сразу списком, без поиска: «паллеты
+     должны хаваться ещё и списком сразу» (23.09). Сверху — склад лота,
+     фильтр по номеру сужает на лету, отмеченные добавляются одной кнопкой. */
   async function narisovatPallety(lot) {
     const uzel = el("crmPallety");
     if (!uzel || !lot) return;
     uzel.innerHTML = '<p class="crmObsh__zag">Паллеты лота</p><p class="crmHint">смотрю…</p>';
-    const sostav = await poslatPallety({ действие: "состав", лот: lot }, lot);
+    const [sostav, nashlos] = await Promise.all([
+      poslatPallety({ действие: "состав", лот: lot }, lot),
+      poslatPallety({ действие: "свободные", поиск: "" }, lot),
+    ]);
     if (!sostav) { uzel.innerHTML = ""; return; }
 
+    const zapis = (dannye.лоты || []).find((x) => String(x.nomer) === String(lot)) || {};
+    const skladLota = String(zapis.region || "").trim();
+    const svoySklad = (p) => skladLota && String(p.регион || "").toUpperCase().includes(skladLota.toUpperCase());
+    const svobodnye = ((nashlos && nashlos.свободные) || [])
+      .sort((a, b) => (svoySklad(b) - svoySklad(a)) || ((b.себестоимость || 0) - (a.себестоимость || 0)));
+
     const spisok = sostav.паллеты || [];
+    const stroka = (p, vybor) => `
+      <${vybor ? "label" : "div"} class="crmPalletR${vybor ? " crmPalletR--vybor" : ""}" data-pallet="${escape(p.паллета)}">
+        ${vybor ? `<input type="checkbox" value="${escape(p.паллета)}" data-sebes="${Number(p.себестоимость) || 0}">` : "<span></span>"}
+        <span class="crmPalletR__imya" title="${escape(p.паллета)}">${escape(p.паллета)}</span>
+        <span>${escape(p.регион || "—")}</span>
+        <span class="crmNum">${chislo(p.sku)} SKU</span>
+        <span class="crmNum">${chislo(p.штук)} шт</span>
+        <span class="crmNum">${chislo(p.себестоимость)} ₽</span>
+        ${vybor ? "<span></span>" : '<button class="crmZad__ubrat" type="button" title="Убрать из лота">×</button>'}
+      </${vybor ? "label" : "div"}>`;
+
     uzel.innerHTML = `
-      <div class="crmObsh__verh">
+      <div class="crmPallety__shapka">
         <p class="crmObsh__zag">Паллеты лота · ${spisok.length}</p>
-        <p class="crmHint">${chislo(sostav.штук)} шт · себестоимость ${
-          chislo(sostav.себестоимость)} ₽</p>
+        <p class="crmObsh__zag">${chislo(sostav.штук)} шт · ${chislo(sostav.себестоимость)} ₽</p>
       </div>
-      ${spisok.length ? `<div class="crmPallety__spisok">${spisok.map((p) => `
-        <div class="crmPallet" data-pallet="${escape(p.паллета)}">
-          <span class="crmPallet__imya">${escape(p.паллета)}</span>
-          <span class="crmPallet__pod">${escape(p.регион || "")} · ${p.sku} SKU
-            · ${chislo(p.штук)} шт · ${chislo(p.себестоимость)} ₽</span>
-          <button class="crmZad__ubrat" type="button" title="Убрать из лота">×</button>
-        </div>`).join("")}</div>`
-        : '<p class="crmHint">в лоте пока нет паллет</p>'}
-      <form class="crmPallety__poisk" id="crmPalletyPoisk">
-        <input name="poisk" placeholder="найти паллету: номер или площадка">
-        <button class="crmKn" type="submit">Найти свободные</button>
-      </form>
-      <div class="crmPallety__vybor" id="crmPalletyVybor"></div>`;
+      ${spisok.length ? `<div class="crmPallety__tabl">${spisok.map((p) => stroka(p, false)).join("")}</div>`
+        : '<p class="crmHint">в лоте пока нет паллет — отметьте ниже</p>'}
+      <div class="crmPallety__shapka crmPallety__shapka--vybor">
+        <p class="crmObsh__zag">Свободные · <span id="crmPalletySchet">${svobodnye.length}</span></p>
+        <div class="crmPallety__filtry">
+          ${skladLota ? `<label class="crmPallety__svoy"><input type="checkbox" id="crmPalletySvoy"${svobodnye.some(svoySklad) ? " checked" : ""}>
+            только ${escape(skladLota)}</label>` : ""}
+          <input class="crmPallety__filtr" id="crmPalletyFiltr" placeholder="номер или склад">
+        </div>
+      </div>
+      <div class="crmPallety__tabl crmPallety__tabl--vybor" id="crmPalletyVybor"></div>
+      <div class="crmPallety__niz">
+        <button class="crmKn crmKn--glav" type="button" id="crmPalletyDobavit" disabled>Отметьте паллеты</button>
+      </div>`;
 
     uzel.querySelectorAll(".crmZad__ubrat").forEach((kn) => {
       kn.addEventListener("click", async () => {
-        const imya = kn.closest(".crmPallet").dataset.pallet;
+        const imya = kn.closest("[data-pallet]").dataset.pallet;
         if (!confirm(`Убрать ${imya} из лота?`)) return;
         await poslatPallety({ действие: "убрать", лот: lot, паллета: imya }, lot);
         narisovatPallety(lot);
       });
     });
 
-    el("crmPalletyPoisk").addEventListener("submit", async (event) => {
-      event.preventDefault();
-      const poisk = new FormData(event.target).get("poisk").trim();
-      const vybor = el("crmPalletyVybor");
-      vybor.innerHTML = '<p class="crmHint">ищу свободные…</p>';
-      const nashlos = await poslatPallety({ действие: "свободные", поиск: poisk }, lot);
-      const svobodnye = (nashlos && nashlos.свободные) || [];
-      if (!svobodnye.length) {
-        vybor.innerHTML = '<p class="crmHint">свободных паллет не нашлось</p>';
-        return;
-      }
-      vybor.innerHTML = `
-        <p class="crmHint">свободных ${svobodnye.length} — отметьте нужные</p>
-        <div class="crmPallety__spisok">${svobodnye.slice(0, 60).map((p) => `
-          <label class="crmPallet crmPallet--vybor">
-            <input type="checkbox" value="${escape(p.паллета)}">
-            <span class="crmPallet__imya">${escape(p.паллета)}</span>
-            <span class="crmPallet__pod">${escape(p.регион || "")} · ${p.sku} SKU
-              · ${chislo(p.штук)} шт · ${chislo(p.себестоимость)} ₽</span>
-          </label>`).join("")}</div>
-        <button class="crmKn crmKn--glav" type="button" id="crmPalletyDobavit">
-          Добавить в лот</button>`;
-      el("crmPalletyDobavit").addEventListener("click", async () => {
-        const otmechennye = [...vybor.querySelectorAll("input:checked")].map((x) => x.value);
-        if (!otmechennye.length) return;
-        await poslatPallety({ действие: "собрать", лот: lot, паллеты: otmechennye }, lot);
-        narisovatPallety(lot);
-      });
+    const vybor = el("crmPalletyVybor");
+    const knopka = el("crmPalletyDobavit");
+    const otmecheno = new Set();
+    const pokazat = () => {
+      const slovo = el("crmPalletyFiltr").value.trim().toLowerCase();
+      const tolkoSvoy = el("crmPalletySvoy") ? el("crmPalletySvoy").checked : false;
+      const vidno = svobodnye.filter((p) => (!tolkoSvoy || svoySklad(p))
+        && (!slovo || `${p.паллета} ${p.регион}`.toLowerCase().includes(slovo)));
+      el("crmPalletySchet").textContent = vidno.length;
+      vybor.innerHTML = vidno.length ? vidno.slice(0, 200).map((p) => stroka(p, true)).join("")
+        : '<p class="crmHint">свободных паллет не нашлось</p>';
+      vybor.querySelectorAll("input[type=checkbox]").forEach((x) => { x.checked = otmecheno.has(x.value); });
+    };
+    const obnovitKnopku = () => {
+      const sebes = svobodnye.filter((p) => otmecheno.has(p.паллета))
+        .reduce((s, p) => s + (Number(p.себестоимость) || 0), 0);
+      knopka.disabled = !otmecheno.size;
+      knopka.textContent = otmecheno.size
+        ? `Добавить ${otmecheno.size} ${sklonenie(otmecheno.size, "паллету", "паллеты", "паллет")} · ${chislo(sebes)} ₽`
+        : "Отметьте паллеты";
+    };
+    vybor.addEventListener("change", (event) => {
+      const x = event.target;
+      if (x.type !== "checkbox") return;
+      if (x.checked) otmecheno.add(x.value); else otmecheno.delete(x.value);
+      obnovitKnopku();
     });
+    el("crmPalletyFiltr").addEventListener("input", pokazat);
+    el("crmPalletySvoy")?.addEventListener("change", pokazat);
+    knopka.addEventListener("click", async () => {
+      if (!otmecheno.size) return;
+      knopka.disabled = true;
+      await poslatPallety({ действие: "собрать", лот: lot, паллеты: [...otmecheno] }, lot);
+      narisovatPallety(lot);
+    });
+    pokazat();
   }
 
   /* --- Лента по клиенту -------------------------------------------------------
