@@ -319,6 +319,8 @@
       otbor: (z) => /^[89]\./.test(String(z.status || "")) },
   ];
 
+  const BEZ_SKLADA = "__bez";
+
   function podhodit(z) {
     // Очереди построены на полях лота, к счетам и базе КА неприменимы.
     if (ochered && vid !== "scheta" && vid !== "ka") {
@@ -327,7 +329,9 @@
     }
     for (const [pole, znachenie] of Object.entries(filtry)) {
       if (!znachenie) continue;
-      if (String(z[pole] || "") !== znachenie) return false;
+      // «Без склада» — лоты с пустым регионом: иначе их фильтром не найти вовсе.
+      const est = String(z[pole] || "");
+      if (znachenie === BEZ_SKLADA ? est.trim() !== "" : est !== znachenie) return false;
     }
     if (poisk) {
       const seno = [z.nomer, z.lot, z.ka, z.kommentariy, z.menedzher, z.operator,
@@ -1745,9 +1749,15 @@
     const sklad = el("crmSklad");
     if (sklad) {
       const zhivye = new Map();
+      let bez = 0;
+      let bezZhivyh = 0;
       (dannye.лоты || []).forEach((z) => {
         const r = String(z.region || "").trim();
-        if (!r) return;
+        if (!r) {
+          bez += 1;
+          bezZhivyh += aktivnyy(z) ? 1 : 0;
+          return;
+        }
         zhivye.set(r, (zhivye.get(r) || 0) + (aktivnyy(z) ? 1 : 0));
       });
       const sklady = [...zhivye.keys()].sort((a, b) =>
@@ -1755,7 +1765,9 @@
       const vybran = filtry.region || "";
       sklad.innerHTML = '<option value="">Все склады</option>'
         + sklady.map((r) => `<option value="${escape(r)}"${r === vybran ? " selected" : ""}>${
-          escape(r)}${zhivye.get(r) ? ` · ${zhivye.get(r)} в работе` : ""}</option>`).join("");
+          escape(r)}${zhivye.get(r) ? ` · ${zhivye.get(r)} в работе` : ""}</option>`).join("")
+        + (bez ? `<option value="${BEZ_SKLADA}"${vybran === BEZ_SKLADA ? " selected" : ""}>Без склада${
+          bezZhivyh ? ` · ${bezZhivyh} в работе` : ` · ${bez}`}</option>` : "");
     }
   }
 

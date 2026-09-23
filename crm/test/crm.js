@@ -334,6 +334,8 @@
   OCHEREDI[2].klass = "is-siniy";
   OCHEREDI[3].klass = "is-zhyoltyy";
 
+  const BEZ_SKLADA = "__bez";
+
   function podhodit(z) {
     // Очереди построены на полях лота, к счетам и базе КА неприменимы.
     if (ochered && vid !== "scheta" && vid !== "ka") {
@@ -342,7 +344,9 @@
     }
     for (const [pole, znachenie] of Object.entries(filtry)) {
       if (!znachenie) continue;
-      if (String(z[pole] || "") !== znachenie) return false;
+      // «Без склада» — лоты с пустым регионом: иначе их фильтром не найти вовсе.
+      const est = String(z[pole] || "");
+      if (znachenie === BEZ_SKLADA ? est.trim() !== "" : est !== znachenie) return false;
     }
     if (poisk) {
       const seno = [z.nomer, z.lot, z.ka, z.kommentariy, z.menedzher, z.operator,
@@ -431,6 +435,11 @@
     if (!String(z.menedzher || "").trim()) metki.push(["без менеджера", "is-krasnyy"]);
     if (st.startsWith("6.") && d > 7) metki.push([`оплаты нет ${d}д`, "is-zhyoltyy", "счёт выставлен, оплаты нет больше недели"]);
     if (st.startsWith("7.")) metki.push(["отгрузить", "is-siniy"]);
+    // Никита часто спрашивает про недели отгрузки. Со счёта и до отгрузки она
+    // должна стоять; раньше её ещё не знают, после — уже не нужна.
+    if (/^[567]\./.test(st) && !String(z.nedelya_plan || "").trim()) {
+      metki.push(["нет недели", "is-zhyoltyy", "у лота в работе не стоит неделя отгрузки — клик по «Отгрузка» на карточке"]);
+    }
     if (lotyBezDaty().has(String(z.nomer))) metki.push(["дата оплаты?", "is-siniy", "деньги в банке есть, в лоте дата оплаты пустая"]);
     if (d > 30) metki.push([`стоит ${d} дн`, "is-krasnyy"]);
     else if (d > 14) metki.push([`стоит ${d} дн`, "is-zhyoltyy"]);
@@ -748,7 +757,8 @@
       .filter((z) => !z.готово && (!kto || (z.менеджер || "") === kto));
     const sklad = filtry.region || "";
     const loty = (dannye.лоты || []).filter((z) => (!kto || (z.menedzher || "") === kto)
-      && (!sklad || String(z.region || "") === sklad));
+      && (!sklad || (sklad === BEZ_SKLADA ? !String(z.region || "").trim()
+                                          : String(z.region || "") === sklad)));
     const punkty = [
       { klyuch: "__prosr", imya: "дела просрочены", chislo: dela.filter((z) => z.просрочена).length, klass: "is-krasnyy" },
       { klyuch: "__segodnya", imya: "дела на сегодня", chislo: dela.filter((z) => z.на_сегодня && !z.просрочена).length, klass: "is-siniy" },
@@ -1877,9 +1887,15 @@
     const sklad = el("crmSklad");
     if (sklad) {
       const zhivye = new Map();
+      let bez = 0;
+      let bezZhivyh = 0;
       (dannye.лоты || []).forEach((z) => {
         const r = String(z.region || "").trim();
-        if (!r) return;
+        if (!r) {
+          bez += 1;
+          bezZhivyh += aktivnyy(z) ? 1 : 0;
+          return;
+        }
         zhivye.set(r, (zhivye.get(r) || 0) + (aktivnyy(z) ? 1 : 0));
       });
       const sklady = [...zhivye.keys()].sort((a, b) =>
@@ -1887,7 +1903,9 @@
       const vybran = filtry.region || "";
       sklad.innerHTML = '<option value="">Все склады</option>'
         + sklady.map((r) => `<option value="${escape(r)}"${r === vybran ? " selected" : ""}>${
-          escape(r)}${zhivye.get(r) ? ` · ${zhivye.get(r)} в работе` : ""}</option>`).join("");
+          escape(r)}${zhivye.get(r) ? ` · ${zhivye.get(r)} в работе` : ""}</option>`).join("")
+        + (bez ? `<option value="${BEZ_SKLADA}"${vybran === BEZ_SKLADA ? " selected" : ""}>Без склада${
+          bezZhivyh ? ` · ${bezZhivyh} в работе` : ` · ${bez}`}</option>` : "");
     }
   }
 
