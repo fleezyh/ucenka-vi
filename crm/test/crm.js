@@ -325,7 +325,7 @@
     { klyuch: "bezdaty", imya: "Оплата пришла, даты нет", klass: "is-siniy",
       chto: "деньги в банке есть, в лоте дата оплаты пустая — поставьте дату",
       otbor: (z) => lotyBezDaty().has(String(z.nomer)) },
-    { klyuch: "bezshaga", imya: "Нет следующего шага", klass: "is-seryy",
+    { klyuch: "bezshaga", imya: "Нет задачи по лоту", klass: "is-seryy",
       chto: "лот в работе, а дела по нему нет — про него забудут",
       otbor: (z) => aktivnyy(z) && !lotySDelom().has(String(z.nomer || "")) },
   ];
@@ -386,10 +386,10 @@
     "3. Заключение договора": "договор",
     "4. Подготовка заказов": "заказы",
     "5. Подготовка счетов": "счета",
-    "6. Счета выставлены": "счёт выставлен",
+    "6. Счета выставлены": "счёт",
     "7. Оплачен": "оплачен",
-    "8. Отгружен физически": "отгружен физ.",
-    "9. Отгружен(системно)": "отгружен в системе",
+    "8. Отгружен физически": "отгружен",
+    "9. Отгружен(системно)": "в системе",
     "10.Отгружен ФИЗ и СИСТ": "закрыть",
   };
 
@@ -429,12 +429,12 @@
     const dela = delaLota(z);
     if (dela.some((x) => x.просрочена)) metki.push(["дело просрочено", "is-krasnyy"]);
     if (!String(z.menedzher || "").trim()) metki.push(["без менеджера", "is-krasnyy"]);
-    if (st.startsWith("6.") && d > 7) metki.push([`ждём оплату ${d} дн`, "is-zhyoltyy"]);
+    if (st.startsWith("6.") && d > 7) metki.push([`нет оплаты ${d} дн`, "is-zhyoltyy", "счёт выставлен, оплаты нет больше недели"]);
     if (st.startsWith("7.")) metki.push(["отгрузить", "is-siniy"]);
     if (lotyBezDaty().has(String(z.nomer))) metki.push(["нет даты оплаты", "is-siniy"]);
     if (d > 30) metki.push([`стоит ${d} дн`, "is-krasnyy"]);
     else if (d > 14) metki.push([`стоит ${d} дн`, "is-zhyoltyy"]);
-    if (!dela.length && aktivnyy(z)) metki.push(["нет шага", "is-seryy"]);
+    if (!dela.length && aktivnyy(z)) metki.push(["нет задачи", "is-seryy", "по лоту не заведено ни одной задачи — нажмите «+ дело»"]);
     if (!dengiLota(z).summa) metki.push(["нет цены", "is-seryy"]);
     return metki.slice(0, 2);
   }
@@ -934,8 +934,8 @@
     const kuda = sleduyushchiy(z.status);
     const metki = metkiLota(z);
     karta.innerHTML = teloKarty(z) + `
-      <div class="ctMetki">${metki.length ? metki.map(([t, k]) =>
-        `<span class="ctMetka ${k}">${escape(t)}</span>`).join("") : '<span class="ctMetki__chisto">без замечаний</span>'}</div>
+      <div class="ctMetki">${metki.length ? metki.map(([t, k, pod]) =>
+        `<span class="ctMetka ${k}"${pod ? ` title="${escape(pod)}"` : ""}>${escape(t)}</span>`).join("") : '<span class="ctMetki__chisto">без замечаний</span>'}</div>
       <div class="ctKarta__niz">
         <button class="ctKarta__kn" type="button" data-delo title="Завести дело по лоту">+ дело</button>
         ${kuda ? `<button class="ctKarta__kn ctKarta__kn--dalshe" type="button" data-dalshe
