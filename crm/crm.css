@@ -752,3 +752,25 @@ body.is-svetlo .crmPallety__svoy { color: #1d2c42; }
    высоты — всё видно, а карточки остаются одинаковыми. */
 .crmKarta__ka, .crmKarta__niz { height: 36px; line-height: 18px; white-space: normal;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* ── Карточка лота: один язык ─────────────────────────────────────────
+   Шапка (лот и дни), контрагент одной строкой, дальше строки «подпись —
+   значение» одинаковой высоты: подпись слева серым, значение справа.
+   У всех карточек те же строки в том же порядке. */
+.crmKarta { display: flex; flex-direction: column; }
+.crmKarta__verh { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; height: 20px; line-height: 20px; }
+.crmKarta__nomer { font-size: 14px; }
+.crmKarta__ka { height: 20px; margin: 2px 0 0; overflow: hidden; color: #9fc1ff; font-size: 13px; line-height: 20px;
+  text-overflow: ellipsis; white-space: nowrap; display: block; -webkit-line-clamp: unset; }
+.crmKarta__kv { display: grid; margin-top: 8px; padding-top: 6px; border-top: 1px solid rgba(143,156,173,.16); }
+.crmKv { display: flex; justify-content: space-between; align-items: center; gap: 10px; height: 22px; font-size: 12.5px; }
+.crmKv > span { flex: none; color: var(--muted, #8f9cad); }
+.crmKv > b { min-width: 0; overflow: hidden; color: #e6edf6; font-size: 13px; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
+.crmKv > b.is-net { color: #f0788a; }
+.crmKv .crmOkup { font-size: 13px; }
+.crmKv__nedelya { padding: 0; border: 0; border-bottom: 1px dashed rgba(143,156,173,.6); background: none; color: #e6edf6; font: inherit; font-size: 13px; cursor: pointer; }
+.crmKv__nedelya:hover { color: #fff; border-bottom-color: #4d8df7; }
+.crmKv__nedelya.is-net { color: #f0c479; border-bottom-color: rgba(240,196,121,.6); }
+body.is-svetlo .crmKv > b, body.is-svetlo .crmKv__nedelya { color: #16243a; }
+body.is-svetlo .crmKarta__ka { color: #2f6fd6; }
+body.is-svetlo .crmKv__nedelya.is-net { color: #a86400; }

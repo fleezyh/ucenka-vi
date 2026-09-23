@@ -759,33 +759,67 @@
       <span>${escape(dataEtapa(z))}</span></p>`;
   }
 
+  /* Тело карточки — одним языком: номер и дни, контрагент одной строкой,
+     дальше строки «подпись — значение», у всех карточек одни и те же и в
+     одном порядке. Пустое — прочерком. Так нет дыр и нет «разных миров»:
+     сумма, паллеты, неделя отгрузки и менеджер читаются одинаково.
+     Длинные ФИО сокращаем до инициалов, полное имя — в подсказке. */
+  function inicialy(fio) {
+    const slova = String(fio || "").trim().split(/\s+/).filter(Boolean);
+    const chelovek = (s) => s.length >= 2 && s.length <= 3 && s.every((w) => /^[А-ЯЁ][а-яё-]+$/.test(w));
+    const sokr = (s) => s[0] + " " + s.slice(1).map((w) => w[0] + ".").join(" ");
+    if (slova[0] === "ИП" && chelovek(slova.slice(1))) return "ИП " + sokr(slova.slice(1));
+    if (chelovek(slova)) return sokr(slova);
+    return slova.join(" ");
+  }
+
+  function etapIData(z) {
+    const st = String(z.status || "");
+    if (/^[789]\./.test(st)) return ["Оплачен", z.data_oplaty ? korotko(z.data_oplaty) : "—"];
+    if (st.startsWith("6.")) {
+      const daty = (dannye.счета || []).filter((s) => String(s.lot || "") === String(z.nomer || ""))
+        .map((s) => s.data_gotovnosti || s.data_prinyatiya || s.data_zaprosa).filter(Boolean).sort();
+      const d = daty[daty.length - 1] || z.status_s;
+      return ["Счёт", d ? korotko(d) : "—"];
+    }
+    return ["Лот от", z.data_vystavleniya ? korotko(z.data_vystavleniya) : "—"];
+  }
+
+  function teloKarty(z) {
+    const d = dney(z);
+    const { summa, start } = dengiLota(z);
+    const okup = okupLota(z);
+    const pal = palletLota(z);
+    const [etap, kogda] = etapIData(z);
+    const menedzher = String(z.menedzher || "").trim();
+    const stroka = (imya, znachenie, klass = "", title = "") =>
+      `<div class="crmKv"><span>${imya}</span><b class="${klass}"${title ? ` title="${escape(title)}"` : ""}>${znachenie}</b></div>`;
+    return `
+      <div class="crmKarta__verh">
+        <b class="crmKarta__nomer">Лот ${escape(z.nomer || "—")}</b>
+        <span class="crmKarta__dni${klassDney(d, aktivnyy(z))}">${d === null ? "" : d + " дн"}</span>
+      </div>
+      <p class="crmKarta__ka" title="${escape(z.ka || "")}">${escape(inicialy(z.ka) || "контрагент не указан")}</p>
+      <div class="crmKarta__kv">
+        ${stroka(start ? "Старт" : "Сумма", summa ? chislo(summa) + " ₽" : "—")}
+        ${stroka("Паллет", pal.skolko ? chislo(pal.skolko) : "—", "", pal.ubrano ? "убрано из лота " + pal.ubrano : "")}
+        ${stroka("Окуп", okup.znachenie ? dolya(okup.znachenie) : "—", "crmOkup" + klassOkupa(okup.znachenie))}
+        <div class="crmKv"><span>Отгрузка</span><button class="crmKv__nedelya${z.nedelya_plan ? "" : " is-net"}"
+          type="button" data-nedelya title="Клик — поставить неделю отгрузки">${
+          z.nedelya_plan ? escape(z.nedelya_plan) : "поставить"}</button></div>
+        ${stroka(etap, kogda)}
+        ${stroka("Склад", escape([z.region, z.ploshchadka].filter(Boolean).join(" · ") || "—"))}
+        ${stroka("Менеджер", menedzher ? escape(inicialy(menedzher)) : "не назначен",
+                 menedzher ? "" : "is-net", menedzher)}
+      </div>`;
+  }
+
   function kartaLota(z) {
     const karta = document.createElement("article");
     karta.className = "crmKarta";
     karta.draggable = true;
     karta.dataset.id = z.id;
-    const d = dney(z);
-    const bezMenedzhera = !String(z.menedzher || "").trim();
-    const { summa, start } = dengiLota(z);
-    const okup = okupLota(z);
-    karta.innerHTML = `
-      <div class="crmKarta__verh">
-        <b class="crmKarta__nomer">${escape(z.nomer || "—")}</b>
-        <span class="crmKarta__dni${klassDney(d, aktivnyy(z))}">${
-          d === null ? "" : d + " дн"}</span>
-      </div>
-      <p class="crmKarta__ka">${escape(z.ka || "контрагент не указан")}</p>
-      <div class="crmKarta__cifry">
-        <div><i>${start ? "старт" : "сумма"}</i><b>${summa ? chislo(summa) + " ₽" : "—"}</b></div>
-        <div><i>паллет</i><b class="crmKarta__pallet" title="${palletLota(z).ubrano
-          ? "убрано из лота " + palletLota(z).ubrano : "паллет в лоте"}">${palletLota(z).skolko ? chislo(palletLota(z).skolko) : "—"}</b></div>
-        <div><i>окуп</i><b class="crmOkup${klassOkupa(okup.znachenie)}">${
-          okup.znachenie ? dolya(okup.znachenie) : "—"}</b></div>
-      </div>
-      ${strokaDat(z)}
-      <p class="crmKarta__niz${bezMenedzhera ? " crmKarta__niz--net" : ""}">${
-        escape([bezMenedzhera ? "без менеджера" : z.menedzher,
-                z.region, z.ploshchadka].filter(Boolean).join(" · "))}</p>`;
+    karta.innerHTML = teloKarty(z);
 
     karta.querySelector("[data-nedelya]").addEventListener("click", (event) => {
       event.stopPropagation();
