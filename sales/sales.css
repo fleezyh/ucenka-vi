@@ -344,10 +344,8 @@ button.total__label:hover { color: #fff; }
   --vt-row-hover: #f6f9fe;
   --vt-row-line: #eef3f9;
   --vt-shadow: 0 2px 10px rgba(16, 32, 58, 0.06);
-
-  /* На светлой теме блоку нужна своя подложка, иначе он висит дырой
-     на тёмной странице. */
-  background: #eef3fa; padding: 18px; border-radius: 20px;
+  /* Своей подложки больше нет: светлой становится вся вкладка. Подложка с
+     отступом сдвигала блок на 18 px при каждом переключении темы. */
 }
 
 /* ── четыре плитки сверху ───────────────────────────────────────────── */
@@ -375,16 +373,16 @@ button.total__label:hover { color: #fff; }
 .vtPlitka--plan .vtPlitka__znak { background: var(--vt-amber-soft); color: var(--vt-amber); }
 .vtPlitka--pot  .vtPlitka__znak { background: var(--vt-violet-soft); color: var(--vt-violet); }
 
-.vtPlitka__teg { font-size: 15px; font-weight: 650; color: var(--vt-muted); }
+.vtPlitka__teg { font-size: 17px; font-weight: 650; color: var(--vt-muted); }
 .vtPlitka--ship .vtPlitka__teg { color: var(--vt-green); }
 .vtPlitka__val {
   margin: 0; display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap;
   letter-spacing: -0.03em; line-height: 1.05;
 }
-.vtPlitka__val b { font-size: 34px; font-weight: 800; }
-.vtPlitka__val i { font-size: 24px; font-style: normal; color: var(--vt-line); }
-.vtPlitka__val em { font-size: 24px; font-style: normal; font-weight: 700; color: var(--vt-muted); }
-.vtPlitka__val small { font-size: 16px; font-weight: 700; color: var(--vt-muted); letter-spacing: 0; }
+.vtPlitka__val b { font-size: 40px; font-weight: 800; }
+.vtPlitka__val i { font-size: 28px; font-style: normal; color: var(--vt-line); }
+.vtPlitka__val em { font-size: 28px; font-style: normal; font-weight: 700; color: var(--vt-muted); }
+.vtPlitka__val small { font-size: 18px; font-weight: 700; color: var(--vt-muted); letter-spacing: 0; }
 /* Показатели двумя колонками: подпись слева, число справа — так цифры
    соседних плиток стоят на одной линии. */
 .vtPlitka__pokazateli { margin: 0; display: grid; gap: 4px; }
@@ -392,9 +390,9 @@ button.total__label:hover { color: #fff; }
   display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
   padding-top: 4px; border-top: 1px solid var(--vt-line);
 }
-.vtPlitka__pokazateli dt { font-size: 14px; color: var(--vt-muted); }
+.vtPlitka__pokazateli dt { font-size: 16px; color: var(--vt-muted); }
 .vtPlitka__pokazateli dd {
-  margin: 0; font-size: 16px; font-weight: 700; color: var(--vt-text); white-space: nowrap;
+  margin: 0; font-size: 19px; font-weight: 700; color: var(--vt-text); white-space: nowrap;
 }
 
 /* ── панель ─────────────────────────────────────────────────────────── */
@@ -421,7 +419,7 @@ button.total__label:hover { color: #fff; }
 }
 .vtTema[aria-pressed="true"] .vtTema__ryad { background: #dfe7f2; border-color: #c6d3e4; }
 .vtTema[aria-pressed="true"] .vtTema__ryad::after { transform: translateX(17px); background: #f5a623; }
-.vtHint { margin: 4px 0 0; font-size: 13px; color: var(--vt-muted); }
+.vtHint { margin: 4px 0 0; font-size: 15px; color: var(--vt-muted); }
 
 /* ── путь к цели ────────────────────────────────────────────────────── */
 /* Ярус над полосой занят: слева потенциал, справа плашки плана и цели.
@@ -430,16 +428,16 @@ button.total__label:hover { color: #fff; }
 .vtBar { position: relative; margin: 78px 0 18px; }
 .vtBar__pot {
   position: absolute; left: 0; bottom: calc(100% + 16px); margin: 0;
-  font-size: 15px; color: var(--vt-muted);
+  font-size: 17px; color: var(--vt-muted);
 }
-.vtBar__pot b { font-size: 18px; font-weight: 800; color: var(--vt-text); margin-left: 6px; }
+.vtBar__pot b { font-size: 21px; font-weight: 800; color: var(--vt-text); margin-left: 6px; }
 .vtBar__zhelob {
   display: flex; height: 86px; border-radius: 14px; overflow: hidden;
   background: var(--vt-zhelob);
 }
 .vtBar__seg { display: grid; place-items: center; align-content: center; min-width: 0; color: #fff; overflow: hidden; }
-.vtBar__seg b { font-size: 26px; font-weight: 780; line-height: 1.1; }
-.vtBar__seg span { font-size: 13px; opacity: .85; white-space: nowrap; }
+.vtBar__seg b { font-size: 32px; font-weight: 780; line-height: 1.1; }
+.vtBar__seg span { font-size: 16px; opacity: .85; white-space: nowrap; }
 .vtBar__seg--ship { background: var(--vt-green); }
 .vtBar__seg--work { background: var(--vt-blue); }
 .vtBar__podpis { display: flex; margin-top: 7px; font-size: 13px; color: var(--vt-muted); }
@@ -461,9 +459,9 @@ button.total__label:hover { color: #fff; }
 .vtMetka--vpravo .vtMetka__plashka { transform: translateX(8px); }
 .vtMetka__plashka--knopka { cursor: pointer; }
 .vtMetka__plashka--knopka:hover { border-color: var(--vt-amber); }
-.vtMetka__t { font-size: 13px; color: var(--vt-muted); }
-.vtMetka__v { font-size: 19px; font-weight: 800; color: var(--vt-amber); }
-.vtMetka__dolya { font-size: 12.5px; color: var(--vt-muted); }
+.vtMetka__t { font-size: 15px; color: var(--vt-muted); }
+.vtMetka__v { font-size: 23px; font-weight: 800; color: var(--vt-amber); }
+.vtMetka__dolya { font-size: 14px; color: var(--vt-muted); }
 .vtMetka--goal .vtMetka__v { color: var(--vt-violet); }
 .vtMetka--goal .vtMetka__plashka--knopka:hover { border-color: var(--vt-violet); }
 .vtMetka__liniya { position: absolute; left: -1px; top: -12px; bottom: -22px; width: 0; border-left: 2px dashed var(--vt-amber); }
@@ -509,11 +507,11 @@ button.total__label:hover { color: #fff; }
 
 /* ── таблица этапов ─────────────────────────────────────────────────── */
 .vtTable { margin-top: 14px; overflow-x: auto; }
-.vtTable table { width: 100%; border-collapse: collapse; font-size: 17px; }
+.vtTable table { width: 100%; border-collapse: collapse; font-size: 19px; }
 /* У сайта своя тёмная заливка шапок таблиц — на светлой странице её гасим. */
 .vtTable thead, .vtTable thead tr, .vtTable th { background: transparent; }
 .vtTable th {
-  font-size: 14px; font-weight: 650; color: var(--vt-muted); text-align: right;
+  font-size: 15px; font-weight: 650; color: var(--vt-muted); text-align: right;
   padding: 0 14px 10px; border-bottom: 1px solid var(--vt-line); white-space: nowrap;
 }
 .vtTable th:first-child, .vtTable th:nth-child(2) { text-align: left; }
@@ -525,7 +523,7 @@ button.total__label:hover { color: #fff; }
 
 .vtNum {
   display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%;
-  font-size: 14px; font-weight: 750; background: var(--vt-blue-soft); color: var(--vt-blue);
+  font-size: 16px; font-weight: 750; background: var(--vt-blue-soft); color: var(--vt-blue);
 }
 .is-ship .vtNum { background: var(--vt-green); color: #fff; }
 
@@ -632,3 +630,83 @@ body[data-blok="ostatki"] #blokVoronka,
 body[data-blok="ostatki"] #blokIstoriya,
 body[data-blok="istoriya"] #blokVoronka,
 body[data-blok="istoriya"] #blokOstatki { display: none; }
+
+/* ── закрытие квартала: полоса к бюджету ─────────────────────────────── */
+.vtZakr__verh { display: flex; align-items: center; gap: 18px 26px; flex-wrap: wrap; }
+.vtZakr__imya { flex: 1 1 220px; }
+.vtZakr__stat { display: flex; align-items: center; gap: 12px; padding-left: 22px; border-left: 1px solid var(--vt-line); }
+.vtZakr__stat i { display: block; font-style: normal; font-size: 15px; color: var(--vt-muted); }
+.vtZakr__stat b { font-size: 32px; font-weight: 800; letter-spacing: -0.03em; white-space: nowrap; }
+.vtZakr__stat small { font-size: 17px; font-weight: 700; margin-left: 5px; }
+.vtZakr__znak {
+  flex: none; width: 46px; height: 46px; border-radius: 13px; display: grid; place-items: center;
+  background: var(--vt-blue-soft); color: var(--vt-blue);
+}
+.vtZakr__znak svg { width: 22px; height: 22px; }
+.vtZakr__stat--fakt .vtZakr__znak { background: var(--vt-green-soft); color: var(--vt-green); }
+.vtZakr__stat--byudzhet .vtZakr__znak { background: var(--vt-violet-soft); color: var(--vt-violet); }
+.vtZakr__itog {
+  display: flex; align-items: center; gap: 12px; padding: 12px 18px; border-radius: 14px;
+  background: var(--vt-blue-soft); color: var(--vt-blue); font-size: 15px;
+}
+.vtZakr__itog svg { width: 30px; height: 30px; flex: none; }
+.vtZakr__itog b { display: block; font-size: 26px; font-weight: 800; letter-spacing: -0.02em; }
+.vtZakr__itog.is-net { background: color-mix(in srgb, var(--vt-red) 14%, transparent); color: var(--vt-red); }
+.vtZakr__itog.is-ok { background: var(--vt-green-soft); color: var(--vt-green); }
+.vtZakr__shkala { margin: 26px 0 8px; }
+.vtZakr__zhelob { position: relative; height: 22px; border-radius: 99px; background: var(--vt-zhelob); }
+.vtZakr__seg { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 99px; }
+.vtZakr__seg--vse { background: var(--vt-blue); opacity: .55; }
+.vtZakr__seg--fakt { background: var(--vt-green); }
+.vtZakr__flag {
+  position: absolute; top: -26px; bottom: -8px; width: 0; border-left: 2px dashed var(--vt-muted);
+}
+.vtZakr__flag svg { position: absolute; left: 1px; top: 0; width: 20px; height: 20px; color: var(--vt-muted); }
+.vtZakr__os { position: relative; height: 54px; margin-top: 10px; }
+.vtZakr__nol { position: absolute; left: 0; top: 0; font-size: 15px; color: var(--vt-muted); }
+/* Точка стоит ровно на значении, подпись под ней. Когда отметки рядом
+   (26,04 и 26,12), левая подпись уходит влево от точки, правая — вправо. */
+.vtZakr__metka { position: absolute; top: 0; width: 0; }
+.vtZakr__metka i { position: absolute; left: -6px; top: 0; width: 12px; height: 12px; border-radius: 50%; background: var(--vt-muted); }
+.vtZakr__tekst {
+  position: absolute; top: 17px; left: 0; transform: translateX(-50%);
+  display: grid; justify-items: center; white-space: nowrap; line-height: 1.2;
+}
+.vtZakr__metka.is-vlevo .vtZakr__tekst { left: auto; right: 2px; transform: none; justify-items: end; }
+.vtZakr__metka.is-vpravo .vtZakr__tekst { left: 2px; transform: none; justify-items: start; }
+.vtZakr__metka b { font-size: 18px; font-weight: 800; }
+.vtZakr__metka small { font-size: 14px; color: var(--vt-muted); }
+.vtZakr__metka--fakt i { background: var(--vt-green); }
+.vtZakr__metka--fakt b { color: var(--vt-green); }
+.vtZakr__metka--vse i { background: var(--vt-blue); }
+.vtZakr__metka--vse b { color: var(--vt-blue); }
+.vtZakr__metka--byudzhet i { background: var(--vt-violet); }
+.vtZakr__metka--byudzhet b { color: var(--vt-violet); }
+@media (max-width: 900px) { .vtZakr__stat { padding-left: 0; border-left: 0; } }
+
+/* ── светлая тема всей вкладки ──────────────────────────────────────────
+   Переменные сайта переопределяет body.is-svetlo в style.css; здесь — фон
+   страницы (его рисует canvas reeded-bg) и места, где цвет зашит руками. */
+body.is-svetlo { background: var(--bg) !important; }
+body.is-svetlo::after { display: none !important; }
+body.is-svetlo .flowCanvas { display: none; }
+html:has(body.is-svetlo) { background: #eef1f6 !important; }
+body.is-svetlo .topbar, body.is-svetlo .heroSales { color: var(--text); }
+body.is-svetlo .salesHistoryModes,
+body.is-svetlo .salesHistoryArrow { background: #ffffff; }
+body.is-svetlo .anTabl th { background: #f3f6fb; }
+body.is-svetlo .anDot { fill: #ffffff; }
+body.is-svetlo .action--secondary { background: #ffffff; color: var(--text); border: 1px solid var(--line-strong); }
+body.is-svetlo .stockTools .action--manage { background: #e7f7ee; color: #0f7a41; border-color: #9ad9b5; }
+body.is-svetlo .stockTools .action--manage:hover { background: #d5f0e0; color: #0b5e32; }
+body.is-svetlo .stockPill { background: #fde8ec; color: #c0304a; }
+body.is-svetlo .stockSplit .res, body.is-svetlo .regionList td.isRes { color: #d8445a; }
+body.is-svetlo .stockSplit .free { color: #16904f; }
+body.is-svetlo .salesHistorySummary,
+body.is-svetlo .salesHistoryRegionCard { background: #ffffff; }
+body.is-svetlo .salesHistoryModes button.is-active { background: #10203a; color: #ffffff; }
+body.is-svetlo .perfViews { background: #ffffff; border-color: var(--line); }
+body.is-svetlo .perfView { color: var(--muted); }
+body.is-svetlo .perfView:hover { color: var(--text); }
+body.is-svetlo .perfView.is-on { color: #ffffff; background: #10203a; }
+body.is-svetlo .topbar .brand, body.is-svetlo .topbar .brand span { color: var(--text); }

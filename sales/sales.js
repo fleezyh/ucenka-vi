@@ -12,6 +12,10 @@
   const BLOKI_SNIMKA = new Set(["voronka", "ostatki", "istoriya"]);
   const blokSnimka = new URLSearchParams(location.search).get("blok");
   if (blokSnimka && BLOKI_SNIMKA.has(blokSnimka)) document.body.dataset.blok = blokSnimka;
+  // Светлая тема — у всей вкладки, а не у одного блока воронки (Степан, 23.09:
+  // «нужен режим полностью светлой темы всей вкладки»). Общая тема сайта —
+  // body.is-svetlo, та же, что в CRM.
+  document.body.classList.toggle("is-svetlo", localStorage.getItem("vt-tema") === "svet");
 
 
 
@@ -514,7 +518,9 @@
     return panel;
   }
 
-  /** Итоги квартала: факт, потенциал и бюджет по месяцам до текущего. */
+  /** Закрытие квартала — полосой, как «Путь к цели»: факт, с учётом сделок в
+      работе и бюджет на одной шкале, плюс сколько не хватает. Было три
+      отдельные карточки, по которым не видно, успеваем ли. */
   function renderKvartal(head) {
     const kv = Math.floor((Number(head.month_num) - 1) / 3);
     let fact = 0, potential = 0, budget = 0;
@@ -526,17 +532,58 @@
       potential += vMln(first.total_sale_txt);
       budget += Number(first.plan_sale_raw || 0) / 1e6;
     }
-    const kart = (znak, teg, val) => `
-      <article class="vtKv"><span class="vtKv__znak">${znak}</span>
-        <span class="vtKv__teg">${teg}</span>
-        <span class="vtKv__val">${dec2(val)}<small>млн ₽</small></span>
-      </article>`;
-    const box = document.createElement("div");
-    box.className = "vtKvartal";
-    box.innerHTML =
-      kart(VT_IKONKI.stolbiki, `${["I", "II", "III", "IV"][kv]} квартал — факт`, fact) +
-      kart(VT_IKONKI.summa, "С учётом всех сделок в работе", potential) +
-      kart(VT_IKONKI.chasy, "Бюджет квартала", budget);
+    const rim = ["I", "II", "III", "IV"][kv];
+    const shkala = Math.max(budget, potential, fact) * 1.04 || 1;
+    const pr = (x) => Math.max(0, Math.min(100, x / shkala * 100));
+
+    let plashka;
+    if (budget && fact >= budget) {
+      plashka = `<div class="vtZakr__itog is-ok">${VT_IKONKI.stolbiki}<span>Бюджет выполнен<b>+${dec2(fact - budget)} млн ₽</b></span></div>`;
+    } else if (budget && potential >= budget) {
+      plashka = `<div class="vtZakr__itog is-ok">${VT_IKONKI.summa}<span>С учётом сделок закроем<b>+${dec2(potential - budget)} млн ₽</b></span></div>`;
+    } else if (budget) {
+      plashka = `<div class="vtZakr__itog is-net"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg><span>Не хватает до бюджета:<b>${dec2(budget - potential)} млн ₽</b></span></div>`;
+    } else {
+      plashka = `<div class="vtZakr__itog">${VT_IKONKI.chasy}<span>Бюджет квартала не задан</span></div>`;
+    }
+
+    // Отметки под шкалой. Близкие (26,04 и 26,12) разводим в стороны:
+    // левую подпись прижимаем к точке справа, правую — слева.
+    const metki = [
+      { klass: "fakt", x: pr(fact), v: fact, t: "Факт" },
+      { klass: "vse", x: pr(potential), v: potential, t: "С учётом всех сделок" },
+      ...(budget ? [{ klass: "byudzhet", x: pr(budget), v: budget, t: "Бюджет" }] : []),
+    ].sort((a, b) => a.x - b.x);
+    metki.forEach((m, i) => {
+      const sled = metki[i + 1];
+      const pred = metki[i - 1];
+      m.storona = sled && sled.x - m.x < 14 ? "vlevo" : pred && m.x - pred.x < 14 ? "vpravo" : "";
+    });
+
+    const stat = (znak, teg, val, klass) => `
+      <div class="vtZakr__stat vtZakr__stat--${klass}"><span class="vtZakr__znak">${znak}</span>
+        <span><i>${teg}</i><b>${dec2(val)}<small>млн ₽</small></b></span></div>`;
+    const box = document.createElement("section");
+    box.className = "vtPanel vtZakr";
+    box.innerHTML = `
+      <div class="vtZakr__verh">
+        <div class="vtZakr__imya"><h2>Закрытие ${rim} квартала</h2><p class="vtHint">Динамика к бюджету, млн ₽</p></div>
+        ${stat(VT_IKONKI.stolbiki, "Факт", fact, "fakt")}
+        ${stat(VT_IKONKI.summa, "С учётом всех сделок", potential, "vse")}
+        ${stat(VT_IKONKI.chasy, "Бюджет квартала", budget, "byudzhet")}
+        ${plashka}
+      </div>
+      <div class="vtZakr__shkala">
+        <div class="vtZakr__zhelob">
+          <i class="vtZakr__seg vtZakr__seg--vse" style="width:${pr(potential)}%"></i>
+          <i class="vtZakr__seg vtZakr__seg--fakt" style="width:${pr(fact)}%"></i>
+          ${budget ? `<span class="vtZakr__flag" style="left:${pr(budget)}%"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22V4M4 4h13l-2 4 2 4H4"/></svg></span>` : ""}
+        </div>
+        <div class="vtZakr__os"><span class="vtZakr__nol">0</span>${metki.map((m) => `
+          <span class="vtZakr__metka vtZakr__metka--${m.klass}${m.storona ? " is-" + m.storona : ""}" style="left:${m.x}%">
+            <i></i><span class="vtZakr__tekst"><b>${dec2(m.v)}</b><small>${m.t}</small></span></span>`).join("")}
+        </div>
+      </div>`;
     return box;
   }
 
@@ -703,6 +750,7 @@
     const tema = funnelBox.dataset.tema === "svet" ? "temno" : "svet";
     localStorage.setItem("vt-tema", tema);
     funnelBox.dataset.tema = tema;
+    document.body.classList.toggle("is-svetlo", tema === "svet");
     pokazatTemu(tema);
   });
   pokazatTemu(localStorage.getItem("vt-tema"));
