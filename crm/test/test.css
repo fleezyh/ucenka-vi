@@ -151,3 +151,19 @@ body.is-svetlo .ctSvyaz, body.is-svetlo .ctSvyazKn { background: #fff; }
 .ctKarta__pallet, .ctShapkaEtapa__pallet { padding: 2px 8px; border-radius: 4px; background: rgba(77, 141, 247, 0.3); color: #fff; font-size: 13px; white-space: nowrap; }
 .ctShapkaEtapa__pallet { display: inline-block; margin: 6px 0 0; }
 body.is-svetlo .ctKarta__pallet, body.is-svetlo .ctShapkaEtapa__pallet { background: #e3edff; color: #1d4fb8; }
+
+/* Одинаковые карточки: метки — ровно одна строка, лишние прячутся;
+   цифры — сеткой из основной CRM. */
+.ctKarta__verh, .ctKarta__ka { height: 18px; line-height: 18px; }
+.crmTest .crmKarta__cifry { margin-top: 6px; }
+.ctMetki { flex-wrap: nowrap; height: 20px; overflow: hidden; }
+.ctMetka { flex: none; white-space: nowrap; }
+.ctShapkaEtapa { min-height: 96px; }
+.ctShapkaEtapa__imya { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Колонки строго одной ширины: метки в одну строку не должны её раздвигать. */
+.crmTest .crmStolbec { width: 262px; min-width: 262px; max-width: 262px; }
+.crmTest .crmStolbec--tonkiy { width: 150px; min-width: 150px; max-width: 150px; }
+.crmTest .crmStolbec--itog { width: 180px; min-width: 180px; max-width: 180px; }
+.ctKarta { flex: none; min-width: 0; overflow: hidden; }
+.ctMetki { min-width: 0; overflow: hidden; }

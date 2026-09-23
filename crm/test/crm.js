@@ -421,7 +421,7 @@
     return i === RABOCHIE.length - 1 ? KONEC : RABOCHIE[i + 1];
   }
 
-  /** Метки карточки: то, из-за чего на лот надо посмотреть. Не больше трёх. */
+  /** Метки карточки: то, из-за чего на лот надо посмотреть. Не больше двух: на карточке одна строка меток. */
   function metkiLota(z) {
     const metki = [];
     const d = dney(z) || 0;
@@ -436,7 +436,7 @@
     else if (d > 14) metki.push([`стоит ${d} дн`, "is-zhyoltyy"]);
     if (!dela.length && aktivnyy(z)) metki.push(["нет следующего шага", "is-seryy"]);
     if (!dengiLota(z).summa) metki.push(["нет цены", "is-seryy"]);
-    return metki.slice(0, 3);
+    return metki.slice(0, 2);
   }
 
   async function sohranitLot(z, polya, soobshchenie) {
@@ -838,14 +838,15 @@
         <span class="ctKarta__dni${klassDney(d, aktivnyy(z))}">${d === null ? "" : d + " дн"}</span>
       </div>
       <p class="ctKarta__ka">${escape(z.ka || "контрагент не указан")}</p>
-      <p class="ctKarta__dengi"><b>${summa ? chislo(summa) + " ₽" : "—"}</b>${
-        start ? '<span class="ctKarta__start">старт</span>' : ""}${
-        palletLota(z).skolko ? `<span class="ctKarta__pallet" title="${palletLota(z).ubrano
-          ? "убрано из лота " + palletLota(z).ubrano : "паллет в лоте"}">${palletTekst(palletLota(z).skolko)}</span>` : ""}
-        <span class="crmOkup${klassOkupa(okup.znachenie)}">${
-          okup.znachenie ? "окуп " + dolya(okup.znachenie) : ""}</span></p>
-      ${metki.length ? `<div class="ctMetki">${metki.map(([t, k]) =>
-        `<span class="ctMetka ${k}">${escape(t)}</span>`).join("")}</div>` : ""}
+      <div class="crmKarta__cifry">
+        <div><i>${start ? "старт" : "сумма"}</i><b>${summa ? chislo(summa) + " ₽" : "—"}</b></div>
+        <div><i>паллет</i><b class="crmKarta__pallet" title="${palletLota(z).ubrano
+          ? "убрано из лота " + palletLota(z).ubrano : "паллет в лоте"}">${palletLota(z).skolko ? chislo(palletLota(z).skolko) : "—"}</b></div>
+        <div><i>окуп</i><b class="crmOkup${klassOkupa(okup.znachenie)}">${
+          okup.znachenie ? dolya(okup.znachenie) : "—"}</b></div>
+      </div>
+      <div class="ctMetki">${metki.map(([t, k]) =>
+        `<span class="ctMetka ${k}">${escape(t)}</span>`).join("")}</div>
       <div class="ctKarta__niz">
         <span class="ctKarta__kto">${escape(String(z.menedzher || "").split(" ")[0] || "—")}${
           z.ploshchadka ? " · " + escape(z.ploshchadka) : ""}</span>
@@ -898,7 +899,7 @@
           <span>${svoi.length}</span></p>
         <p class="ctShapkaEtapa__summa">${summa ? chislo(summa) + " ₽" : "—"}</p>${(() => {
           const n = svoi.reduce((s, z) => s + palletLota(z).skolko, 0);
-          return n ? `<p class="ctShapkaEtapa__pallet">${palletTekst(n)}</p>` : "";
+          return `<p class="ctShapkaEtapa__pallet">${n ? palletTekst(n) : "паллет нет"}</p>`;
         })()}`;
       stolbec.appendChild(shapka);
 

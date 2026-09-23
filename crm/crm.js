@@ -726,13 +726,13 @@
           d === null ? "" : d + " дн"}</span>
       </div>
       <p class="crmKarta__ka">${escape(z.ka || "контрагент не указан")}</p>
-      <p class="crmKarta__dengi">
-        <b>${summa ? chislo(summa) + " ₽" + (start ? " старт" : "") : "цены нет"}</b>
-        ${palletLota(z).skolko ? `<span class="crmKarta__pallet" title="${palletLota(z).ubrano
-          ? "убрано из лота " + palletLota(z).ubrano : "паллет в лоте"}">${palletTekst(palletLota(z).skolko)}</span>` : ""}
-        <span class="crmOkup${klassOkupa(okup.znachenie)}">${
-          okup.znachenie ? dolya(okup.znachenie) + (okup.start ? " ст" : "") : "—"}</span>
-      </p>
+      <div class="crmKarta__cifry">
+        <div><i>${start ? "старт" : "сумма"}</i><b>${summa ? chislo(summa) + " ₽" : "—"}</b></div>
+        <div><i>паллет</i><b class="crmKarta__pallet" title="${palletLota(z).ubrano
+          ? "убрано из лота " + palletLota(z).ubrano : "паллет в лоте"}">${palletLota(z).skolko ? chislo(palletLota(z).skolko) : "—"}</b></div>
+        <div><i>окуп</i><b class="crmOkup${klassOkupa(okup.znachenie)}">${
+          okup.znachenie ? dolya(okup.znachenie) : "—"}</b></div>
+      </div>
       <p class="crmKarta__niz${bezMenedzhera ? " crmKarta__niz--net" : ""}">${
         escape([bezMenedzhera ? "без менеджера" : z.menedzher,
                 z.region, z.ploshchadka].filter(Boolean).join(" · "))}</p>`;
@@ -770,7 +770,7 @@
         <p class="crmStolbec__svod"><b>${svoi.length}</b>${
           summa ? " · " + chislo(summa) + " ₽" : ""}</p>${(() => {
             const n = svoi.reduce((s, z) => s + palletLota(z).skolko, 0);
-            return n ? `<span class="crmStolbec__pallet">${palletTekst(n)}</span>` : "";
+            return `<span class="crmStolbec__pallet">${n ? palletTekst(n) : "паллет нет"}</span>`;
           })()}`;
       stolbec.appendChild(shapka);
 

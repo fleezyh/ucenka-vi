@@ -691,3 +691,20 @@ body.is-svetlo .crmPallety__poisk input { background: #fff; color: var(--text); 
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
 .crmSverka__tabl { max-height: none; }
 .crmSverka__tabl td.crmNum .crmHint { display: block; font-size: 10.5px; }
+
+/* Карточки одинаковые: четыре строки фиксированной высоты, цифры — тремя
+   равными колонками с подписью, пустое — прочерком, а не дырой. */
+.crmKarta__verh, .crmKarta__ka, .crmKarta__niz { height: 18px; line-height: 18px; }
+.crmKarta__cifry { display: grid; grid-template-columns: 1.5fr 1fr 0.9fr; gap: 6px; margin: 7px 0 0;
+  padding: 6px 0; border-top: 1px solid rgba(143,156,173,.14); border-bottom: 1px solid rgba(143,156,173,.14); }
+.crmKarta__cifry > div { display: grid; gap: 2px; min-width: 0; }
+.crmKarta__cifry > div:nth-child(2) { justify-items: center; }
+.crmKarta__cifry > div:nth-child(3) { justify-items: end; }
+.crmKarta__cifry i { color: var(--muted, #8f9cad); font-size: 10.5px; font-style: normal; line-height: 1; }
+.crmKarta__cifry b { overflow: hidden; font-size: 13px; line-height: 20px; text-overflow: ellipsis; white-space: nowrap; }
+.crmKarta__cifry .crmKarta__pallet { margin: 0; padding: 0 8px; min-width: 28px; text-align: center; }
+.crmKarta__cifry .crmOkup { font-size: 13px; }
+/* Шапка колонки одной высоты у всех: имя, число и сумма, плашка паллет. */
+.crmStolbec__shapka { min-height: 72px; }
+.crmStolbec__imya { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.crmStolbec__pallet { margin-left: 0; }
