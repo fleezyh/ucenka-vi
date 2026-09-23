@@ -1003,3 +1003,30 @@ body.is-svetlo .fsGod__mes.is-vybran em { background: rgba(20, 35, 60, 0.08); }
   .fsRow { grid-template-columns: minmax(0, 1fr); }
   .fsRow__cifry, .fsRow__vvod { justify-content: flex-start; }
 }
+/* Остальные выплаты: кнопка в строке и раскрывающаяся панель под ней.
+   Квартальную и годовую премии ставят редко, держать под них шесть колонок
+   в таблице незачем — но и уводить их в отдельную форму нельзя, иначе
+   теряется связь с человеком. */
+.zpMore {
+  appearance: none; border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04); color: var(--muted); font: inherit;
+  font-size: 12px; min-width: 28px; padding: 3px 8px; cursor: pointer;
+}
+.zpMore:hover { border-color: rgba(39, 196, 107, 0.5); color: var(--text); }
+.zpMoreRow > td { background: rgba(255, 255, 255, 0.03); padding: 12px 14px 10px; }
+.zpMore__polya { display: flex; flex-wrap: wrap; gap: 10px 16px; }
+.zpMore__pole, .zpMore__comm { display: flex; flex-direction: column; gap: 3px; }
+.zpMore__pole span, .zpMore__comm span { font-size: 11.5px; color: var(--muted); }
+.zpMore__pole input, .zpMore__comm input {
+  border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 8px;
+  background: rgba(0, 0, 0, 0.25); color: var(--text); font: inherit;
+  font-size: 13px; padding: 5px 8px;
+}
+.zpMore__pole input { width: 120px; text-align: right; }
+.zpMore__comm { margin-top: 10px; }
+.zpMore__comm input { width: min(560px, 100%); }
+.zpMore__pole input:focus, .zpMore__comm input:focus {
+  border-color: rgba(39, 196, 107, 0.6); outline: none;
+}
+.zpMore__pole input.is-ok, .zpMore__comm input.is-ok { border-color: rgba(39, 196, 107, 0.75); }
+.zpMore__pole input.is-plohо, .zpMore__comm input.is-plohо { border-color: rgba(224, 112, 90, 0.85); }

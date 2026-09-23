@@ -502,6 +502,43 @@ blockMe.addEventListener("click", (event) => {
  * Смысл не в том, чтобы показать сумму, а в том, чтобы её можно было разобрать:
  * плитка → подразделение → человек → из чего сложилась его цифра. Поэтому
  * кликается всё, а не только последняя таблица. */
+/* Остальные выплаты: квартальная и прочие премии, доплата за совмещение и
+   обоснование. В строку таблицы их шесть не влезет, да и заполняют их редко —
+   поэтому прячем за кнопкой и раскрываем по клику.
+   Просьба Посновой 16.09.2026: «нужна разбивка, как в файле подачи ЗП», и
+   отдельно комментарий — без обоснования премию в 1С не принимают. */
+const VIDY_VYPLAT = [
+  ["премия_квартал", "Квартальная"],
+  ["премия_полугодие", "Полугодовая"],
+  ["премия_год", "Годовая"],
+  ["премия_разовая", "Разовая"],
+  ["доплата_совмещение", "Доплата за совмещение"],
+];
+
+function eshchyoZnak(c) {
+  const vyplaty = c["выплаты"] || {};
+  const skolko = VIDY_VYPLAT.filter(([klyuch]) => Number(vyplaty[klyuch]) > 0).length
+    + (c["премия_комментарий"] ? 1 : 0);
+  return skolko ? String(skolko) : "+";
+}
+
+function eshchyoStroka(c) {
+  const vyplaty = c["выплаты"] || {};
+  const polya = VIDY_VYPLAT.map(([klyuch, imya]) => `
+    <label class="zpMore__pole"><span>${imya}</span>
+      <input type="number" min="0" step="1000" inputmode="numeric"
+             data-vid="${klyuch}" value="${vyplaty[klyuch] || ""}" placeholder="0"></label>`).join("");
+  return `<tr class="zpMoreRow"><td colspan="10">
+    <div class="zpMore__polya">${polya}</div>
+    <label class="zpMore__comm"><span>Обоснование премии</span>
+      <input type="text" maxlength="300" data-vid="комментарий"
+             value="${(c["премия_комментарий"] || "").replace(/"/g, "&quot;")}"
+             placeholder="за что: проект, переработка, замещение"></label>
+    <p class="stamp">Суммы уходят в форму подачи отдельными колонками, как в 1С,
+      и попадают в итоговый ФОТ. Обоснование — в колонку «Комментарий для „Премии“»</p>
+  </td></tr>`;
+}
+
 function stroki(lyudi, otkuda) {
   return lyudi.map((c) => `
     <tr data-nomer="${otkuda.indexOf(c)}">
@@ -512,10 +549,12 @@ function stroki(lyudi, otkuda) {
       <td class="num"><input class="zpPrem" type="number" min="0" step="1000"
         inputmode="numeric" value="${c["премия_план"] || ""}" placeholder="0"
         aria-label="Премия за месяц, ${c["фио"]}"><div class="src">за месяц, гросс</div></td>
+      <td class="num"><button class="zpMore" type="button"
+        title="Квартальная, полугодовая, годовая, разовая, доплата за совмещение и комментарий"
+        aria-label="Остальные выплаты, ${c["фио"]}">${eshchyoZnak(c)}</button></td>
       <td class="num"><b data-seychas>${rubli(c["начислено"])}</b></td>
       <td class="num" data-prognoz>${rubli(c["прогноз_гросс"] ?? c["прогноз_месяца"] / 0.87)}</td>
       <td class="num">${vyrabotkaYacheyka(c["выработка"])}</td>
-      <td class="num">${mestoYacheyka(c["выработка"])}</td>
       <td>${c["отсутствие"] || ""}${c["подсказка"]
         ? `<div class="src">${c["подсказка"]}</div>` : ""}</td>
     </tr>`).join("");
@@ -540,11 +579,17 @@ const STOLBCY_PODACHI = [
   ["Пропущено дней", (c) => c["пропущено_дней"] || 0],
   ["Штук за смену", (c) => (c["выработка"] || {})["на_смену"] ?? ""],
   ["Контур", (c) => (c["выработка"] || {})["контур"] || ""],
-  ["Место в контуре", (c) => (c["выработка"] || {})["место"] ?? ""],
   ["Факт Ежемесячная премия", (c) => c["премия_план"] || ""],
-  ["Разовая премия", () => ""],
+  // Остальные виды выплат руководитель проставляет в панели с 16.09.2026 —
+  // в выгрузке они называются так же, как колонки формы подачи в 1С.
+  ["Факт Квартальная премия", (c) => (c["выплаты"] || {})["премия_квартал"] || ""],
+  ["Факт Полугодовая премия", (c) => (c["выплаты"] || {})["премия_полугодие"] || ""],
+  ["Годовая премия", (c) => (c["выплаты"] || {})["премия_год"] || ""],
+  ["Разовая премия", (c) => (c["выплаты"] || {})["премия_разовая"] || ""],
+  ["Доплата за совмещение должностей",
+   (c) => (c["выплаты"] || {})["доплата_совмещение"] || ""],
+  ["Комментарий для «Премии»", (c) => c["премия_комментарий"] || ""],
   ["Прочие штрафы", () => ""],
-  ["Комментарий", () => ""],
 ];
 
 function vygruzkaPodachi(spisok, podpis) {
@@ -577,13 +622,6 @@ function vyrabotkaYacheyka(rab) {
   return `<b>${rab["на_смену"].toLocaleString("ru-RU")}</b>${znak}`;
 }
 
-function mestoYacheyka(rab) {
-  if (!rab || !rab["место"]) {
-    return rab && rab["мало_смен"]
-      ? "<span class=\"src\">мало смен</span>" : "<span class=\"src\">—</span>";
-  }
-  return `${rab["место"]} из ${rab["из"]}<div class="src">${rab["контур"]}</div>`;
-}
 
 function tablica(data) {
   // ВИ Сервис в панель не берём вовсе: третий контур пока не наш.
@@ -687,13 +725,12 @@ function tablica(data) {
         </div>
       </div>
       <p class="stamp">Премию впишите в столбце «Премия» — она сразу попадёт
-        в итог, в прогноз и в выгрузку. Рядом основание: выработка и место
-        в контуре. Клик по фамилии — карточка человека</p>
+        в итог, в прогноз и в выгрузку. Рядом основание — выработка. Клик по фамилии — карточка человека</p>
       <div class="scroll"><table>
         <thead><tr>
           <th>Человек</th><th>Оклад, гросс</th><th>Дни</th><th>Окладная</th>
-          <th>Премия</th><th>На сегодня</th><th>Прогноз месяца</th>
-          <th>Штук за смену</th><th>Место</th><th>Отсутствие</th>
+          <th>Премия</th><th>Ещё</th><th>На сегодня</th><th>Прогноз месяца</th>
+          <th>Штук за смену</th><th>Отсутствие</th>
         </tr></thead>
         <tbody id="ktoTelo"></tbody>
         <tfoot id="ktoItog"></tfoot>
@@ -745,6 +782,8 @@ function tablica(data) {
         "логин": chelovek["логин"],
         "премия": chelovek["премия_план"] || 0,
         "месяц": data["месяц"] || "",
+        ...(chelovek["выплаты"] || {}),
+        "комментарий": chelovek["премия_комментарий"] || "",
       }),
     }).then((r) => r.ok);
   }
@@ -944,9 +983,10 @@ function tablica(data) {
         <td><b>Итого · ${s.lyudey}</b></td>
         <td class="num">${rubli(s.fond)}</td><td></td><td></td>
         <td class="num"><b>${rubli(s.premii)}</b></td>
+        <td></td>
         <td class="num"><b>${rubli(s.segodnya)}</b></td>
         <td class="num">${rubli(s.prognoz)}</td>
-        <td colspan="3"></td>
+        <td colspan="2"></td>
       </tr>`;
     zagolovok.textContent = "Люди · " + spisok.length + (podpis ? " · " + podpis : "");
     sbros.hidden = spisok.length === vBaze(baza).length;
@@ -1038,10 +1078,49 @@ function tablica(data) {
     stroka.querySelector("[data-prognoz]").textContent = rubli(chelovek["прогноз_месяца"]);
     const s = svodka(vidno);
     podval.querySelector("td:nth-child(5) b").textContent = rubli(s.premii);
-    podval.querySelector("td:nth-child(6) b").textContent = rubli(s.segodnya);
-    podval.querySelector("td:nth-child(7)").textContent = rubli(s.prognoz);
+    podval.querySelector("td:nth-child(7) b").textContent = rubli(s.segodnya);
+    podval.querySelector("td:nth-child(8)").textContent = rubli(s.prognoz);
     narisovatLimit(vidno, chto === baza ? baza : chto);
     narisovatOtdely(vBaze(baza));
+  });
+
+  /* Кнопка «Ещё»: раскрывает строку с остальными выплатами. Держим её
+     рядом с человеком, а не отдельной формой — так видно, к кому это. */
+  telo.addEventListener("click", (event) => {
+    const knopka = event.target.closest(".zpMore");
+    if (!knopka) return;
+    const stroka = knopka.closest("tr");
+    const chelovek = lyudi[Number(stroka.dataset.nomer)];
+    if (!chelovek) return;
+    const otkryta = stroka.nextElementSibling
+      && stroka.nextElementSibling.classList.contains("zpMoreRow");
+    telo.querySelectorAll(".zpMoreRow").forEach((r) => r.remove());
+    if (otkryta) return;
+    stroka.insertAdjacentHTML("afterend", eshchyoStroka(chelovek));
+  });
+
+  /* Ввод в раскрытой строке: держим значения на человеке и шлём тем же
+     запросом, что и ежемесячную премию. */
+  telo.addEventListener("input", (event) => {
+    const pole = event.target.closest(".zpMoreRow [data-vid]");
+    if (!pole) return;
+    const stroka = pole.closest(".zpMoreRow").previousElementSibling;
+    const chelovek = lyudi[Number(stroka.dataset.nomer)];
+    if (!chelovek) return;
+    if (pole.dataset.vid === "комментарий") {
+      chelovek["премия_комментарий"] = pole.value;
+    } else {
+      chelovek["выплаты"] = chelovek["выплаты"] || {};
+      chelovek["выплаты"][pole.dataset.vid] = Math.max(0, Number(pole.value) || 0);
+    }
+    clearTimeout(pole.pauza);
+    pole.pauza = setTimeout(() => {
+      pole.classList.remove("is-ok", "is-plohо");
+      sohranitPremiyu(chelovek)
+        .then((ladno) => pole.classList.add(ladno ? "is-ok" : "is-plohо"))
+        .catch(() => pole.classList.add("is-plohо"));
+      stroka.querySelector(".zpMore").textContent = eshchyoZnak(chelovek);
+    }, 700);
   });
 
   blockTeam.querySelector("#vygruzka")
