@@ -198,3 +198,8 @@ body.is-svetlo .ctKarta__kto { color: #4a5a70; }
 .crmTest .ctKarta .ctMetki { display: flex; gap: 6px; }
 .crmTest .ctKarta .ctMetka { flex: 1 1 0; min-width: 0; overflow: hidden; text-align: center; text-overflow: ellipsis; line-height: 18px; }
 .ctMetki__chisto { flex: 1; text-align: center; }
+
+/* Открытая «Связь» сдвигает страницу влево, а не ложится поверх шапки и доски. */
+body.ctSvyazOtkryt .shell { width: auto; margin-right: min(440px, 100vw); transition: margin-right .2s ease; }
+body.ctSvyazOtkryt .ctSvyazKn { display: none; }
+.crmTest .ctKarta .ctMetka { font-size: 10.5px; }

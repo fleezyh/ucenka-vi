@@ -429,9 +429,9 @@
     const dela = delaLota(z);
     if (dela.some((x) => x.просрочена)) metki.push(["дело просрочено", "is-krasnyy"]);
     if (!String(z.menedzher || "").trim()) metki.push(["без менеджера", "is-krasnyy"]);
-    if (st.startsWith("6.") && d > 7) metki.push([`нет оплаты ${d} дн`, "is-zhyoltyy", "счёт выставлен, оплаты нет больше недели"]);
+    if (st.startsWith("6.") && d > 7) metki.push([`оплаты нет ${d}д`, "is-zhyoltyy", "счёт выставлен, оплаты нет больше недели"]);
     if (st.startsWith("7.")) metki.push(["отгрузить", "is-siniy"]);
-    if (lotyBezDaty().has(String(z.nomer))) metki.push(["нет даты оплаты", "is-siniy"]);
+    if (lotyBezDaty().has(String(z.nomer))) metki.push(["дата оплаты?", "is-siniy", "деньги в банке есть, в лоте дата оплаты пустая"]);
     if (d > 30) metki.push([`стоит ${d} дн`, "is-krasnyy"]);
     else if (d > 14) metki.push([`стоит ${d} дн`, "is-zhyoltyy"]);
     if (!dela.length && aktivnyy(z)) metki.push(["нет задачи", "is-seryy", "по лоту не заведено ни одной задачи — нажмите «+ дело»"]);
@@ -2878,6 +2878,8 @@
     el("ctSvyazKn").addEventListener("click", () => {
       svyaz.hidden = !svyaz.hidden;
       el("ctSvyazKn").classList.toggle("is-on", !svyaz.hidden);
+      // Панель не накрывает страницу, а сдвигает её: доска остаётся видна целиком.
+      document.body.classList.toggle("ctSvyazOtkryt", !svyaz.hidden);
       if (!svyaz.hidden && !pochtaZagruzhena) {
         pochtaZagruzhena = true;
         narisovatPochtuVid();
@@ -2886,6 +2888,7 @@
     el("ctSvyazZakryt").addEventListener("click", () => {
       svyaz.hidden = true;
       el("ctSvyazKn").classList.remove("is-on");
+      document.body.classList.remove("ctSvyazOtkryt");
     });
     svyaz.querySelectorAll("[data-svyaz]").forEach((kn) => {
       kn.addEventListener("click", () => {
