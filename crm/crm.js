@@ -3019,6 +3019,221 @@
     }, 5 * 60 * 1000);
   }
 
+  // --- Вкладка «Паллеты»: база паллет с наполнением ---------------------------
+  // Встреча 24.09: «табличка тут же в CRM со списком паллет», видно, свободна
+  // паллета, в лоте или её не нашли, а провалился — всё её наполнение, как
+  // выгрузка «Смайлика». Состав считается на сервере раз в час вместе с
+  // реестром, поэтому открывается сразу.
+  let reestr = null;
+  const reestrFiltr = { poisk: "", status: "", sklad: "" };
+  const reestrOtmecheno = new Set();
+  const sostavPallety = new Map();
+  let raskryta = "";
+
+  const STATUSY_PALLETY = ["свободна", "в лоте", "резерв", "не нашли", "нет в остатках"];
+
+  function statusPallety(p) {
+    if (p.не_нашли) return "не нашли";
+    if (p.лот) return "в лоте";
+    return p.в_книге || "свободна";
+  }
+
+  async function narisovatReestr(zanovo) {
+    const uzel = el("crmReestr");
+    if (!uzel) return;
+    if (!reestr || zanovo) {
+      uzel.innerHTML = '<p class="crmHint">загружаю паллеты…</p>';
+      try {
+        const otvet = await fetch("/__crm/reestr", { cache: "no-store" });
+        if (!otvet.ok) throw new Error(`сервер ответил ${otvet.status}`);
+        reestr = await otvet.json();
+      } catch (oshibka) {
+        uzel.innerHTML = `<p class="crmHint">паллеты не загрузились: ${escape(oshibka.message || oshibka)}</p>`;
+        return;
+      }
+    }
+    const vse = reestr.паллеты || [];
+    const sklady = [...new Set(vse.map((p) => p.склад).filter(Boolean))].sort();
+    const skolko = (st) => vse.filter((p) => statusPallety(p) === st).length;
+    uzel.innerHTML = `
+      <div class="crmReestr__verh">
+        <input class="crmPoisk" id="crmReestrPoisk" type="search"
+          placeholder="Паллета, ячейка, лот или список (Ctrl+V)" value="${escape(reestrFiltr.poisk)}">
+        <select class="crmVybor" id="crmReestrSklad" aria-label="Склад">
+          <option value="">Все склады</option>
+          ${sklady.map((s) => `<option${s === reestrFiltr.sklad ? " selected" : ""}>${escape(s)}</option>`).join("")}
+        </select>
+        <div class="crmFiltry" id="crmReestrStatusy">
+          <button class="crmFiltr${reestrFiltr.status ? "" : " is-on"}" type="button" data-status="">Все · ${vse.length}</button>
+          ${STATUSY_PALLETY.filter(skolko).map((st) => `<button class="crmFiltr${st === reestrFiltr.status ? " is-on" : ""}"
+            type="button" data-status="${st}">${st} · ${skolko(st)}</button>`).join("")}
+        </div>
+        <button class="crmKn crmKn--glav" type="button" id="crmReestrExcel" disabled>Состав отмеченных в Excel</button>
+      </div>
+      <p class="crmHint" id="crmReestrSchyot"></p>
+      <div class="crmTabl crmReestr__tabl" id="crmReestrTelo"></div>`;
+
+    // Однострочное поле при вставке выкидывает переводы строк, и список паллет
+    // склеивается в одно слово — разбиваем вставку сами, через «; ».
+    el("crmReestrPoisk").addEventListener("paste", (event) => {
+      const tekst = (event.clipboardData || window.clipboardData).getData("text");
+      if (!/[\r\n\t]/.test(tekst)) return;
+      event.preventDefault();
+      const pole = event.currentTarget;
+      pole.value = tekst.split(/[\r\n\t]+/).map((x) => x.trim()).filter(Boolean).join("; ");
+      reestrFiltr.poisk = pole.value;
+      narisovatReestrTelo();
+    });
+    el("crmReestrPoisk").addEventListener("input", (event) => {
+      reestrFiltr.poisk = event.target.value;
+      narisovatReestrTelo();
+    });
+    el("crmReestrSklad").addEventListener("change", (event) => {
+      reestrFiltr.sklad = event.target.value;
+      narisovatReestrTelo();
+    });
+    el("crmReestrStatusy").addEventListener("click", (event) => {
+      const kn = event.target.closest(".crmFiltr");
+      if (!kn) return;
+      reestrFiltr.status = kn.dataset.status;
+      el("crmReestrStatusy").querySelectorAll(".crmFiltr").forEach((k) =>
+        k.classList.toggle("is-on", k === kn));
+      narisovatReestrTelo();
+    });
+    el("crmReestrExcel").addEventListener("click", (event) =>
+      skachatSostav([...reestrOtmecheno], "", event.currentTarget));
+    el("crmReestrTelo").addEventListener("click", klikReestr);
+    narisovatReestrTelo();
+  }
+
+  function otobrannyePallety() {
+    const vse = (reestr && reestr.паллеты) || [];
+    // Вставили список (Ctrl+V из таблички или письма) — ищем каждую строку.
+    // Два номера и больше (8+ цифр в конце имени) — ищем по номерам: так список
+    // находится, даже если при вставке его склеило пробелами.
+    const nomera = reestrFiltr.poisk.match(/\d{8,}/g) || [];
+    const stroki = nomera.length > 1 ? nomera
+      : reestrFiltr.poisk.split(/[\r\n;\t]+/).map((x) => x.trim().toLowerCase()).filter(Boolean);
+    return vse.filter((p) => {
+      if (reestrFiltr.status && statusPallety(p) !== reestrFiltr.status) return false;
+      if (reestrFiltr.sklad && p.склад !== reestrFiltr.sklad) return false;
+      if (!stroki.length) return true;
+      const gde = `${p.паллета} ${p.ячейка} ${p.лот} ${p.ка}`.toLowerCase();
+      return stroki.some((x) => gde.includes(x));
+    }).sort((a, b) => String(a.склад).localeCompare(String(b.склад), "ru")
+      || String(a.паллета).localeCompare(String(b.паллета), "ru"));
+  }
+
+  function sostavVnutri(imya) {
+    const dannyeSostava = sostavPallety.get(imya);
+    if (!dannyeSostava) return '<p class="crmHint">смотрю, что в паллете…</p>';
+    if (dannyeSostava.ошибка) return `<p class="crmHint">${escape(dannyeSostava.ошибка)}</p>`;
+    const stroki = dannyeSostava.строки || [];
+    if (!stroki.length) return '<p class="crmHint">остатка по актам на паллете нет</p>';
+    const kolvo = (s) => Number(s["Кол-во"]) || 0;
+    const summa = (pole) => stroki.reduce((n, s) => n + (Number(s[pole]) || 0) * kolvo(s), 0);
+    return `<table class="crmReestr__vnutri">
+      <thead><tr><th>Товар</th><th>Акт</th><th>Заявленный дефект</th><th>Некомплект</th>
+        <th class="crmNum">Кол-во</th><th class="crmNum">Продажная ВИ МСК</th><th class="crmNum">Закупочная</th></tr></thead>
+      <tbody>${stroki.map((s) => `<tr>
+        <td>${escape(s["Товар"])}</td><td>${escape(s["Акт"])}</td>
+        <td>${escape(s["Заявленный дефект"])}</td><td>${escape(s["Неполная комплектность"])}</td>
+        <td class="crmNum">${chislo(s["Кол-во"])}</td>
+        <td class="crmNum">${chislo(s["Цена продажная ВИ МСК"])}</td>
+        <td class="crmNum">${chislo(s["Цена закупочная"])}</td></tr>`).join("")}</tbody>
+      <tfoot><tr><td colspan="4">${stroki.length} строк · состав на ${escape(dannyeSostava.на || "—")}
+        · суммы — цена × количество</td>
+        <td class="crmNum">${chislo(stroki.reduce((n, s) => n + kolvo(s), 0))}</td>
+        <td class="crmNum">${chislo(summa("Цена продажная ВИ МСК"))}</td>
+        <td class="crmNum">${chislo(summa("Цена закупочная"))}</td></tr></tfoot>
+    </table>`;
+  }
+
+  function narisovatReestrTelo() {
+    const uzel = el("crmReestrTelo");
+    if (!uzel) return;
+    const spisok = otobrannyePallety();
+    const sebes = spisok.reduce((n, p) => n + (Number(p.себестоимость) || 0), 0);
+    const shtuk = spisok.reduce((n, p) => n + (Number(p.штук) || 0), 0);
+    // Искали списком — называем, чего в базе продаж нет вовсе, а не молчим.
+    const iskali = (reestrFiltr.poisk.match(/\d{8,}/g) || []).length > 1
+      ? reestrFiltr.poisk.match(/\d{8,}/g)
+      : reestrFiltr.poisk.split(/[\r\n;\t]+/).map((x) => x.trim()).filter(Boolean);
+    const netVBaze = iskali.length > 1 ? iskali.filter((x) => !(reestr.паллеты || []).some((p) =>
+      `${p.паллета} ${p.ячейка} ${p.лот} ${p.ка}`.toLowerCase().includes(x.toLowerCase()))) : [];
+    el("crmReestrSchyot").textContent =
+      `${spisok.length} паллет · ${chislo(shtuk)} шт · ${chislo(sebes)} ₽ себестоимости без НДС`
+      + ` · остатки на ${reestr.обновлено || "—"}, состав на ${reestr.состав_на || "—"}`
+      + " · клик по строке — что лежит в паллете"
+      + (netVBaze.length ? ` · нет среди паллет продаж: ${netVBaze.join(", ")}` : "");
+    uzel.innerHTML = `<table>
+      <thead><tr><th><input type="checkbox" id="crmReestrVse" aria-label="Отметить все"></th>
+        <th>Паллета</th><th>Склад</th><th>Ячейка</th><th>Статус</th><th>Лот</th>
+        <th class="crmNum">SKU</th><th class="crmNum">Шт</th><th class="crmNum">Себестоимость</th></tr></thead>
+      <tbody>${spisok.slice(0, 1500).map((p) => {
+        const st = statusPallety(p);
+        const otkryta = p.паллета === raskryta;
+        return `<tr data-pallet="${escape(p.паллета)}" class="${otkryta ? "is-otkryta" : ""}">
+          <td><input type="checkbox" class="crmReestr__gal"${reestrOtmecheno.has(p.паллета) ? " checked" : ""}
+            aria-label="Отметить паллету"></td>
+          <td class="crmReestr__imya">${otkryta ? "▾" : "▸"} ${escape(p.паллета)}</td>
+          <td>${escape(p.склад)}</td><td>${escape(p.ячейка)}</td>
+          <td><span class="crmReestr__status is-${STATUSY_PALLETY.indexOf(st)}"
+            title="${escape(p.не_нашли || p.основание || "")}">${escape(st)}</span></td>
+          <td>${p.лот ? `<button class="crmReestr__lot" type="button" data-lot="${escape(p.лот)}"
+            title="${escape([p.статус_лота, p.ка].filter(Boolean).join(" · "))}">${escape(p.лот)}</button>` : ""}</td>
+          <td class="crmNum">${chislo(p.sku)}</td><td class="crmNum">${chislo(p.штук)}</td>
+          <td class="crmNum">${chislo(p.себестоимость)}</td>
+        </tr>${otkryta ? `<tr class="crmReestr__sostav"><td colspan="9">${sostavVnutri(p.паллета)}</td></tr>` : ""}`;
+      }).join("")}</tbody></table>`;
+    const vse = el("crmReestrVse");
+    vse.checked = spisok.length > 0 && spisok.every((p) => reestrOtmecheno.has(p.паллета));
+    vse.addEventListener("change", () => {
+      spisok.forEach((p) => (vse.checked ? reestrOtmecheno.add(p.паллета) : reestrOtmecheno.delete(p.паллета)));
+      narisovatReestrTelo();
+    });
+    obnovitKnopkuExcel();
+  }
+
+  function obnovitKnopkuExcel() {
+    const kn = el("crmReestrExcel");
+    if (!kn || kn.textContent.startsWith("Собираю") || kn.textContent.startsWith("Готово")) return;
+    kn.disabled = !reestrOtmecheno.size;
+    kn.textContent = reestrOtmecheno.size
+      ? `Состав ${reestrOtmecheno.size} паллет в Excel` : "Состав отмеченных в Excel";
+  }
+
+  async function klikReestr(event) {
+    const lotKn = event.target.closest(".crmReestr__lot");
+    if (lotKn) {
+      const lot = (dannye.лоты || []).find((z) => String(z.nomer) === lotKn.dataset.lot);
+      if (lot) otkrytKartochku(lot);
+      return;
+    }
+    if (event.target.closest(".crmReestr__sostav")) return;
+    const stroka = event.target.closest("tr[data-pallet]");
+    if (!stroka) return;
+    const imya = stroka.dataset.pallet;
+    if (event.target.closest(".crmReestr__gal")) {
+      if (event.target.checked) reestrOtmecheno.add(imya);
+      else reestrOtmecheno.delete(imya);
+      obnovitKnopkuExcel();
+      return;
+    }
+    raskryta = raskryta === imya ? "" : imya;
+    narisovatReestrTelo();
+    if (!raskryta || sostavPallety.has(imya)) return;
+    try {
+      const otvet = await fetch(`/__crm/sostav?паллета=${encodeURIComponent(imya)}`, { cache: "no-store" });
+      const dannyeSostava = await otvet.json().catch(() => ({}));
+      sostavPallety.set(imya, otvet.ok ? dannyeSostava
+        : { ошибка: dannyeSostava.ошибка || `сервер ответил ${otvet.status}` });
+    } catch (oshibka) {
+      sostavPallety.set(imya, { ошибка: "состав не загрузился — проверьте связь" });
+    }
+    if (raskryta === imya) narisovatReestrTelo();
+  }
+
   /** Переключает вид: доска, таблица лотов, счета. */
   function perekluchit(novyy) {
     vid = novyy;
@@ -3037,12 +3252,17 @@
     const baza = vid === "ka";
     const zadachi = vid === "zadachi";
     const pochta = vid === "pochta";
-    const sverkaVid = vid === "sverka";
+    // «Паллеты» живут в своей обёртке со своими фильтрами — общее прячем
+    // так же, как для сверки.
+    const palletyVid = vid === "pallety";
+    const sverkaVid = vid === "sverka" || palletyVid;
+    el("crmReestr").hidden = !palletyVid;
+    el("crmPoisk").hidden = palletyVid;
     el("crmDoska").hidden = !doska || zadachi || pochta || sverkaVid;
     el("crmTabl").hidden = doska || zadachi || pochta || sverkaVid;
     el("crmZadachi").hidden = !zadachi;
     // Почта живёт в боковой панели «Связь», вкладки у неё больше нет.
-    el("crmSverka").hidden = !sverkaVid;
+    el("crmSverka").hidden = vid !== "sverka";
     // На доске фильтр по статусу не нужен — она и есть разрез по статусам.
     // В базе КА статусов нет вовсе, а очереди, выбор менеджера и «новый лот»
     // к ней не относятся: там свой разрез — деньги и договоры.
@@ -3056,7 +3276,10 @@
     el("crmNabor").hidden = doska || zadachi || pochta || sverkaVid;
     el("crmNabor").textContent = vseKolonki ? "Главные колонки" : "Все колонки";
 
-    if (sverkaVid) {
+    if (palletyVid) {
+      narisovatReestr();
+      el("crmSchyot").textContent = "";
+    } else if (sverkaVid) {
       narisovatSverku();
     } else if (pochta) {
       narisovatPochtuVid();

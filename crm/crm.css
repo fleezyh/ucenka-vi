@@ -809,3 +809,35 @@ body.is-svetlo .crmPallety__vstavka textarea { background: #fff; }
 .crmNovayaStroka input, .crmNovayaStroka select { width: 100%; min-width: 70px; padding: 4px 6px; border: 1px solid rgba(143,156,173,.35); border-radius: 4px; background: transparent; color: inherit; font: inherit; font-size: 12px; }
 .crmNovayaStroka select option { color: #10203a; }
 body.is-svetlo .crmNovayaStroka input, body.is-svetlo .crmNovayaStroka select { background: #fff; }
+
+/* ---- Паллеты: база с наполнением (встреча 24.09) ------------------------- */
+.crmReestr[hidden] { display: none; }
+.crmReestr__verh { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 8px; }
+.crmReestr__verh .crmPoisk { min-width: 340px; }
+.crmReestr__verh .crmFiltry { margin: 0; }
+.crmReestr__verh .crmKn--glav { margin-left: auto; }
+.crmReestr__tabl { max-height: 68vh; }
+.crmReestr__tabl td.crmReestr__imya { max-width: 320px; }
+.crmReestr__tabl tr.is-otkryta td { background: rgba(77,141,247,.1); }
+.crmReestr__status { font-size: 11.5px; padding: 2px 9px; border-radius: 999px; border: 1px solid currentColor; }
+.crmReestr__status.is-0 { color: #27c46b; }
+.crmReestr__status.is-1 { color: #4d8df7; }
+.crmReestr__status.is-2 { color: #f5ad32; }
+.crmReestr__status.is-3 { color: #f05d72; }
+.crmReestr__status.is-4 { color: #8f9cad; }
+.crmReestr__lot { font: inherit; font-size: 12px; padding: 1px 9px; border-radius: 999px; cursor: pointer;
+  border: 1px solid rgba(77,141,247,.5); background: transparent; color: #4d8df7; }
+.crmReestr__lot:hover { background: rgba(77,141,247,.12); }
+.crmTabl tr.crmReestr__sostav { cursor: default; }
+.crmTabl tr.crmReestr__sostav:hover { background: none; }
+.crmTabl tr.crmReestr__sostav > td { position: static; max-width: none; white-space: normal;
+  padding: 4px 9px 14px 42px; background: rgba(77,141,247,.05); }
+.crmReestr__vnutri { width: 100%; border-collapse: collapse; font-size: 12px; }
+.crmTabl .crmReestr__vnutri th { position: static; background: transparent; padding: 6px 8px; }
+.crmTabl .crmReestr__vnutri td { position: static; background: transparent; max-width: 380px;
+  white-space: normal; padding: 5px 8px; }
+.crmTabl .crmReestr__vnutri tfoot td { color: var(--muted, #8f9cad); border-bottom: 0; }
+body.is-svetlo .crmTabl tr.crmReestr__sostav > td { background: #f3f7fe; }
+body.is-svetlo .crmTabl .crmReestr__vnutri th,
+body.is-svetlo .crmTabl .crmReestr__vnutri td:first-child { background: transparent; }
+body.is-svetlo .crmReestr__tabl tr.is-otkryta td { background: #e8f0fd; }
