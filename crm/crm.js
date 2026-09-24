@@ -1811,7 +1811,7 @@
       </div>
       <h2>${escape(zag)}</h2>
       ${tip === "ka" ? blokLotovKontragenta(z) : ""}
-      ${tip === "lot" ? blokKontragenta(z) + blokNaSchet(z) + blokDeneg(z) + blokSchetov(z) : ""}
+      ${tip === "lot" ? blokKontragenta(z) + blokNaSchet(z) + blokSchetPismo(z) + blokDeneg(z) + blokSchetov(z) : ""}
       ${tip === "lot" ? '<div class="crmPallety" id="crmPallety"></div>' : ""}
       ${tip === "lot" || tip === "ka" ? '<div class="crmLenta" id="crmLenta"></div>' : ""}
       ${tip === "ka" || (tip === "lot" && z.ka)
@@ -1823,6 +1823,8 @@
     el("crmOkno").hidden = false;
     const pravit = el("crmOknoDoc").querySelector("[data-pravit]");
     if (pravit) pravit.addEventListener("click", () => otkrytFormu(z));
+    const pismoKn = el("crmPismoKn");
+    if (pismoKn) pismoKn.addEventListener("click", () => schetVChernoviki(z, pismoKn));
     const naSchet = el("crmNaSchetKn");
     if (naSchet) naSchet.addEventListener("click", () => otpravitNaSchet(z, naSchet));
     const udalit = el("crmOknoDoc").querySelector("[data-udalit]");
@@ -3336,6 +3338,68 @@
       <p class="crmHint" id="crmNaSchetOtvet">дело уйдёт Чебан Т. С., бот напишет ей в Мессенджер;
         когда она поставит «сделано», менеджеру лота придёт «счёт готов»</p>
     </div>`;
+  }
+
+  /* Счёт клиенту почтой (встреча 24.09, Кулаков: «кнопка — и это правило номер
+     один»). Письмо с вложением ложится в «Черновики» вашей Яндекс Почты:
+     отправить с сервера нельзя, исходящая почта у хостера закрыта. Отправили
+     из почты — в течение часа лот сам переходит в «Счета выставлены». */
+  function blokSchetPismo(z) {
+    if (!DO_SCHETA.includes(z.status)) return "";
+    const k = kontragentPoImeni(z.ka);
+    const palletov = palletLota(z).skolko;
+    const summa = Number(z.cena_otgruzki) || 0;
+    const kto = (dannye.кто && (dannye.кто.подпись || dannye.кто.имя)) || "";
+    const tekst = ["Здравствуйте!", "",
+      `Направляем счёт на оплату по лоту ${z.nomer}`
+        + (palletov ? `: ${palletTekst(palletov)}` : "")
+        + (summa ? ` на ${chislo(summa)} ₽` : "") + ".",
+      "Пожалуйста, подтвердите получение.", "", "С уважением,", kto].join("\n");
+    return `<div class="crmNaSchet crmPismo">
+      <p class="crmObsh__zag">Счёт клиенту почтой</p>
+      <div class="crmNaSchet__ryad">
+        <input class="crmPoisk" id="crmPismoKomu" type="email" placeholder="почта клиента"
+          value="${escape((k && k.email) || "")}">
+        <input id="crmPismoFayl" type="file" accept=".pdf,.xlsx,.xls,.doc,.docx,.jpg,.png">
+      </div>
+      <textarea class="crmPismo__tekst" id="crmPismoTekst" rows="6">${escape(tekst)}</textarea>
+      <div class="crmNaSchet__ryad">
+        <button class="crmKn crmKn--glav" type="button" id="crmPismoKn">Положить в черновики</button>
+        <span class="crmHint" id="crmPismoOtvet">тема: «Счёт на оплату · лот ${escape(z.nomer)}» — по ней CRM
+          увидит, что письмо ушло, и сама поставит «Счета выставлены»</span>
+      </div>
+    </div>`;
+  }
+
+  async function schetVChernoviki(z, knopka) {
+    const otvet = el("crmPismoOtvet");
+    const pole = el("crmPismoFayl");
+    const fayl = pole.files && pole.files[0];
+    if (!fayl) { otvet.textContent = "приложите счёт — файл от оператора"; return; }
+    if (fayl.size > 20 * 1024 * 1024) { otvet.textContent = "файл больше 20 МБ"; return; }
+    knopka.disabled = true;
+    otvet.textContent = "кладу в черновики…";
+    const dannyeFayla = await new Promise((gotovo, oshibka) => {
+      const chtec = new FileReader();
+      chtec.onload = () => gotovo(String(chtec.result).split(",")[1] || "");
+      chtec.onerror = oshibka;
+      chtec.readAsDataURL(fayl);
+    });
+    const zapros = await fetch("/__crm/schet_pismo", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: z.id, кому: el("crmPismoKomu").value, текст: el("crmPismoTekst").value,
+        файл: { имя: fayl.name, данные: dannyeFayla } }),
+    });
+    const itog = await zapros.json().catch(() => ({}));
+    knopka.disabled = false;
+    if (!zapros.ok) {
+      otvet.textContent = itog.ошибка || "не получилось";
+      return;
+    }
+    knopka.textContent = "В черновиках";
+    otvet.innerHTML = `письмо в «${escape(itog.папка)}» вашей почты —
+      <a href="https://mail.yandex.ru/#drafts" target="_blank" rel="noopener">откройте и нажмите «Отправить»</a>`;
+    narisovatIstoriyu(z.nomer);
   }
 
   async function otpravitNaSchet(z, knopka) {

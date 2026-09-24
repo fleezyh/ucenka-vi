@@ -878,3 +878,9 @@ body.is-svetlo .crmNaSchet { background: #f1f6ff; }
   border: 1px solid rgba(143,156,173,.3); }
 .crmYurlica__odno i { font-style: normal; color: var(--muted, #8f9cad); margin-left: 6px; }
 body.is-svetlo .crmDogovor.is-ploho { background: #fdecef; }
+
+/* ---- Счёт клиенту почтой (встреча 24.09) ---------------------------------- */
+.crmPismo { border-color: rgba(39,196,107,.35); background: rgba(39,196,107,.05); }
+.crmPismo__tekst { width: 100%; box-sizing: border-box; font: inherit; font-size: 13px; padding: 8px 11px;
+  border-radius: 10px; border: 1px solid rgba(143,156,173,.3); background: transparent; color: inherit; resize: vertical; }
+body.is-svetlo .crmPismo { background: #f1fbf5; }
