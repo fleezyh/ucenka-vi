@@ -740,7 +740,7 @@ body.is-svetlo .crmKarta__nedelya.is-net { color: #a86400; }
 .crmPalletR:has(input:checked) { background: rgba(39,196,107,.12); }
 .crmPalletR__imya { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .crmPalletR .crmNum { text-align: right; }
-.crmPallety__niz { display: flex; justify-content: flex-end; margin-top: 10px; }
+.crmPallety__niz { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
 .crmPallety__niz .crmKn:disabled { opacity: .5; cursor: default; }
 body.is-svetlo .crmPallety__svoy { color: #1d2c42; }
 

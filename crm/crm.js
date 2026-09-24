@@ -2424,6 +2424,37 @@
   /* Паллеты лота. Свободные показываем сразу списком, без поиска: «паллеты
      должны хаваться ещё и списком сразу» (23.09). Сверху — склад лота,
      фильтр по номеру сужает на лету, отмеченные добавляются одной кнопкой. */
+  /** Состав паллет по актам в Excel — замена «Смайлика» (встреча 24.09):
+      товар, акт, заявленный дефект, некомплект, паллета, продажная и закупочная. */
+  async function skachatSostav(pallety, lot, knopka) {
+    if (!pallety.length) return;
+    const bylo = knopka.textContent;
+    knopka.disabled = true;
+    knopka.textContent = "Собираю состав…";
+    try {
+      const otvet = await fetch("/__crm/sostav", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ паллеты: pallety, лот: lot }),
+      });
+      if (!otvet.ok) {
+        const oshibka = await otvet.json().catch(() => ({}));
+        throw new Error(oshibka.ошибка || "не выгрузилось");
+      }
+      const fayl = await otvet.blob();
+      const ssylka = document.createElement("a");
+      ssylka.href = URL.createObjectURL(fayl);
+      ssylka.download = `состав паллет ${lot || ""}.xlsx`.replace("  ", " ");
+      document.body.append(ssylka);
+      ssylka.click();
+      ssylka.remove();
+      knopka.textContent = `Готово · ${otvet.headers.get("X-Strok") || "?"} строк`;
+      setTimeout(() => { knopka.textContent = bylo; knopka.disabled = false; }, 2500);
+    } catch (e) {
+      knopka.textContent = "Не вышло: " + (e.message || e);
+      setTimeout(() => { knopka.textContent = bylo; knopka.disabled = false; }, 3500);
+    }
+  }
+
   async function narisovatPallety(lot) {
     const uzel = el("crmPallety");
     if (!uzel || !lot) return;
@@ -2457,7 +2488,8 @@
     uzel.innerHTML = `
       <div class="crmPallety__shapka">
         <p class="crmObsh__zag">Паллеты лота · ${spisok.length}</p>
-        <p class="crmObsh__zag">${chislo(sostav.штук)} шт · ${chislo(sostav.себестоимость)} ₽</p>
+        <p class="crmObsh__zag">${chislo(sostav.штук)} шт · ${chislo(sostav.себестоимость)} ₽
+          ${spisok.length ? '<button class="crmKn" type="button" id="crmSostavLota" title="Что лежит в паллетах лота: товар, акт, дефект, цены">Состав в Excel</button>' : ""}</p>
       </div>
       ${spisok.length ? `<div class="crmPallety__tabl">${spisok.map((p) => stroka(p, false)).join("")}</div>`
         : '<p class="crmHint">в лоте пока нет паллет — отметьте ниже</p>'}
@@ -2487,6 +2519,7 @@
         <summary>Ненайденные паллеты</summary><div id="crmPalletyPoteriSpisok"><p class="crmHint">смотрю…</p></div>
       </details>
       <div class="crmPallety__niz">
+        <button class="crmKn" type="button" id="crmSostavOtmechennyh" disabled title="Состав отмеченных паллет в Excel — как выгрузка «Смайлика»">Состав отмеченных</button>
         <button class="crmKn crmKn--glav" type="button" id="crmPalletyDobavit" disabled>Отметьте паллеты</button>
       </div>`;
 
@@ -2546,6 +2579,7 @@
       const sebes = svobodnye.filter((p) => otmecheno.has(p.паллета))
         .reduce((s, p) => s + (Number(p.себестоимость) || 0), 0);
       knopka.disabled = !otmecheno.size;
+      el("crmSostavOtmechennyh").disabled = !otmecheno.size;
       knopka.textContent = otmecheno.size
         ? `Добавить ${otmecheno.size} ${sklonenie(otmecheno.size, "паллету", "паллеты", "паллет")} · ${chislo(sebes)} ₽`
         : "Отметьте паллеты";
@@ -2577,6 +2611,10 @@
         + (netu.length ? ` · нет среди свободных (в другом лоте, не найдены или уже проданы): ${netu.slice(0, 12).join(", ")}${netu.length > 12 ? "…" : ""}` : "");
     };
     el("crmPalletyOtmetit").addEventListener("click", otmetitVstavku);
+    el("crmSostavLota")?.addEventListener("click", (event) =>
+      skachatSostav(spisok.map((p) => p.паллета), lot, event.currentTarget));
+    el("crmSostavOtmechennyh").addEventListener("click", (event) =>
+      skachatSostav([...otmecheno], lot, event.currentTarget));
     el("crmPalletyVstavka").addEventListener("paste", () => setTimeout(otmetitVstavku, 0));
     knopka.addEventListener("click", async () => {
       if (!otmecheno.size) return;
