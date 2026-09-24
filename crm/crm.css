@@ -859,3 +859,11 @@ body.is-svetlo .crmReestr__tabl tr.is-otkryta td { background: #e8f0fd; }
 .crmNaSchet__srochno { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; cursor: pointer; }
 .crmNaSchet__srochno:has(input:checked) { color: #f05d72; }
 body.is-svetlo .crmNaSchet { background: #f1f6ff; }
+
+/* ---- «Застрял»: пороги этапов (встреча 24.09) ------------------------------ */
+.crmPorogi { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 6px 18px; margin: 6px 0 14px; }
+.crmPorog { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.crmPorog span { flex: 1; }
+.crmPorog input { width: 58px; font: inherit; font-size: 13px; padding: 4px 8px; border-radius: 8px;
+  border: 1px solid rgba(143,156,173,.35); background: transparent; color: inherit; text-align: right; }
+.crmPorog input.is-sohraneno { border-color: #27c46b; }

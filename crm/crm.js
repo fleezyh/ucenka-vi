@@ -309,6 +309,11 @@
    * выставления. Это не точная дата входа в статус, но именно такие лоты и
    * нужно поднимать — их не двигали ни разу.
    */
+  // «Застрял» (встреча 24.09): у каждого этапа свой порог в днях, правят
+  // продажи в чек-листах; 0 — этап не отслеживаем.
+  const porog = (z) => Number(((dannye && dannye.пороги) || {})[z.status]) || 0;
+  const zastryal = (z) => aktivnyy(z) && porog(z) > 0 && (dney(z) || 0) > porog(z);
+
   function dney(z) {
     const ot = z.status_s || z.data_vystavleniya;
     if (!ot) return null;
@@ -322,8 +327,8 @@
   const OCHEREDI = [
     { klyuch: "bez", imya: "Без менеджера", chto: "лот в работе, отвечать некому",
       otbor: (z) => aktivnyy(z) && !String(z.menedzher || "").trim() },
-    { klyuch: "visit", imya: "Висит больше 30 дней", chto: "статус не менялся месяц",
-      otbor: (z) => aktivnyy(z) && (dney(z) || 0) > 30 },
+    { klyuch: "visit", imya: "Застрял", chto: "на этапе дольше порога — пороги в «Делах», чек-листы этапов",
+      otbor: (z) => zastryal(z) },
     { klyuch: "oplachen", imya: "Оплачен, не отгружен", chto: "деньги взяли, товар не уехал",
       otbor: (z) => String(z.status || "").startsWith("7.") },
     { klyuch: "schet", imya: "Счёт выставлен и тишина", chto: "больше недели без оплаты",
@@ -861,10 +866,12 @@
    * Внутри колонки сверху лежит самое залежавшееся: если лот месяц не
    * двигался, он должен попадаться на глаза первым.
    */
-  function klassDney(chislo_dney, aktiven) {
-    if (chislo_dney === null || !aktiven) return "";
-    if (chislo_dney > 30) return " crmDni--ploho";
-    if (chislo_dney > 14) return " crmDni--tak-sebe";
+  function klassDney(z) {
+    const d = dney(z);
+    if (d === null || !aktivnyy(z)) return "";
+    const p = porog(z);
+    if (p ? d > p : d > 30) return " crmDni--ploho";
+    if (p ? d > p * 0.7 : d > 14) return " crmDni--tak-sebe";
     return "";
   }
 
@@ -995,7 +1002,8 @@
     return `
       <div class="crmKarta__verh">
         <b class="crmKarta__nomer">Лот ${escape(z.nomer || "—")}</b>
-        <span class="crmKarta__dni${klassDney(d, aktivnyy(z))}">${d === null ? "" : d + " дн"}</span>
+        <span class="crmKarta__dni${klassDney(z)}"
+          title="${porog(z) ? `на этапе ${d} дн, порог ${porog(z)}` : ""}">${d === null ? "" : d + " дн"}</span>
       </div>
       <p class="crmKarta__ka" title="${escape(z.ka || "")}">${escape(inicialy(z.ka) || "контрагент не указан")}</p>
       <div class="crmKarta__kv">
@@ -2898,6 +2906,13 @@
             </div>`).join("")}
         </div>`).join("")}
     </div>
+    <p class="crmZadZag">Застрял, если на этапе дольше</p>
+    <p class="crmHint">лот дольше порога — в «Сегодня» он в очереди «Застрял», а с 5 октября
+      бот по будням в 10:30 пишет менеджеру список его застрявших лотов. 0 — не следить</p>
+    <div class="crmPorogi">${Object.entries(dannye.пороги || {}).map(([status, d]) => `
+      <label class="crmPorog"><span>${escape(status)}</span>
+        <input type="number" min="0" max="90" value="${Number(d) || 0}" data-porog="${escape(status)}"> дн</label>`).join("")}
+    </div>
     <form class="crmZadNovaya" id="crmCheklistNovyy">
       <select name="status">${VORONKA.map((v) =>
         `<option value="${escape(v)}">${escape(v)}</option>`).join("")}</select>
@@ -2928,6 +2943,22 @@
         if (!confirm("Убрать пункт из чек-листа?")) return;
         poslatShablon({ действие: "удалить",
                         id: Number(kn.closest(".crmCheklist__stroka").dataset.id) });
+      });
+    });
+    uzel.querySelectorAll("[data-porog]").forEach((pole) => {
+      pole.addEventListener("change", async () => {
+        const otvet = await fetch("/__crm/porog", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ статус: pole.dataset.porog, дней: Number(pole.value) || 0 }),
+        });
+        if (!otvet.ok) {
+          const oshibka = await otvet.json().catch(() => ({}));
+          alert(oshibka.ошибка || "не сохранилось");
+          return;
+        }
+        dannye.пороги = await otvet.json();
+        pole.classList.add("is-sohraneno");
+        narisovatGorit();
       });
     });
     const forma = el("crmCheklistNovyy");
