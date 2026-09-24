@@ -778,3 +778,23 @@ body.is-svetlo .crmKv__nedelya.is-net { color: #a86400; }
 /* Даты сделки в окне лота: счёт, оплата, неделя отгрузки. */
 .crmDengi__ryad--daty { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
 .crmDengi__ryad--daty .crmDengi__pole b { font-size: 14px; }
+
+/* Паллеты лота: «не нашли», история убранных, вставка списком (встреча 24.09). */
+.crmPallety__tabl:not(.crmPallety__tabl--vybor) .crmPalletR { grid-template-columns: 22px minmax(0, 1fr) 90px 70px 70px 100px 104px; }
+.crmPalletR__kn { display: inline-flex; align-items: center; justify-content: flex-end; gap: 6px; }
+.crmPalletR__nenashli { padding: 2px 7px; border: 1px solid rgba(240,93,114,.45); border-radius: 4px; background: transparent; color: #f0788a; font: inherit; font-size: 11px; cursor: pointer; white-space: nowrap; }
+.crmPalletR__nenashli:hover { background: rgba(240,93,114,.14); color: #fff; }
+.crmPallety__ubrany, .crmPallety__poteri { margin-top: 10px; font-size: 12.5px; }
+.crmPallety__ubrany summary, .crmPallety__poteri summary { cursor: pointer; color: var(--muted, #8f9cad); }
+.crmPallety__ubrana { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 10px; padding: 6px 2px; border-bottom: 1px solid rgba(143,156,173,.12); }
+.crmPallety__prichina { color: var(--muted, #8f9cad); white-space: nowrap; }
+.crmPallety__prichina.is-poteryana { color: #f0788a; }
+.crmPallety__vstavka { display: flex; gap: 8px; align-items: stretch; margin: 0 0 6px; }
+.crmPallety__vstavka textarea { flex: 1; min-height: 38px; padding: 7px 10px; border: 1px dashed rgba(143,156,173,.4); border-radius: 6px; background: transparent; color: inherit; font: inherit; font-size: 12.5px; resize: vertical; }
+body.is-svetlo .crmPallety__vstavka textarea { background: #fff; }
+
+/* Активность КА по последней отгрузке. */
+.crmAktivnost { padding: 1px 7px; border-radius: 4px; white-space: nowrap; }
+.crmAktivnost.is-zhivoy { background: rgba(39,196,107,.16); color: #27c46b; }
+.crmAktivnost.is-dremlet { background: rgba(245,173,50,.16); color: #f5ad32; }
+.crmAktivnost.is-myortvyy { background: rgba(240,93,114,.16); color: #f0788a; }
