@@ -798,3 +798,14 @@ body.is-svetlo .crmPallety__vstavka textarea { background: #fff; }
 .crmAktivnost.is-zhivoy { background: rgba(39,196,107,.16); color: #27c46b; }
 .crmAktivnost.is-dremlet { background: rgba(245,173,50,.16); color: #f5ad32; }
 .crmAktivnost.is-myortvyy { background: rgba(240,93,114,.16); color: #f0788a; }
+
+/* Оплата лота и новый лот строкой в таблице. */
+.crmOplata { display: block; margin-top: 3px; font-size: 11.5px; font-weight: 600; }
+.crmOplata--ok { color: #27c46b; }
+.crmOplata--chast { color: #f5ad32; }
+.crmOplata--pere { color: #9fc1ff; }
+.crmOplata--net { color: #f0788a; }
+.crmNovayaStroka td { padding: 4px 6px; background: rgba(39,196,107,.06); }
+.crmNovayaStroka input, .crmNovayaStroka select { width: 100%; min-width: 70px; padding: 4px 6px; border: 1px solid rgba(143,156,173,.35); border-radius: 4px; background: transparent; color: inherit; font: inherit; font-size: 12px; }
+.crmNovayaStroka select option { color: #10203a; }
+body.is-svetlo .crmNovayaStroka input, body.is-svetlo .crmNovayaStroka select { background: #fff; }

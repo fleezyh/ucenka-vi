@@ -63,6 +63,7 @@
   const STOLBCY = [
     { gruppa: "Лот и идентификация", pole: "nomer", imya: "№ лота", shirina: 74 },
     { gruppa: "Лот и идентификация", pole: "tip_lota", imya: "Тип", shirina: 84 },
+    { gruppa: "Лот и идентификация", pole: "oplata_txt", imya: "Оплата", shirina: 170 },
     { gruppa: "Лот и идентификация", pole: "data_vystavleniya", imya: "Дата выставления", tip: "data", shirina: 96 },
     { gruppa: "Лот и идентификация", pole: "mesyac_otgruzki", imya: "Месяц отгрузки", shirina: 100 },
     { gruppa: "Лот и идентификация", pole: "nedelya_plan", imya: "Неделя отгрузки план", shirina: 110 },
@@ -220,7 +221,7 @@
 
   // Колонки, которые нужны всегда. Остальные открываются кнопкой «Все
   // колонки»: они нужны при разборе конкретного лота, а не при просмотре.
-  const GLAVNYE = ["nomer", "tip_lota", "data_vystavleniya", "menedzher", "ka", "status",
+  const GLAVNYE = ["nomer", "tip_lota", "oplata_txt", "data_vystavleniya", "menedzher", "ka", "status",
                    "ploshchadka", "cena_otgruzki", "cena_sbs", "okup", "pallet",
                    "nedelya_plan", "kommentariy"];
   const GLAVNYE_SCHETOV = ["lot", "menedzher", "ka", "data_zaprosa", "status_lota",
@@ -439,6 +440,14 @@
     if (!String(z.menedzher || "").trim()) metki.push(["без менеджера", "is-krasnyy"]);
     if (st.startsWith("6.") && d > 7) metki.push([`оплаты нет ${d}д`, "is-zhyoltyy", "счёт выставлен, оплаты нет больше недели"]);
     if (st.startsWith("7.")) metki.push(["отгрузить", "is-siniy"]);
+    const opl = z.oplata;
+    if (opl && opl.статус === "частично" && aktivnyy(z)) {
+      metki.push([`оплачено ${Math.round(100 * opl.оплачено / (opl.к_оплате || 1))}%`, "is-zhyoltyy",
+                  `оплачено ${chislo(opl.оплачено)} из ${chislo(opl.к_оплате)} ₽`]);
+    }
+    if (opl && opl.статус === "переплата" && aktivnyy(z)) {
+      metki.push(["переплата", "is-siniy", `оплачено ${chislo(opl.оплачено)} при цене ${chislo(opl.к_оплате)} ₽`]);
+    }
     // Никита часто спрашивает про недели отгрузки. Со счёта и до отгрузки она
     // должна стоять; раньше её ещё не знают, после — уже не нужна.
     if (/^[567]\./.test(st) && !String(z.nedelya_plan || "").trim()) {
@@ -671,6 +680,29 @@
     }).join("");
     const shapka = `<tr class="crmShapkaGruppy">${verh}</tr><tr>${niz}</tr>`;
     const mozhno = vid === "loty";
+    // Лот заводят строкой прямо в таблице (встреча 24.09) — как в листе
+    // «Предложения КА». Номер проставит сервер, остальное — сразу по умолчанию.
+    const ya = (dannye.кто && dannye.кто.имя) || "";
+    const umolch = {
+      data_vystavleniya: new Date().toISOString().slice(0, 10),
+      menedzher: (spisokPolya("menedzher") || []).includes(ya) ? ya : "",
+      mesyac_otgruzki: MESYACY_OTGRUZKI[new Date().getMonth()],
+      tip_lota: "Ликвид", status: "1. Лот размещается",
+    };
+    const novayaStroka = mozhno ? `<tr class="crmNovayaStroka">${kol.map((s, i) => {
+      if (i === 0) return '<td class="crmLipkiy"><button class="crmKn crmKn--glav" type="button" data-novyy title="Номер проставится сам">+ лот</button></td>';
+      const f = POLYA_FORMY.find((x) => x.pole === s.pole);
+      if (!f || f.pole === "nomer") return "<td></td>";
+      const spisok = f.spisok || spisokPolya(f.pole);
+      const def = umolch[f.pole] || "";
+      if (spisok) {
+        return `<td><select data-novoe="${f.pole}"><option value=""></option>${spisok.map((x) =>
+          `<option${x === def ? " selected" : ""}>${escape(x)}</option>`).join("")}</select></td>`;
+      }
+      const tip = f.tip === "number" ? "number" : f.tip === "date" ? "date" : "text";
+      return `<td><input data-novoe="${f.pole}" type="${tip}" value="${escape(def)}"${
+        f.podskazka ? ' list="crmKaSpisokT"' : ""}></td>`;
+    }).join("")}</tr>` : "";
     const telo = vidimye.slice(0, 600).map((z, nomer) => {
       const yachejki = kol.map((s, kolNomer) => {
         let v = z[s.pole];
@@ -729,7 +761,35 @@
          || sortirovka.pole}»`
       : "клик по заголовку сортирует";
     el("crmSchyot").textContent = `${skolko} · ${kol.length} колонок · ${pro}`;
-    el("crmTabl").innerHTML = `<table><thead>${shapka}</thead><tbody>${telo}</tbody></table>`;
+    el("crmTabl").innerHTML = `<table><thead>${shapka}</thead><tbody>${novayaStroka}${telo}</tbody></table>`
+      + (mozhno ? `<datalist id="crmKaSpisokT">${(dannye.ка || [])
+        .map((k) => `<option value="${escape(k.ka || "")}">`).join("")}</datalist>` : "");
+    const novaya = el("crmTabl").querySelector(".crmNovayaStroka");
+    if (novaya) {
+      const zavesti = async () => {
+        const telo = {};
+        novaya.querySelectorAll("[data-novoe]").forEach((x) => {
+          const f = POLYA_FORMY.find((p) => p.pole === x.dataset.novoe) || {};
+          if (x.value !== "") telo[x.dataset.novoe] = f.tip === "number" ? Number(x.value) : x.value;
+        });
+        const knopka = novaya.querySelector("[data-novyy]");
+        knopka.disabled = true;
+        try {
+          const otvet = await fetch("/__crm/lot", {
+            method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(telo),
+          });
+          const itog = await otvet.json();
+          if (!otvet.ok) throw new Error(itog.ошибка || "не сохранилось");
+          await zagruzit();
+          soobshchit(`Лот ${itog.nomer} заведён`);
+        } catch (e) {
+          soobshchit("Не завёлся: " + (e.message || e));
+          knopka.disabled = false;
+        }
+      };
+      novaya.querySelector("[data-novyy]").addEventListener("click", zavesti);
+      novaya.addEventListener("keydown", (event) => { if (event.key === "Enter") { event.preventDefault(); zavesti(); } });
+    }
 
     el("crmTabl").querySelectorAll("th[data-sort]").forEach((th) => {
       th.addEventListener("click", () => {
@@ -742,7 +802,7 @@
       });
     });
 
-    el("crmTabl").querySelectorAll("tbody tr").forEach((tr) => {
+    el("crmTabl").querySelectorAll("tbody tr[data-nomer]").forEach((tr) => {
       tr.addEventListener("click", (event) => {
         const td = event.target.closest("td");
         const zapis = vidimye[Number(tr.dataset.nomer)];
@@ -1348,7 +1408,11 @@
     return `<div class="crmDengi__ryad crmDengi__ryad--daty">
         ${pole("Лот от", z.data_vystavleniya ? data(z.data_vystavleniya) : "—")}
         ${pole("Счёт выставлен", schet ? data(schet) : "—")}
-        ${pole("Оплата", z.data_oplaty ? data(z.data_oplaty) : (oplachen ? "дата не стоит" : "—"),
+        ${pole("Оплата", (z.data_oplaty ? data(z.data_oplaty) : (oplachen ? "дата не стоит" : "—"))
+               + (z.oplata ? `<small class="crmOplata crmOplata--${z.oplata.статус === "оплачен" ? "ok"
+                   : z.oplata.статус === "частично" ? "chast" : z.oplata.статус === "переплата" ? "pere" : "net"}">${
+                   z.oplata.статус === "оплачен" ? `${chislo(z.oplata.оплачено)} ₽ — полностью`
+                   : `${chislo(z.oplata.оплачено)} из ${chislo(z.oplata.к_оплате)} ₽ · ${z.oplata.статус}`}</small>` : ""),
                !z.data_oplaty && oplachen ? "is-malo" : "")}
         ${pole("Неделя отгрузки", z.nedelya_plan ? escape(z.nedelya_plan) : "—")}
       </div>`;
@@ -2997,6 +3061,13 @@
       return;
     }
     dannye = await otvet.json();
+    // «Оплачено X из Y» (встреча 24.09): клиент платит не всю сумму или больше.
+    // Сервер считает по заказам ВТИС, здесь только текст для колонки.
+    (dannye.лоты || []).forEach((z) => {
+      const o = z.oplata;
+      z.oplata_txt = o ? (o.статус === "оплачен" ? `оплачен · ${chislo(o.оплачено)}`
+        : `${o.статус} · ${chislo(o.оплачено)} из ${chislo(o.к_оплате)}`) : "";
+    });
     try {
       const s = await fetch("/data/sverka-deneg.json", { cache: "no-cache" });
       sverka = s.ok ? await s.json() : null;
