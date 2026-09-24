@@ -1758,7 +1758,7 @@
       </div>
       <h2>${escape(zag)}</h2>
       ${tip === "ka" ? blokLotovKontragenta(z) : ""}
-      ${tip === "lot" ? blokKontragenta(z) + blokDeneg(z) + blokSchetov(z) : ""}
+      ${tip === "lot" ? blokKontragenta(z) + blokNaSchet(z) + blokDeneg(z) + blokSchetov(z) : ""}
       ${tip === "lot" ? '<div class="crmPallety" id="crmPallety"></div>' : ""}
       ${tip === "lot" || tip === "ka" ? '<div class="crmLenta" id="crmLenta"></div>' : ""}
       ${tip === "ka" || (tip === "lot" && z.ka)
@@ -1770,6 +1770,8 @@
     el("crmOkno").hidden = false;
     const pravit = el("crmOknoDoc").querySelector("[data-pravit]");
     if (pravit) pravit.addEventListener("click", () => otkrytFormu(z));
+    const naSchet = el("crmNaSchetKn");
+    if (naSchet) naSchet.addEventListener("click", () => otpravitNaSchet(z, naSchet));
     const udalit = el("crmOknoDoc").querySelector("[data-udalit]");
     if (udalit) udalit.addEventListener("click", () => udalitLot(z, udalit));
 
@@ -3238,6 +3240,53 @@
       sostavPallety.set(imya, { ошибка: "состав не загрузился — проверьте связь" });
     }
     if (raskryta === imya) narisovatReestrTelo();
+  }
+
+  // «Оператору на счёт» (встреча 24.09): из заключения договора одной кнопкой —
+  // дело оператору, бот пишет ей в личку, лот переезжает в подготовку счетов.
+  // «Срочно» — срок сегодня и пометка в сообщении.
+  const DO_SCHETA = ["1. Лот размещается", "2. Лот разыгран - перег", "3. Заключение договора",
+    "5. Подготовка счетов"];
+
+  function blokNaSchet(z) {
+    if (!DO_SCHETA.includes(z.status)) return "";
+    return `<div class="crmNaSchet">
+      <p class="crmObsh__zag">Оператору на счёт</p>
+      <div class="crmNaSchet__ryad">
+        <label class="crmNaSchet__srochno"><input type="checkbox" id="crmNaSchetSrochno"> срочно</label>
+        <input class="crmPoisk" id="crmNaSchetKomm" type="text" placeholder="Комментарий оператору — необязательно">
+        <button class="crmKn crmKn--glav" type="button" id="crmNaSchetKn">Отправить оператору</button>
+      </div>
+      <p class="crmHint" id="crmNaSchetOtvet">дело уйдёт Чебан Т. С., бот напишет ей в Мессенджер;
+        когда она поставит «сделано», менеджеру лота придёт «счёт готов»</p>
+    </div>`;
+  }
+
+  async function otpravitNaSchet(z, knopka) {
+    const otvet = el("crmNaSchetOtvet");
+    knopka.disabled = true;
+    otvet.textContent = "отправляю…";
+    const zapros = await fetch("/__crm/na_schet", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: z.id, срочно: el("crmNaSchetSrochno").checked,
+        комментарий: el("crmNaSchetKomm").value }),
+    });
+    if (!zapros.ok) {
+      const oshibka = await zapros.json().catch(() => ({}));
+      knopka.disabled = false;
+      otvet.textContent = oshibka.ошибка || "не отправилось";
+      return;
+    }
+    const itog = await zapros.json();
+    Object.assign(z, itog.лот);
+    const mesto = (dannye.лоты || []).findIndex((x) => x.id === z.id);
+    if (mesto >= 0) Object.assign(dannye.лоты[mesto], itog.лот);
+    knopka.textContent = "Отправлено";
+    otvet.textContent = `дело у ${itog.оператор}, срок ${itog.срок.split("-").reverse().slice(0, 2).join(".")}`
+      + (itog.доставлено ? " · бот написал ей в Мессенджер"
+        : " · бот не смог ей написать — предупредите сами");
+    narisovat();
+    narisovatIstoriyu(z.nomer);
   }
 
   /** Прячет ошибочный лот: статус «Снят · удалён», прежний остаётся в истории. */

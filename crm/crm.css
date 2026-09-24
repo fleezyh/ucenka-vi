@@ -850,3 +850,12 @@ body.is-svetlo .crmReestr__tabl tr.is-otkryta td { background: #e8f0fd; }
   border-bottom: 1px solid rgba(143,156,173,.12); font-size: 13px; }
 .crmUdalennye__stroka .crmKn { margin-left: auto; }
 .crmKn--udalit:hover { border-color: #f05d72; color: #f05d72; }
+
+/* ---- Оператору на счёт (встреча 24.09) ------------------------------------ */
+.crmNaSchet { margin: 12px 0; padding: 12px 14px; border-radius: 12px;
+  border: 1px solid rgba(77,141,247,.35); background: rgba(77,141,247,.06); }
+.crmNaSchet__ryad { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 6px 0; }
+.crmNaSchet__ryad .crmPoisk { flex: 1; min-width: 220px; }
+.crmNaSchet__srochno { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; cursor: pointer; }
+.crmNaSchet__srochno:has(input:checked) { color: #f05d72; }
+body.is-svetlo .crmNaSchet { background: #f1f6ff; }
