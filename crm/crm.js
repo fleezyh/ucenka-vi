@@ -291,6 +291,9 @@
    */
   const KONEC = "10.Отгружен ФИЗ и СИСТ";
   const SNYAT = "Снят с торгов";
+  // Лот, заведённый по ошибке (встреча 24.09): не стираем, а прячем. Статус
+  // начинается со «Снят», поэтому серверные суммы и план его уже не считают.
+  const UDALEN = "Снят · удалён";
   const RABOCHIE = VORONKA.filter((s) => s !== KONEC && s !== SNYAT);
   const SUTKI = 24 * 60 * 60 * 1000;
 
@@ -1749,6 +1752,7 @@
           tip === "ka" ? "Контрагент" : tip === "lot" ? "Лот" : "Счёт")}</span>
         <div class="crmOkno__act">
           ${tip === "lot" ? '<button class="crmKn" type="button" data-pravit>Править</button>' : ""}
+          ${tip === "lot" ? '<button class="crmKn crmKn--udalit" type="button" data-udalit title="Лот заведён по ошибке — спрятать. Вернуть можно в «Таблице» внизу">Удалить</button>' : ""}
           <button class="crmKn" type="button" data-zakryt>Закрыть</button>
         </div>
       </div>
@@ -1766,6 +1770,8 @@
     el("crmOkno").hidden = false;
     const pravit = el("crmOknoDoc").querySelector("[data-pravit]");
     if (pravit) pravit.addEventListener("click", () => otkrytFormu(z));
+    const udalit = el("crmOknoDoc").querySelector("[data-udalit]");
+    if (udalit) udalit.addEventListener("click", () => udalitLot(z, udalit));
 
     const knopkaCeny = el("crmCenaSohranit");
     if (knopkaCeny) {
@@ -3234,6 +3240,76 @@
     if (raskryta === imya) narisovatReestrTelo();
   }
 
+  /** Прячет ошибочный лот: статус «Снят · удалён», прежний остаётся в истории. */
+  async function udalitLot(z, knopka) {
+    if (!window.confirm(`Удалить лот ${z.nomer}? Он пропадёт с доски, из таблицы и сумм.\n`
+      + "Ничего не стирается — вернуть можно в «Таблице», список «Удалённые» внизу.")) return;
+    knopka.disabled = true;
+    const zapros = await fetch("/__crm/lot", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: z.id, status: UDALEN }),
+    });
+    if (!zapros.ok) {
+      const oshibka = await zapros.json().catch(() => ({}));
+      knopka.disabled = false;
+      knopka.textContent = oshibka.ошибка || "не удалилось";
+      return;
+    }
+    const svezhiy = await zapros.json();
+    dannye.лоты = (dannye.лоты || []).filter((x) => x.id !== z.id);
+    (dannye.удалённые = dannye.удалённые || []).unshift(svezhiy);
+    el("crmOkno").hidden = true;
+    narisovat();
+  }
+
+  /** Возвращает удалённый лот в тот статус, из которого его удалили. */
+  async function vernutLot(z, knopka) {
+    knopka.disabled = true;
+    let prezhniy = "1. Лот размещается";
+    try {
+      const otvet = await fetch(`/__crm/istoriya?объект=lot&ключ=${encodeURIComponent(z.nomer)}`,
+        { cache: "no-store" });
+      const zapis = (otvet.ok ? await otvet.json() : [])
+        .find((x) => x.ключ_поля === "status" && x.стало === UDALEN);
+      if (zapis && zapis.было) prezhniy = zapis.было;
+    } catch (oshibka) { /* нет истории — вернём в начало воронки */ }
+    const zapros = await fetch("/__crm/lot", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: z.id, status: prezhniy }),
+    });
+    if (!zapros.ok) {
+      knopka.disabled = false;
+      knopka.textContent = "не вернулось";
+      return;
+    }
+    const svezhiy = await zapros.json();
+    dannye.удалённые = (dannye.удалённые || []).filter((x) => x.id !== z.id);
+    dannye.лоты.unshift(svezhiy);
+    narisovat();
+  }
+
+  function narisovatUdalennye(pokazat) {
+    const uzel = el("crmUdalennye");
+    if (!uzel) return;
+    const spisok = dannye.удалённые || [];
+    uzel.hidden = !pokazat || !spisok.length;
+    if (uzel.hidden) return;
+    uzel.innerHTML = `<details class="crmUdalennye__blok">
+      <summary>Удалённые лоты · ${spisok.length}</summary>
+      <p class="crmHint">заведены по ошибке: ни на доске, ни в суммах их нет. «Вернуть» ставит статус, из которого удалили</p>
+      <div class="crmZadSpisok">${spisok.map((z) => `
+        <div class="crmUdalennye__stroka">
+          <b>Лот ${escape(z.nomer)}</b>
+          <span>${escape(z.ka || "без контрагента")}</span>
+          <span>${z.cena_otgruzki ? `${chislo(z.cena_otgruzki)} ₽` : ""}</span>
+          <span class="crmHint">${escape(z.kto_obnovil || "")} ${escape(String(z.obnovlen || "").slice(0, 16))}</span>
+          <button class="crmKn" type="button" data-vernut="${escape(z.id)}">Вернуть</button>
+        </div>`).join("")}</div>
+    </details>`;
+    uzel.querySelectorAll("[data-vernut]").forEach((kn) => kn.addEventListener("click", () =>
+      vernutLot(spisok.find((z) => String(z.id) === kn.dataset.vernut), kn)));
+  }
+
   /** Переключает вид: доска, таблица лотов, счета. */
   function perekluchit(novyy) {
     vid = novyy;
@@ -3275,6 +3351,7 @@
     if (el("crmNovyyKa")) el("crmNovyyKa").hidden = !baza;
     el("crmNabor").hidden = doska || zadachi || pochta || sverkaVid;
     el("crmNabor").textContent = vseKolonki ? "Главные колонки" : "Все колонки";
+    narisovatUdalennye(vid === "loty");
 
     if (palletyVid) {
       narisovatReestr();
@@ -3322,6 +3399,9 @@
       return;
     }
     dannye = await otvet.json();
+    // Удалённые — отдельным списком: с доски, из таблицы и сумм они пропадают.
+    dannye.удалённые = (dannye.лоты || []).filter((z) => z.status === UDALEN);
+    dannye.лоты = (dannye.лоты || []).filter((z) => z.status !== UDALEN);
     // «Оплачено X из Y» (встреча 24.09): клиент платит не всю сумму или больше.
     // Сервер считает по заказам ВТИС, здесь только текст для колонки.
     (dannye.лоты || []).forEach((z) => {

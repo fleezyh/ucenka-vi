@@ -841,3 +841,12 @@ body.is-svetlo .crmTabl tr.crmReestr__sostav > td { background: #f3f7fe; }
 body.is-svetlo .crmTabl .crmReestr__vnutri th,
 body.is-svetlo .crmTabl .crmReestr__vnutri td:first-child { background: transparent; }
 body.is-svetlo .crmReestr__tabl tr.is-otkryta td { background: #e8f0fd; }
+
+/* ---- Удалённые лоты (заведены по ошибке, встреча 24.09) -------------------- */
+.crmUdalennye[hidden] { display: none; }
+.crmUdalennye { margin-top: 14px; }
+.crmUdalennye__blok summary { cursor: pointer; color: var(--muted, #8f9cad); font-size: 13px; }
+.crmUdalennye__stroka { display: flex; gap: 14px; align-items: center; padding: 6px 0;
+  border-bottom: 1px solid rgba(143,156,173,.12); font-size: 13px; }
+.crmUdalennye__stroka .crmKn { margin-left: auto; }
+.crmKn--udalit:hover { border-color: #f05d72; color: #f05d72; }
