@@ -65,10 +65,25 @@
     return cells;
   }
 
-  /** Ключ поиска: регистр и лишние пробелы в списках приходят как попало. */
+  /** Ключ поиска: регистр, пробелы и дефисы в списках приходят как попало.
+      24.09 список из мессенджера не нашёлся целиком — там были «не те» дефисы
+      (неразрывный, минус, тире), на вид неотличимые от обычного. Сводим все
+      к «-», а невидимые символы и мягкий перенос выкидываем. */
   function key(name) {
-    return name.trim().toLocaleLowerCase("ru-RU").replace(/\s+/g, " ");
+    return name
+      .replace(/[\u00AD\u200B-\u200D\u2060\uFEFF]/g, "")
+      .replace(/[\u2010-\u2015\u2212\uFE58\uFE63\uFF0D]/g, "-")
+      .replace(/\uFF08/g, "(").replace(/\uFF09/g, ")")
+      .trim().toLocaleLowerCase("ru-RU").replace(/\s+/g, " ");
   }
+
+  /** Номер в конце имени («ФБ-Климат-0167558583» → «0167558583») — запасной
+      ключ, если название паллеты переписали руками. */
+  function nomer(name) {
+    const m = key(name).match(/(\d{8,})$/);
+    return m ? m[1] : "";
+  }
+  let poNomeru = new Map();
 
   async function loadRegistry() {
     if (registry) return registry;
@@ -104,6 +119,8 @@
         const found = table.get(key(name));
         if (found) found.push(cells);
         else table.set(key(name), [cells]);
+        const n = nomer(name);
+        if (n) poNomeru.set(n, poNomeru.has(n) && poNomeru.get(n) !== key(name) ? null : key(name));
       }
       registry = table;
       return table;
@@ -267,7 +284,8 @@
       const found = [];
       const missing = [];
       for (const name of names) {
-        const rows = table.get(key(name));
+        // Номер — только если он у одной паллеты, иначе не угадываем.
+        const rows = table.get(key(name)) || table.get(poNomeru.get(nomer(name)) || "");
         if (rows) found.push(...rows);
         else missing.push(name);
       }
