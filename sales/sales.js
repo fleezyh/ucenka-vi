@@ -365,20 +365,27 @@
     chasy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
   };
 
-  /** Отставание — хвост прошлого месяца: сколько он недодал к своему плану.
-   *
-   * Так эту цифру понимают продажи: цель текущего месяца = свой план плюс
-   * чужой долг. Перевыполнение в минус не уходит — цель не опускается ниже
-   * плана. Поля goal_* из json тут не годятся: там накопленная годовая цель.
+  /** Отставание — по динамике квартального плана (встреча 24.09, Рахманов):
+   * цель месяца = план квартала по этот месяц включительно минус отгруженное
+   * в прошлых месяцах квартала, то есть сколько нужно до закрытия квартала.
+   * Перепродали в прошлых месяцах — долг отрицательный и цель ниже плана;
+   * в первом месяце квартала цель равна плану. Ниже нуля цель не опускается.
+   * Поля goal_* из json тут не годятся: там накопленная годовая цель.
    */
   function otstavanie(head) {
-    const prevNum = Number(head.month_num) - 1;
+    const nomer = Number(head.month_num);
+    const pervyy = Math.floor((nomer - 1) / 3) * 3 + 1;
+    let dolg = 0;
+    const proshlye = [];
     for (const [name, list] of Object.entries(funnelData.поМесяцам || {})) {
       const first = list[0];
-      if (!first || Number(first.month_num) !== prevNum) continue;
-      return { prevName: name, dolg: Math.max(Number(first.plan_sale_raw || 0) / 1e6 - vMln(first.sale_txt), 0) };
+      const n = first ? Number(first.month_num) : 0;
+      if (n < pervyy || n >= nomer) continue;
+      dolg += Number(first.plan_sale_raw || 0) / 1e6 - vMln(first.sale_txt);
+      proshlye.push(name.toLowerCase());
     }
-    return { prevName: "", dolg: 0 };
+    const plan = Number(head.plan_sale_raw || 0) / 1e6;
+    return { prevName: proshlye.join(", "), dolg: Math.max(dolg, -plan) };
   }
 
   /** Окупаемость: сколько процентов себестоимости вернули ценой продажи. */
