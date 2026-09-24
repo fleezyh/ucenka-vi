@@ -867,3 +867,14 @@ body.is-svetlo .crmNaSchet { background: #f1f6ff; }
 .crmPorog input { width: 58px; font: inherit; font-size: 13px; padding: 4px 8px; border-radius: 8px;
   border: 1px solid rgba(143,156,173,.35); background: transparent; color: inherit; text-align: right; }
 .crmPorog input.is-sohraneno { border-color: #27c46b; }
+
+/* ---- Юрлица КА и счёт-договор (встреча 24.09) ------------------------------ */
+.crmDogovor { margin: 6px 0 8px; padding: 7px 11px; border-radius: 9px; font-size: 12.5px;
+  background: rgba(245,173,50,.09); border: 1px solid rgba(245,173,50,.35); }
+.crmDogovor.is-ploho { background: rgba(240,93,114,.1); border-color: rgba(240,93,114,.55); color: #f05d72; }
+.crmYurlica { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.crmYurlica .crmObsh__zag { width: 100%; margin: 0; }
+.crmYurlica__odno { font-size: 12.5px; padding: 4px 10px; border-radius: 9px;
+  border: 1px solid rgba(143,156,173,.3); }
+.crmYurlica__odno i { font-style: normal; color: var(--muted, #8f9cad); margin-left: 6px; }
+body.is-svetlo .crmDogovor.is-ploho { background: #fdecef; }

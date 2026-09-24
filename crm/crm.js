@@ -1319,7 +1319,49 @@
   function kontragentPoImeni(imya) {
     if (!imya) return null;
     const klyuch = klyuchKa(imya);
-    return (dannye.ка || []).find((k) => klyuchKa(k.ka) === klyuch) || null;
+    // В лоте бывает записано юрлицо, а не КА — ищем и по нему.
+    return (dannye.ка || []).find((k) => klyuchKa(k.ka) === klyuch)
+      || (dannye.ка || []).find((k) => klyuchKa(k.yur_lico) === klyuch) || null;
+  }
+
+  /** Юрлица одного КА (встреча 24.09, Рахманов): «у одного контрагента может
+      быть несколько юрлиц — работает под собой и под женой». В книге это строки
+      с одинаковым «КА» и разным «юрлицом». */
+  function yurlicaKa(k) {
+    if (!k) return [];
+    return (dannye.ка || []).filter((x) => klyuchKa(x.ka) === klyuchKa(k.ka));
+  }
+
+  function blokYurlic(k) {
+    const spisok = yurlicaKa(k);
+    if (spisok.length < 2) return "";
+    return `<div class="crmYurlica"><p class="crmObsh__zag">Юрлица КА · ${spisok.length}</p>
+      ${spisok.map((x) => `<span class="crmYurlica__odno">${escape(x.yur_lico || x.ka)}
+        <i>${x.dogovor ? `договор ${escape(x.nomer_dogovora || "есть")}` : "без договора"}</i>
+        ${x.inn ? `<i>ИНН ${escape(x.inn)}</i>` : ""}</span>`).join("")}</div>`;
+  }
+
+  /** Счёт-договор (встреча 24.09): если договора поставки нет, продать можно
+      только разово и не больше 300 тыс ₽ — «система даст, но это неправильно».
+      Предупреждаем в карточке лота, пока он не ушёл дальше счёта. */
+  const PREDEL_SCHET_DOGOVORA = 300000;
+
+  function preduprezhdenieDogovora(z, k) {
+    if (!k || k.dogovor) return "";
+    const s = String(z.status || "");
+    if (s.startsWith("10") || s.startsWith("Снят") || /^[789]\./.test(s)) return "";
+    const summa = Number(z.cena_otgruzki) || Number(z.startovaya_cena) || 0;
+    const drugie = (dannye.лоты || []).filter((x) => x.id !== z.id
+      && klyuchKa(x.ka) === klyuchKa(z.ka) && String(x.status || "").startsWith("10")).length;
+    const prichiny = [];
+    if (summa > PREDEL_SCHET_DOGOVORA) prichiny.push(`сумма ${chislo(summa)} ₽ больше 300 тыс`);
+    if (drugie) prichiny.push(`это не первая продажа: отгружено лотов ${drugie}`);
+    if (!prichiny.length) {
+      return `<p class="crmDogovor">Договора поставки нет — только счёт-договор:
+        одна продажа до 300 тыс ₽.</p>`;
+    }
+    return `<p class="crmDogovor is-ploho">⚠ Договора поставки нет, а ${prichiny.join(" и ")}.
+      По счёт-договору так нельзя — сначала договор (его ведёт Аня).</p>`;
   }
 
   /** Блок «что это за клиент» в карточке лота: договор, деньги, его лоты. */
@@ -1352,6 +1394,7 @@
     return `<div class="crmKa">
       <p class="crmKa__zag">${escape(imya)}${k ? "" :
         ' <span class="crmKa__chuzhoy">нет в справочнике</span>'}</p>
+      ${preduprezhdenieDogovora(z, k)}
       <p class="crmKa__stroka">${ego.length} ${sklonenie(ego.length, "лот", "лота", "лотов")}
         · отгружено ${otgruzheno.length} на ${chislo(summa)} ₽
         ${sredniy ? `· средний окуп ${dolya(sredniy)}` : ""}</p>
@@ -1362,6 +1405,7 @@
                  type="button" data-lot-ka="${escape(x.nomer || "")}">
            ${escape(x.nomer || "—")} · ${escape(String(x.status || "").slice(0, 22))}
          </button>`).join("")}</div>` : ""}
+      ${blokYurlic(k)}
     </div>`;
   }
 
@@ -1371,7 +1415,7 @@
     const ego = (dannye.лоты || []).filter((x) => klyuchKa(x.ka) === klyuchKa(k.ka));
     if (!ego.length) {
       return `<div class="crmKa"><p class="crmKa__net">Лотов по этому контрагенту
-        в CRM нет — либо он новый, либо в лотах имя написано иначе</p></div>`;
+        в CRM нет — либо он новый, либо в лотах имя написано иначе</p>${blokYurlic(k)}</div>`;
     }
     const otgruzheno = ego.filter((x) => String(x.status || "").startsWith("10"));
     const v_rabote = ego.filter((x) => {
@@ -1391,6 +1435,7 @@
         `<button class="crmKa__lot" type="button" data-lot-ka="${escape(x.nomer || "")}">
            ${escape(x.nomer || "—")} · ${escape(String(x.status || "").slice(0, 22))}
          </button>`).join("")}</div>
+      ${blokYurlic(k)}
     </div>`;
   }
 
