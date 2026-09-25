@@ -35,7 +35,7 @@
     // 24.09: руками вбивали — появлялись дубли и «1535(2)»).
     { pole: "nomer", imya: "№ лота", mesto: "проставится сам" },
     // Утиль, неликвид и оценка — отдельным полем, а не словами в номере.
-    { pole: "tip_lota", imya: "Тип лота", spisok: ["Ликвид", "Оценка", "Неликвид", "Утиль"] },
+    { pole: "tip_lota", imya: "Тип лота", spisok: ["Уценка", "Неликвид", "Утиль"] },
     { pole: "data_vystavleniya", imya: "Дата выставления", tip: "date" },
     { pole: "menedzher", imya: "Менеджер" },
     // Контрагент — из справочника, а не руками: в базе уже лежат «Железный
@@ -695,7 +695,7 @@
       data_vystavleniya: new Date().toISOString().slice(0, 10),
       menedzher: (spisokPolya("menedzher") || []).includes(ya) ? ya : "",
       mesyac_otgruzki: MESYACY_OTGRUZKI[new Date().getMonth()],
-      tip_lota: "Ликвид", status: "1. Лот размещается",
+      tip_lota: "Уценка", status: "1. Лот размещается",
     };
     const novayaStroka = mozhno ? `<tr class="crmNovayaStroka">${kol.map((s, i) => {
       if (i === 0) return '<td class="crmLipkiy"><button class="crmKn crmKn--glav" type="button" data-novyy title="Номер проставится сам">+ лот</button></td>';
@@ -1992,7 +1992,7 @@
       menedzher: (spisokPolya("menedzher") || []).includes((dannye.кто && dannye.кто.имя) || "")
         ? dannye.кто.имя : "",
       mesyac_otgruzki: MESYACY_OTGRUZKI[new Date().getMonth()],
-      tip_lota: "Ликвид",
+      tip_lota: "Уценка",
     };
     const polya = POLYA_FORMY.map((p) => {
       const syroe = est[p.pole] ?? poUmolchaniyu[p.pole];
@@ -3116,7 +3116,7 @@
   const sostavPallety = new Map();
   let raskryta = "";
 
-  const STATUSY_PALLETY = ["свободна", "в лоте", "резерв", "не нашли", "нет в остатках"];
+  const STATUSY_PALLETY = ["свободна", "в лоте", "резерв", "не нашли", "нет в остатках", "нельзя продавать"];
 
   function statusPallety(p) {
     if (p.не_нашли) return "не нашли";

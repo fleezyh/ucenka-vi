@@ -463,10 +463,19 @@ body { font-weight: 500; }
   transition: background .2s ease, backdrop-filter .2s ease;
 }
 .shell > .topbar.is-stuck {
-  background: rgba(8, 13, 20, .82);
+  /* Тон берём от фона раздела, а не чёрный: чёрная перекладина поперёк
+     бордового градиента — первое, что бросается в глаза при прокрутке. */
+  background: rgba(58, 20, 30, .62);
   backdrop-filter: blur(18px) saturate(140%);
   -webkit-backdrop-filter: blur(18px) saturate(140%);
 }
+/* И сама шапка не висит всё время: читаешь вниз — она уезжает, повёл
+   страницу вверх — вернулась. Так полосы на экране нет вовсе, а навигация
+   остаётся на расстоянии одного движения.
+   Совсем убрать подложку нельзя: без неё меню наезжает на заголовок
+   раздела и читается как каша — это я уже пробовал. */
+.shell > .topbar { transition: transform .22s ease, background .2s ease; }
+.shell > .topbar.is-hidden { transform: translateY(calc(-100% - 8px)); }
 
 /* На телефоне липкая шапка превращалась при прокрутке в широкую чёрную
    полосу и съедала полезную высоту. Мобильная шапка уходит вместе со страницей;
@@ -480,6 +489,9 @@ body { font-weight: 500; }
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
+  /* Здесь шапка и так уезжает вместе со страницей, а сдвиг оставил бы на
+     её месте пустую дыру. */
+  .shell > .topbar.is-hidden { transform: none; }
 }
 
 /* Полоса примерки роли: админ смотрит сайт чужими глазами, и об этом должно
@@ -494,3 +506,148 @@ body { font-weight: 500; }
 .viewAs__role:hover { border-color: rgba(255, 255, 255, .5); }
 .viewAs__role.is-on { background: rgba(255, 255, 255, .16); color: #fff; }
 .viewAs__exit { margin-left: auto; color: #fff; text-decoration: underline; font-size: 12px; }
+
+/* Без размытия при прокрутке (24.09: «убери размытие, заебало»). Шапка
+   больше не мутнеет, когда под неё заезжает страница: подложки у полосы нет,
+   а плашка меню стала плотной, чтобы читаться без blur. */
+.shell > .topbar.is-stuck {
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.siteHeaderShell .siteNav,
+.shell > .topbar .siteNav {
+  background: rgba(15, 14, 20, .96);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+/* Шапка больше не липнет (24.09): прозрачная — наезжала на заголовок,
+   с подложкой и blur — «заебало», плашка под маркой — тоже наезжала. Поверх
+   страницы без подложки она не может висеть вовсе, поэтому уезжает вместе с
+   ней, как на телефоне. Меню — наверху страницы. */
+.shell > .topbar { position: static; }
+.shell > .topbar.is-hidden { transform: none; }
+
+/* ── Тема: кнопка в шапке и общий светлый слой ─────────────────────────
+   Кнопку ставит nav.js на каждой странице. Переменные светлой темы
+   переопределяет style.css (body.is-svetlo); здесь — то, что на переменных
+   не держится: фон-анимация, шапка, меню. */
+.temaKn {
+  display: inline-grid; place-items: center; flex: 0 0 auto;
+  width: 46px; height: 46px; margin-left: 10px; padding: 0;
+  border: 1px solid rgba(255, 255, 255, .12); border-radius: 50%;
+  background: rgba(15, 14, 20, .96); color: #f2f6fb; cursor: pointer;
+  transition: background .15s ease, border-color .15s ease;
+}
+.temaKn:hover { border-color: rgba(255, 255, 255, .35); }
+.temaKn svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.temaKn .temaKn__luna { display: none; fill: currentColor; stroke: none; }
+.temaKn[aria-pressed="true"] .temaKn__sun,
+.temaKn[aria-pressed="true"] .temaKn__luchi { display: none; }
+.temaKn[aria-pressed="true"] .temaKn__luna { display: block; }
+.topbar { display: flex; align-items: center; }
+.topbar .siteNav { margin-left: auto; }
+@media (max-width: 640px) { .temaKn { width: 40px; height: 40px; margin-left: 6px; } }
+
+html.is-svetlo { background: #e3e9f1 !important; }
+body.is-svetlo { --bg: #e3e9f1; background: #e3e9f1 !important; }
+body.is-svetlo .flowCanvas, body.is-svetlo::before, body.is-svetlo::after { display: none !important; }
+body.is-svetlo .topbar .brand, body.is-svetlo .topbar .brand span { color: #121a25; }
+body.is-svetlo .siteHeaderShell .siteNav,
+body.is-svetlo .shell > .topbar .siteNav { background: #ffffff; border-color: #d3dae5; box-shadow: 0 6px 18px rgba(18, 26, 37, .08); }
+body.is-svetlo .siteHeaderShell .navLink,
+body.is-svetlo .shell > .topbar .navLink { color: #243247; }
+body.is-svetlo .siteHeaderShell .navLink:hover,
+body.is-svetlo .shell > .topbar .navLink:hover { background: #eef2f8; }
+body.is-svetlo .siteHeaderShell .navLink[aria-current="page"],
+body.is-svetlo .shell > .topbar .navLink[aria-current="page"] { color: #fff; background: #10203a; }
+body.is-svetlo .siteHeaderShell .navGroup + .navGroup,
+body.is-svetlo .shell > .topbar .navGroup + .navGroup { border-left-color: #d3dae5; }
+body.is-svetlo .temaKn { background: #ffffff; color: #243247; border-color: #d3dae5; }
+body.is-svetlo .navMenuButton { color: #243247; }
+/* Метки осветлителя из nav.js: только в светлой теме. */
+body.is-svetlo .sv-bg { background-color: #ffffff !important; border-color: #d3dae5 !important; box-shadow: 0 1px 2px rgba(18, 26, 37, .05) !important; }
+body.is-svetlo .sv-bg2 { background-color: #f3f6fb !important; border-color: #dfe5ee !important; box-shadow: none !important; }
+body.is-svetlo .sv-grad { background-image: none !important; }
+body.is-svetlo .sv-tx { color: #121a25 !important; }
+body.is-svetlo .sv-mut { color: #5d6b7e !important; }
+body.is-svetlo .sv-deep { filter: brightness(.55) saturate(1.8); }
+body.is-svetlo .sv-fill { fill: #121a25 !important; }
+body.is-svetlo .sv-fill2 { fill: #5d6b7e !important; }
+body.is-svetlo .sv-fill3 { filter: brightness(.55) saturate(1.8); }
+body.is-svetlo input::placeholder, body.is-svetlo textarea::placeholder { color: #8a96a8; }
+/* Порядок в шапке. На компьютере: марка · меню · тема. На телефоне: марка ·
+   тема · «Разделы», а раскрытое меню — строкой ниже; без этого кнопка темы
+   уходила третьей строкой под марку. */
+.topbar .siteNav { order: 1; }
+.topbar .temaKn { order: 2; }
+@media (max-width: 640px) {
+  body.nav-enhanced .siteHeaderShell > .topbar,
+  body.nav-enhanced .shell > .topbar { grid-template-columns: minmax(0, 1fr) auto auto; }
+  .topbar .temaKn { order: 1; margin-left: 0; }
+  .topbar .navMenuButton { order: 2; }
+  .topbar .siteNav { order: 3; grid-column: 1 / -1; }
+}
+
+/* Светлая тема: помощник «Спросить по разделу» и зелёный.
+   Стекло помощника рисовалось градиентом с прозрачным фоном, и текст на нём
+   становился тёмным на тёмном. Зелёный сайта (#27c46b) на белом слишком
+   бледный — в светлой теме он темнее. */
+body.is-svetlo { --green: #169a52; --vt-green: #169a52; }
+body.is-svetlo .sectionAssistantTrigger,
+body.is-svetlo .homeAssistantTrigger {
+  background: #ffffff !important; border-color: #d3dae5 !important; color: #121a25 !important;
+  backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+  box-shadow: 0 10px 30px rgba(18, 26, 37, .14) !important;
+}
+body.is-svetlo .sectionAssistantTrigger::before,
+body.is-svetlo .homeAssistantTrigger::before { display: none !important; }
+body.is-svetlo .sectionAssistantTrigger strong,
+body.is-svetlo .homeAssistantTrigger strong { color: #121a25 !important; }
+body.is-svetlo .sectionAssistantTrigger small,
+body.is-svetlo .homeAssistantTrigger small,
+body.is-svetlo .homeAssistantTrigger__hint { color: #5d6b7e !important; }
+body.is-svetlo .sectionAssistantTrigger i,
+body.is-svetlo .homeAssistantTrigger__hint i { color: #243247 !important; border-color: #c6d0dd !important; background: #f3f6fb !important; }
+body.is-svetlo .sectionAssistantBackdrop,
+body.is-svetlo .homeAssistantModal__backdrop { background: rgba(18, 26, 37, .28) !important; }
+body.is-svetlo .sectionAssistant,
+body.is-svetlo .homeAssistant {
+  background: #ffffff !important; color: #121a25 !important; border-color: #d3dae5 !important;
+  box-shadow: 0 30px 80px rgba(18, 26, 37, .25) !important;
+  backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+}
+body.is-svetlo .sectionAssistant h2, body.is-svetlo .homeAssistant h2,
+body.is-svetlo .sectionAssistantWelcome strong, body.is-svetlo .homeAssistant__welcome strong { color: #121a25 !important; }
+body.is-svetlo .sectionAssistant header p, body.is-svetlo .homeAssistant__head p,
+body.is-svetlo .sectionAssistantWelcome span, body.is-svetlo .homeAssistant__welcome span { color: #5d6b7e !important; }
+body.is-svetlo .sectionAssistant header { border-color: #e3e8f0 !important; }
+body.is-svetlo .sectionAssistantWelcome,
+body.is-svetlo .homeAssistant__welcome { background: #f3f6fb !important; border-color: #dfe5ee !important; }
+body.is-svetlo .sectionAssistantPrompts button,
+body.is-svetlo .homeAssistant__examples button { background: #f3f6fb !important; color: #243247 !important; border-color: #d3dae5 !important; }
+body.is-svetlo .sectionAssistantPrompts button:hover { border-color: #9fb0c6 !important; }
+body.is-svetlo .sectionAssistantMessage { background: #f3f6fb !important; color: #121a25 !important; }
+body.is-svetlo .sectionAssistantClose,
+body.is-svetlo .homeAssistant__close { background: #f3f6fb !important; color: #243247 !important; border-color: #d3dae5 !important; }
+body.is-svetlo .sectionAssistant form,
+body.is-svetlo .homeAssistant__form { background: #f7f9fc !important; border-color: #c6d0dd !important; }
+body.is-svetlo .sectionAssistant textarea,
+body.is-svetlo .homeAssistant textarea { color: #121a25 !important; }
+body.is-svetlo .sectionAssistantMessage.is-user { background: #e6efff !important; }
+/* На средних ширинах меню уходит второй строкой; кнопка темы остаётся в
+   первой, справа от марки, а не висит одна третьей строкой. */
+@media (min-width: 641px) and (max-width: 1200px) {
+  .topbar .temaKn { order: 1; margin-left: auto; }
+  .topbar .siteNav { order: 2; }
+}
+/* Светлая тема без вспышки: до первого прохода осветлителя страница скрыта
+   (класс ставит tema.js, снимает nav.js), а на время перекраски плавные
+   переходы цвета выключены — иначе тёмное «перетекало» в белое. */
+html.sv-zhdyom body { visibility: hidden; }
+html.sv-bez-anim *, html.sv-bez-anim *::before, html.sv-bez-anim *::after { transition: none !important; }
+
+/* Цифры только пропорциональные. У VI Sans на tabular-nums точка и запятая
+   встают шириной цифры — «25 . 09 . 2026», «2 , 38» (см. style.css у .stats dd).
+   Страницы включали его по отдельности, отключаем разом. */
+body * { font-variant-numeric: normal !important; font-feature-settings: "tnum" 0, "pnum" 1 !important; }

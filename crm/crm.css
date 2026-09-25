@@ -142,7 +142,7 @@ body.is-svetlo .crmKarta__pallet, body.is-svetlo .crmStolbec__pallet { backgroun
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px; }
 .crmTabl tbody tr { cursor: pointer; }
 .crmTabl tbody tr:hover { background: rgba(223,231,242,.06); }
-.crmTabl .crmNum { text-align: right; font-variant-numeric: tabular-nums; }
+.crmTabl .crmNum { text-align: right; font-variant-numeric: normal; font-feature-settings: "tnum" 0, "pnum" 1; }
 /* Точка в дате при моноширинных цифрах занимает целую ячейку и дата
    читается как «18 . 09 . 2026» — датам табличные цифры не нужны. */
 .crmTabl td.crmData, .crmTabl td.crmData * { font-variant-numeric: normal; }
@@ -172,7 +172,7 @@ body.is-svetlo .crmKarta__pallet, body.is-svetlo .crmStolbec__pallet { backgroun
 .crmStroka { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0;
   border-bottom: 1px solid rgba(143,156,173,.12); font-size: 13px; }
 .crmStroka span { color: var(--muted, #8f9cad); }
-.crmStroka b { text-align: right; font-variant-numeric: tabular-nums; }
+.crmStroka b { text-align: right; font-variant-numeric: normal; font-feature-settings: "tnum" 0, "pnum" 1; }
 
 .crmPodskazka { font-size: 12px; color: var(--muted, #8f9cad); margin: 0 0 14px; }
 .crmForma { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
@@ -210,9 +210,9 @@ body.is-svetlo .crmKarta__pallet, body.is-svetlo .crmStolbec__pallet { backgroun
 .crmEtap__polosa { display: block; height: 8px; border-radius: 5px;
   background: rgba(143,156,173,.14); overflow: hidden; }
 .crmEtap__polosa i { display: block; height: 100%; border-radius: 5px; background: currentColor; }
-.crmEtap__chislo { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+.crmEtap__chislo { text-align: right; font-weight: 700; font-variant-numeric: normal; font-feature-settings: "tnum" 0, "pnum" 1; }
 .crmEtap__summa { text-align: right; color: var(--muted, #8f9cad);
-  font-variant-numeric: tabular-nums; }
+  font-variant-numeric: normal; font-feature-settings: "tnum" 0, "pnum" 1; }
 .crmVid--tumbler.is-on { background: rgba(39,196,107,.16);
   border-color: rgba(39,196,107,.5); color: #7ee2a8; }
 
@@ -239,9 +239,9 @@ body.is-svetlo .crmKarta__pallet, body.is-svetlo .crmStolbec__pallet { backgroun
   align-items: center; gap: 12px; font-size: 12.5px; }
 .crmPlanStroka__imya { color: #cbd5e1; overflow: hidden; text-overflow: ellipsis;
   white-space: nowrap; }
-.crmPlanStroka__chislo { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+.crmPlanStroka__chislo { text-align: right; font-weight: 700; font-variant-numeric: normal; font-feature-settings: "tnum" 0, "pnum" 1; }
 .crmPlanStroka__plan { text-align: right; cursor: pointer; border-bottom: 1px dashed
-  rgba(143,156,173,.5); color: var(--muted, #8f9cad); font-variant-numeric: tabular-nums; }
+  rgba(143,156,173,.5); color: var(--muted, #8f9cad); font-variant-numeric: normal; font-feature-settings: "tnum" 0, "pnum" 1; }
 .crmPlanStroka__plan:hover { color: #dfe7f2; border-color: #dfe7f2; }
 .crmPlanStroka__pod { font-size: 11.5px; color: var(--muted, #8f9cad); }
 
@@ -825,6 +825,7 @@ body.is-svetlo .crmNovayaStroka input, body.is-svetlo .crmNovayaStroka select { 
 .crmReestr__status.is-2 { color: #f5ad32; }
 .crmReestr__status.is-3 { color: #f05d72; }
 .crmReestr__status.is-4 { color: #8f9cad; }
+.crmReestr__status.is-5 { color: #ff4d4d; background: rgba(255,77,77,.12); }
 .crmReestr__lot { font: inherit; font-size: 12px; padding: 1px 9px; border-radius: 999px; cursor: pointer;
   border: 1px solid rgba(77,141,247,.5); background: transparent; color: #4d8df7; }
 .crmReestr__lot:hover { background: rgba(77,141,247,.12); }
@@ -884,3 +885,19 @@ body.is-svetlo .crmDogovor.is-ploho { background: #fdecef; }
 .crmPismo__tekst { width: 100%; box-sizing: border-box; font: inherit; font-size: 13px; padding: 8px 11px;
   border-radius: 10px; border: 1px solid rgba(143,156,173,.3); background: transparent; color: inherit; resize: vertical; }
 body.is-svetlo .crmPismo { background: #f1fbf5; }
+
+/* Даты без разрядки (25.09). У VI Sans при tabular-nums точка встаёт шириной
+   цифры — «25 . 09 . 2026»; в поле даты к этому добавляются отступы Chrome
+   между днём, месяцем и годом. */
+input[type="date"], input[type="datetime-local"], input[type="month"] { font-variant-numeric: normal; letter-spacing: 0; }
+input[type="date"]::-webkit-datetime-edit, input[type="datetime-local"]::-webkit-datetime-edit { padding: 0; }
+input[type="date"]::-webkit-datetime-edit-fields-wrapper, input[type="datetime-local"]::-webkit-datetime-edit-fields-wrapper { padding: 0; }
+input[type="date"]::-webkit-datetime-edit-text, input[type="datetime-local"]::-webkit-datetime-edit-text { padding: 0; }
+input[type="date"]::-webkit-datetime-edit-day-field, input[type="date"]::-webkit-datetime-edit-month-field, input[type="date"]::-webkit-datetime-edit-year-field { padding: 0; }
+
+/* Пункты выпадающих списков: у нативного select тёмная тема окрашивала их
+   тёмным по тёмному. */
+select option { background: #0f1826; color: #e8edf5; }
+body.is-svetlo select option { background: #fff; color: #10203a; }
+select option:checked { background: #1d3150; color: #fff; }
+body.is-svetlo select option:checked { background: #dfe7f2; color: #10203a; }
