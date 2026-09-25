@@ -651,3 +651,80 @@ html.sv-bez-anim *, html.sv-bez-anim *::before, html.sv-bez-anim *::after { tran
    встают шириной цифры — «25 . 09 . 2026», «2 , 38» (см. style.css у .stats dd).
    Страницы включали его по отдельности, отключаем разом. */
 body * { font-variant-numeric: normal !important; font-feature-settings: "tnum" 0, "pnum" 1 !important; }
+
+/* ── Телефон: страница не шире экрана (25.09.2026) ─────────────────────────
+   Колонки сеток по умолчанию растягиваются под самое широкое содержимое, и
+   одна широкая плитка раздвигала всю страницу вбок: продажи были 1076 px при
+   экране 412, приёмка — 1060. Правило одно: колонки сжимаются до экрана, а то,
+   что шире по природе (схема склада, график, таблицы), прокручивается внутри
+   своего блока. */
+@media (max-width: 760px) {
+  .shell :is(.funnelWrap, .dvor, .zpOtdely__spisok) { grid-template-columns: minmax(0, 1fr); }
+  .shell :is(.funnelWrap, .dvor, .zpOtdely__spisok, .vtPlitki, .prPlitki) > * { min-width: 0; }
+  .shell .vtPlitki { grid-template-columns: minmax(0, 1fr); }
+  .shell :is(.prKartaHolst, .fsLine, .prVisyaki, .prVozrast) { overflow-x: auto; max-width: 100%; }
+
+  /* Крупные цифры в карточках — по две в ряд, цифра под ширину карточки. */
+  .shell .prPlitki, .shell .dvor .prPlitki { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .shell .prPlitka { padding: 12px; }
+  .shell .prPlitka__znak { font-size: clamp(18px, 5.4vw, 24px); overflow-wrap: anywhere; }
+  .shell .prPlitka__pod { overflow-wrap: anywhere; }
+
+  /* Переключатели разделов — одной строкой с прокруткой, не столбиком. */
+  .shell .perfViews { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 4px;
+    scrollbar-width: none; text-align: left; max-width: 100%; }
+  .shell .perfViews::-webkit-scrollbar { display: none; }
+  .shell .perfView { flex: 0 0 auto; white-space: nowrap; padding: 8px 12px; }
+  .shell .perfPeriod { flex-wrap: wrap; max-width: 100%; }
+  .shell .tabs--inline { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+  .shell .tabs--inline .tab { flex: 0 0 auto; white-space: nowrap; }
+  /* Период на производительности: четыре вкладки ровно в ширину экрана. */
+  .shell .perfPeriod .tabs--inline { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); width: 100%; }
+  .shell .perfPeriod .tabs--inline .tab { padding: 8px 4px; font-size: 12.5px; min-width: 0; }
+
+  /* CRM: фильтры переносятся, полоски-предупреждения — одной строкой. */
+  .shell .crmPanel__act { flex-wrap: wrap; flex-shrink: 1; min-width: 0; width: 100%; }
+  .shell .crmPanel__act > :is(select, input) { flex: 1 1 140px; min-width: 0; }
+
+  /* Зарплата, направления: имя, полоса и цифры друг под другом, карточкой. */
+  .shell .zpOtdel { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .shell .zpOtdel__cifry { grid-template-columns: repeat(2, minmax(0, 1fr)); text-align: left; gap: 8px 12px; }
+  .shell .zpOtdel__cel { padding-left: 0; border-left: 0; }
+  .shell .zpVnutri { margin-left: 6px; padding-left: 8px; }
+
+  /* Продажи: подпись цели у правого края полосы разворачиваем внутрь. */
+  .shell .vtMetka--vpravo .vtMetka__plashka { transform: translateX(calc(-100% - 8px)); }
+  /* На полосе квартала подписи точек налезали друг на друга, когда факт и
+     «с учётом сделок» близко; те же числа крупно стоят над полосой. */
+  .shell .vtZakr .vtMetka__plashka { display: none; }
+
+  /* Приёмка: две колонки двора — одна под другой и не шире экрана. */
+  .shell .dvor__dve { grid-template-columns: minmax(0, 1fr); }
+  .shell .dvor__dve > * { min-width: 0; overflow-x: auto; }
+  /* Цепочка входа: звенья по два в ряд, главная цифра под ширину звена. */
+  .shell .cepZveno { flex: 1 1 calc(50% - 8px); padding: 12px; }
+  .shell .cepZveno > * { min-width: 0; overflow-wrap: anywhere; }
+  .shell .cepZveno__glavnoe { font-size: clamp(18px, 5.4vw, 24px); white-space: normal; }
+}
+
+/* Пустая строка сообщения держала место (22 px плюс отступы) между шапкой и
+   первым блоком — на «Моей зарплате» это была дыра на полэкрана телефона. */
+.shell > .message:empty { display: none; }
+
+/* «SQL страницы» на телефоне — маленький кружок в углу вместо плашки поверх
+   содержимого: кнопка нужна только админу и не должна закрывать кнопки. */
+@media (max-width: 760px) {
+  .sqlKn { left: 10px !important; bottom: 10px !important; width: 30px; height: 30px; padding: 0 !important;
+    justify-content: center; font-size: 0 !important; gap: 0 !important; opacity: .75; }
+  .sqlKn i { width: 9px !important; height: 9px !important; }
+}
+
+/* CRM на телефоне: предупреждения одной прокручиваемой строкой, колонки доски
+   без своей прокрутки — прокрутка внутри прокрутки на телефоне не работает. */
+@media (max-width: 760px) {
+  :is(.crmGorit, #crmGorit) { flex-wrap: nowrap !important; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+  #crmGorit::-webkit-scrollbar { display: none; }
+  #crmGorit > * { flex: 0 0 auto; white-space: nowrap; }
+  .crmTest .crmStolbec { max-height: none; }
+  .crmTest .crmStolbec__karty { max-height: none; overflow: visible; }
+}
