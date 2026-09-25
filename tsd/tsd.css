@@ -1,0 +1,64 @@
+/* ТСД: маленький экран, палец в перчатке, сканер вместо клавиатуры.
+   Всё крупное, одна колонка, главная кнопка — на полширины экрана. */
+.tsdStranica .shell { max-width: 560px; }
+.tsdStranica .topbar { margin-bottom: 8px; }
+
+.tsdVkladki { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin: 4px 0 12px; }
+.tsdVkladka { appearance: none; border: 1px solid var(--line-strong); border-radius: 12px; background: #121a25;
+  color: var(--muted); font: inherit; font-size: 15px; font-weight: 600; padding: 12px 6px; cursor: pointer; }
+.tsdVkladka.is-on { color: #fff; background: #1d2a3d; border-color: var(--muted); }
+.tsdVkladka b { color: #f05d72; }
+
+.tsdSkan { display: grid; gap: 6px; font-size: 14px; color: var(--muted); }
+.tsdSkan input { font: inherit; font-size: 22px; font-weight: 600; color: var(--text); background: #0b1220;
+  border: 2px solid var(--line-strong); border-radius: 14px; padding: 14px 16px; width: 100%; box-sizing: border-box; }
+.tsdSkan input:focus { outline: none; border-color: #4d8df7; }
+
+.tsdKarta { margin-top: 12px; padding: 16px; border: 1px solid var(--line-strong); border-radius: 16px; background: #101823; }
+.tsdKarta h2 { margin: 0; font-size: 24px; font-weight: 600; word-break: break-word; }
+.tsdKarta__pod { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
+.tsdKarta__sist { margin: 10px 0 0; font-size: 16px; }
+.tsdPred { margin: 10px 0 0; padding: 10px 12px; border-radius: 12px; background: rgba(217, 164, 65, .14);
+  border: 1px solid rgba(217, 164, 65, .5); font-size: 14px; }
+.tsdOsh { margin: 12px 0 0; padding: 12px; border-radius: 12px; background: rgba(240, 93, 114, .12);
+  border: 1px solid rgba(240, 93, 114, .5); font-size: 15px; }
+.tsdGotovo { margin: 12px 0 0; padding: 14px; border-radius: 12px; background: rgba(39, 196, 107, .14);
+  border: 1px solid rgba(39, 196, 107, .6); font-size: 17px; font-weight: 600; }
+
+.tsdPrichiny { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 14px; }
+.tsdPrichina { appearance: none; border: 2px solid var(--line-strong); border-radius: 12px; background: #0b1220;
+  color: var(--text); font: inherit; font-size: 15px; font-weight: 600; padding: 14px 8px; cursor: pointer; }
+.tsdPrichina.is-on { border-color: #f05d72; background: rgba(240, 93, 114, .16); }
+.tsdKomment { margin-top: 10px; width: 100%; box-sizing: border-box; font: inherit; font-size: 16px; color: var(--text);
+  background: #0b1220; border: 1px solid var(--line-strong); border-radius: 12px; padding: 12px; }
+
+.tsdKrasnaya { appearance: none; width: 100%; margin-top: 14px; border: 0; border-radius: 20px; background: #d8263d;
+  color: #fff; font: inherit; font-size: 26px; font-weight: 600; padding: 30px 12px; cursor: pointer;
+  box-shadow: 0 8px 0 #8c1426; letter-spacing: .02em; }
+.tsdKrasnaya:active { transform: translateY(4px); box-shadow: 0 4px 0 #8c1426; }
+.tsdKrasnaya:disabled { background: #5a2a33; box-shadow: none; color: #d9b3b9; }
+
+.tsdSpisok { display: grid; gap: 10px; }
+.tsdZayavka { padding: 14px; border: 1px solid var(--line-strong); border-radius: 14px; background: #101823; }
+.tsdZayavka h3 { margin: 0; font-size: 19px; font-weight: 600; word-break: break-word; }
+.tsdZayavka p { margin: 4px 0 0; font-size: 14px; color: var(--muted); }
+.tsdZayavka .tsdPrichinaMetka { display: inline-block; margin-top: 6px; padding: 4px 10px; border-radius: 999px;
+  background: rgba(240, 93, 114, .16); color: #f7a3ae; font-size: 14px; font-weight: 600; }
+.tsdZayavka.is-vrabote { border-color: #d9a441; }
+.tsdKnopki { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 10px; }
+.tsdKn { appearance: none; border: 1px solid var(--line-strong); border-radius: 12px; background: #16202e; color: var(--text);
+  font: inherit; font-size: 15px; font-weight: 600; padding: 12px 4px; cursor: pointer; }
+.tsdKn--ok { background: #1c6b40; border-color: #27c46b; }
+.tsdPusto { color: var(--muted); font-size: 15px; }
+
+.tsdTabl { width: 100%; border-collapse: collapse; font-size: 15px; }
+.tsdTabl th { text-align: left; color: var(--muted); font-size: 12px; font-weight: 600; padding: 8px 6px;
+  border-bottom: 1px solid var(--line-strong); }
+.tsdTabl td { padding: 10px 6px; border-bottom: 1px solid var(--line); }
+.tsdTabl .num { text-align: right; }
+
+body.is-svetlo .tsdKarta, body.is-svetlo .tsdZayavka { background: #fff; }
+body.is-svetlo .tsdSkan input, body.is-svetlo .tsdPrichina, body.is-svetlo .tsdKomment { background: #fff; color: #10203a; }
+body.is-svetlo .tsdVkladka, body.is-svetlo .tsdKn { background: #fff; color: #10203a; }
+body.is-svetlo .tsdVkladka.is-on { background: #10203a; color: #fff; }
+.tsdPrichina:last-child:nth-child(odd) { grid-column: 1 / -1; }

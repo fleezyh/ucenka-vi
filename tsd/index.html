@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <script src="/tema.js?v=20260924-2"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>ТСД · брак в ячейке · Уценка</title>
+  <link rel="icon" type="image/svg+xml" href="../assets/brand/vi-mark.svg">
+  <link rel="preload" href="../assets/fonts/VI_Sans_DemiBold.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="../style.css?v=20260921-1">
+  <link rel="stylesheet" href="tsd.css?v=20260925-1">
+  <link rel="stylesheet" href="../site-header.css?v=20260921-1">
+  <script src="tsd.js?v=20260925-1" defer></script>
+  <script src="../nav.js?v=20260921-1" defer></script>
+</head>
+<body data-mode="perf" class="tsdStranica">
+  <!-- Приложение для ТСД «брак в ячейке» (антигенерация 23.09.2026): выделенный
+       сотрудник пикает ячейку и жмёт красную кнопку, заявка уходит на уборку. -->
+  <main class="shell">
+    <header class="topbar">
+      <a class="brand" href="../" aria-label="Уценка — главная">
+        <img class="brand__mark" src="../assets/brand/vi-mark.svg" alt="" width="36" height="36">
+        <span>Уценка</span>
+      </a>
+    </header>
+
+    <nav class="tsdVkladki" aria-label="Разделы ТСД">
+      <button class="tsdVkladka is-on" type="button" data-vkl="brak">Брак в ячейке</button>
+      <button class="tsdVkladka" type="button" data-vkl="uborka">Уборка <b id="tsdOtkrytoN"></b></button>
+      <button class="tsdVkladka" type="button" data-vkl="svodka">Сводка</button>
+    </nav>
+
+    <section class="tsdEkran" id="vklBrak">
+      <form id="tsdSkanForma" autocomplete="off">
+        <label class="tsdSkan"><span>Отсканируйте ячейку</span>
+          <input id="tsdSkan" inputmode="none" placeholder="CEL …" autofocus></label>
+      </form>
+      <div id="tsdYacheyka"></div>
+    </section>
+
+    <section class="tsdEkran" id="vklUborka" hidden>
+      <div id="tsdUborka"></div>
+    </section>
+
+    <section class="tsdEkran" id="vklSvodka" hidden>
+      <div id="tsdSvodka"></div>
+    </section>
+  </main>
+</body>
+</html>
