@@ -560,56 +560,34 @@ function stroki(lyudi, otkuda) {
     </tr>`).join("");
 }
 
-/* Выгрузка под форму подачи в 1С: колонки названы так же, как в ней, чтобы
-   столбцы вставлялись как есть. Заполняем то, что знаем сами — дни по СКУД и
-   отсутствия; премию и штрафы ставит руководитель. */
-const STOLBCY_PODACHI = [
-  ["Подаёт", (c) => c["подаёт"] || ""],
-  ["Подразделение", (c) => c["подразделение"] || ""],
-  ["Должность", (c) => c["должность"] || ""],
-  ["ФИО", (c) => c["фио"] || ""],
-  ["Статус", (c) => c["отсутствие"] || "Работа"],
-  ["Оклад", (c) => c["оклад"] || ""],
-  ["Надбавка", (c) => c["надбавка"] || 0],
-  ["План дней", (c) => c["план_дней"] || 0],
-  ["Отработано дней (факт)", (c) => c["отработано"] ?? ""],
-  ["Отработано дней (раб.)", (c) => Math.round(c["отработано"] || 0)],
-  ["Источник факта", (c) => c["источник_факта"] || ""],
-  ["Последний выход", (c) => c["последний_выход"] || ""],
-  ["Пропущено дней", (c) => c["пропущено_дней"] || 0],
-  ["Штук за смену", (c) => (c["выработка"] || {})["на_смену"] ?? ""],
-  ["Контур", (c) => (c["выработка"] || {})["контур"] || ""],
-  ["Факт Ежемесячная премия", (c) => c["премия_план"] || ""],
-  // Остальные виды выплат руководитель проставляет в панели с 16.09.2026 —
-  // в выгрузке они называются так же, как колонки формы подачи в 1С.
-  ["Факт Квартальная премия", (c) => (c["выплаты"] || {})["премия_квартал"] || ""],
-  ["Факт Полугодовая премия", (c) => (c["выплаты"] || {})["премия_полугодие"] || ""],
-  ["Годовая премия", (c) => (c["выплаты"] || {})["премия_год"] || ""],
-  ["Разовая премия", (c) => (c["выплаты"] || {})["премия_разовая"] || ""],
-  ["Доплата за совмещение должностей",
-   (c) => (c["выплаты"] || {})["доплата_совмещение"] || ""],
-  ["Комментарий для «Премии»", (c) => c["премия_комментарий"] || ""],
-  ["Прочие штрафы", () => ""],
-];
-
-function vygruzkaPodachi(spisok, podpis) {
-  const ekran = (v) => {
-    const s = String(v ?? "").replace(/"/g, '""');
-    return /[";\n]/.test(s) ? `"${s}"` : s;
-  };
-  const strok = [STOLBCY_PODACHI.map(([name]) => ekran(name)).join(";")]
-    .concat(spisok.map((c) => STOLBCY_PODACHI.map(([, bri]) => ekran(bri(c))).join(";")));
-  // BOM: без него Excel открывает кириллицу в CSV кракозябрами.
-  const blob = new Blob(["﻿" + strok.join("\r\n")],
-                        { type: "text/csv;charset=utf-8" });
-  const ssylka = document.createElement("a");
-  ssylka.href = URL.createObjectURL(blob);
-  ssylka.download = "подача-зп-" + (podpis || "все").replace(/[^\wа-яА-ЯёЁ-]+/g, "-")
-    + "-" + new Date().toISOString().slice(0, 10) + ".csv";
-  document.body.appendChild(ssylka);
-  ssylka.click();
-  ssylka.remove();
-  setTimeout(() => URL.revokeObjectURL(ssylka.href), 1000);
+/* Выгрузка для подачи — сама форма 1С (xls, те же колонки и тот же порядок),
+   на тех, кто сейчас виден в таблице: отдел, подающий, поиск. До 25.09.2026
+   здесь был CSV со своими колонками, а настоящая форма бралась только верхней
+   кнопкой и только целиком на весь контур. */
+async function vygruzkaPodachi(spisok, podpis, knopka) {
+  const bylo = knopka ? knopka.textContent : "";
+  if (knopka) { knopka.disabled = true; knopka.textContent = "Собираю форму…"; }
+  try {
+    const otvet = await fetch("/__zp/forma/spisok", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ "фио": spisok.map((c) => c["фио"]), "подпись": podpis || "все" }),
+    });
+    if (!otvet.ok) throw new Error(`сервер ответил ${otvet.status}`);
+    const blob = await otvet.blob();
+    const ssylka = document.createElement("a");
+    ssylka.href = URL.createObjectURL(blob);
+    ssylka.download = "ВИ Ввод данных по ЗП — " + (podpis || "все").replace(/[^\wа-яА-ЯёЁ -]+/g, "-")
+      + " " + new Date().toISOString().slice(0, 10) + ".xls";
+    document.body.appendChild(ssylka);
+    ssylka.click();
+    ssylka.remove();
+    setTimeout(() => URL.revokeObjectURL(ssylka.href), 1000);
+  } catch (oshibka) {
+    alert("Форма не собралась: " + (oshibka.message || oshibka));
+  } finally {
+    if (knopka) { knopka.disabled = false; knopka.textContent = bylo; }
+  }
 }
 
 /* Выработка прямо в строке: руководителю нужен разрез по людям, а не поход
@@ -696,7 +674,7 @@ function tablica(data) {
          из того, что мы уже видели. -->
     <div class="card zpForma">
       <h2>Форма подачи в 1С</h2>
-      <p class="zpForma__note">Заполняем оклад по факту выходов, ежемесячную премию и отработанные дни. Отпуска и больничные не трогаем — их считает 1С.</p>
+      <p class="zpForma__note">Заполняем оклад и отработанные дни прогнозом на полный месяц, ежемесячную премию, дни отпусков и больничных из 1С; статус строки — отсутствие на последний день месяца, как в самой 1С. Кнопка «Выгрузить для подачи» ниже собирает ту же форму на тех, кто виден в таблице.</p>
       <div class="zpForma__row">
         <label class="zpForma__drop">
           <input type="file" id="formaVhod" accept=".xls,.xlsx" hidden>
@@ -721,7 +699,7 @@ function tablica(data) {
                  autocomplete="off">
           <button class="zpView" type="button" id="sbros" hidden>Сбросить</button>
           <button class="zpView zpView--glavnaya" type="button" id="vygruzka"
-                  title="CSV с колонками формы подачи: дни по СКУД, отсутствия, премии, выработка">Выгрузить для подачи</button>
+                  title="Форма 1С «Ввод данных по ЗП» на тех, кто сейчас в таблице: отфильтруйте отдел или найдите людей — выгрузится ровно этот список">Выгрузить для подачи</button>
         </div>
       </div>
       <p class="stamp">Премию впишите в столбце «Премия» — она сразу попадёт
@@ -1124,7 +1102,7 @@ function tablica(data) {
   });
 
   blockTeam.querySelector("#vygruzka")
-    .addEventListener("click", () => vygruzkaPodachi(vidno, chto));
+    .addEventListener("click", (event) => vygruzkaPodachi(vidno, chto, event.currentTarget));
 
   poisk.addEventListener("input", () => {
     const slovo = poisk.value.trim().toLowerCase();
