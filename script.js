@@ -617,7 +617,8 @@
     showKgtButton(row, fields);
     // Актировка с предсорта (akt-predsort.js) слушает пик и рисует решения.
     document.dispatchEvent(new CustomEvent("picker:hit", { detail: { mode, barcode: code,
-      name: fields.name, rubric: fields.rubric, cluster: fields.cluster, price: fields.price } }));
+      name: fields.name, rubric: fields.rubric, cluster: fields.cluster, price: fields.price,
+      kod: field(row, "Код сайта") } }));
     showSiteLink(field(row, "Код сайта"));
     // Габариты приезжают отдельным запросом, поэтому карточку не ждём: строка
     // появится под кодом товара, когда придёт.

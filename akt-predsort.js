@@ -34,10 +34,13 @@
   let zaSmenu = 0;
   // Тумблер в админке (25.09): под личной учёткой вмс актировку не включаем.
   let vAdminke = "выключена в админке";
+  // Включена в админке — кнопка создаёт настоящий черновик акта в вмс.
+  let boevoy = false;
   fetch("/__akt/sostoyanie", { cache: "no-store" }).then((o) => o.ok ? o.json() : {})
-    .then((d) => { vAdminke = d.включена ? "включена в админке, кнопка к вмс ещё не подключена" : "выключена в админке"; risovat(); })
+    .then((d) => { boevoy = Boolean(d.включена); vAdminke = boevoy ? "включена" : "выключена в админке"; risovat(); })
     .catch(() => {});
-  const demoTekst = () => `Демо: актировка ${vAdminke}, в вмс ничего не уходит`;
+  const demoTekst = () => boevoy ? "Актировка включена: кнопка создаёт черновик акта в вмс"
+    : `Демо: актировка ${vAdminke}, в вмс ничего не уходит`;
 
   function risovat() {
     if (!tovar || tovar.mode !== "presort") { box.hidden = true; return; }
@@ -66,11 +69,30 @@
       const kn = document.getElementById("aktPsGo");
       kn.disabled = true;
       kn.textContent = "Создаю акт…";
-      await new Promise((ok) => setTimeout(ok, 400));
-      zaSmenu += 1;
       const r2 = RESHENIYA.find((x) => x.k === reshenie);
+      let nomerAkta = nomer++;
+      if (boevoy) {
+        try {
+          const otvet = await fetch("/__akt/sozdat", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ товар: tovar.name, код: tovar.kod || "", дефект: defekt, решение: r2.имя }),
+          });
+          const d = await otvet.json().catch(() => ({}));
+          if (!otvet.ok || !d.акт) throw new Error(d.ошибка || `сервер ответил ${otvet.status}`);
+          nomerAkta = d.акт;
+        } catch (oshibka) {
+          kn.disabled = false;
+          kn.textContent = "Заактировать";
+          box.insertAdjacentHTML("beforeend",
+            `<p class="aktPs__net">Акт не создан: ${esc(oshibka.message || oshibka)}. Заактируйте руками в вмс.</p>`);
+          return;
+        }
+      } else {
+        await new Promise((ok) => setTimeout(ok, 400));
+      }
+      zaSmenu += 1;
       box.innerHTML = `<p class="aktPs__demo">${esc(demoTekst())} · заактировано за смену: ${zaSmenu}</p>
-        <p class="aktPs__gotovo">Акт №${nomer++} создан<span>${esc(tovar.name || "")}</span>
+        <p class="aktPs__gotovo">Акт №${nomerAkta} ${boevoy ? "создан черновиком в вмс" : "создан"}<span>${esc(tovar.name || "")}</span>
         <span>${esc(r2.имя)} · мех. повреждения, ${esc(defekt)}</span></p>
         <p class="aktPs__net">Пикните следующий товар.</p>`;
       if (navigator.vibrate) navigator.vibrate(120);
