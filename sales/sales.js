@@ -372,6 +372,13 @@
    * в первом месяце квартала цель равна плану. Ниже нуля цель не опускается.
    * Поля goal_* из json тут не годятся: там накопленная годовая цель.
    */
+  /** Отгружено за месяц — только строка «Проведено / отгружено» (stage_ord 1).
+   * Раньше брали первую строку месяца: пока в месяце нет ни одной отгрузки
+   * (октябрь 26.09), первой шла «Оплачено», и её 0,23 млн показывались как
+   * «Отгружено» и как факт квартала. */
+  const otgruzkaMesyaca = (list) => (list || []).find((r) => Number(r.stage_ord) === 1) || null;
+  const otgruzhenoMln = (list) => { const r = otgruzkaMesyaca(list); return r ? vMln(r.sale_txt) : 0; };
+
   function otstavanie(head) {
     const nomer = Number(head.month_num);
     const pervyy = Math.floor((nomer - 1) / 3) * 3 + 1;
@@ -381,7 +388,7 @@
       const first = list[0];
       const n = first ? Number(first.month_num) : 0;
       if (n < pervyy || n >= nomer) continue;
-      dolg += Number(first.plan_sale_raw || 0) / 1e6 - vMln(first.sale_txt);
+      dolg += Number(first.plan_sale_raw || 0) / 1e6 - otgruzhenoMln(list);
       proshlye.push(name.toLowerCase());
     }
     const plan = Number(head.plan_sale_raw || 0) / 1e6;
@@ -535,7 +542,7 @@
       const first = list[0];
       if (!first || Math.floor((Number(first.month_num) - 1) / 3) !== kv) continue;
       if (Number(first.month_num) > Number(head.month_num)) continue;
-      fact += vMln(first.sale_txt);
+      fact += otgruzhenoMln(list);
       potential += vMln(first.total_sale_txt);
       budget += Number(first.plan_sale_raw || 0) / 1e6;
     }
@@ -600,7 +607,8 @@
     if (!list.length) return;
 
     const head = list[0];
-    const shipRow = list.find((r) => Number(r.stage_ord) === 1) || head;
+    // Нет отгрузок в месяце — плитка «Отгружено» нулевая, а не первая строка.
+    const shipRow = otgruzkaMesyaca(list) || { sale_txt: "0", cost_txt: "0", pallets_txt: 0, okup_txt: "" };
     const workRows = list.filter((r) => Number(r.stage_ord) !== 1);
     const { prevName, dolg } = otstavanie(head);
     const plan = Number(head.plan_sale_raw || 0) / 1e6;
