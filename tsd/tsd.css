@@ -62,3 +62,17 @@ body.is-svetlo .tsdSkan input, body.is-svetlo .tsdPrichina, body.is-svetlo .tsdK
 body.is-svetlo .tsdVkladka, body.is-svetlo .tsdKn { background: #fff; color: #10203a; }
 body.is-svetlo .tsdVkladka.is-on { background: #10203a; color: #fff; }
 .tsdPrichina:last-child:nth-child(odd) { grid-column: 1 / -1; }
+
+.tsdDemo { margin: 0 0 10px; padding: 10px 12px; border-radius: 12px; background: rgba(77, 141, 247, .14);
+  border: 1px solid rgba(77, 141, 247, .5); font-size: 14px; }
+.tsdItogi { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.tsdItog { padding: 12px; border: 1px solid var(--line-strong); border-radius: 14px; background: #101823; }
+.tsdItog b { display: block; font-size: 28px; font-weight: 600; }
+.tsdItog span { display: block; margin-top: 2px; color: var(--muted); font-size: 13px; }
+.tsdItog--krasn b { color: #f05d72; }
+.tsdZag { margin: 16px 0 8px; font-size: 16px; font-weight: 600; }
+.tsdPrichinyGraf { display: grid; gap: 6px; }
+.tsdGraf { display: grid; grid-template-columns: 130px 1fr 34px; align-items: center; gap: 8px; font-size: 14px; }
+.tsdGraf i { display: block; height: 12px; border-radius: 6px; background: #f05d72; min-width: 4px; }
+.tsdGraf b { text-align: right; }
+body.is-svetlo .tsdItog { background: #fff; }
