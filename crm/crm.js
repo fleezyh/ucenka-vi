@@ -3144,7 +3144,7 @@
     uzel.innerHTML = `
       <div class="crmReestr__verh">
         <input class="crmPoisk" id="crmReestrPoisk" type="search"
-          placeholder="Паллета, ячейка, лот или список (Ctrl+V)" value="${escape(reestrFiltr.poisk)}">
+          placeholder="Паллета, ячейка, лот, пломба или список (Ctrl+V)" value="${escape(reestrFiltr.poisk)}">
         <select class="crmVybor" id="crmReestrSklad" aria-label="Склад">
           <option value="">Все склады</option>
           ${sklady.map((s) => `<option${s === reestrFiltr.sklad ? " selected" : ""}>${escape(s)}</option>`).join("")}
@@ -3204,7 +3204,7 @@
       if (reestrFiltr.status && statusPallety(p) !== reestrFiltr.status) return false;
       if (reestrFiltr.sklad && p.склад !== reestrFiltr.sklad) return false;
       if (!stroki.length) return true;
-      const gde = `${p.паллета} ${p.ячейка} ${p.лот} ${p.ка}`.toLowerCase();
+      const gde = `${p.паллета} ${p.ячейка} ${p.лот} ${p.ка} ${p.пломба || ""}`.toLowerCase();
       return stroki.some((x) => gde.includes(x));
     }).sort((a, b) => String(a.склад).localeCompare(String(b.склад), "ru")
       || String(a.паллета).localeCompare(String(b.паллета), "ru"));
@@ -3250,11 +3250,12 @@
     el("crmReestrSchyot").textContent =
       `${spisok.length} паллет · ${chislo(shtuk)} шт · ${chislo(sebes)} ₽ себестоимости без НДС`
       + ` · остатки на ${reestr.обновлено || "—"}, состав на ${reestr.состав_на || "—"}`
+      + (reestr.пломбы_на ? `, пломбы на ${reestr.пломбы_на}` : "")
       + " · клик по строке — что лежит в паллете"
       + (netVBaze.length ? ` · нет среди паллет продаж: ${netVBaze.join(", ")}` : "");
     uzel.innerHTML = `<table>
       <thead><tr><th><input type="checkbox" id="crmReestrVse" aria-label="Отметить все"></th>
-        <th>Паллета</th><th>Склад</th><th>Ячейка</th><th>Статус</th><th>Лот</th>
+        <th>Паллета</th><th>Склад</th><th>Ячейка</th><th>Статус</th><th>Пломба</th><th>Лот</th>
         <th class="crmNum">SKU</th><th class="crmNum">Шт</th><th class="crmNum">Себестоимость</th></tr></thead>
       <tbody>${spisok.slice(0, 1500).map((p) => {
         const st = statusPallety(p);
@@ -3266,11 +3267,12 @@
           <td>${escape(p.склад)}</td><td>${escape(p.ячейка)}</td>
           <td><span class="crmReestr__status is-${STATUSY_PALLETY.indexOf(st)}"
             title="${escape(p.не_нашли || p.основание || "")}">${escape(st)}</span></td>
+          <td class="crmReestr__plomba"${p.пломба ? ` title="${escape([p.пломба_кто, p.пломба_когда].filter(Boolean).join(" · "))}"` : ""}>${p.пломба ? escape(p.пломба) : '<span class="crmHint">—</span>'}</td>
           <td>${p.лот ? `<button class="crmReestr__lot" type="button" data-lot="${escape(p.лот)}"
             title="${escape([p.статус_лота, p.ка].filter(Boolean).join(" · "))}">${escape(p.лот)}</button>` : ""}</td>
           <td class="crmNum">${chislo(p.sku)}</td><td class="crmNum">${chislo(p.штук)}</td>
           <td class="crmNum">${chislo(p.себестоимость)}</td>
-        </tr>${otkryta ? `<tr class="crmReestr__sostav"><td colspan="9">${sostavVnutri(p.паллета)}</td></tr>` : ""}`;
+        </tr>${otkryta ? `<tr class="crmReestr__sostav"><td colspan="10">${sostavVnutri(p.паллета)}</td></tr>` : ""}`;
       }).join("")}</tbody></table>`;
     const vse = el("crmReestrVse");
     vse.checked = spisok.length > 0 && spisok.every((p) => reestrOtmecheno.has(p.паллета));
