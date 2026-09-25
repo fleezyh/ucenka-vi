@@ -728,3 +728,13 @@ body * { font-variant-numeric: normal !important; font-feature-settings: "tnum" 
   .crmTest .crmStolbec { max-height: none; }
   .crmTest .crmStolbec__karty { max-height: none; overflow: visible; }
 }
+
+/* Поля даты без разрядки (25.09.2026): у Chrome свои отступы между днём,
+   месяцем и годом, с VI Sans выходило «26 . 09 . 2026». Раньше правило жило
+   только в crm.css, и на других страницах разрядка вернулась. */
+input[type="date"], input[type="datetime-local"], input[type="month"] { letter-spacing: 0; }
+input[type="date"]::-webkit-datetime-edit, input[type="datetime-local"]::-webkit-datetime-edit,
+input[type="date"]::-webkit-datetime-edit-fields-wrapper, input[type="datetime-local"]::-webkit-datetime-edit-fields-wrapper,
+input[type="date"]::-webkit-datetime-edit-text, input[type="datetime-local"]::-webkit-datetime-edit-text,
+input[type="date"]::-webkit-datetime-edit-day-field, input[type="date"]::-webkit-datetime-edit-month-field,
+input[type="date"]::-webkit-datetime-edit-year-field { padding: 0; }

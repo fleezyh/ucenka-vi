@@ -445,6 +445,13 @@
     const st = String(z.status || "");
     const dela = delaLota(z);
     if (dela.some((x) => x.просрочена)) metki.push(["дело просрочено", "is-krasnyy"]);
+    const sg = soglasLota(z);
+    if (sg && sg.статус === "ждёт") {
+      metki.push([`на согласовании · ДВК ${(sg.двк_ок || 0) + (sg.двк_нет || 0)}/${sg.паллет} · СБ ${sg.сб_ок || 0}/${sg.паллет}`,
+        "is-zhyoltyy", "ДВК и СБ ставят галочки на экране согласования"]);
+    } else if (sg && sg.статус === "согласован") {
+      metki.push([`согласован к отгрузке ${sg.к_отгрузке}/${sg.паллет}`, "is-zelyonyy", "обе службы согласовали — паллеты ушли в канал склада"]);
+    }
     if (!String(z.menedzher || "").trim()) metki.push(["без менеджера", "is-krasnyy"]);
     if (st.startsWith("6.") && d > 7) metki.push([`оплаты нет ${d}д`, "is-zhyoltyy", "счёт выставлен, оплаты нет больше недели"]);
     if (st.startsWith("7.")) metki.push(["отгрузить", "is-siniy"]);
@@ -1032,7 +1039,7 @@
         `<span class="ctMetka ${k}"${pod ? ` title="${escape(pod)}"` : ""}>${escape(t)}</span>`).join("") : '<span class="ctMetki__chisto">без замечаний</span>'}</div>
       <div class="ctKarta__niz">
         <button class="ctKarta__kn" type="button" data-delo title="Завести дело по лоту">+ дело</button>
-        ${z.status === "7. Оплачен" ? `<button class="ctKarta__kn ctKarta__kn--dalshe" type="button" data-soglas
+        ${z.status === "7. Оплачен" && !soglasLota(z) ? `<button class="ctKarta__kn ctKarta__kn--dalshe" type="button" data-soglas
           title="Вместо письма «на отгрузку»: ДВК и СБ согласуют паллеты в системе">на согласование</button>` : ""}
         ${kuda ? `<button class="ctKarta__kn ctKarta__kn--dalshe" type="button" data-dalshe
           title="Перевести в «${escape(imyaEtapa(kuda))}»">→ ${escape(KRATKO[kuda] || imyaEtapa(kuda).toLowerCase())}</button>` : ""}
@@ -1050,7 +1057,7 @@
     if (knSoglas) {
       knSoglas.addEventListener("click", (event) => {
         event.stopPropagation();
-        window.open(`/soglas/?lot=${encodeURIComponent(z.nomer)}`, "_blank");
+        soglasovanieLota(z);
       });
     }
     const knDalshe = karta.querySelector("[data-dalshe]");
@@ -1814,6 +1821,7 @@
           tip === "ka" ? "Контрагент" : tip === "lot" ? "Лот" : "Счёт")}</span>
         <div class="crmOkno__act">
           ${tip === "lot" ? '<button class="crmKn" type="button" data-pravit>Править</button>' : ""}
+          ${tip === "lot" && (z.status === "7. Оплачен" || soglasLota(z)) ? '<button class="crmKn crmKn--glav" type="button" data-soglas-okno>Согласование отгрузки</button>' : ""}
           ${tip === "lot" ? '<button class="crmKn crmKn--udalit" type="button" data-udalit title="Лот заведён по ошибке — спрятать. Вернуть можно в «Таблице» внизу">Удалить</button>' : ""}
           <button class="crmKn" type="button" data-zakryt>Закрыть</button>
         </div>
@@ -1832,6 +1840,8 @@
     el("crmOkno").hidden = false;
     const pravit = el("crmOknoDoc").querySelector("[data-pravit]");
     if (pravit) pravit.addEventListener("click", () => otkrytFormu(z));
+    const soglasKn = el("crmOknoDoc").querySelector("[data-soglas-okno]");
+    if (soglasKn) soglasKn.addEventListener("click", () => soglasovanieLota(z));
     const pismoKn = el("crmPismoKn");
     if (pismoKn) pismoKn.addEventListener("click", () => schetVChernoviki(z, pismoKn));
     const naSchet = el("crmNaSchetKn");
@@ -1934,6 +1944,90 @@
   /** Новый контрагент прямо из CRM (23.09: «нет функции добавить нового КА»).
    *  Сервер держит его через утреннюю перезаливку из книги продаж, пока в
    *  книге не появится то же имя. */
+  // --- Согласование отгрузки внутри лота (25.09.2026) ------------------------
+  // Вместо письма «на отгрузку»: оператор из карточки лота отправляет паллеты,
+  // ДВК и СБ ставят галочки на экране /soglas/, согласованное бот пишет в
+  // канал склада. Создаём здесь, в лоте, — отдельная страница только для служб.
+  function soglasLota(z) {
+    return (dannye.согласования || {})[String(z.nomer)] || null;
+  }
+
+  async function soglasovanieLota(z) {
+    const sg = soglasLota(z);
+    const zavtra = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+    const shapka = `
+      <div class="crmOkno__top">
+        <span class="crmOkno__teg">Согласование отгрузки</span>
+        <div class="crmOkno__act"><button class="crmKn" type="button" data-zakryt>Закрыть</button></div>
+      </div>
+      <h2>Лот ${escape(z.nomer)} · ${escape(z.ka || "контрагент не указан")}</h2>`;
+    if (sg) {
+      el("crmOknoDoc").innerHTML = shapka + `
+        <p class="crmPodskazka">${sg.статус === "ждёт"
+          ? `На согласовании с ${escape(String(sg.создан || "").slice(0, 16))}: ДВК решил ${(sg.двк_ок || 0) + (sg.двк_нет || 0)} из ${sg.паллет}, СБ — ${sg.сб_ок || 0}. Отправил ${escape(sg.создал || "—")}.`
+          : `Согласован к отгрузке: ${sg.к_отгрузке} паллет из ${sg.паллет}${sg.канал_когда ? ", ушло в канал склада " + escape(String(sg.канал_когда).slice(0, 16)) : ""}.`}</p>
+        <div class="crmForma__niz"><a class="crmKn crmKn--glav" href="/soglas/?id=${sg.id}" target="_blank">Открыть согласование ↗</a></div>`;
+      el("crmOkno").hidden = false;
+      return;
+    }
+    el("crmOknoDoc").innerHTML = shapka + `
+      <p class="crmPodskazka">ДВК и СБ получат лот на экране согласования и поставят галочки по паллетам.
+        Пломбы, состав и себестоимость подтянутся сами. Паллеты — как в письмо: по одной в строке или через «;».</p>
+      <form class="crmForma" id="crmFormaSoglas">
+        <label class="crmPole"><span>Дата отгрузки</span><input type="date" name="дата" required value="${zavtra}"></label>
+        <label class="crmPole crmPole--shirokoe"><span>Паллеты${z.pallet ? ` (в лоте ${escape(z.pallet)})` : ""}</span>
+          <textarea name="паллеты" rows="8" required placeholder="Мебель (Ко)-0151551180&#10;КГТ(Ко)-0148966205"></textarea></label>
+        <label class="crmPole crmPole--shirokoe"><span>Комментарий</span><input name="комментарий" placeholder="если нужно"></label>
+        <div class="crmForma__niz">
+          <button class="crmKn crmKn--glav" type="submit">Отправить на согласование</button>
+          <span class="crmOtvet" id="crmOtvetSoglas"></span>
+        </div>
+      </form>`;
+    el("crmOkno").hidden = false;
+    // Если паллеты уже собраны в лот — подставляем их, чтобы не вставлять руками.
+    try {
+      const otvet = await fetch("/__crm/pallety", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ действие: "состав", лот: z.nomer }) });
+      if (otvet.ok) {
+        const d = await otvet.json();
+        const pole = el("crmFormaSoglas")?.querySelector("textarea");
+        if (pole && !pole.value && (d.паллеты || []).length) pole.value = d.паллеты.map((p) => p.паллета).join("\n");
+      }
+    } catch (e) { /* паллет в лоте нет — вставят руками */ }
+    el("crmFormaSoglas").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const otvetEl = el("crmOtvetSoglas");
+      const knopka = event.target.querySelector("button[type=submit]");
+      const f = new FormData(event.target);
+      knopka.disabled = true;
+      otvetEl.textContent = "отправляю…";
+      try {
+        const otvet = await fetch("/__soglas", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ действие: "создать", лот: z.nomer, дата: f.get("дата"),
+            паллеты: f.get("паллеты"), комментарий: f.get("комментарий") }),
+        });
+        const d = await otvet.json().catch(() => ({}));
+        if (!otvet.ok) throw new Error(d.ошибка || `сервер ответил ${otvet.status}`);
+        const p = d.паллеты || [];
+        dannye.согласования = dannye.согласования || {};
+        dannye.согласования[String(z.nomer)] = {
+          id: d.заявка.id, статус: "ждёт", паллет: p.length, двк_ок: 0, двк_нет: 0, сб_ок: 0,
+          создал: d.заявка.sozdal, создан: d.заявка.sozdan,
+        };
+        const bez = p.filter((x) => !x.пломба).length;
+        el("crmOknoDoc").innerHTML = shapka + `
+          <p class="crmPodskazka">Отправлено: ${p.length} паллет ждут ДВК и СБ.${bez ? ` Без пломбы ${bez} — ДВК их не согласует, пока пломбы нет.` : ""}</p>
+          <div class="crmForma__niz"><a class="crmKn crmKn--glav" href="/soglas/?id=${d.заявка.id}" target="_blank">Открыть согласование ↗</a>
+            <button class="crmKn" type="button" data-zakryt>Готово</button></div>`;
+        narisovat();
+      } catch (e) {
+        otvetEl.textContent = e.message || String(e);
+        knopka.disabled = false;
+      }
+    });
+  }
+
   function otkrytNovogoKa() {
     const ya = (dannye.кто && dannye.кто.имя) || "";
     const menedzhery = spisokPolya("menedzher") || [];

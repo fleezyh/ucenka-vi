@@ -237,3 +237,6 @@ body.ctSvyazOtkryt .ctSvyazKn { display: none; }
    ctShapka осталась под планом месяца — отступ сверху меньше, ссылка справа. */
 .ctShapka { margin: 4px 0 14px; }
 .ctShapka .ctTest { margin-left: auto; }
+
+/* Метка «согласован к отгрузке» — зелёная, как готовое к отгрузке (25.09.2026). */
+.ctMetka.is-zelyonyy { color: #06170d; background: #27c46b; }

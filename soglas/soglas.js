@@ -24,7 +24,8 @@
       if (!otvet.ok) throw new Error(otvet.status === 403 ? "нет доступа к согласованию отгрузок" : `сервер ответил ${otvet.status}`);
       const d = await otvet.json();
       mozhno = d.можно || {};
-      el("sgNovaya").hidden = !mozhno.запрос;
+      el("sgVCrm").hidden = !mozhno.запрос;
+
       narisovatSpisok(d);
       el("message").textContent = "";
       el("sgDoska").hidden = false;
@@ -220,45 +221,6 @@
     }
   }
 
-  /* ── новая заявка ──────────────────────────────────────── */
-
-  function formaNovoy(lot) {
-    const segodnya = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
-    okno(`
-      <div class="sgOkno__shapka"><h2>Лот на согласование отгрузки</h2>
-        <button class="sgZakryt" type="button" data-zakryt aria-label="Закрыть">✕</button></div>
-      <p class="sgPusto">Лот должен быть оплачен. Вставьте паллеты, как вставляли в письмо: по одной в строке
-        или через «;». Пломбы, состав и себестоимость подтянутся сами.</p>
-      <form class="sgForma" id="sgForma">
-        <div class="sgForma__dva">
-          <label>Лот<input name="лот" required value="${esc(lot || "")}" placeholder="например, 1468"></label>
-          <label>Дата отгрузки<input name="дата" type="date" required value="${segodnya}"></label>
-        </div>
-        <label>Паллеты<textarea name="паллеты" required placeholder="Мебель (Ко)-0151551180&#10;КГТ(Ко)-0148966205"></textarea></label>
-        <label>Комментарий<input name="комментарий" placeholder="если нужно — например, «вывоз двумя машинами»"></label>
-        <p class="sgOshibka" id="sgFormaOshibka"></p>
-        <div class="sgDeystviya"><button class="sgKn sgKn--glav" type="submit">Отправить на согласование</button>
-          <button class="sgKn sgKn--tiho" type="button" data-zakryt>Отмена</button></div>
-      </form>`);
-    el("sgForma").addEventListener("submit", async (event) => {
-      event.preventDefault();
-      const f = new FormData(event.currentTarget);
-      const knopka = event.currentTarget.querySelector("[type=submit]");
-      knopka.disabled = true;
-      try {
-        const itog = await poslat({ действие: "создать", лот: f.get("лот"), дата: f.get("дата"),
-          паллеты: f.get("паллеты"), комментарий: f.get("комментарий") });
-        tekushaya = { ...itog, можно: mozhno };
-        narisovatZayavku();
-        zagruzit();
-        history.replaceState(null, "", location.pathname);
-      } catch (e) {
-        el("sgFormaOshibka").textContent = e.message || String(e);
-        knopka.disabled = false;
-      }
-    });
-  }
-
   /* ── события ───────────────────────────────────────────── */
 
   document.addEventListener("click", (event) => {
@@ -281,11 +243,13 @@
     }
   });
   document.addEventListener("keydown", (event) => { if (event.key === "Escape" && !el("sgOkno").hidden) zakryt(); });
-  el("sgNovaya").addEventListener("click", () => formaNovoy(""));
 
+
+  // Лот на согласование отправляют из карточки лота в CRM. Сюда приходят по
+  // ссылке «Открыть согласование» — сразу открываем эту заявку.
   zagruzit().then(() => {
-    const lot = new URLSearchParams(location.search).get("lot");
-    if (lot && mozhno.запрос) formaNovoy(lot);
+    const id = new URLSearchParams(location.search).get("id");
+    if (id) otkrytZayavku(id);
   });
   setInterval(() => { if (el("sgOkno").hidden) zagruzit(); }, 60000);
 })();
