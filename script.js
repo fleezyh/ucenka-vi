@@ -125,6 +125,14 @@
   const pendingShards = new Map();
   const aliasCache = new Map();
   const pendingAliases = new Map();
+  // Габариты лежат отдельной базой: они нужны одной строке ответа, а
+  // пересборка основной базы — это десять тысяч файлов. Манифест тянем не при
+  // запуске, а при первом же найденном товаре: если человек ничего не сканирует,
+  // качать нечего.
+  let dimsManifest = null;
+  let dimsManifestPromise = null;
+  const dimsCache = new Map();
+  const pendingDims = new Map();
   const wordCache = new Map();
   const pendingWords = new Map();
 
@@ -159,6 +167,12 @@
     $("rowCount").textContent = manifest ? numberFormat.format(manifest.rows) : "—";
     $("partCount").textContent = String(shardCache.size);
     $("readyState").textContent = manifest ? "Готово" : "Загрузка";
+    const built = $("builtAt");
+    // builtAt в манифесте — «2026-09-18 19:40:12»; показываем только дату,
+    // время сборки на складе никого не интересует.
+    if (built) built.textContent = manifest?.builtAt
+      ? String(manifest.builtAt).slice(0, 10).split("-").reverse().join(".")
+      : "—";
   }
 
   function showReady() {
@@ -268,8 +282,21 @@
     return barcode.slice(-manifest.shardDigits).padStart(manifest.shardDigits, "0");
   }
 
+  /* Метка сборки в адресе файла.
+   *
+   * Кусочки базы лежат в кэше браузера «навсегда» — это и задумано, они не
+   * меняются между сборками. Но сборка теперь еженедельная, и без метки
+   * пикалка у того, кто ей уже пользовался, осталась бы на старой базе
+   * насовсем: новых товаров нет, цены прошлые. Метка меняется раз в неделю,
+   * вместе с базой, и ровно тогда браузер и качает кусочек заново. */
+  function sMetkoy(url, builtAt) {
+    return builtAt ? `${url}?v=${encodeURIComponent(builtAt)}` : url;
+  }
+
   function shardUrl(key) {
-    return manifest.shardPath.replace("{prefix}", key.slice(0, 2)).replace("{key}", key);
+    return sMetkoy(
+      manifest.shardPath.replace("{prefix}", key.slice(0, 2)).replace("{key}", key),
+      manifest.builtAt);
   }
 
   function rememberShard(key, rows) {
@@ -328,9 +355,9 @@
     if (aliasEmptyShards.has(key)) return [];
     if (pendingAliases.has(key)) return pendingAliases.get(key);
 
-    const url = manifest.aliasPath
+    const url = sMetkoy(manifest.aliasPath
       .replace("{prefix}", key.slice(0, 2))
-      .replace("{key}", key);
+      .replace("{key}", key), manifest.aliasBuiltAt || manifest.builtAt);
 
     const task = (async () => {
       const response = await fetch(url, { cache: "force-cache" });
@@ -350,6 +377,121 @@
     } finally {
       pendingAliases.delete(key);
     }
+  }
+
+  // --- Габариты -------------------------------------------------------------
+  // Порог, с которого товар считается крупным. Взят из замера 18.09.2026:
+  // у позиций перечня КГТ средняя максимальная сторона 1387 мм и средний вес
+  // 66 кг, у остальных — 322–604 мм и 12–36 кг. Полутора метров и тридцати
+  // килограммов достаточно, чтобы отделить одно от другого; точную границу
+  // склад ещё уточнит, поэтому она здесь одной строкой.
+  const KRUPNYY_MM = 1500;
+  const KRUPNYY_KG = 30;
+
+  async function loadDimsManifest() {
+    if (dimsManifest) return dimsManifest;
+    if (!dimsManifestPromise) {
+      dimsManifestPromise = fetch("data/dims/manifest.json", { cache: "no-cache" })
+        .then((response) => (response.ok ? response.json() : null))
+        .catch(() => null);
+    }
+    dimsManifest = await dimsManifestPromise;
+    return dimsManifest;
+  }
+
+  async function loadDims(barcode) {
+    const info = await loadDimsManifest();
+    if (!info) return null;
+    const digits = info.shardDigits || 4;
+    const key = barcode.slice(-digits).padStart(digits, "0");
+    if (!dimsCache.has(key) && !pendingDims.has(key)) {
+      const url = sMetkoy(
+        info.path.replace("{prefix}", key.slice(0, 2)).replace("{key}", key),
+        info.builtAt);
+      const task = (async () => {
+        const response = await fetch(url, { cache: "force-cache" });
+        if (!response.ok) return [];
+        const buffer = await readMaybeGzip(response);
+        const rows = parseCsv(utf8.decode(new Uint8Array(buffer)));
+        dimsCache.set(key, rows);
+        while (dimsCache.size > MAX_CACHED_SHARDS) {
+          dimsCache.delete(dimsCache.keys().next().value);
+        }
+        return rows;
+      })();
+      pendingDims.set(key, task);
+      try { await task; } finally { pendingDims.delete(key); }
+    }
+    const rows = dimsCache.get(key) || (await pendingDims.get(key)) || [];
+    const hit = rows.find((row) => row[0] === barcode);
+    if (!hit) return null;
+    const [, dlina, shirina, vysota, ves, poImeni] = hit;
+    const number = (value) => {
+      const result = Number(String(value || "").replace(",", "."));
+      return Number.isFinite(result) && result > 0 ? result : 0;
+    };
+    return {
+      dlina: number(dlina), shirina: number(shirina),
+      vysota: number(vysota), ves: number(ves),
+      // Длина, вычитанная из названия при сборке. Стоит, только когда карточка
+      // заметно меньше, — то есть когда ей верить нельзя.
+      poImeni: number(poImeni),
+    };
+  }
+
+  /* Строка с габаритами и сверка с кластером.
+   *
+   * Логика кластеров не меняется — её ставит справочник по рубрике. Здесь
+   * только сверка: показать цифры и сказать, когда они с кластером спорят.
+   * Оператор смотрит на товар и решает сам, а кнопка «Это КГТ / Это не КГТ»
+   * рядом уже умеет отправить расхождение. */
+  const razmeryBox = document.getElementById("razmery");
+
+  async function showRazmery(barcode, cluster) {
+    if (!razmeryBox) return;
+    razmeryBox.hidden = true;
+    // Запоминаем номер операции, но не трогаем сам счётчик: его ведёт поиск, и
+    // лишний инкремент здесь оборвал бы его собственную загрузку шардов.
+    const moy = version;
+    const dims = await loadDims(barcode);
+    if (moy !== version || !dims) return;
+
+    const storony = [dims.dlina, dims.shirina, dims.vysota].filter(Boolean);
+    const maks = storony.length ? Math.max(...storony) : 0;
+    // Больше шести метров — мусор в карточке: в базе попадаются стороны по
+    // семьсот метров, и показывать их как габарит нельзя.
+    const chisto = maks > 0 && maks <= 6000;
+    const chasti = [];
+    if (storony.length === 3) {
+      chasti.push(`${dims.dlina}×${dims.shirina}×${dims.vysota} мм`);
+    } else if (chisto) {
+      chasti.push(`${maks} мм`);
+    }
+    if (dims.ves) chasti.push(`${dims.ves.toLocaleString("ru-RU")} кг`);
+    if (!chasti.length) return;
+
+    // Длина из названия приходит уже посчитанной и только тогда, когда
+    // карточка заметно меньше: у полосы ECO в карточке 270 мм при реальных
+    // 2,7 метра. Считать это на месте нельзя — имя в базе обрезано до
+    // шестидесяти знаков, и метраж в него не влезает.
+    const zanizheno = dims.poImeni > 0;
+    if (zanizheno) {
+      chasti.push(`в названии ${(dims.poImeni / 1000).toLocaleString("ru-RU")} м — карточка занижена`);
+    }
+
+    const krupnyy = (chisto && maks >= KRUPNYY_MM)
+                 || dims.ves >= KRUPNYY_KG
+                 || dims.poImeni >= KRUPNYY_MM;
+    let spor = "";
+    if (cluster === "4" && !krupnyy) {
+      spor = " · по размерам на крупногабарит не тянет";
+    } else if (cluster && cluster !== "4" && krupnyy) {
+      spor = " · по размерам это крупногабарит";
+    }
+
+    razmeryBox.textContent = chasti.join(" · ") + spor;
+    razmeryBox.className = `razmery${spor || zanizheno ? " razmery--spor" : ""}`;
+    razmeryBox.hidden = false;
   }
 
   /** Отдаёт настоящий штрихкод товара по внутренней этикетке, либо пустую строку. */
@@ -420,8 +562,32 @@
       name: field(row, "Наименование"),
       rubric: RUBRIC_ALIASES[rubric] || rubric,
       price: money(field(row, "Себес")),
+      // РРЦ появилась в базе 18.09.2026; у прежних сборок поля нет, и
+      // field вернёт пустую строку — строка просто не покажется.
+      rrc: money(field(row, "РРЦ")),
       cluster: CLUSTER_NAMES[cluster] || cluster,
     };
+  }
+
+  /* Розничная цена под себестоимостью.
+   *
+   * Показываем и наценку к себесу: «в 1,8 раза» отвечает на вопрос, который
+   * задают следом за ценой, — сколько на товаре вообще заложено. */
+  const rrcLine = document.getElementById("rrcLine");
+
+  function showRrc(row, fields) {
+    if (!rrcLine) return;
+    if (!fields.rrc) {
+      rrcLine.hidden = true;
+      return;
+    }
+    const sebes = Number(String(field(row, "Себес") || "").replace(/\s/g, "").replace(",", "."));
+    const rrc = Number(String(field(row, "РРЦ") || "").replace(/\s/g, "").replace(",", "."));
+    const nacenka = Number.isFinite(sebes) && sebes > 0 && Number.isFinite(rrc) && rrc > 0
+      ? ` · в ${(rrc / sebes).toLocaleString("ru-RU", { maximumFractionDigits: 1 })} раза к себесу`
+      : "";
+    rrcLine.textContent = `РРЦ ${fields.rrc}${nacenka}`;
+    rrcLine.hidden = false;
   }
 
   function showHit(row, scannedCode = "") {
@@ -446,9 +612,16 @@
     const viaLabel = scannedCode && scannedCode !== code;
     productCode.textContent = viaLabel ? `${scannedCode} → ${code}` : code;
     showCopyButton(Boolean(fields.name));
+    showRrc(row, fields);
     lastOtbor = showOtbor(row);
     showKgtButton(row, fields);
+    // Актировка с предсорта (akt-predsort.js) слушает пик и рисует решения.
+    document.dispatchEvent(new CustomEvent("picker:hit", { detail: { mode, barcode: code,
+      name: fields.name, rubric: fields.rubric, cluster: fields.cluster, price: fields.price } }));
     showSiteLink(field(row, "Код сайта"));
+    // Габариты приезжают отдельным запросом, поэтому карточку не ждём: строка
+    // появится под кодом товара, когда придёт.
+    showRazmery(code, field(row, "Кластер"));
     answer.style.display = "flex";
 
     detailsBody.replaceChildren();
@@ -648,6 +821,7 @@
     productCode.textContent = code;
     showCopyButton(false);
     if (kgtMark) kgtMark.hidden = true;
+    document.dispatchEvent(new CustomEvent("picker:miss"));
     if (otborBox) otborBox.hidden = true;
     if (siteLink) siteLink.hidden = true;
     answer.style.display = "flex";
@@ -664,6 +838,7 @@
     productCode.textContent = code;
     showCopyButton(false);
     if (kgtMark) kgtMark.hidden = true;
+    document.dispatchEvent(new CustomEvent("picker:miss"));
     if (otborBox) otborBox.hidden = true;
     if (siteLink) siteLink.hidden = true;
     answer.style.display = "flex";
@@ -803,12 +978,12 @@
     const prefix = [...token.slice(0, manifest.wordPrefix)]
       .map((char) => (/[0-9a-zа-яё]/i.test(char) ? char : "_"))
       .join("");
-    return manifest.wordPath.replace("{prefix}", prefix);
+    return sMetkoy(manifest.wordPath.replace("{prefix}", prefix), manifest.builtAt);
   }
 
   /** Скачивает список штрихкодов частого слова — он вынесен в отдельный файл. */
   async function loadBigWord(token) {
-    const url = manifest.wordBigPath.replace("{token}", token);
+    const url = sMetkoy(manifest.wordBigPath.replace("{token}", token), manifest.builtAt);
     if (wordCache.has(url)) return wordCache.get(url);
     if (pendingWords.has(url)) return pendingWords.get(url);
 

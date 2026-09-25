@@ -51,6 +51,27 @@
   --mono: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
 }
 
+/* Светлая тема. Просьба со встречи-штурма 21.09: «чтобы глаза не болели в конце
+   дня». Переопределяем переменные, а не пишем второй набор стилей — тогда любая
+   новая вёрстка на переменных получает светлый режим бесплатно. */
+body.is-svetlo {
+  color-scheme: light only;
+  --bg: #eef1f6;
+  --panel: rgba(255, 255, 255, 0.96);
+  --panel-soft: rgba(255, 255, 255, 0.8);
+  --line: #d3dae5;
+  --line-strong: #b6c1d1;
+  --text: #121a25;
+  --muted: #5d6b7e;
+  --green-deep: #0f6b39;
+  --blue-deep: #1f4fa8;
+  --shadow: 0 18px 50px rgba(18, 26, 37, 0.14);
+  background:
+    radial-gradient(1000px 620px at 3% -8%, rgba(39, 196, 107, 0.10), transparent 59%),
+    radial-gradient(850px 560px at 100% 2%, rgba(77, 141, 247, 0.08), transparent 58%),
+    var(--bg);
+}
+
 * { box-sizing: border-box; }
 
 html { min-width: 320px; min-height: 100%; }
@@ -820,10 +841,14 @@ body[data-mode="pallets"] .lead { min-height: 3.3em; }
 .costListTotals span { display: block; margin-bottom: 5px; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
 .costListTotals strong { color: var(--text); font-size: 20px; }
 .costListResults { display: none; max-height: 580px; }
+.costListMore { margin-top: 12px; }
 .costListResults td { max-width: 320px; }
 .costListResults td:nth-child(2), .costListResults td:nth-child(3) { min-width: 220px; }
 .costListResults tr.is-missing td { background: rgba(240, 93, 114, 0.07); }
 .costListResults tr.is-warning td { background: rgba(245, 173, 50, 0.07); }
+/* Гуид карточки — тридцать шесть знаков. Моноширинный и мельче остального,
+   иначе одна колонка забирает половину ширины таблицы. */
+.costListResults td.guidCell { font-family: var(--mono); font-size: 11.5px; color: var(--muted); white-space: nowrap; }
 .costListStatus--ok { color: #74dea2; }
 .costListStatus--missing { color: #ff8da0; }
 .costListStatus--warning { color: #f7c877; }
@@ -1083,3 +1108,36 @@ body[data-mode="dorogie"] .searchCard { grid-column: 1; grid-row: 1; }
   line-height: 1.4;
 }
 .otborMark.is-авито { border-color: rgba(39, 196, 107, .55); background: rgba(39, 196, 107, .12); color: #7ee2a8; }
+
+/* Розничная цена и габариты — справочные строки под кодом товара. Они не
+   требуют решения, поэтому подаются тише кода и тем более тише отбора. */
+.rrcLine, .razmery { margin: 7px 0 0; color: var(--muted); font-size: 13px; line-height: 1.4; }
+.rrcLine[hidden], .razmery[hidden] { display: none; }
+/* Размер спорит с кластером — это уже повод посмотреть на товар, а не просто
+   справка, поэтому строка перестаёт быть серой. */
+.razmery--spor { color: #f0c479; font-weight: 600; }
+
+/* Переключатель пикалки на телефоне (24.09): «Себес списком» уходит в две
+   строки, правая половина становится выше, и левые кнопки оставались
+   низкими, прижатыми к верху — надписи стояли на разной высоте. Кнопки
+   растягиваем на всю высоту ряда, текст — по центру. */
+.pickerTabGroup { display: flex; }
+.pickerTabGroup__buttons { flex: 1; align-items: stretch; }
+.pickerTabs .tab { display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1.15; }
+
+/* Пикалка · актировка с предсорта (akt-predsort.js, пока демо ?akt) */
+.aktPs { width: 100%; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line-strong); }
+.aktPs__demo { margin: 0 0 8px; font-size: 13px; color: #8fb4ff; }
+.aktPs__zag { margin: 10px 0 6px; font-size: 13px; color: var(--muted); }
+.aktPs__ryad { display: flex; flex-wrap: wrap; gap: 6px; }
+.aktPs__kn { appearance: none; font: inherit; font-size: 15px; font-weight: 600; padding: 10px 14px; border-radius: 12px;
+  border: 1px solid var(--line-strong); background: transparent; color: var(--text); cursor: pointer; }
+.aktPs__kn.is-on { border-color: #f5ad32; background: rgba(245, 173, 50, .16); }
+.aktPs__kn--def.is-on { border-color: #f05d72; background: rgba(240, 93, 114, .16); }
+.aktPs__akt { appearance: none; width: 100%; margin-top: 12px; border: 0; border-radius: 14px; background: #d8263d; color: #fff;
+  font: inherit; font-size: 20px; font-weight: 600; padding: 16px; cursor: pointer; }
+.aktPs__akt:disabled { background: #5a2a33; color: #d9b3b9; cursor: default; }
+.aktPs__chto, .aktPs__net { margin: 8px 0 0; font-size: 13px; color: var(--muted); }
+.aktPs__gotovo { margin: 4px 0 0; padding: 12px 14px; border-radius: 12px; background: rgba(39, 196, 107, .14);
+  border: 1px solid rgba(39, 196, 107, .6); font-size: 20px; font-weight: 600; }
+.aktPs__gotovo span { display: block; margin-top: 4px; font-size: 14px; font-weight: 400; }

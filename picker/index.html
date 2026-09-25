@@ -2,6 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8">
+  <script src="/tema.js?v=20260924-2"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <base href="../">
   <meta name="theme-color" content="#0a1018">
@@ -9,14 +10,15 @@
   <link rel="icon" type="image/svg+xml" href="assets/brand/vi-mark.svg?v=20260903-3">
   <link rel="preload" href="assets/fonts/VI_Sans_Regular.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="assets/fonts/VI_Sans_ExtraBold.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="style.css?v=20260915-8">
+  <link rel="stylesheet" href="style.css?v=20260925-1">
   <link rel="stylesheet" href="reeded-bg.css?v=20260907-6">
-  <link rel="stylesheet" href="site-header.css?v=20260914-2">
+  <link rel="stylesheet" href="site-header.css?v=20260921-1">
   <script src="reeded-bg.js?v=20260906-7" defer></script>
-  <script src="script.js?v=20260915-4" defer></script>
-  <script src="cost-list.js?v=20260915-4" defer></script>
-  <script src="pallets.js?v=20260905-7" defer></script>
-  <script src="nav.js?v=20260914-1" defer></script>
+  <script src="script.js?v=20260925-1" defer></script>
+  <script src="akt-predsort.js?v=20260925-1" defer></script>
+  <script src="cost-list.js?v=20260921-2" defer></script>
+  <script src="pallets.js?v=20260924-1" defer></script>
+  <script src="nav.js?v=20260921-1" defer></script>
 </head>
 <body data-mode="ucenka">
   <main class="shell">
@@ -88,6 +90,10 @@
           <div><dt>Строк</dt><dd id="rowCount">—</dd></div>
           <div><dt>Кусочков в памяти</dt><dd id="partCount">0</dd></div>
           <div><dt>Состояние</dt><dd id="readyState">Подключение</dd></div>
+          <!-- Когда собирали базу. До 18.09.2026 сказать это было нельзя: у
+               каждого из трёх индексов был свой манифест со своей датой, и
+               собраны они были в разные дни. Теперь дата одна на всех. -->
+          <div><dt>Обновлено</dt><dd id="builtAt">—</dd></div>
         </dl>
 
         <button class="retry" id="retry" type="button" hidden>Повторить подключение</button>
@@ -139,6 +145,17 @@
             </div>
             <span class="secondary" id="secondary">—</span>
             <p class="code" id="productCode"></p>
+            <!-- Розничная цена рядом с себестоимостью: по этой паре сразу
+                 видно, что вообще можно просить за товар, и не надо открывать
+                 карточку на сайте отдельной вкладкой. -->
+            <p class="rrcLine" id="rrcLine" hidden></p>
+            <!-- Габариты и вес одной штуки. Кластер ставится по рубрике
+                 каталога, размер в нём не участвует, и на складе это
+                 расходится: внутри крупногабарита треть позиций мельче метра,
+                 а снаружи — 440 тысяч позиций длиннее полутора. Поэтому
+                 размеры показываем всегда, а когда они спорят с кластером,
+                 говорим об этом прямо: решение остаётся за человеком. -->
+            <p class="razmery" id="razmery" hidden></p>
             <!-- Подходит ли товар под отбор на площадки: дорогое идёт поштучно
                  на Авито, среднее — на маркетплейс, крупногабарит маркетплейс
                  не берёт. Стоит над ссылкой, потому что это первое, что нужно
@@ -151,6 +168,7 @@
                  ту сторону, в какую оно есть: по нему потом правят габариты в
                  карточке. Текст и направление ставит script.js по кластеру. -->
             <button class="kgtBtn" id="kgtMark" type="button" hidden>Это не КГТ</button>
+            <div class="aktPs" id="aktPs" hidden></div>
           </div>
         </article>
 
@@ -183,11 +201,11 @@
             <p class="overline">Массовый расчёт</p>
             <h2>Себес по списку</h2>
           </div>
-          <span class="readyPill"><i></i>До 2 000 строк</span>
+          <span class="readyPill"><i></i>До 10 000 строк</span>
         </div>
 
         <p class="costListIntro">
-          Загрузите Excel или вставьте таблицу. Колонки «Наименование» и «Заказ, ед.» определятся автоматически.
+          Загрузите Excel или вставьте таблицу. Колонки «Наименование» / «Товар» и «Заказ, ед.» / «Кол-во» определятся автоматически.
           Если вставить только названия, количество будет равно одной штуке.
         </p>
 
@@ -202,6 +220,7 @@
                   placeholder="Наименование товара 1&#9;2&#10;Наименование товара 2&#9;1"></textarea>
         <div class="searchRow searchRow--costList">
           <button class="action" id="costListGo" type="button">Получить себес</button>
+          <button class="action action--secondary" id="costListStop" type="button" hidden>Остановить</button>
           <button class="action action--secondary" id="costListExport" type="button" hidden>Скачать Excel</button>
           <button class="action action--secondary" id="costListClear" type="button">Очистить</button>
         </div>
@@ -224,8 +243,13 @@
                 <th>Наименование из списка</th>
                 <th>Найденный товар</th>
                 <th class="num">Код</th>
+                <!-- Гуид карточки. Был только в скачанном Excel, и тот, кому
+                     нужен именно он, вынужден был выгружать файл ради одной
+                     колонки. Дальше с ним работают в 1С, поэтому он здесь. -->
+                <th>GUID</th>
                 <th class="num">Кол-во</th>
                 <th class="num">Себес/шт</th>
+                <th class="num">РРЦ/шт</th>
                 <th class="num">Сумма</th>
                 <th>Статус</th>
               </tr>
@@ -233,6 +257,7 @@
             <tbody id="costListBody"></tbody>
           </table>
         </div>
+        <button class="action action--secondary costListMore" id="costListMore" type="button" hidden>Показать ещё</button>
       </section>
 
       <section class="card searchCard palletsCard">
