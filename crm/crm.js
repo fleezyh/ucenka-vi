@@ -1972,11 +1972,11 @@
     }
     el("crmOknoDoc").innerHTML = shapka + `
       <p class="crmPodskazka">ДВК и СБ получат лот на экране согласования и поставят галочки по паллетам.
-        Пломбы, состав и себестоимость подтянутся сами. Паллеты — как в письмо: по одной в строке или через «;».</p>
+        Паллеты лота подставляются сами, пломбы, состав и себестоимость — тоже.</p>
       <form class="crmForma" id="crmFormaSoglas">
         <label class="crmPole"><span>Дата отгрузки</span><input type="date" name="дата" required value="${zavtra}"></label>
-        <label class="crmPole crmPole--shirokoe"><span>Паллеты${z.pallet ? ` (в лоте ${escape(z.pallet)})` : ""}</span>
-          <textarea name="паллеты" rows="8" required placeholder="Мебель (Ко)-0151551180&#10;КГТ(Ко)-0148966205"></textarea></label>
+        <label class="crmPole crmPole--shirokoe"><span>Паллеты лота · <i data-otkuda>подбираю по заказам лота…</i></span>
+          <textarea name="паллеты" rows="8" required></textarea></label>
         <label class="crmPole crmPole--shirokoe"><span>Комментарий</span><input name="комментарий" placeholder="если нужно"></label>
         <div class="crmForma__niz">
           <button class="crmKn crmKn--glav" type="submit">Отправить на согласование</button>
@@ -1984,16 +1984,23 @@
         </div>
       </form>`;
     el("crmOkno").hidden = false;
-    // Если паллеты уже собраны в лот — подставляем их, чтобы не вставлять руками.
+    // Весь лот сразу: паллеты, собранные в лоте, а если их нет — найденные по
+    // номерам заказов лота (сервер пересчитывает «паллета → заказ» раз в час).
+    // Руками — только если по заказам ничего не нашлось.
+    const pole = el("crmFormaSoglas")?.querySelector("textarea");
+    const podpis = el("crmFormaSoglas")?.querySelector("[data-otkuda]");
     try {
-      const otvet = await fetch("/__crm/pallety", { method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ действие: "состав", лот: z.nomer }) });
-      if (otvet.ok) {
-        const d = await otvet.json();
-        const pole = el("crmFormaSoglas")?.querySelector("textarea");
-        if (pole && !pole.value && (d.паллеты || []).length) pole.value = d.паллеты.map((p) => p.паллета).join("\n");
+      const otvet = await fetch(`/__soglas/lot_pallety?лот=${encodeURIComponent(z.nomer)}`, { cache: "no-store" });
+      const d = otvet.ok ? await otvet.json() : {};
+      if (pole && !pole.value && (d.паллеты || []).length) {
+        pole.value = d.паллеты.join("\n");
+        if (podpis) podpis.textContent = `${d.паллеты.length} паллет ${d.откуда}${d.в_лоте && d.в_лоте !== d.паллеты.length ? ` (в лоте указано ${d.в_лоте})` : ""} — проверьте и отправляйте`;
+      } else if (podpis) {
+        podpis.textContent = (d.заказы || []).length
+          ? `по заказам лота (${d.заказы.join(", ")}) паллет в остатках не нашлось — вставьте списком`
+          : "у лота нет номеров заказов — вставьте паллеты списком";
       }
-    } catch (e) { /* паллет в лоте нет — вставят руками */ }
+    } catch (e) { if (podpis) podpis.textContent = "паллеты не подтянулись — вставьте списком"; }
     el("crmFormaSoglas").addEventListener("submit", async (event) => {
       event.preventDefault();
       const otvetEl = el("crmOtvetSoglas");

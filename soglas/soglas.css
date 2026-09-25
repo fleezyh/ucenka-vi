@@ -83,3 +83,12 @@ body.is-svetlo .sgKarta, body.is-svetlo .sgOkno__telo { background: #fff; }
 body.is-svetlo .sgForma input, body.is-svetlo .sgForma textarea { background: #fff; color: #10203a; }
 body.is-svetlo .sgKn { background: #fff; color: #10203a; }
 body.is-svetlo .sgKn--glav { background: #169a52; color: #fff; }
+
+/* Chrome новых версий сам ставит tabular-nums внутри поля даты — во внутреннем
+   ::-webkit-datetime-edit, куда правила для самого input не доходят. С VI Sans
+   это «26 . 09 . 2026». Выключаем прямо там. */
+input::-webkit-datetime-edit, input::-webkit-datetime-edit-fields-wrapper,
+input::-webkit-datetime-edit-day-field, input::-webkit-datetime-edit-month-field,
+input::-webkit-datetime-edit-year-field, input::-webkit-datetime-edit-text,
+input::-webkit-datetime-edit-hour-field, input::-webkit-datetime-edit-minute-field {
+  font-variant-numeric: normal !important; font-feature-settings: "tnum" 0, "pnum" 1 !important; letter-spacing: 0 !important; }
