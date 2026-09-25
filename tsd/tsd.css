@@ -76,3 +76,16 @@ body.is-svetlo .tsdVkladka.is-on { background: #10203a; color: #fff; }
 .tsdGraf i { display: block; height: 12px; border-radius: 6px; background: #f05d72; min-width: 4px; }
 .tsdGraf b { text-align: right; }
 body.is-svetlo .tsdItog { background: #fff; }
+
+/* актировка */
+.aktSer { color: var(--muted); font-size: 14px; }
+.aktPodskazka { margin: 14px 0 0; font-size: 16px; font-weight: 600; }
+.aktMesta { display: grid; gap: 8px; margin-top: 8px; }
+.aktMesta .tsdPrichina { text-align: left; }
+.aktMesta small { display: block; margin-top: 2px; color: var(--muted); font-size: 13px; }
+.aktDefekt { padding: 18px 8px; font-size: 16px; }
+.aktNekompl { display: flex; gap: 8px; align-items: center; margin-top: 12px; font-size: 16px; }
+.aktNekompl input { width: 22px; height: 22px; }
+.aktGotovo { font-size: 22px; }
+.aktGotovo span { display: block; margin-top: 4px; font-size: 14px; font-weight: 400; }
+.aktOtmena { width: 100%; margin-top: 8px; }

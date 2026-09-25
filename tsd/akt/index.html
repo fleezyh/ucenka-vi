@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <script src="/tema.js?v=20260924-2"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>ТСД · актировка · Уценка</title>
+  <link rel="icon" type="image/svg+xml" href="../../assets/brand/vi-mark.svg">
+  <link rel="preload" href="../../assets/fonts/VI_Sans_DemiBold.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="../../style.css?v=20260921-1">
+  <link rel="stylesheet" href="../tsd.css?v=20260925-3">
+  <link rel="stylesheet" href="../../site-header.css?v=20260921-1">
+  <script src="akt.js?v=20260925-1" defer></script>
+  <script src="../../nav.js?v=20260921-1" defer></script>
+</head>
+<body data-mode="perf" class="tsdStranica">
+  <!-- Актировка со скана: пикнул товар, ткнул дефект — в вмс создан акт
+       приёмки (внутренний брак). Для разбора паллет с неактированным браком. -->
+  <main class="shell">
+    <header class="topbar">
+      <a class="brand" href="../../" aria-label="Уценка — главная">
+        <img class="brand__mark" src="../../assets/brand/vi-mark.svg" alt="" width="36" height="36">
+        <span>Уценка</span>
+      </a>
+    </header>
+
+    <p class="tsdDemo" id="aktDemo">Демо: товары настоящие (лежат в ФБ ДМД без акта), акты условные, в вмс ничего не уходит. Сканируйте что угодно или жмите Enter.</p>
+
+    <section class="tsdEkran">
+      <form id="aktForma" autocomplete="off">
+        <label class="tsdSkan"><span>Отсканируйте товар</span>
+          <input id="aktSkan" inputmode="none" placeholder="штрихкод товара" autofocus></label>
+      </form>
+      <div id="aktKarta"></div>
+      <div id="aktZhurnal"></div>
+    </section>
+  </main>
+</body>
+</html>
