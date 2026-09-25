@@ -423,6 +423,13 @@
     const chas = new Date().getHours();
     const minutOt = (s) => (s ? (Date.now() - new Date(s.replace(" ", "T")).getTime()) / 60000 : Infinity);
     if (chas >= 7 && chas <= 22 && minutOt(dvor?.обновлено) > 30) t.push({ cvet: "siniy", ves: 99, b: "Двор не обновлялся больше получаса", s: `последние данные — ${dvor?.обновлено || "нет"}` });
+    // Задача отработала, а регистраций нет полтора часа — застыл WMS, не двор;
+    // тогда «ждут дольше 4 часов» растёт на бумаге, и эта тревога важнее.
+    const tishina = dmd?.последняя_регистрация && dvor?.обновлено
+      ? minutOt(dmd.последняя_регистрация) - minutOt(dvor.обновлено) : 0;
+    const chasDannyh = Number(String(dvor?.обновлено || "").slice(11, 13));
+    if (chasDannyh >= 8 && chasDannyh <= 21 && tishina > 90) t.push({ cvet: "siniy", ves: 101,
+      b: `WMS молчит ${chmm(tishina)}: новых регистраций нет`, s: `последняя — ${String(dmd.последняя_регистрация).slice(11, 16)}, очередь и ожидание ниже не живые` });
 
     t.sort((a, b) => b.ves - a.ves);
     $("ekTrevogi").innerHTML = (t.length ? t.slice(0, 3) : [{ cvet: "zelyonyy", b: "Тревог нет", s: "вход работает штатно" }])

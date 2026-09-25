@@ -15,6 +15,14 @@
     return m < 60 ? `${m} мин` : `${Math.floor(m / 60)} ч ${String(m % 60).padStart(2, "0")} мин`;
   };
   const KLASS = { "красный": "dv--krasnyy", "жёлтый": "dv--zhyoltyy", "зелёный": "dv--zelyonyy", "синий": "dv--siniy" };
+  // «ГГГГ-ММ-ДД ЧЧ:ММ» в миллисекунды; пусто — NaN.
+  const moment = (s) => (s ? new Date(String(s).replace(" ", "T")).getTime() : NaN);
+  const minutMezhdu = (ot, do_) => (moment(do_) - moment(ot)) / 60000;
+  // Днём машины регистрируются каждые несколько минут. Если задача
+  // пересчитала двор, а новых регистраций нет полтора часа — застыл
+  // источник, а не двор: время ожидания тогда растёт на бумаге.
+  const TISHINA_ISTOCHNIKA_MIN = 90;
+  const ZADACHA_OPAZDYVAET_MIN = 30;
 
   let dannye = null;
   let sklad = "ДМД";
@@ -43,13 +51,23 @@
   /** Поток по часам: приехало против вставших на ворота. Если первые
       выше вторых — очередь в этот час росла. */
   function potok(s) {
-    const chasy = s.поток.filter((h) => h.приехало || h.на_ворота || h.разгружено);
-    if (!chasy.length) return '<p class="prHint">Сегодня машин ещё не было.</p>';
+    // В поток задача кладёт вчера и сегодня. Без дня часы шли «0…23, 0, 5, 6»
+    // и вчерашний день выглядел сегодняшним — берём последние 24 часа по порядку.
+    const segodnya = (dannye.обновлено || "").slice(0, 10);
+    const kogda = (h) => `${h.день || segodnya} ${String(h.час).padStart(2, "0")}:00`;
+    const konec = moment(dannye.обновлено);
+    const chasy = (s.поток || [])
+      .filter((h) => h.приехало || h.на_ворота || h.разгружено)
+      .filter((h) => !h.день || !konec || konec - moment(kogda(h)) < 24 * 3600 * 1000)
+      .sort((a, b) => kogda(a).localeCompare(kogda(b)));
+    if (!chasy.length) return '<p class="prHint">За последние сутки машин не было.</p>';
     const max = Math.max(...chasy.map((h) => Math.max(h.приехало, h.на_ворота)), 1);
     return `<div class="dvChasy">
-      ${chasy.map((h) => {
+      ${chasy.map((h, i) => {
         const rost = h.приехало - h.на_ворота;
-        return `<div class="dvChas" title="${h.час}:00 — приехало ${h.приехало}, на ворота ${h.на_ворота}, разгружено ${h.разгружено}">
+        const vchera = h.день && h.день !== segodnya;
+        const novyyDen = i > 0 && (chasy[i - 1].день || segodnya) !== (h.день || segodnya);
+        return `<div class="dvChas${vchera ? " is-vchera" : ""}${novyyDen ? " is-novyy-den" : ""}" title="${vchera ? "вчера, " : ""}${h.час}:00 — приехало ${h.приехало}, на ворота ${h.на_ворота}, разгружено ${h.разгружено}">
           <div class="dvChas__stolbiki">
             <i class="dvChas__priehalo" style="height:${h.приехало / max * 100}%"></i>
             <i class="dvChas__vorota" style="height:${h.на_ворота / max * 100}%"></i>
@@ -60,7 +78,23 @@
       }).join("")}
     </div>
     <p class="dvLegenda"><i class="dvChas__priehalo"></i>приехало <i class="dvChas__vorota"></i>встало на ворота
-      <span>· «+N» над часом — на столько машин за час выросла очередь</span></p>`;
+      <span>· «+N» над часом — на столько машин за час выросла очередь · бледные — вчера</span></p>`;
+  }
+
+  /** Плашка, если цифрам двора нельзя верить: задача не отработала или
+      WMS перестал отдавать новые регистрации. */
+  function svezhest(s) {
+    const tishina = minutMezhdu(s.последняя_регистрация, dannye.обновлено);
+    const chas = Number(String(dannye.обновлено || "").slice(11, 13));
+    const opozdanie = (Date.now() - moment(dannye.обновлено)) / 60000;
+    if (opozdanie > ZADACHA_OPAZDYVAET_MIN) {
+      return `Двор не пересчитывался ${chmm(opozdanie)}: задача ucenka-dvor не отработала, цифры ниже — на ${escape(dannye.обновлено)}.`;
+    }
+    if (chas >= 8 && chas <= 21 && tishina > TISHINA_ISTOCHNIKA_MIN) {
+      return `Новых регистраций в WMS нет уже ${chmm(tishina)} — последняя в ${escape(String(s.последняя_регистрация).slice(11, 16))}. `
+        + "Похоже, застыл источник, а не двор: очередь и время на дворе ниже считаются от старых данных и растут на бумаге.";
+    }
+    return "";
   }
 
   function ochered(s) {
@@ -85,6 +119,9 @@
     if (!s) { root.innerHTML = '<p class="prHint">Данных по двору пока нет.</p>'; return; }
     const porogi = dannye.пороги_мин || {};
     $("dvorStamp").textContent = `обновлено ${dannye.обновлено} · последняя регистрация ${String(s.последняя_регистрация || "").slice(11, 16) || "—"}`;
+    const trevoga = svezhest(s);
+    const plashka = $("dvorSvezhest");
+    if (plashka) { plashka.innerHTML = trevoga; plashka.hidden = !trevoga; }
 
     $("dvorPlitki").innerHTML = [
       plitka("Приехало сегодня", num(s.регистраций), `${num(s.паллет_всего)} паллет заявлено`),
