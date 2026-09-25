@@ -32,13 +32,19 @@
   let defekt = "";
   let nomer = 7713001;
   let zaSmenu = 0;
+  // Тумблер в админке (25.09): под личной учёткой вмс актировку не включаем.
+  let vAdminke = "выключена в админке";
+  fetch("/__akt/sostoyanie", { cache: "no-store" }).then((o) => o.ok ? o.json() : {})
+    .then((d) => { vAdminke = d.включена ? "включена в админке, кнопка к вмс ещё не подключена" : "выключена в админке"; risovat(); })
+    .catch(() => {});
+  const demoTekst = () => `Демо: актировка ${vAdminke}, в вмс ничего не уходит`;
 
   function risovat() {
     if (!tovar || tovar.mode !== "presort") { box.hidden = true; return; }
     const r = RESHENIYA.find((x) => x.k === reshenie);
     box.hidden = false;
     box.innerHTML = `
-      <p class="aktPs__demo">Демо актировки: в вмс ничего не уходит${zaSmenu ? ` · заактировано за смену: ${zaSmenu}` : ""}</p>
+      <p class="aktPs__demo">${esc(demoTekst())}${zaSmenu ? ` · заактировано за смену: ${zaSmenu}` : ""}</p>
       <p class="aktPs__zag">Решение по товару</p>
       <div class="aktPs__ryad">${RESHENIYA.map((x) => `<button type="button" class="aktPs__kn${x.k === reshenie ? " is-on" : ""}" data-resh="${x.k}">${esc(x.имя)}</button>`).join("")}</div>
       ${!r ? "" : !r.акт ? `<p class="aktPs__net">По решению «${esc(r.имя)}» акт не нужен. Кладите на выход.</p>` : `
@@ -63,7 +69,7 @@
       await new Promise((ok) => setTimeout(ok, 400));
       zaSmenu += 1;
       const r2 = RESHENIYA.find((x) => x.k === reshenie);
-      box.innerHTML = `<p class="aktPs__demo">Демо актировки: в вмс ничего не уходит · заактировано за смену: ${zaSmenu}</p>
+      box.innerHTML = `<p class="aktPs__demo">${esc(demoTekst())} · заактировано за смену: ${zaSmenu}</p>
         <p class="aktPs__gotovo">Акт №${nomer++} создан<span>${esc(tovar.name || "")}</span>
         <span>${esc(r2.имя)} · мех. повреждения, ${esc(defekt)}</span></p>
         <p class="aktPs__net">Пикните следующий товар.</p>`;
