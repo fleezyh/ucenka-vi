@@ -1,6 +1,8 @@
-/* ТСД · актировка. Пикнул товар → видно, где он лежит и есть ли акт →
-   одно касание по дефекту = акт приёмки (внутренний брак) в вмс.
-   Пока только демо: сервер под актами ещё не подключён. */
+/* ТСД · актировка для разбора бэклога. Пикнул товар → видно, где он лежит
+   без акта → решение и дефект → акт приёмки (внутренний брак) и сразу
+   перемещение «откуда лежит → куда по решению» с этим актом: так акт
+   пристёгивается к самой штуке, а не остаётся отдельной бумажкой.
+   Пока демо: номера условные, в вмс ничего не уходит. */
 (function () {
   "use strict";
 
@@ -26,6 +28,18 @@
       места: [{ паллета: "ФБ-Утилизация-0163139122", ячейка: "Буфер входа в утиль с предсорта", зона: "001 Столы утилизации (ДМД)", штук: 1 }] },
   ];
 
+  // Куда уходит штука по решению — по перемещениям со столов предсорта ДМД
+  // (09–25.09). Точные ячейки для переупаковки и контроля ОК уточнить.
+  const RESHENIYA = [
+    { k: "util", имя: "Утиль", куда: "Буфер входа в утиль с предсорта", зона: "001 Столы утилизации (ДМД)" },
+    { k: "ucenka", имя: "Уценка", куда: "Буфер входа на столы уценки, группа 3", зона: "001 Столы уценки (ДМД)" },
+    { k: "nekompl", имя: "Некомплект", куда: "Буфер входа в некомплекты с предсорта", зона: "003 Вход в некомплекты ДМД" },
+    { k: "pereup", имя: "Переупаковка", куда: "Буфер переупаковки", зона: "003 Буфер переупаковки" },
+    { k: "ok", имя: "Контроль ОК", куда: "Контроль ОК — Уценка", зона: "002 Контроль ОК - Уценка" },
+  ];
+  let reshenie = "";
+  let demoPer = 48810001;
+
   let demoN = 0;
   let demoAkt = 7712001;
   let tekushiy = null;   // отсканированный товар
@@ -47,16 +61,19 @@
           : `<p class="tsdKarta__sist">${esc(m.паллета)}<br><span class="aktSer">${esc(m.ячейка)} · ${esc(m.зона)}</span></p>`}
         ${t.уже_акт ? `<p class="tsdGotovo">Акт уже есть: №${t.уже_акт}. Актировать не надо — обрабатывайте.</p>` : ""}
       </div>
-      ${t.уже_акт ? "" : `<p class="aktPodskazka">Что с товаром? Одно касание — акт создан.</p>
+      ${t.уже_акт ? "" : `<p class="aktPodskazka">Куда товар?</p>
+      <div class="tsdPrichiny">${RESHENIYA.map((r) => `<button class="tsdPrichina${r.k === reshenie ? " is-on" : ""}" type="button" data-reshenie="${r.k}">${esc(r.имя)}</button>`).join("")}</div>
+      ${!reshenie ? "" : `<p class="aktPodskazka">Дефект — одно касание: акт и перемещение в «${esc(RESHENIYA.find((r) => r.k === reshenie).куда)}»</p>
       <div class="tsdPrichiny">${DEFEKTY.map((d) => `<button class="tsdPrichina aktDefekt" type="button" data-defekt="${esc(d)}">${esc(d)}</button>`).join("")}</div>
-      <label class="aktNekompl"><input type="checkbox" id="aktNeplnaya"> неполная комплектность</label>`}`;
+      <label class="aktNekompl"><input type="checkbox" id="aktNeplnaya"> неполная комплектность</label>`}`}`;
   }
 
   function narisovatZhurnal() {
     el("aktZhurnal").innerHTML = zhurnal.length ? `<h3 class="tsdZag">Заактировано за смену: ${zhurnal.length}</h3>
       <div class="tsdSpisok">${zhurnal.slice().reverse().map((a) => `
-        <div class="tsdZayavka"><h3>Акт №${a.акт}</h3><p>${esc(a.товар)}</p>
-        <span class="tsdPrichinaMetka">${esc(a.дефект)}</span><p>${esc(a.паллета)} · ${a.время}</p></div>`).join("")}</div>` : "";
+        <div class="tsdZayavka"><h3>Акт №${a.акт} · перемещение №${a.перемещение}</h3><p>${esc(a.товар)}</p>
+        <span class="tsdPrichinaMetka">${esc(a.решение)} · ${esc(a.дефект)}</span>
+        <p>${esc(a.паллета)} → ${esc(a.куда)} · ${a.время}</p></div>`).join("")}</div>` : "";
   }
 
   async function skan(kod) {
@@ -65,6 +82,7 @@
     await new Promise((r) => setTimeout(r, 200));
     tekushiy = DEMO_TOVARY[demoN++ % DEMO_TOVARY.length];
     mesto = 0;
+    reshenie = "";
     narisovat();
     el("aktSkan").value = "";
     vFokus();
@@ -76,11 +94,16 @@
     const m = t.места[mesto];
     el("aktKarta").querySelectorAll("button").forEach((b) => { b.disabled = true; });
     await new Promise((r) => setTimeout(r, 350));
-    const a = { акт: demoAkt++, товар: t.товар, дефект: defekt + ((el("aktNeplnaya") || {}).checked ? ", некомплект" : ""),
+    const r = RESHENIYA.find((x) => x.k === reshenie);
+    const a = { акт: demoAkt++, перемещение: demoPer++, товар: t.товар, решение: r.имя, куда: r.куда,
+      дефект: defekt + ((el("aktNeplnaya") || {}).checked ? ", некомплект" : ""),
       паллета: m.паллета, время: new Date().toTimeString().slice(0, 5) };
     zhurnal.push(a);
-    el("aktKarta").innerHTML = `<div class="tsdGotovo aktGotovo">Акт №${a.акт} создан<span>${esc(t.товар)} · ${esc(a.дефект)}</span>
-      <span>Внутренний брак · качество Брак · ${esc(m.паллета)}</span></div>
+    el("aktKarta").innerHTML = `<div class="tsdGotovo aktGotovo">Акт №${a.акт} и перемещение №${a.перемещение}
+      <span>${esc(t.товар)} · ${esc(a.дефект)}</span>
+      <span>Внутренний брак · качество Брак</span>
+      <span>${esc(m.ячейка)} (${esc(m.паллета)}) → ${esc(r.куда)}, в перемещении акт №${a.акт}</span></div>
+      <p class="tsdPred">Положите штуку в «${esc(r.куда)}».</p>
       <button class="tsdKn aktOtmena" type="button" data-otmena="${a.акт}">Ошибся — отменить акт</button>`;
     if (navigator.vibrate) navigator.vibrate(120);
     tekushiy = null;
@@ -94,6 +117,8 @@
   });
   document.addEventListener("click", (event) => {
     const t = event.target;
+    const rs = t.closest("[data-reshenie]");
+    if (rs) { reshenie = rs.dataset.reshenie; narisovat(); return; }
     const d = t.closest("[data-defekt]");
     if (d) return aktirovat(d.dataset.defekt);
     const m = t.closest("[data-mesto]");
@@ -102,7 +127,7 @@
     if (o) {
       const i = zhurnal.findIndex((a) => String(a.акт) === o.dataset.otmena);
       if (i >= 0) zhurnal.splice(i, 1);
-      el("aktKarta").innerHTML = `<p class="tsdPred">Акт №${esc(o.dataset.otmena)} помечен на удаление. Сканируйте товар заново.</p>`;
+      el("aktKarta").innerHTML = `<p class="tsdPred">Акт №${esc(o.dataset.otmena)} и его перемещение помечены на удаление. Сканируйте товар заново.</p>`;
       narisovatZhurnal();
       return vFokus();
     }
