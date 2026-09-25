@@ -1,0 +1,85 @@
+/* Согласование отгрузок. Свои стили, без crm.css: у ДВК и СБ нет права на
+   раздел CRM, и его файлы им не отдаются. */
+
+.sgKn { appearance: none; border: 1px solid var(--line-strong); border-radius: 10px; background: #121a25;
+  color: var(--text); font: inherit; font-size: 13.5px; font-weight: 600; padding: 9px 16px; cursor: pointer; }
+.sgKn:hover { border-color: var(--muted); }
+.sgKn:disabled { opacity: .45; cursor: default; }
+.sgKn--glav { background: #1c6b40; border-color: #27c46b; }
+.sgKn--nelzya { border-color: #f05d72; color: #f7a3ae; }
+.sgKn--tiho { background: transparent; }
+
+.sgDoska { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; margin-top: 10px; }
+@media (max-width: 900px) { .sgDoska { grid-template-columns: minmax(0, 1fr); } }
+.sgKolonka { border: 1px solid var(--line); border-radius: 16px; background: var(--panel); padding: 16px; min-width: 0; }
+.sgKolonka h2 { margin: 0 0 12px; font-size: 17px; font-weight: 600; }
+.sgKolonka h2 span { color: var(--muted); font-weight: 600; }
+.sgKolonka--ok { border-top: 4px solid #27c46b; }
+.sgKolonka:not(.sgKolonka--ok) { border-top: 4px solid #d9a441; }
+.sgSpisok { display: grid; gap: 10px; }
+.sgPusto { color: var(--muted); font-size: 13px; margin: 6px 0; }
+
+.sgKarta { display: grid; gap: 6px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px;
+  background: #101823; cursor: pointer; text-align: left; color: var(--text); font: inherit; }
+.sgKarta:hover { border-color: var(--line-strong); }
+.sgKarta__verh { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+.sgKarta__verh b { font-size: 16px; }
+.sgKarta__data { color: #d9a441; font-size: 13px; white-space: nowrap; }
+.sgKarta__ka { font-size: 13.5px; }
+.sgKarta__pod { color: var(--muted); font-size: 12.5px; }
+.sgShagi { display: flex; gap: 8px; flex-wrap: wrap; }
+.sgShag { font-size: 12px; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--line-strong); color: var(--muted); }
+.sgShag.is-ok { border-color: #27c46b; color: #6fe0a0; }
+.sgShag.is-chast { border-color: #d9a441; color: #f0c674; }
+
+/* окно лота */
+.sgOkno { position: fixed; inset: 0; z-index: 60; background: rgba(5, 8, 14, .72); display: flex;
+  justify-content: center; align-items: flex-start; padding: 32px 16px; overflow-y: auto; }
+.sgOkno[hidden] { display: none; }
+.sgOkno__telo { width: min(1100px, 100%); background: #0f1621; border: 1px solid var(--line-strong);
+  border-radius: 18px; padding: 20px 22px 22px; }
+.sgOkno__shapka { display: flex; justify-content: space-between; gap: 14px; align-items: flex-start; flex-wrap: wrap; }
+.sgOkno__shapka h2 { margin: 0; font-size: 22px; font-weight: 600; }
+.sgZakryt { appearance: none; border: 0; background: transparent; color: var(--muted); font-size: 22px; cursor: pointer; }
+.sgFakty { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px 16px; margin: 14px 0; }
+.sgFakt span { display: block; color: var(--muted); font-size: 12px; }
+.sgFakt b { font-size: 14px; font-weight: 600; }
+.sgSluzhby { display: flex; gap: 10px; flex-wrap: wrap; margin: 6px 0 14px; }
+.sgSluzhba { padding: 8px 12px; border-radius: 10px; border: 1px solid var(--line-strong); font-size: 13px; }
+.sgSluzhba.is-ok { border-color: #27c46b; }
+.sgSluzhba small { display: block; color: var(--muted); font-size: 11.5px; }
+.sgDeystviya { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 10px 0; }
+.sgPreduprezhdenie { margin: 8px 0; padding: 8px 12px; border-radius: 10px; background: rgba(240, 93, 114, .1);
+  border: 1px solid rgba(240, 93, 114, .4); font-size: 13px; }
+
+.sgTabl { overflow-x: auto; }
+.sgTabl table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.sgTabl th { text-align: left; color: var(--muted); font-size: 11.5px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .04em; padding: 8px; border-bottom: 1px solid var(--line-strong); white-space: nowrap; }
+.sgTabl td { padding: 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.sgTabl .num { text-align: right; white-space: nowrap; }
+.sgPallet { appearance: none; border: 0; background: transparent; color: var(--text); font: inherit; font-weight: 600;
+  cursor: pointer; padding: 0; text-align: left; }
+.sgPallet:hover { text-decoration: underline; }
+.sgKto { display: block; color: var(--muted); font-size: 11.5px; }
+.sgOk { color: #6fe0a0; font-weight: 600; }
+.sgNet { color: #f7a3ae; font-weight: 600; }
+.sgZhdyot { color: var(--muted); }
+.sgBezPlomby { color: #f7a3ae; }
+.sgGalka { width: 18px; height: 18px; accent-color: #27c46b; cursor: pointer; }
+.sgSostav td { background: rgba(255, 255, 255, .02); }
+.sgSostav table { font-size: 12px; }
+
+/* форма новой заявки */
+.sgForma { display: grid; gap: 12px; margin-top: 12px; }
+.sgForma label { display: grid; gap: 5px; font-size: 13px; color: var(--muted); }
+.sgForma input, .sgForma textarea { font: inherit; font-size: 14px; color: var(--text); background: #0b1220;
+  border: 1px solid var(--line-strong); border-radius: 10px; padding: 9px 11px; }
+.sgForma textarea { min-height: 170px; resize: vertical; }
+.sgForma__dva { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.sgOshibka { color: #f7a3ae; font-size: 13px; margin: 0; }
+
+body.is-svetlo .sgKarta, body.is-svetlo .sgOkno__telo { background: #fff; }
+body.is-svetlo .sgForma input, body.is-svetlo .sgForma textarea { background: #fff; color: #10203a; }
+body.is-svetlo .sgKn { background: #fff; color: #10203a; }
+body.is-svetlo .sgKn--glav { background: #169a52; color: #fff; }

@@ -1032,6 +1032,8 @@
         `<span class="ctMetka ${k}"${pod ? ` title="${escape(pod)}"` : ""}>${escape(t)}</span>`).join("") : '<span class="ctMetki__chisto">без замечаний</span>'}</div>
       <div class="ctKarta__niz">
         <button class="ctKarta__kn" type="button" data-delo title="Завести дело по лоту">+ дело</button>
+        ${z.status === "7. Оплачен" ? `<button class="ctKarta__kn ctKarta__kn--dalshe" type="button" data-soglas
+          title="Вместо письма «на отгрузку»: ДВК и СБ согласуют паллеты в системе">на согласование</button>` : ""}
         ${kuda ? `<button class="ctKarta__kn ctKarta__kn--dalshe" type="button" data-dalshe
           title="Перевести в «${escape(imyaEtapa(kuda))}»">→ ${escape(KRATKO[kuda] || imyaEtapa(kuda).toLowerCase())}</button>` : ""}
       </div>`;
@@ -1044,6 +1046,13 @@
       event.stopPropagation();
       novoeDelo(z);
     });
+    const knSoglas = karta.querySelector("[data-soglas]");
+    if (knSoglas) {
+      knSoglas.addEventListener("click", (event) => {
+        event.stopPropagation();
+        window.open(`/soglas/?lot=${encodeURIComponent(z.nomer)}`, "_blank");
+      });
+    }
     const knDalshe = karta.querySelector("[data-dalshe]");
     if (knDalshe) {
       knDalshe.addEventListener("click", (event) => {
