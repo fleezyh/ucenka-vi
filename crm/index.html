@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="../style.css?v=20260921-1">
   <link rel="stylesheet" href="../perf/perf.css?v=20260921-2">
   <link rel="stylesheet" href="crm.css?v=20260925-1">
-  <link rel="stylesheet" href="doska.css?v=20260923-15">
+  <link rel="stylesheet" href="doska.css?v=20260925-1">
   <link rel="stylesheet" href="../reeded-bg.css?v=20260907-6">
   <link rel="stylesheet" href="../site-header.css?v=20260921-1">
   <script src="../reeded-bg.js?v=20260906-7" defer></script>
@@ -41,13 +41,28 @@
       </nav>
     </header>
 
-    <div class="ctShapka">
-      <div class="ctShapka__imya">
+    <!-- Шапка как у старой версии и у остальных страниц продаж: надзаголовок,
+         заголовок, описание, справа переключатель раздела и время обновления. -->
+    <section class="heroPerf">
+      <div>
+        <p class="eyebrow">Продажи</p>
         <h1>CRM продаж</h1>
-        <span class="ctTest"><a href="staraya/">старая версия</a></span>
+        <p class="lead">Доска воронки: карточку тащат мышью в соседний статус.
+          В таблице правится прямо в ячейке, Ctrl+Z возвращает назад.</p>
       </div>
+      <div class="perfTools">
+        <nav class="perfViews" aria-label="Раздел продаж">
+          <a class="perfView" href="../sales/">Остатки и отгрузки</a>
+          <a class="perfView" href="../sales/analitika/">Аналитика отгрузок</a>
+          <a class="perfView is-on" href="./" aria-current="page">CRM продаж</a>
+        </nav>
+        <p class="stamp" id="stamp"></p>
+      </div>
+    </section>
+
+    <div class="ctShapka">
       <div class="ctPlan" id="crmPlitki"></div>
-      <p class="stamp" id="stamp"></p>
+      <span class="ctTest"><a href="staraya/">старая версия</a></span>
     </div>
 
     <p class="message" id="message">Загружаю…</p>

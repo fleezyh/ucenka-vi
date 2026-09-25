@@ -232,3 +232,8 @@ body.ctSvyazOtkryt .ctSvyazKn { display: none; }
 .crmTest .ctKarta__kn { font-size: 13px; padding: 6px 6px; }
 .crmTest .ctDelo { font-size: 13.5px; }
 .crmTest .ctDelo i { font-size: 12.5px; }
+
+/* 25.09.2026: заголовок страницы теперь heroPerf, как у старой версии; строка
+   ctShapka осталась под планом месяца — отступ сверху меньше, ссылка справа. */
+.ctShapka { margin: 4px 0 14px; }
+.ctShapka .ctTest { margin-left: auto; }
