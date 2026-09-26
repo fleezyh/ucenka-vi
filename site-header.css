@@ -748,23 +748,35 @@ input::-webkit-datetime-edit-year-field, input::-webkit-datetime-edit-text,
 input::-webkit-datetime-edit-hour-field, input::-webkit-datetime-edit-minute-field {
   font-variant-numeric: normal !important; font-feature-settings: "tnum" 0, "pnum" 1 !important; letter-spacing: 0 !important; }
 
-/* Главная на телефоне: меню «Разделы» там нет, и плашка «Зарплата · Кабинет ·
-   Выйти» уезжала отдельной строкой, прижатой вправо, а на узком экране
-   обрезалась. Здесь она — сегмент во всю ширину с кнопками поровну, как
-   переключатель «Аналитика · Инструменты · Новости» под заголовком. */
+/* Главная на телефоне: меню «Разделы» там нет, и «Зарплата · Кабинет ·
+   Выйти» стоит в одну строку с маркой, вровень с ней. Кнопки темы на
+   телефоне нет — ей там не хватало места, и из-за неё плашка уезжала
+   отдельной строкой. */
 .siteHeaderShell .siteNav:empty { display: none; }
 @media (max-width: 640px) {
-  body:not(.nav-enhanced) .siteHeaderShell .siteNav {
-    grid-column: 1 / -1;
-    width: 100%;
-    margin-left: 0;
+  .topbar .temaKn { display: none; }
+  body:not(.nav-enhanced) .siteHeaderShell > .topbar {
+    display: flex;
     flex-wrap: nowrap;
+    justify-content: space-between;
+    gap: 10px;
   }
-  body:not(.nav-enhanced) .siteHeaderShell .siteNav .navGroup { flex: 1 1 auto; min-width: 0; }
+  body:not(.nav-enhanced) .siteHeaderShell .brand { gap: 9px; font-size: 20px; }
+  body:not(.nav-enhanced) .siteHeaderShell .brand__mark { width: 32px; height: 32px; }
+  body:not(.nav-enhanced) .siteHeaderShell .siteNav {
+    width: auto;
+    margin-left: auto;
+    padding: 4px;
+    flex-wrap: nowrap;
+    border-radius: 16px;
+  }
   body:not(.nav-enhanced) .siteHeaderShell .siteNav .navLink {
-    flex: 1 1 0;
-    min-width: 0;
-    justify-content: center;
-    padding-inline: 6px;
+    min-height: 36px;
+    padding: 6px 9px;
+    font-size: 14px;
   }
+}
+@media (max-width: 375px) {
+  body:not(.nav-enhanced) .siteHeaderShell .brand { font-size: 18px; }
+  body:not(.nav-enhanced) .siteHeaderShell .siteNav .navLink { padding: 6px 7px; font-size: 13px; }
 }
