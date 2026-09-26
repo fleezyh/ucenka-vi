@@ -1178,41 +1178,61 @@ body[data-mode="dorogie"] .searchCard { grid-column: 1; grid-row: 1; }
 }
 
 
-/* Карточка товара (26.09, вторая версия): слева ответ пикалки и его проверка
-   (кластер/себес, габариты, «Это КГТ»), справа — что за товар (название,
-   рубрика, цена, штрихкод, сайт). Актировка — в той же карточке под чертой. */
+/* Карточка товара (26.09, третья версия): слева только ответ и сверка с
+   габаритами, справа плотная справка о товаре рядом фактов. */
 .answer { flex-direction: column; align-items: stretch; gap: 0; padding: 18px; border-radius: 18px; }
-.answer__setka { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 20px; align-items: stretch; }
-.answer__otvet { display: flex; flex-direction: column; gap: 10px; }
+.answer__setka { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 22px; align-items: stretch; }
+.answer__otvet { display: flex; flex-direction: column; gap: 8px; }
 .answer__otvet .primary { min-width: 0; flex: 1; display: flex; flex-direction: column; justify-content: center;
-  padding: 18px; border-radius: 16px; text-align: left; }
-.answer__otvet .primary strong { font-size: 34px; line-height: 1.1; margin-top: 6px; }
-.answer__otvet .primary.category strong { font-size: 64px; line-height: 1; }
-.answer__otvet .razmery { margin: 0; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line);
-  color: var(--text); font-size: 14px; font-weight: 600; line-height: 1.35; }
-.answer__otvet .razmery--spor { color: #f0c479; border-color: rgba(240, 196, 121, .45); }
-.answer__otvet .kgtBtn { margin: 0; align-self: stretch; min-height: 38px; }
-.answer__tovar { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; }
-.answer__tovar .nameRow { align-self: stretch; margin: 6px 0 12px; }
+  padding: 16px 18px; border-radius: 16px; text-align: left; }
+.answer__otvet .primary strong { font-size: 32px; line-height: 1.1; margin-top: 6px; }
+.answer__otvet .primary.category strong { font-size: 60px; line-height: 1; }
+.razmerProverka { margin: 0; font-size: 13px; font-weight: 600; line-height: 1.35; }
+.razmerProverka[hidden] { display: none; }
+.razmerProverka::before { content: "● "; }
+.razmerProverka.is-ok { color: #7ee2a8; }
+.razmerProverka.is-spor { color: #f0c479; }
+/* «Это (не) КГТ» — редкая отметка расхождения, а не главное действие: ссылкой. */
+.answer__otvet .kgtBtn { margin: 0; align-self: flex-start; padding: 0; border: 0; background: none;
+  color: var(--muted); font-size: 12.5px; text-decoration: underline dotted; text-underline-offset: 3px; }
+.answer__otvet .kgtBtn:hover { color: var(--text); background: none; }
+.answer__otvet .kgtBtn.kgtBtn--kgt { color: #f5ad32; }
+.answer__otvet .kgtBtn.is-done { color: var(--green); text-decoration: none; }
+.answer__tovar { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.answer__tovar .nameRow { margin: 0; align-items: center; }
+.answer__tovar .nameRow h3 { flex: 0 1 auto; }
 .answer h3 { font-size: 22px; line-height: 1.3; }
-.answer__tovar .otborMark { align-self: stretch; }
-.answer__niz { align-self: stretch; margin-top: auto; padding-top: 14px; display: flex; align-items: center;
-  gap: 14px; flex-wrap: wrap; border-top: 1px solid var(--line); }
-/* Нижняя строка прижата к низу — на одной линии с «Это КГТ» слева. */
-.answer__tovar > .secondary { margin-bottom: 14px; }
-.answer__niz .rrcLine { margin: 0; color: var(--text); font-size: 18px; font-weight: 600; line-height: 1.2; }
-.answer__niz .rrcLine span { margin-left: 8px; color: var(--muted); font-size: 13px; font-weight: 400; }
-.answer__niz .code { margin: 0; }
-.answer__niz .siteLink { margin: 0 0 0 auto; min-height: 36px; box-sizing: border-box; }
+.answer__tovar .secondary { padding: 0; border: 0; background: none; color: var(--muted); font-size: 14px; font-weight: 600; }
+.answer__tovar .secondary.check { color: #ffc0ca; background: none; }
+.answer__tovar .otborMark { margin: 0; align-self: stretch; }
+.answer__fakty { align-self: stretch; margin-top: auto; padding-top: 14px; border-top: 1px solid var(--line);
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) auto; gap: 16px; align-items: start; }
+.answer__fakt { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.answer__fakt .rrcLine, .answer__fakt .razmery, .answer__fakt .code { margin: 0; color: var(--text); font-family: inherit;
+  font-size: 15px; font-weight: 600; line-height: 1.3; word-break: normal; }
+.answer__fakt .code { font-family: var(--mono); font-size: 14px; font-weight: 400; }
+.answer__fakt .rrcLine span { display: block; margin: 2px 0 0; color: var(--muted); font-size: 12px; font-weight: 400; }
+.answer__fakt .razmery--spor { color: #f0c479; }
+.answer__fakt:has(> p[hidden])::after { content: "—"; color: var(--muted); font-size: 15px; font-weight: 600; }
+.answer__fakty .siteLink { margin: 0; min-height: 36px; box-sizing: border-box; align-self: center; }
+@media (max-width: 700px) {
+  .answer__setka { grid-template-columns: 1fr; gap: 14px; }
+  .answer__otvet .primary { flex: none; }
+  .answer__otvet .primary.category strong { font-size: 52px; }
+  .answer__fakty { grid-template-columns: 1fr 1fr; }
+  .answer__fakty .siteLink { grid-column: 1 / -1; justify-content: center; }
+}
 /* Актировка внутри карточки: не отдельный ящик, а следующий шаг под чертой. */
 .answer .aktPs { margin: 18px -18px -18px; padding: 16px 18px 18px; border: 0; border-top: 1px solid var(--line);
   border-radius: 0 0 18px 18px; background: rgba(255, 255, 255, .015); }
 @media (max-width: 700px) {
   .answer__setka { grid-template-columns: 1fr; gap: 14px; }
-  .answer__otvet { display: grid; grid-template-columns: 1fr 1fr; }
+  /* ТСД: кластер слева, сверка и «Это КГТ» парой по центру справа. */
+  .answer__otvet { display: grid; grid-template-columns: 1fr 1fr; column-gap: 14px; row-gap: 6px; }
   .answer__otvet .primary { grid-row: span 2; }
   .answer__otvet .primary.category strong { font-size: 52px; }
-  .answer__niz .siteLink { margin-left: 0; flex: 1; justify-content: center; }
+  .answer__otvet .razmerProverka { align-self: end; }
+  .answer__otvet .kgtBtn { align-self: start; }
   .answer .aktPs { margin: 14px -18px -18px; padding: 14px; }
 }
 

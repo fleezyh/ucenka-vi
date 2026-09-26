@@ -446,10 +446,14 @@
    * Оператор смотрит на товар и решает сам, а кнопка «Это КГТ / Это не КГТ»
    * рядом уже умеет отправить расхождение. */
   const razmeryBox = document.getElementById("razmery");
+  // 26.09: сверка с кластером — своей строкой под кластером, а сами размеры —
+  // в ряду фактов справа. Раньше всё было одной строкой.
+  const proverkaBox = document.getElementById("razmerProverka");
 
   async function showRazmery(barcode, cluster) {
     if (!razmeryBox) return;
     razmeryBox.hidden = true;
+    if (proverkaBox) proverkaBox.hidden = true;
     // Запоминаем номер операции, но не трогаем сам счётчик: его ведёт поиск, и
     // лишний инкремент здесь оборвал бы его собственную загрузку шардов.
     const moy = version;
@@ -489,8 +493,18 @@
       spor = " · по размерам это крупногабарит";
     }
 
-    razmeryBox.textContent = chasti.join(" · ") + spor;
-    razmeryBox.className = `razmery${spor || zanizheno ? " razmery--spor" : ""}`;
+    if (proverkaBox) {
+      razmeryBox.textContent = chasti.join(" · ");
+      razmeryBox.className = `razmery${zanizheno ? " razmery--spor" : ""}`;
+      if (cluster) {
+        proverkaBox.textContent = spor ? spor.replace(/^ · /, "") : "по размерам сходится";
+        proverkaBox.className = `razmerProverka ${spor ? "is-spor" : "is-ok"}`;
+        proverkaBox.hidden = false;
+      }
+    } else {
+      razmeryBox.textContent = chasti.join(" · ") + spor;
+      razmeryBox.className = `razmery${spor || zanizheno ? " razmery--spor" : ""}`;
+    }
     razmeryBox.hidden = false;
   }
 
