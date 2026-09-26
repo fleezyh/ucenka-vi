@@ -1250,3 +1250,10 @@ body[data-mode="dorogie"] .searchCard { grid-column: 1; grid-row: 1; }
 .kamera__tekst { margin: 0; color: #dfe7f2; font-size: 15px; }
 .kamera__zakryt { appearance: none; min-width: 180px; padding: 13px 20px; border-radius: 14px; border: 1px solid #35465c;
   background: #1a2433; color: #f2f6fb; font: inherit; font-size: 16px; font-weight: 600; cursor: pointer; }
+/* Крит / косм в актировке (26.09): два равных варианта. */
+.aktPs__krit { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.aktPs__krit .aktPs__kn.is-on { border-color: #4d8df7; background: rgba(77, 141, 247, .16); }
+@media (max-width: 640px) {
+  .aktPs__resheniya[style] { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  .aktPs__resheniya[style] .aktPs__kn { grid-column: auto !important; }
+}

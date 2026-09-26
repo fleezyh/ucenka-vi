@@ -940,6 +940,14 @@
 
   async function searchBarcode() {
     const code = scan.value.trim().replace(/^"|"$/g, "");
+    // Наклейка стола (CEL + id ячейки, 26.09): это не товар, а смена стола —
+    // актировка (akt-predsort.js) показывает решения этого стола.
+    if (/^CEL\d{5,10}$/i.test(code)) {
+      scan.value = "";
+      document.dispatchEvent(new CustomEvent("picker:stol", { detail: { kod: code } }));
+      scan.focus();
+      return;
+    }
     if (!code || busy || !manifest) {
       scan.focus();
       return;

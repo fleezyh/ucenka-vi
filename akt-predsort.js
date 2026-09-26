@@ -19,13 +19,20 @@
 
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
-  const RESHENIYA = [
-    { k: "util", имя: "Утиль", акт: true },
-    { k: "ok", имя: "Контроль ОК", акт: true },
-    { k: "ucenka", имя: "Уценка", акт: false },
-    { k: "pereup", имя: "Переупаковка", акт: false },
-    { k: "nekompl", имя: "Некомплект", акт: false },
-  ];
+  // Решения — от стола (26.09): человек пикает наклейку своего стола (CEL…),
+  // и пикалка показывает, что с этого стола реально делают: сервер собирает
+  // это каждую ночь по перемещениям ВМС. Стол помним до конца дня.
+  const KLYUCH_STOLA = "akt-stol";
+  const segodnya = () => new Date().toISOString().slice(0, 10);
+  let stol = null;
+  try {
+    const z = JSON.parse(localStorage.getItem(KLYUCH_STOLA) || "null");
+    if (z && z.день === segodnya()) stol = z.стол;
+  } catch (e) { /* нет — пикнут заново */ }
+  let oshibkaStola = "";
+  // Крит / косм: на предсорте это решают и так, в акт пишем вместе с дефектом.
+  const KRIT = [{ k: "крит", имя: "Критичный" }, { k: "косм", имя: "Косметический" }];
+  let krit = "";
   // Как дефекты пишут руками сейчас (топ по её актам), только одним текстом.
   // На кнопке коротко, в акт — полностью.
   const DEFEKTY = [
@@ -34,8 +41,6 @@
     { k: "надорван", имя: "Надорван" }, { k: "потёртости", имя: "Потёртости" },
     { k: "следы загрязнения, нетоварный вид", имя: "Загрязнение" }, { k: "не работает", имя: "Не работает" },
   ];
-  const STOL = "ФБ (ДМД) Уценка Стол 3 (ВЗ)";
-
   let tovar = null;
   let reshenie = "";
   let defekt = "";
@@ -86,15 +91,23 @@
     </form>`;
   }
 
+  const RESHENIYA = () => (stol && stol.исходы) || [];
+
   function risovat() {
-    if (!tovar || tovar.mode !== "presort") { box.hidden = true; return; }
+    if (!tovar) { box.hidden = true; return; }
     box.hidden = false;
-    const r = RESHENIYA.find((x) => x.k === reshenie);
+    const r = RESHENIYA().find((x) => String(x.id) === String(reshenie));
     const shapka = `<header class="aktPs__shapka">
-        <div><p class="aktPs__nad">Актировка</p>
-          <p class="aktPs__rezhim">${boevoy ? "черновик акта в ВМС" : "демо — в ВМС ничего не уходит"}${zaSmenu ? ` · за смену ${zaSmenu}` : ""}</p></div>
+        <div><p class="aktPs__nad">${stol ? esc(stol.имя.replace(/^ФБ \(ДМД\) /, "")) : "Стол не выбран"}</p>
+          <p class="aktPs__rezhim">${stol ? "сменить — пикните наклейку другого стола" : "пикните наклейку своего стола (CEL…)"}${
+            boevoy ? "" : " · демо"}${zaSmenu ? ` · за смену ${zaSmenu}` : ""}</p></div>
         ${plashkaVms()}
       </header>${formaVms()}`;
+
+    if (!stol) {
+      box.innerHTML = `${shapka}<p class="aktPs__net">${oshibkaStola ? `<b class="aktPs__oshibka">${esc(oshibkaStola)}</b> · ` : ""}Решения зависят от стола: утиль, ДВК, категории уценки… Пикните штрихкод на своём столе, потом товар.</p>`;
+      return;
+    }
 
     if (gotovo) {
       box.innerHTML = `${shapka}
@@ -104,14 +117,19 @@
       return;
     }
 
+    const n = RESHENIYA().length;
+    const kolonok = n <= 5 ? n : 4;
+    const gotovKnopka = defekt && krit;
     box.innerHTML = `${shapka}
       <p class="aktPs__zag">Решение</p>
-      <div class="aktPs__resheniya">${RESHENIYA.map((x) => `<button type="button" class="aktPs__kn${x.k === reshenie ? " is-on" : ""}" data-resh="${x.k}">${esc(x.имя)}</button>`).join("")}</div>
-      ${!r ? "" : !r.акт ? `<p class="aktPs__net">«${esc(r.имя)}» — акт не нужен, кладите на выход.</p>` : `
+      <div class="aktPs__resheniya" style="grid-template-columns:repeat(${kolonok},minmax(0,1fr))">${RESHENIYA().map((x) => `<button type="button" class="aktPs__kn${String(x.id) === String(reshenie) ? " is-on" : ""}" data-resh="${x.id}" title="${esc(x.куда)}">${esc(x.имя)}</button>`).join("")}</div>
+      ${!r ? "" : !r.акт ? `<p class="aktPs__net">«${esc(r.имя)}» — акт не нужен, кладите в «${esc(r.куда)}».</p>` : `
+        <p class="aktPs__zag">Крит или косм</p>
+        <div class="aktPs__krit">${KRIT.map((x) => `<button type="button" class="aktPs__kn${x.k === krit ? " is-on" : ""}" data-krit="${x.k}">${x.имя}</button>`).join("")}</div>
         <p class="aktPs__zag">Дефект</p>
         <div class="aktPs__defekty">${DEFEKTY.map((d) => `<button type="button" class="aktPs__kn aktPs__kn--def${d.k === defekt ? " is-on" : ""}" data-def="${esc(d.k)}">${esc(d.имя)}</button>`).join("")}</div>
-        <button type="button" class="aktPs__akt" id="aktPsGo"${defekt ? "" : " disabled"}>${defekt ? "Заактировать" : "Выберите дефект"}</button>
-        <p class="aktPs__chto">Внутренний брак · качество брак · «мех. повреждения, ${esc(defekt || "…")}» · ${esc(STOL)} · комплектность полная</p>
+        <button type="button" class="aktPs__akt" id="aktPsGo"${gotovKnopka ? "" : " disabled"}>${gotovKnopka ? "Заактировать" : !krit ? "Выберите крит или косм" : "Выберите дефект"}</button>
+        <p class="aktPs__chto">Внутренний брак · качество брак · «мех. повреждения, ${esc(defekt || "…")}${krit ? ", " + krit : ""}» · ${esc(stol.имя)} → ${esc(r.куда)} · комплектность полная</p>
         ${oshibkaAkta ? `<p class="aktPs__net"><b class="aktPs__oshibka">Акт не создан:</b> ${esc(oshibkaAkta)}</p>` : ""}`}`;
   }
 
@@ -121,7 +139,25 @@
   }
 
   document.addEventListener("picker:hit", (e) => {
-    tovar = e.detail; reshenie = ""; defekt = ""; gotovo = null; oshibkaAkta = ""; risovat();
+    tovar = e.detail; reshenie = ""; defekt = ""; krit = ""; gotovo = null; oshibkaAkta = ""; risovat();
+  });
+  document.addEventListener("picker:stol", async (e) => {
+    oshibkaStola = "";
+    try {
+      const otvet = await fetch(`/__akt/stol?kod=${encodeURIComponent(e.detail.kod)}`, { cache: "no-store" });
+      const d = await otvet.json().catch(() => ({}));
+      if (!otvet.ok) throw new Error(d.ошибка || "стол не найден");
+      stol = d;
+      localStorage.setItem(KLYUCH_STOLA, JSON.stringify({ день: segodnya(), стол: d }));
+      reshenie = ""; defekt = ""; krit = ""; gotovo = null;
+      const m = document.getElementById("message");
+      if (m) { m.textContent = `Стол: ${d.имя}. Теперь пикайте товар.`; m.className = "message ok"; }
+    } catch (oshibka) {
+      oshibkaStola = oshibka.message || String(oshibka);
+      const m = document.getElementById("message");
+      if (m) { m.textContent = oshibkaStola; m.className = "message warn"; }
+    }
+    if (tovar) risovat();
   });
   document.addEventListener("picker:miss", () => { tovar = null; risovat(); });
 
@@ -150,14 +186,15 @@
     const kn = document.getElementById("aktPsGo");
     kn.disabled = true;
     kn.textContent = "Создаю акт…";
-    const r = RESHENIYA.find((x) => x.k === reshenie);
+    const r = RESHENIYA().find((x) => String(x.id) === String(reshenie));
     let nomerAkta = nomer++;
     oshibkaAkta = "";
     if (boevoy) {
       try {
         const otvet = await fetch("/__akt/sozdat", {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ товар: tovar.name, код: tovar.kod || "", дефект: defekt, решение: r.имя }),
+          body: JSON.stringify({ товар: tovar.name, код: tovar.kod || "", дефект: `${defekt}, ${krit}`,
+            решение: r.имя, исход: r.id }),
         });
         const d = await otvet.json().catch(() => ({}));
         if (d.нужен_вход || /сессия вмс закончилась/.test(d.ошибка || "")) {
@@ -175,7 +212,7 @@
       await new Promise((ok) => setTimeout(ok, 400));
     }
     zaSmenu += 1;
-    gotovo = { nomer: nomerAkta, tovar: tovar.name || "", reshenie: r.имя, defekt };
+    gotovo = { nomer: nomerAkta, tovar: tovar.name || "", reshenie: `${r.имя} → ${r.куда}`, defekt: `${defekt}, ${krit}` };
     risovat();
     if (navigator.vibrate) navigator.vibrate(120);
     vFokus();
@@ -192,7 +229,9 @@
       vms = { подключено: false }; risovat(); return;
     }
     const r = e.target.closest("[data-resh]");
-    if (r) { reshenie = r.dataset.resh; defekt = ""; oshibkaAkta = ""; return risovat(); }
+    if (r) { reshenie = r.dataset.resh; defekt = ""; krit = ""; oshibkaAkta = ""; return risovat(); }
+    const kr = e.target.closest("[data-krit]");
+    if (kr) { krit = kr.dataset.krit; oshibkaAkta = ""; return risovat(); }
     const d = e.target.closest("[data-def]");
     if (d) { defekt = d.dataset.def; oshibkaAkta = ""; return risovat(); }
     if (e.target.closest("#aktPsGo")) aktirovat();
