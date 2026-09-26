@@ -87,16 +87,33 @@ function schetchik(tik, schitano) {
       el.textContent = probel ? "" : simvol;
       return;
     }
-    if (!el.firstChild || !el.classList.contains("zpDigit--roll")) {
+    if (!el.classList.contains("zpDigit--roll")) {
+      // Невидимая цифра в потоке задаёт окну ширину и настоящую базовую
+      // линию: без неё окно с обрезкой садилось на строку нижним краем, и
+      // копейки прыгали по высоте относительно запятой. Лента — поверх неё,
+      // с лишним нулём в конце, чтобы 9 → 0 ехало вперёд, а не назад через
+      // все цифры.
       el.className = "zpDigit zpDigit--roll";
-      el.innerHTML = '<span class="zpDigit__strip">'
-        + "0123456789".split("").map((d) => `<i>${d}</i>`).join("") + "</span>";
+      el.innerHTML = '<b aria-hidden="true">0</b><span class="zpDigit__strip">'
+        + "01234567890".split("").map((d) => `<i>${d}</i>`).join("") + "</span>";
     }
-    const strip = el.firstChild;
+    const strip = el.lastChild;
     const nado = Number(simvol);
-    if (strip.dataset.n === String(nado)) return;
+    const bylo = strip.dataset.n === undefined ? null : Number(strip.dataset.n);
+    if (bylo === nado) return;
     strip.dataset.n = String(nado);
-    strip.style.transform = `translateY(${-nado * 10}%)`;
+    if (bylo === 9 && nado === 0) {
+      strip.style.top = "-10em";
+      strip.addEventListener("transitionend", () => {
+        if (strip.dataset.n !== "0") return;
+        strip.style.transition = "none";
+        strip.style.top = "0";
+        void strip.offsetHeight;
+        strip.style.transition = "";
+      }, { once: true });
+      return;
+    }
+    strip.style.top = `${-nado}em`;
   }
 
   function napisat(el, text) {
@@ -109,9 +126,10 @@ function schetchik(tik, schitano) {
   }
 
   function risovat() {
-    const value = summa();
-    const celye = Math.floor(value);
-    const kop = Math.round((value - celye) * 100);
+    // Считаем в копейках: округление дробной части отдельно давало «,100».
+    const vsego = Math.round(summa() * 100);
+    const celye = Math.floor(vsego / 100);
+    const kop = vsego % 100;
     napisat(rubliEl, celye.toLocaleString("ru-RU").replace(/ /g, " "));
     napisat(kopeykiEl, "," + String(kop).padStart(2, "0"));
   }
