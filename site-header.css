@@ -747,3 +747,24 @@ input::-webkit-datetime-edit-day-field, input::-webkit-datetime-edit-month-field
 input::-webkit-datetime-edit-year-field, input::-webkit-datetime-edit-text,
 input::-webkit-datetime-edit-hour-field, input::-webkit-datetime-edit-minute-field {
   font-variant-numeric: normal !important; font-feature-settings: "tnum" 0, "pnum" 1 !important; letter-spacing: 0 !important; }
+
+/* Главная на телефоне: меню «Разделы» там нет, и плашка «Зарплата · Кабинет ·
+   Выйти» уезжала отдельной строкой, прижатой вправо, а на узком экране
+   обрезалась. Здесь она — сегмент во всю ширину с кнопками поровну, как
+   переключатель «Аналитика · Инструменты · Новости» под заголовком. */
+.siteHeaderShell .siteNav:empty { display: none; }
+@media (max-width: 640px) {
+  body:not(.nav-enhanced) .siteHeaderShell .siteNav {
+    grid-column: 1 / -1;
+    width: 100%;
+    margin-left: 0;
+    flex-wrap: nowrap;
+  }
+  body:not(.nav-enhanced) .siteHeaderShell .siteNav .navGroup { flex: 1 1 auto; min-width: 0; }
+  body:not(.nav-enhanced) .siteHeaderShell .siteNav .navLink {
+    flex: 1 1 0;
+    min-width: 0;
+    justify-content: center;
+    padding-inline: 6px;
+  }
+}
