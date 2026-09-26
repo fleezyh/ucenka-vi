@@ -1215,3 +1215,18 @@ body[data-mode="dorogie"] .searchCard { grid-column: 1; grid-row: 1; }
   .answer__niz .siteLink { margin-left: 0; flex: 1; justify-content: center; }
   .answer .aktPs { margin: 14px -18px -18px; padding: 14px; }
 }
+
+/* Скан камерой (kamera.js, 26.09): квадратная кнопка рядом с «Найти» и окно
+   на весь экран с прицелом. */
+.kameraBtn { min-width: 58px; padding: 0 14px; display: inline-flex; align-items: center; justify-content: center; }
+.kameraBtn[hidden] { display: none; }
+.kamera { position: fixed; inset: 0; z-index: 1000; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 16px; padding: 20px; background: rgba(5, 9, 15, .92); }
+.kamera__ramka { position: relative; width: min(92vw, 640px); aspect-ratio: 4 / 3; border-radius: 18px; overflow: hidden;
+  background: #000; }
+.kamera__video { width: 100%; height: 100%; object-fit: cover; }
+.kamera__pritsel { position: absolute; left: 12%; right: 12%; top: 38%; bottom: 38%; border: 2px solid #5b95f2;
+  border-radius: 10px; box-shadow: 0 0 0 999px rgba(0, 0, 0, .35); }
+.kamera__tekst { margin: 0; color: #dfe7f2; font-size: 15px; }
+.kamera__zakryt { appearance: none; min-width: 180px; padding: 13px 20px; border-radius: 14px; border: 1px solid #35465c;
+  background: #1a2433; color: #f2f6fb; font: inherit; font-size: 16px; font-weight: 600; cursor: pointer; }
