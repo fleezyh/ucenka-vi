@@ -1184,16 +1184,16 @@ body[data-mode="dorogie"] .searchCard { grid-column: 1; grid-row: 1; }
 .answer__setka { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 22px; align-items: stretch; }
 .answer__otvet { display: flex; flex-direction: column; gap: 8px; }
 .answer__otvet .primary { min-width: 0; flex: 1; display: flex; flex-direction: column; justify-content: center;
-  padding: 16px 18px; border-radius: 16px; text-align: left; }
+  align-items: center; padding: 16px 18px; border-radius: 16px; text-align: center; }
 .answer__otvet .primary strong { font-size: 32px; line-height: 1.1; margin-top: 6px; }
 .answer__otvet .primary.category strong { font-size: 60px; line-height: 1; }
-.razmerProverka { margin: 0; font-size: 13px; font-weight: 600; line-height: 1.35; }
+.razmerProverka { margin: 0; font-size: 13px; font-weight: 600; line-height: 1.35; text-align: center; }
 .razmerProverka[hidden] { display: none; }
 .razmerProverka::before { content: "● "; }
 .razmerProverka.is-ok { color: #7ee2a8; }
 .razmerProverka.is-spor { color: #f0c479; }
 /* «Это (не) КГТ» — редкая отметка расхождения, а не главное действие: ссылкой. */
-.answer__otvet .kgtBtn { margin: 0; align-self: flex-start; padding: 0; border: 0; background: none;
+.answer__otvet .kgtBtn { margin: 0; align-self: center; padding: 0; border: 0; background: none;
   color: var(--muted); font-size: 12.5px; text-decoration: underline dotted; text-underline-offset: 3px; }
 .answer__otvet .kgtBtn:hover { color: var(--text); background: none; }
 .answer__otvet .kgtBtn.kgtBtn--kgt { color: #f5ad32; }
@@ -1232,7 +1232,7 @@ body[data-mode="dorogie"] .searchCard { grid-column: 1; grid-row: 1; }
   .answer__otvet .primary { grid-row: span 2; }
   .answer__otvet .primary.category strong { font-size: 52px; }
   .answer__otvet .razmerProverka { align-self: end; }
-  .answer__otvet .kgtBtn { align-self: start; }
+  .answer__otvet .kgtBtn { align-self: start; justify-self: center; }
   .answer .aktPs { margin: 14px -18px -18px; padding: 14px; }
 }
 
