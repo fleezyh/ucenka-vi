@@ -1178,35 +1178,40 @@ body[data-mode="dorogie"] .searchCard { grid-column: 1; grid-row: 1; }
 }
 
 
-/* Карточка товара плитками (26.09): «так это тоже надо прикольно сделать».
-   Название сверху, четыре одинаковые плитки, внизу штрихкод и действия —
-   тот же язык, что у панели актировки под ней. */
-.answer { flex-direction: column; align-items: stretch; gap: 14px; padding: 18px; border-radius: 18px; }
-.answer__golova .nameRow { margin: 6px 0 0; }
+/* Карточка товара (26.09, вторая версия): слева ответ пикалки и его проверка
+   (кластер/себес, габариты, «Это КГТ»), справа — что за товар (название,
+   рубрика, цена, штрихкод, сайт). Актировка — в той же карточке под чертой. */
+.answer { flex-direction: column; align-items: stretch; gap: 0; padding: 18px; border-radius: 18px; }
+.answer__setka { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 20px; align-items: stretch; }
+.answer__otvet { display: flex; flex-direction: column; gap: 10px; }
+.answer__otvet .primary { min-width: 0; flex: 1; display: flex; flex-direction: column; justify-content: center;
+  padding: 18px; border-radius: 16px; text-align: left; }
+.answer__otvet .primary strong { font-size: 34px; line-height: 1.1; margin-top: 6px; }
+.answer__otvet .primary.category strong { font-size: 64px; line-height: 1; }
+.answer__otvet .razmery { margin: 0; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line);
+  color: var(--text); font-size: 14px; font-weight: 600; line-height: 1.35; }
+.answer__otvet .razmery--spor { color: #f0c479; border-color: rgba(240, 196, 121, .45); }
+.answer__otvet .kgtBtn { margin: 0; align-self: stretch; min-height: 38px; }
+.answer__tovar { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; }
+.answer__tovar .nameRow { align-self: stretch; margin: 6px 0 12px; }
 .answer h3 { font-size: 22px; line-height: 1.3; }
-.answer__plitki { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-.answer__plitka, .answer__plitki .primary { min-width: 0; padding: 14px 16px 16px; border-radius: 14px;
-  display: flex; flex-direction: column; justify-content: flex-start; gap: 10px; }
-.answer__plitka { border: 1px solid var(--line); background: rgba(255, 255, 255, .03); }
-.answer__plitki .primary { text-align: left; }
-.answer__plitki .primary span { font-size: 11px; }
-.answer__plitki .primary strong { margin: 0; font-size: 26px; line-height: 1.15; }
-.answer__plitki .primary.category strong { font-size: 26px; line-height: 1.15; }
-.answer__plitka .secondary { padding: 0; border: 0; background: none; font-size: 18px; font-weight: 600; line-height: 1.3; }
-.answer__plitka .secondary.check { background: none; }
-.answer__plitka .rrcLine, .answer__plitka .razmery { margin: 0; color: var(--text); font-size: 18px; font-weight: 600; line-height: 1.3; }
-.answer__plitka .rrcLine span { display: block; margin-top: 3px; color: var(--muted); font-size: 12.5px; font-weight: 400; }
-.answer__plitka .razmery--spor { color: #f0c479; }
-/* Нет цены или габаритов — плитка остаётся на месте с прочерком: сетка не прыгает. */
-.answer__plitka:has(> p[hidden])::after { content: "—"; color: var(--muted); font-size: 18px; font-weight: 600; line-height: 1.3; }
-.answer .otborMark { margin: 0; }
-.answer__niz { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
-  padding-top: 12px; border-top: 1px solid var(--line); }
+.answer__tovar .otborMark { align-self: stretch; }
+.answer__niz { align-self: stretch; margin-top: auto; padding-top: 14px; display: flex; align-items: center;
+  gap: 14px; flex-wrap: wrap; border-top: 1px solid var(--line); }
+/* Нижняя строка прижата к низу — на одной линии с «Это КГТ» слева. */
+.answer__tovar > .secondary { margin-bottom: 14px; }
+.answer__niz .rrcLine { margin: 0; color: var(--text); font-size: 18px; font-weight: 600; line-height: 1.2; }
+.answer__niz .rrcLine span { margin-left: 8px; color: var(--muted); font-size: 13px; font-weight: 400; }
 .answer__niz .code { margin: 0; }
-.answer__knopki { display: flex; gap: 8px; flex-wrap: wrap; }
-.answer__knopki .siteLink, .answer__knopki .kgtBtn { margin: 0; min-height: 36px; box-sizing: border-box; align-self: auto; }
-@media (max-width: 600px) {
-  .answer__plitki { grid-template-columns: repeat(2, 1fr); }
-  .answer__niz { flex-direction: column; align-items: stretch; }
-  .answer__knopki > * { flex: 1; justify-content: center; }
+.answer__niz .siteLink { margin: 0 0 0 auto; min-height: 36px; box-sizing: border-box; }
+/* Актировка внутри карточки: не отдельный ящик, а следующий шаг под чертой. */
+.answer .aktPs { margin: 18px -18px -18px; padding: 16px 18px 18px; border: 0; border-top: 1px solid var(--line);
+  border-radius: 0 0 18px 18px; background: rgba(255, 255, 255, .015); }
+@media (max-width: 700px) {
+  .answer__setka { grid-template-columns: 1fr; gap: 14px; }
+  .answer__otvet { display: grid; grid-template-columns: 1fr 1fr; }
+  .answer__otvet .primary { grid-row: span 2; }
+  .answer__otvet .primary.category strong { font-size: 52px; }
+  .answer__niz .siteLink { margin-left: 0; flex: 1; justify-content: center; }
+  .answer .aktPs { margin: 14px -18px -18px; padding: 14px; }
 }

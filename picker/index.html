@@ -10,7 +10,7 @@
   <link rel="icon" type="image/svg+xml" href="assets/brand/vi-mark.svg?v=20260903-3">
   <link rel="preload" href="assets/fonts/VI_Sans_Regular.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="assets/fonts/VI_Sans_ExtraBold.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="style.css?v=20260926-4">
+  <link rel="stylesheet" href="style.css?v=20260926-6">
   <link rel="stylesheet" href="reeded-bg.css?v=20260907-6">
   <link rel="stylesheet" href="site-header.css?v=20260921-1">
   <script src="reeded-bg.js?v=20260906-7" defer></script>
@@ -128,56 +128,44 @@
 
         <p class="message" id="message">Подключаю справочник…</p>
 
-        <!-- Карточка товара (26.09): название во всю ширину, под ним четыре
-             одинаковые плитки — главное по режиму (себестоимость или кластер),
-             рубрика, цена на сайте, габариты, — внизу штрихкод и действия.
-             Все id прежние: их заполняет script.js.
-             · Габариты показываем всегда, а когда спорят с кластером — говорим
-               об этом прямо: кластер ставится по рубрике, размер в нём не участвует.
-             · Отбор на площадки — отдельной строкой: это первое решение по товару.
-             · «Это (не) КГТ» — отметка расхождения, по ней правят габариты. -->
+        <!-- Карточка товара (26.09, вторая версия): две группы по смыслу.
+             Слева — ответ пикалки и его проверка: кластер (на «Уценке» —
+             себестоимость), под ним габариты и «Это (не) КГТ» — всё про то,
+             верен ли кластер: он ставится по рубрике, размер в нём не участвует.
+             Справа — что за товар: название, рубрика, отбор на площадки, цена,
+             штрихкод, ссылка на сайт. Под чертой в той же карточке — актировка
+             (?akt), следующий шаг по этому же товару. Все id прежние. -->
         <article class="answer" id="answer" aria-live="polite">
-          <div class="answer__golova">
-            <span class="answer__label">Наименование</span>
-            <div class="nameRow">
-              <h3 id="productName">—</h3>
-              <button class="copyBtn" id="copyName" type="button"
-                      title="Скопировать наименование" hidden>
-                <span class="copyBtn__icon" aria-hidden="true"></span>
-                <span class="copyBtn__text">Копировать</span>
-              </button>
-            </div>
-          </div>
-          <div class="answer__plitki">
-            <div class="primary" id="primary">
-              <span id="primaryLabel">Себестоимость</span>
-              <strong id="primaryValue">—</strong>
-            </div>
-            <div class="answer__plitka">
-              <span class="answer__label">Рубрика</span>
-              <span class="secondary" id="secondary">—</span>
-            </div>
-            <div class="answer__plitka">
-              <span class="answer__label">Цена на сайте</span>
-              <p class="rrcLine" id="rrcLine" hidden></p>
-            </div>
-            <div class="answer__plitka">
-              <span class="answer__label">Габариты</span>
+          <div class="answer__setka">
+            <div class="answer__otvet">
+              <div class="primary" id="primary">
+                <span id="primaryLabel">Себестоимость</span>
+                <strong id="primaryValue">—</strong>
+              </div>
               <p class="razmery" id="razmery" hidden></p>
-            </div>
-          </div>
-          <p class="otborMark" id="otborMark" hidden></p>
-          <div class="answer__niz">
-            <p class="code" id="productCode"></p>
-            <div class="answer__knopki">
-              <a class="siteLink" id="siteLink" href="#" target="_blank" rel="noopener" hidden>Открыть на сайте</a>
               <button class="kgtBtn" id="kgtMark" type="button" hidden>Это не КГТ</button>
             </div>
+            <div class="answer__tovar">
+              <span class="answer__label">Наименование</span>
+              <div class="nameRow">
+                <h3 id="productName">—</h3>
+                <button class="copyBtn" id="copyName" type="button"
+                        title="Скопировать наименование" hidden>
+                  <span class="copyBtn__icon" aria-hidden="true"></span>
+                  <span class="copyBtn__text">Копировать</span>
+                </button>
+              </div>
+              <span class="secondary" id="secondary">—</span>
+              <p class="otborMark" id="otborMark" hidden></p>
+              <div class="answer__niz">
+                <p class="rrcLine" id="rrcLine" hidden></p>
+                <p class="code" id="productCode"></p>
+                <a class="siteLink" id="siteLink" href="#" target="_blank" rel="noopener" hidden>Открыть на сайте</a>
+              </div>
+            </div>
           </div>
+          <section class="aktPs" id="aktPs" hidden></section>
         </article>
-        <!-- Актировка с предсорта (?akt): своей панелью на всю ширину под
-             карточкой, а не в узкой колонке справа от кластера. -->
-        <section class="aktPs" id="aktPs" hidden></section>
 
         <div class="results" id="nameResults">
           <table>
