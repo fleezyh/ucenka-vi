@@ -1,11 +1,15 @@
-/* Пикалка · актировка с предсорта (пока демо: /picker/?akt).
+/* Пикалка · актировка с предсорта (/picker/?akt).
    Человек пикнул товар на столе предсорта и выбрал решение. Если по решению
    нужен акт, появляются дефекты и кнопка «Заактировать»: касание, и в вмс
    создаётся акт приёмки (внутренний брак). Остальное в акт подставляется само,
    так же, как оператор предсорта заполняет его руками: исходная и целевая
    ячейка = её стол, комплектность полная, внешний вид одинаковый.
    Разбор актов Перевезенцевой 09–25.09: 700 актов, ровно на утиль и контроль ОК;
-   уценка, переупаковка и некомплекты уходят со стола без акта. */
+   уценка, переупаковка и некомплекты уходят со стола без акта.
+
+   26.09: отдельная панель на всю ширину под карточкой — решения и дефекты
+   ровными сетками, вход в вмс плашкой в шапке («перегруз кнопочек и нет
+   симметрии»). */
 (function () {
   "use strict";
 
@@ -23,8 +27,13 @@
     { k: "nekompl", имя: "Некомплект", акт: false },
   ];
   // Как дефекты пишут руками сейчас (топ по её актам), только одним текстом.
-  const DEFEKTY = ["переломан", "расколот", "погнут", "порвана упаковка", "надорван", "потёртости",
-    "следы загрязнения, нетоварный вид", "не работает"];
+  // На кнопке коротко, в акт — полностью.
+  const DEFEKTY = [
+    { k: "переломан", имя: "Переломан" }, { k: "расколот", имя: "Расколот" },
+    { k: "погнут", имя: "Погнут" }, { k: "порвана упаковка", имя: "Порвана упаковка" },
+    { k: "надорван", имя: "Надорван" }, { k: "потёртости", имя: "Потёртости" },
+    { k: "следы загрязнения, нетоварный вид", имя: "Загрязнение" }, { k: "не работает", имя: "Не работает" },
+  ];
   const STOL = "ФБ (ДМД) Уценка Стол 3 (ВЗ)";
 
   let tovar = null;
@@ -32,65 +41,88 @@
   let defekt = "";
   let nomer = 7713001;
   let zaSmenu = 0;
-  // Тумблер в админке (25.09): под личной учёткой вмс актировку не включаем.
-  let vAdminke = "выключена в админке";
-  // Включена в админке — кнопка создаёт настоящий черновик акта в вмс.
-  let boevoy = false;
+  let gotovo = null;          // только что созданный акт — показываем до следующего пика
+  let boevoy = false;         // включена в админке: кнопка создаёт настоящий черновик
   // Личный вход в вмс (26.09): акты идут от имени того, кто вошёл. Пароль
   // уходит на сервер один раз, там не хранится — только сессия.
   let vms = { подключено: false };
   let obshchiyMozhno = false;
   let formaVhoda = false;
   let oshibkaVhoda = "";
-  const zagruzitSostoyanie = () => fetch("/__akt/sostoyanie", { cache: "no-store" }).then((o) => o.ok ? o.json() : {})
+  let oshibkaAkta = "";
+
+  fetch("/__akt/sostoyanie", { cache: "no-store" }).then((o) => o.ok ? o.json() : {})
     .then((d) => {
       boevoy = Boolean(d.включена);
       obshchiyMozhno = Boolean(d.общий_можно);
       vms = d.вмс || { подключено: false };
-      vAdminke = boevoy ? "включена" : "выключена в админке";
       risovat();
     })
     .catch(() => {});
-  zagruzitSostoyanie();
 
-  function strokaVms() {
-    if (!boevoy) return "";
+  // «Рысаков Степан Максимович» → «Рысаков С. М.»: в плашке нужна фамилия.
+  const korotko = (fio) => {
+    const s = String(fio || "").trim().split(/\s+/);
+    return s.length >= 2 ? `${s[0]} ${s.slice(1, 3).map((w) => w[0] + ".").join(" ")}` : String(fio || "");
+  };
+
+  function plashkaVms() {
+    if (!boevoy) return `<span class="aktPs__chip is-demo">демо</span>`;
     if (vms.подключено) {
-      return `<p class="aktPs__vms">ВМС: <b>${esc(vms.имя)}</b> · акты от вашего имени
-        <button type="button" class="aktPs__ssylka" id="aktVmsVyyti">выйти</button></p>`;
+      return `<span class="aktPs__chip is-ok" title="Акты уходят от имени: ${esc(vms.имя)}"><i></i>ВМС · ${esc(korotko(vms.имя))}
+        <button type="button" class="aktPs__x" id="aktVmsVyyti" title="Выйти из ВМС" aria-label="Выйти из ВМС">×</button></span>`;
     }
-    if (!formaVhoda) {
-      return `<p class="aktPs__vms is-net">ВМС: не подключено${obshchiyMozhno ? " · пока акты под общим логином" : ""}
-        <button type="button" class="aktPs__kn" id="aktVmsVoyti">Войти в ВМС</button></p>`;
-    }
+    return `<button type="button" class="aktPs__chip is-net" id="aktVmsVoyti"
+      title="${obshchiyMozhno ? "Пока акты под общим логином" : "Без входа акт не создать"}">ВМС · войти</button>`;
+  }
+
+  function formaVms() {
+    if (!formaVhoda || vms.подключено) return "";
     return `<form class="aktPs__vhod" id="aktVmsForma" autocomplete="off">
-      <input name="login" placeholder="логин ВМС" autocapitalize="off" spellcheck="false" required>
-      <input name="parol" type="password" placeholder="пароль ВМС" required>
+      <input name="login" placeholder="Логин ВМС" autocapitalize="off" spellcheck="false" required>
+      <input name="parol" type="password" placeholder="Пароль ВМС" required>
       <button class="aktPs__kn is-on" type="submit">Войти</button>
-      <span class="aktPs__chto">пароль не сохраняется: сайт один раз входит в ВМС и держит сессию до конца смены</span>
-      ${oshibkaVhoda ? `<span class="aktPs__net">${esc(oshibkaVhoda)}</span>` : ""}
+      <p class="aktPs__chto">${oshibkaVhoda ? `<b class="aktPs__oshibka">${esc(oshibkaVhoda)}</b> · ` : ""}пароль не сохраняется: сайт входит в ВМС один раз и держит сессию до конца смены</p>
     </form>`;
   }
-  const demoTekst = () => boevoy ? "Актировка включена: кнопка создаёт черновик акта в вмс"
-    : `Демо: актировка ${vAdminke}, в вмс ничего не уходит`;
 
   function risovat() {
     if (!tovar || tovar.mode !== "presort") { box.hidden = true; return; }
-    const r = RESHENIYA.find((x) => x.k === reshenie);
     box.hidden = false;
-    box.innerHTML = `
-      <p class="aktPs__demo">${esc(demoTekst())}${zaSmenu ? ` · заактировано за смену: ${zaSmenu}` : ""}</p>
-      ${strokaVms()}
-      <p class="aktPs__zag">Решение по товару</p>
-      <div class="aktPs__ryad">${RESHENIYA.map((x) => `<button type="button" class="aktPs__kn${x.k === reshenie ? " is-on" : ""}" data-resh="${x.k}">${esc(x.имя)}</button>`).join("")}</div>
-      ${!r ? "" : !r.акт ? `<p class="aktPs__net">По решению «${esc(r.имя)}» акт не нужен. Кладите на выход.</p>` : `
+    const r = RESHENIYA.find((x) => x.k === reshenie);
+    const shapka = `<header class="aktPs__shapka">
+        <div><p class="aktPs__nad">Актировка</p>
+          <p class="aktPs__rezhim">${boevoy ? "черновик акта в ВМС" : "демо — в ВМС ничего не уходит"}${zaSmenu ? ` · за смену ${zaSmenu}` : ""}</p></div>
+        ${plashkaVms()}
+      </header>${formaVms()}`;
+
+    if (gotovo) {
+      box.innerHTML = `${shapka}
+        <div class="aktPs__gotovo"><b>Акт №${esc(gotovo.nomer)}</b>
+          <span>${esc(gotovo.tovar)}</span><span>${esc(gotovo.reshenie)} · мех. повреждения, ${esc(gotovo.defekt)}</span></div>
+        <p class="aktPs__chto">Пикните следующий товар.</p>`;
+      return;
+    }
+
+    box.innerHTML = `${shapka}
+      <p class="aktPs__zag">Решение</p>
+      <div class="aktPs__resheniya">${RESHENIYA.map((x) => `<button type="button" class="aktPs__kn${x.k === reshenie ? " is-on" : ""}" data-resh="${x.k}">${esc(x.имя)}</button>`).join("")}</div>
+      ${!r ? "" : !r.акт ? `<p class="aktPs__net">«${esc(r.имя)}» — акт не нужен, кладите на выход.</p>` : `
         <p class="aktPs__zag">Дефект</p>
-        <div class="aktPs__ryad">${DEFEKTY.map((d) => `<button type="button" class="aktPs__kn aktPs__kn--def${d === defekt ? " is-on" : ""}" data-def="${esc(d)}">${esc(d)}</button>`).join("")}</div>
-        <button type="button" class="aktPs__akt" id="aktPsGo"${defekt ? "" : " disabled"}>Заактировать</button>
-        <p class="aktPs__chto">В акт: внутренний брак · качество брак · «мех. повреждения, ${esc(defekt || "…")}» · ${esc(STOL)} · комплектность полная</p>`}`;
+        <div class="aktPs__defekty">${DEFEKTY.map((d) => `<button type="button" class="aktPs__kn aktPs__kn--def${d.k === defekt ? " is-on" : ""}" data-def="${esc(d.k)}">${esc(d.имя)}</button>`).join("")}</div>
+        <button type="button" class="aktPs__akt" id="aktPsGo"${defekt ? "" : " disabled"}>${defekt ? "Заактировать" : "Выберите дефект"}</button>
+        <p class="aktPs__chto">Внутренний брак · качество брак · «мех. повреждения, ${esc(defekt || "…")}» · ${esc(STOL)} · комплектность полная</p>
+        ${oshibkaAkta ? `<p class="aktPs__net"><b class="aktPs__oshibka">Акт не создан:</b> ${esc(oshibkaAkta)}</p>` : ""}`}`;
   }
 
-  document.addEventListener("picker:hit", (e) => { tovar = e.detail; reshenie = ""; defekt = ""; risovat(); });
+  function vFokus() {
+    const vvod = document.getElementById("scan");
+    if (vvod) vvod.focus();
+  }
+
+  document.addEventListener("picker:hit", (e) => {
+    tovar = e.detail; reshenie = ""; defekt = ""; gotovo = null; oshibkaAkta = ""; risovat();
+  });
   document.addEventListener("picker:miss", () => { tovar = null; risovat(); });
 
   box.addEventListener("submit", async (e) => {
@@ -114,54 +146,55 @@
     risovat();
   });
 
+  async function aktirovat() {
+    const kn = document.getElementById("aktPsGo");
+    kn.disabled = true;
+    kn.textContent = "Создаю акт…";
+    const r = RESHENIYA.find((x) => x.k === reshenie);
+    let nomerAkta = nomer++;
+    oshibkaAkta = "";
+    if (boevoy) {
+      try {
+        const otvet = await fetch("/__akt/sozdat", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ товар: tovar.name, код: tovar.kod || "", дефект: defekt, решение: r.имя }),
+        });
+        const d = await otvet.json().catch(() => ({}));
+        if (d.нужен_вход || /сессия вмс закончилась/.test(d.ошибка || "")) {
+          vms = { подключено: false }; formaVhoda = true; oshibkaVhoda = "войдите в ВМС, потом снова «Заактировать»";
+          risovat(); return;
+        }
+        if (!otvet.ok || !d.акт) throw new Error(d.ошибка || `сервер ответил ${otvet.status}`);
+        nomerAkta = d.акт;
+      } catch (oshibka) {
+        oshibkaAkta = `${oshibka.message || oshibka}. Заактируйте руками в ВМС.`;
+        risovat();
+        return;
+      }
+    } else {
+      await new Promise((ok) => setTimeout(ok, 400));
+    }
+    zaSmenu += 1;
+    gotovo = { nomer: nomerAkta, tovar: tovar.name || "", reshenie: r.имя, defekt };
+    risovat();
+    if (navigator.vibrate) navigator.vibrate(120);
+    vFokus();
+  }
+
   box.addEventListener("click", async (e) => {
-    if (e.target.closest("#aktVmsVoyti")) { formaVhoda = true; oshibkaVhoda = ""; risovat(); box.querySelector("#aktVmsForma input")?.focus(); return; }
+    if (e.target.closest("#aktVmsVoyti")) {
+      formaVhoda = !formaVhoda; oshibkaVhoda = ""; risovat();
+      box.querySelector("#aktVmsForma input")?.focus();
+      return;
+    }
     if (e.target.closest("#aktVmsVyyti")) {
       await fetch("/__wms/vyyti", { method: "POST" }).catch(() => {});
       vms = { подключено: false }; risovat(); return;
     }
     const r = e.target.closest("[data-resh]");
-    if (r) { reshenie = r.dataset.resh; defekt = ""; return risovat(); }
+    if (r) { reshenie = r.dataset.resh; defekt = ""; oshibkaAkta = ""; return risovat(); }
     const d = e.target.closest("[data-def]");
-    if (d) { defekt = d.dataset.def; return risovat(); }
-    if (e.target.closest("#aktPsGo")) {
-      const kn = document.getElementById("aktPsGo");
-      kn.disabled = true;
-      kn.textContent = "Создаю акт…";
-      const r2 = RESHENIYA.find((x) => x.k === reshenie);
-      let nomerAkta = nomer++;
-      if (boevoy) {
-        try {
-          const otvet = await fetch("/__akt/sozdat", {
-            method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ товар: tovar.name, код: tovar.kod || "", дефект: defekt, решение: r2.имя }),
-          });
-          const d = await otvet.json().catch(() => ({}));
-          if (d.нужен_вход || /сессия вмс закончилась/.test(d.ошибка || "")) {
-            vms = { подключено: false }; formaVhoda = true; oshibkaVhoda = "войдите в ВМС, потом снова «Заактировать»";
-            risovat(); return;
-          }
-          if (!otvet.ok || !d.акт) throw new Error(d.ошибка || `сервер ответил ${otvet.status}`);
-          nomerAkta = d.акт;
-        } catch (oshibka) {
-          kn.disabled = false;
-          kn.textContent = "Заактировать";
-          box.insertAdjacentHTML("beforeend",
-            `<p class="aktPs__net">Акт не создан: ${esc(oshibka.message || oshibka)}. Заактируйте руками в вмс.</p>`);
-          return;
-        }
-      } else {
-        await new Promise((ok) => setTimeout(ok, 400));
-      }
-      zaSmenu += 1;
-      box.innerHTML = `<p class="aktPs__demo">${esc(demoTekst())} · заактировано за смену: ${zaSmenu}</p>
-        <p class="aktPs__gotovo">Акт №${nomerAkta} ${boevoy ? "создан черновиком в вмс" : "создан"}<span>${esc(tovar.name || "")}</span>
-        <span>${esc(r2.имя)} · мех. повреждения, ${esc(defekt)}</span></p>
-        <p class="aktPs__net">Пикните следующий товар.</p>`;
-      if (navigator.vibrate) navigator.vibrate(120);
-      tovar = null;
-      const vvod = document.querySelector("input[type=search], #barcode, input");
-      if (vvod) vvod.focus();
-    }
+    if (d) { defekt = d.dataset.def; oshibkaAkta = ""; return risovat(); }
+    if (e.target.closest("#aktPsGo")) aktirovat();
   });
 })();

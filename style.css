@@ -1125,28 +1125,54 @@ body[data-mode="dorogie"] .searchCard { grid-column: 1; grid-row: 1; }
 .pickerTabGroup__buttons { flex: 1; align-items: stretch; }
 .pickerTabs .tab { display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1.15; }
 
-/* Пикалка · актировка с предсорта (akt-predsort.js, пока демо ?akt) */
-.aktPs { width: 100%; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line-strong); }
-.aktPs__demo { margin: 0 0 8px; font-size: 13px; color: #8fb4ff; }
-.aktPs__zag { margin: 10px 0 6px; font-size: 13px; color: var(--muted); }
-.aktPs__ryad { display: flex; flex-wrap: wrap; gap: 6px; }
-.aktPs__kn { appearance: none; font: inherit; font-size: 15px; font-weight: 600; padding: 10px 14px; border-radius: 12px;
-  border: 1px solid var(--line-strong); background: transparent; color: var(--text); cursor: pointer; }
+/* Пикалка · актировка с предсорта (akt-predsort.js, /picker/?akt).
+   26.09: отдельная панель на всю ширину под карточкой товара — решения и
+   дефекты одинаковыми плитками ровной сеткой, вход в ВМС плашкой в шапке. */
+.aktPs { margin-top: 14px; padding: 16px 18px 18px; border-radius: 18px;
+  border: 1px solid var(--line-strong); background: rgba(255, 255, 255, .02); }
+.aktPs[hidden] { display: none; }
+.aktPs__shapka { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.aktPs__nad { margin: 0; font-size: 16px; font-weight: 600; }
+.aktPs__rezhim { margin: 2px 0 0; font-size: 12.5px; color: var(--muted); }
+.aktPs__chip { display: inline-flex; align-items: center; gap: 8px; padding: 7px 12px; border-radius: 999px;
+  border: 1px solid var(--line-strong); background: transparent; color: var(--text);
+  font: inherit; font-size: 13px; font-weight: 600; white-space: nowrap; }
+.aktPs__chip i { width: 8px; height: 8px; border-radius: 50%; background: #27c46b; }
+.aktPs__chip.is-ok { border-color: rgba(39, 196, 107, .55); }
+.aktPs__chip.is-net { cursor: pointer; border-color: rgba(245, 173, 50, .6); color: #f5ad32; }
+.aktPs__chip.is-demo { color: var(--muted); }
+.aktPs__x { appearance: none; border: 0; background: none; color: var(--muted); font: inherit; font-size: 16px;
+  line-height: 1; padding: 0 0 1px 2px; cursor: pointer; }
+.aktPs__x:hover { color: var(--text); }
+.aktPs__zag { margin: 16px 0 8px; font-size: 11.5px; font-weight: 600; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--muted); }
+.aktPs__resheniya { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+.aktPs__defekty { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.aktPs__kn { appearance: none; min-height: 48px; width: 100%; padding: 10px 8px; border-radius: 12px;
+  border: 1px solid var(--line-strong); background: transparent; color: var(--text);
+  font: inherit; font-size: 15px; font-weight: 600; text-align: center; cursor: pointer; }
+.aktPs__kn:hover { border-color: var(--muted); }
 .aktPs__kn.is-on { border-color: #f5ad32; background: rgba(245, 173, 50, .16); }
 .aktPs__kn--def.is-on { border-color: #f05d72; background: rgba(240, 93, 114, .16); }
-.aktPs__akt { appearance: none; width: 100%; margin-top: 12px; border: 0; border-radius: 14px; background: #d8263d; color: #fff;
-  font: inherit; font-size: 20px; font-weight: 600; padding: 16px; cursor: pointer; }
-.aktPs__akt:disabled { background: #5a2a33; color: #d9b3b9; cursor: default; }
-.aktPs__chto, .aktPs__net { margin: 8px 0 0; font-size: 13px; color: var(--muted); }
-.aktPs__gotovo { margin: 4px 0 0; padding: 12px 14px; border-radius: 12px; background: rgba(39, 196, 107, .14);
-  border: 1px solid rgba(39, 196, 107, .6); font-size: 20px; font-weight: 600; }
-.aktPs__gotovo span { display: block; margin-top: 4px; font-size: 14px; font-weight: 400; }
-
-/* Вход в ВМС над кнопкой «Заактировать» (26.09): акты от имени того, кто вошёл. */
-.aktPs__vms { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 6px 0 10px; font-size: 13px; }
-.aktPs__vms.is-net { color: var(--muted); }
-.aktPs__ssylka { background: none; border: 0; padding: 0; font: inherit; color: var(--muted); text-decoration: underline; cursor: pointer; }
-.aktPs__vhod { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 6px 0 10px; }
-.aktPs__vhod input { font: inherit; font-size: 14px; padding: 8px 12px; border-radius: 10px; min-width: 160px;
-  border: 1px solid rgba(143,156,173,.35); background: rgba(255,255,255,.04); color: inherit; }
-.aktPs__vhod .aktPs__chto { flex-basis: 100%; }
+.aktPs__akt { appearance: none; width: 100%; margin-top: 14px; border: 0; border-radius: 14px; background: #d8263d;
+  color: #fff; font: inherit; font-size: 20px; font-weight: 600; padding: 16px; cursor: pointer; }
+.aktPs__akt:disabled { background: rgba(216, 38, 61, .28); color: rgba(255, 255, 255, .6); cursor: default; }
+.aktPs__chto, .aktPs__net { margin: 10px 0 0; font-size: 13px; color: var(--muted); }
+.aktPs__oshibka { color: #f05d72; font-weight: 600; }
+.aktPs__gotovo { margin-top: 14px; padding: 14px 16px; border-radius: 14px; background: rgba(39, 196, 107, .14);
+  border: 1px solid rgba(39, 196, 107, .6); }
+.aktPs__gotovo b { display: block; font-size: 22px; font-weight: 600; }
+.aktPs__gotovo span { display: block; margin-top: 4px; font-size: 14px; }
+.aktPs__vhod { display: grid; grid-template-columns: 1fr 1fr 140px; gap: 8px; margin-top: 12px; }
+.aktPs__vhod input { font: inherit; font-size: 15px; padding: 11px 14px; border-radius: 12px; min-width: 0;
+  border: 1px solid var(--line-strong); background: rgba(255, 255, 255, .04); color: inherit; }
+.aktPs__vhod .aktPs__chto { grid-column: 1 / -1; margin: 0; }
+/* ТСД и телефон: решения 3 + 2 во всю ширину, дефекты по два — ряды ровные. */
+@media (max-width: 640px) {
+  .aktPs { padding: 14px; }
+  .aktPs__resheniya { grid-template-columns: repeat(6, 1fr); }
+  .aktPs__resheniya .aktPs__kn { grid-column: span 2; }
+  .aktPs__resheniya .aktPs__kn:nth-child(n+4) { grid-column: span 3; }
+  .aktPs__defekty { grid-template-columns: repeat(2, 1fr); }
+  .aktPs__vhod { grid-template-columns: 1fr; }
+}
