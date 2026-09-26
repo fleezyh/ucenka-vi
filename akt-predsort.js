@@ -115,7 +115,111 @@
     </div>`;
   }
 
+  // --- Актировка целой паллеты прямо в пикалке (26.09) ---------------------
+  // Пикнули паллету «CON …» не после решения по товару — показываем её
+  // состав без акта и «Заактировать все»: акт на каждую штуку, в фоне.
+  let pal = null;          // состав паллеты
+  let palKrit = "";
+  let palDefekt = "";
+  let palRabota = null;    // ход фоновой работы
+  let palOshibka = "";
+  const kartochka = document.getElementById("answer");
+
+  function vRezhimPalety(vkl) {
+    if (!kartochka) return;
+    kartochka.classList.toggle("is-palleta", vkl);
+    if (vkl) kartochka.style.display = "flex";
+  }
+
+  async function otkrytPalletu(kod) {
+    pal = null; palKrit = ""; palDefekt = ""; palRabota = null; palOshibka = "";
+    tovar = null; gotovo = null; zhdemPalletu = null; perItog = null;
+    vRezhimPalety(true);
+    box.hidden = false;
+    box.innerHTML = '<p class="aktPs__chto">Смотрю паллету…</p>';
+    try {
+      const o = await fetch(`/__akt/palleta?kod=${encodeURIComponent(kod)}`, { cache: "no-store" });
+      const d = await o.json().catch(() => ({}));
+      if (!o.ok) throw new Error(d.ошибка || `сервер ответил ${o.status}`);
+      pal = d;
+    } catch (e) {
+      palOshibka = e.message || String(e);
+      pal = { паллета: kod, ячейка: "", строки: [], без_акта: 0 };
+    }
+    risovat();
+  }
+
+  function risovatPalletu() {
+    const vsego = pal.строки.reduce((n, x) => n + x.штук, 0);
+    const spisok = pal.строки.map((x) => `<div class="palStroka${x.без_акта ? " is-bez" : ""}">
+        <span class="palStroka__tovar">${esc(x.товар)}</span>
+        <span class="palStroka__sht">${x.штук} шт</span>
+        <span class="palStroka__akt">${x.акт ? `акт №${x.акт}` : x.уже_нами && !x.без_акта ? "заактировано нами" : "без акта"}</span>
+      </div>`).join("");
+    let niz;
+    if (palOshibka) {
+      niz = `<p class="aktPs__net"><b class="aktPs__oshibka">${esc(palOshibka)}</b></p>`;
+    } else if (palRabota) {
+      const proc = palRabota.всего ? Math.round(100 * palRabota.готово / palRabota.всего) : 0;
+      niz = `<div class="palHod"><p class="aktPs__podskaz">${palRabota.идёт ? "Актирую…" : "Готово"} ${palRabota.готово} из ${palRabota.всего}</p>
+        <div class="palHod__polosa"><i style="width:${proc}%"></i></div>
+        <p class="aktPs__chto">актов создано: ${palRabota.акты.length}${palRabota.ошибки.length ? ` · ошибок: ${palRabota.ошибки.length}` : ""}</p>
+        ${palRabota.ошибки.slice(-3).map((o) => `<p class="aktPs__net"><b class="aktPs__oshibka">${esc(o.товар)}</b> ${esc(o.ошибка)}</p>`).join("")}
+        ${palRabota.идёт ? "" : `<p class="aktPs__chto">Пикните следующую паллету или товар.</p>`}</div>`;
+    } else if (pal.без_акта) {
+      const gotov = palKrit && palDefekt;
+      niz = `<p class="aktPs__zag">Крит или косм</p>
+        <div class="aktPs__krit">${KRIT.map((x) => `<button type="button" class="aktPs__kn${x.k === palKrit ? " is-on" : ""}" data-pkrit="${x.k}">${x.имя}</button>`).join("")}</div>
+        <p class="aktPs__zag">Дефект — один на все штуки</p>
+        <div class="aktPs__defekty">${DEFEKTY.map((d) => `<button type="button" class="aktPs__kn aktPs__kn--def${d.k === palDefekt ? " is-on" : ""}" data-pdef="${esc(d.k)}">${esc(d.имя)}</button>`).join("")}</div>
+        <button type="button" class="aktPs__akt" id="palGo"${gotov && boevoy ? "" : " disabled"}>${
+          !boevoy ? "Актировка выключена в админке" : !palKrit ? "Выберите крит или косм" : !palDefekt ? "Выберите дефект" : `Заактировать ${pal.без_акта} шт`}</button>
+        <p class="aktPs__chto">Внутренний брак · качество брак · «мех. повреждения, ${esc(palDefekt || "…")}${palKrit ? ", " + palKrit : ""}» · исходная ячейка и паллета — где лежит</p>`;
+    } else {
+      niz = `<p class="aktPs__chto">На паллете нет штук без акта.</p>`;
+    }
+    box.innerHTML = `<header class="aktPs__shapka">
+        <div><p class="aktPs__nad">${esc(pal.паллета)}</p>
+          <p class="aktPs__rezhim">${esc(pal.ячейка || "")}${vsego ? ` · без акта ${pal.без_акта} шт из ${vsego}` : ""}</p></div>
+        ${plashkaVms()}
+      </header>${formaVms()}
+      ${spisok ? `<div class="palSpisok">${spisok}</div>` : ""}
+      ${niz}`;
+  }
+
+  async function palStart() {
+    const kn = document.getElementById("palGo");
+    if (kn) kn.disabled = true;
+    try {
+      const o = await fetch("/__akt/palleta/start", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ паллета: String(pal.паллета_id), дефект: palDefekt, крит: palKrit }),
+      });
+      const d = await o.json().catch(() => ({}));
+      if (d.нужен_вход) { vms = { подключено: false }; formaVhoda = true; oshibkaVhoda = "войдите в ВМС, потом снова «Заактировать»"; risovat(); return; }
+      if (!o.ok) throw new Error(d.ошибка || `сервер ответил ${o.status}`);
+      palRabota = { id: d.id, всего: pal.без_акта, готово: 0, акты: [], ошибки: [], идёт: true };
+      risovat();
+      while (palRabota && palRabota.идёт) {
+        await new Promise((ok) => setTimeout(ok, 1200));
+        try {
+          const h = await (await fetch(`/__akt/palleta/hod?id=${palRabota.id}`, { cache: "no-store" })).json();
+          if (h.ошибка) { palRabota.идёт = false; palRabota.ошибки.push({ товар: "", ошибка: h.ошибка }); }
+          else palRabota = { id: palRabota.id, ...h };
+        } catch (e) { /* сеть моргнула — следующий опрос */ }
+        if (pal) risovat();
+      }
+      zaSmenu += palRabota ? palRabota.акты.length : 0;
+      if (navigator.vibrate) navigator.vibrate(150);
+    } catch (e) {
+      palOshibka = e.message || String(e);
+      risovat();
+    }
+    vFokus();
+  }
+
   function risovat() {
+    if (pal) { box.hidden = false; risovatPalletu(); return; }
     if (!tovar) { box.hidden = true; return; }
     box.hidden = false;
     const r = RESHENIYA().find((x) => String(x.id) === String(reshenie));
@@ -162,15 +266,15 @@
 
   document.addEventListener("picker:hit", (e) => {
     tovar = e.detail; reshenie = ""; defekt = ""; krit = ""; gotovo = null; oshibkaAkta = "";
-    zhdemPalletu = null; perItog = null; risovat();
+    zhdemPalletu = null; perItog = null;
+    if (pal && !(palRabota && palRabota.идёт)) { pal = null; vRezhimPalety(false); }
+    risovat();
   });
   document.addEventListener("picker:palleta", (e) => {
-    if (!zhdemPalletu) {
-      const m = document.getElementById("message");
-      if (m) { m.textContent = "Сначала товар и решение, потом паллета."; m.className = "message warn"; }
-      return;
-    }
-    peremestit(e.detail.kod);
+    // После решения по товару — «куда положили» (перемещение);
+    // просто так — актировка целой паллеты.
+    if (zhdemPalletu) { peremestit(e.detail.kod); return; }
+    otkrytPalletu(e.detail.kod);
   });
 
   async function peremestit(kod) {
@@ -303,6 +407,11 @@
       zhdemPalletu = ish && !ish.акт ? { ishod: ish, akt: null } : null;
       return risovat();
     }
+    const pk = e.target.closest("[data-pkrit]");
+    if (pk) { palKrit = pk.dataset.pkrit; return risovat(); }
+    const pd = e.target.closest("[data-pdef]");
+    if (pd) { palDefekt = pd.dataset.pdef; return risovat(); }
+    if (e.target.closest("#palGo")) { palStart(); return; }
     const kr = e.target.closest("[data-krit]");
     if (kr) { krit = kr.dataset.krit; oshibkaAkta = ""; return risovat(); }
     const d = e.target.closest("[data-def]");

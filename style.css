@@ -1276,3 +1276,6 @@ body[data-mode="dorogie"] .searchCard { grid-column: 1; grid-row: 1; }
 .palHod { margin-top: 14px; }
 .palHod__polosa { height: 10px; border-radius: 999px; background: rgba(143, 156, 173, .2); overflow: hidden; margin: 8px 0; }
 .palHod__polosa i { display: block; height: 100%; background: #27c46b; transition: width .3s; }
+/* Пикалка: актировка целой паллеты — карточка товара прячется, панель сверху. */
+.answer.is-palleta .answer__setka { display: none; }
+.answer.is-palleta .aktPs { margin-top: -18px; border-top: 0; }
