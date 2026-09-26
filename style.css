@@ -1141,3 +1141,12 @@ body[data-mode="dorogie"] .searchCard { grid-column: 1; grid-row: 1; }
 .aktPs__gotovo { margin: 4px 0 0; padding: 12px 14px; border-radius: 12px; background: rgba(39, 196, 107, .14);
   border: 1px solid rgba(39, 196, 107, .6); font-size: 20px; font-weight: 600; }
 .aktPs__gotovo span { display: block; margin-top: 4px; font-size: 14px; font-weight: 400; }
+
+/* Вход в ВМС над кнопкой «Заактировать» (26.09): акты от имени того, кто вошёл. */
+.aktPs__vms { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 6px 0 10px; font-size: 13px; }
+.aktPs__vms.is-net { color: var(--muted); }
+.aktPs__ssylka { background: none; border: 0; padding: 0; font: inherit; color: var(--muted); text-decoration: underline; cursor: pointer; }
+.aktPs__vhod { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 6px 0 10px; }
+.aktPs__vhod input { font: inherit; font-size: 14px; padding: 8px 12px; border-radius: 10px; min-width: 160px;
+  border: 1px solid rgba(143,156,173,.35); background: rgba(255,255,255,.04); color: inherit; }
+.aktPs__vhod .aktPs__chto { flex-basis: 100%; }

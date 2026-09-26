@@ -36,9 +36,41 @@
   let vAdminke = "выключена в админке";
   // Включена в админке — кнопка создаёт настоящий черновик акта в вмс.
   let boevoy = false;
-  fetch("/__akt/sostoyanie", { cache: "no-store" }).then((o) => o.ok ? o.json() : {})
-    .then((d) => { boevoy = Boolean(d.включена); vAdminke = boevoy ? "включена" : "выключена в админке"; risovat(); })
+  // Личный вход в вмс (26.09): акты идут от имени того, кто вошёл. Пароль
+  // уходит на сервер один раз, там не хранится — только сессия.
+  let vms = { подключено: false };
+  let obshchiyMozhno = false;
+  let formaVhoda = false;
+  let oshibkaVhoda = "";
+  const zagruzitSostoyanie = () => fetch("/__akt/sostoyanie", { cache: "no-store" }).then((o) => o.ok ? o.json() : {})
+    .then((d) => {
+      boevoy = Boolean(d.включена);
+      obshchiyMozhno = Boolean(d.общий_можно);
+      vms = d.вмс || { подключено: false };
+      vAdminke = boevoy ? "включена" : "выключена в админке";
+      risovat();
+    })
     .catch(() => {});
+  zagruzitSostoyanie();
+
+  function strokaVms() {
+    if (!boevoy) return "";
+    if (vms.подключено) {
+      return `<p class="aktPs__vms">ВМС: <b>${esc(vms.имя)}</b> · акты от вашего имени
+        <button type="button" class="aktPs__ssylka" id="aktVmsVyyti">выйти</button></p>`;
+    }
+    if (!formaVhoda) {
+      return `<p class="aktPs__vms is-net">ВМС: не подключено${obshchiyMozhno ? " · пока акты под общим логином" : ""}
+        <button type="button" class="aktPs__kn" id="aktVmsVoyti">Войти в ВМС</button></p>`;
+    }
+    return `<form class="aktPs__vhod" id="aktVmsForma" autocomplete="off">
+      <input name="login" placeholder="логин ВМС" autocapitalize="off" spellcheck="false" required>
+      <input name="parol" type="password" placeholder="пароль ВМС" required>
+      <button class="aktPs__kn is-on" type="submit">Войти</button>
+      <span class="aktPs__chto">пароль не сохраняется: сайт один раз входит в ВМС и держит сессию до конца смены</span>
+      ${oshibkaVhoda ? `<span class="aktPs__net">${esc(oshibkaVhoda)}</span>` : ""}
+    </form>`;
+  }
   const demoTekst = () => boevoy ? "Актировка включена: кнопка создаёт черновик акта в вмс"
     : `Демо: актировка ${vAdminke}, в вмс ничего не уходит`;
 
@@ -48,6 +80,7 @@
     box.hidden = false;
     box.innerHTML = `
       <p class="aktPs__demo">${esc(demoTekst())}${zaSmenu ? ` · заактировано за смену: ${zaSmenu}` : ""}</p>
+      ${strokaVms()}
       <p class="aktPs__zag">Решение по товару</p>
       <div class="aktPs__ryad">${RESHENIYA.map((x) => `<button type="button" class="aktPs__kn${x.k === reshenie ? " is-on" : ""}" data-resh="${x.k}">${esc(x.имя)}</button>`).join("")}</div>
       ${!r ? "" : !r.акт ? `<p class="aktPs__net">По решению «${esc(r.имя)}» акт не нужен. Кладите на выход.</p>` : `
@@ -60,7 +93,33 @@
   document.addEventListener("picker:hit", (e) => { tovar = e.detail; reshenie = ""; defekt = ""; risovat(); });
   document.addEventListener("picker:miss", () => { tovar = null; risovat(); });
 
+  box.addEventListener("submit", async (e) => {
+    if (e.target.id !== "aktVmsForma") return;
+    e.preventDefault();
+    const f = e.target;
+    const kn = f.querySelector("button");
+    kn.disabled = true;
+    kn.textContent = "Вхожу…";
+    try {
+      const otvet = await fetch("/__wms/voyti", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ логин: f.login.value.trim(), пароль: f.parol.value }),
+      });
+      const d = await otvet.json().catch(() => ({}));
+      if (!otvet.ok) throw new Error(d.ошибка || "не вошли");
+      vms = d; formaVhoda = false; oshibkaVhoda = "";
+    } catch (oshibka) {
+      oshibkaVhoda = oshibka.message || String(oshibka);
+    }
+    risovat();
+  });
+
   box.addEventListener("click", async (e) => {
+    if (e.target.closest("#aktVmsVoyti")) { formaVhoda = true; oshibkaVhoda = ""; risovat(); box.querySelector("#aktVmsForma input")?.focus(); return; }
+    if (e.target.closest("#aktVmsVyyti")) {
+      await fetch("/__wms/vyyti", { method: "POST" }).catch(() => {});
+      vms = { подключено: false }; risovat(); return;
+    }
     const r = e.target.closest("[data-resh]");
     if (r) { reshenie = r.dataset.resh; defekt = ""; return risovat(); }
     const d = e.target.closest("[data-def]");
@@ -78,6 +137,10 @@
             body: JSON.stringify({ товар: tovar.name, код: tovar.kod || "", дефект: defekt, решение: r2.имя }),
           });
           const d = await otvet.json().catch(() => ({}));
+          if (d.нужен_вход || /сессия вмс закончилась/.test(d.ошибка || "")) {
+            vms = { подключено: false }; formaVhoda = true; oshibkaVhoda = "войдите в ВМС, потом снова «Заактировать»";
+            risovat(); return;
+          }
           if (!otvet.ok || !d.акт) throw new Error(d.ошибка || `сервер ответил ${otvet.status}`);
           nomerAkta = d.акт;
         } catch (oshibka) {
