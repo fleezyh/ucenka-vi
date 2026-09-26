@@ -5,6 +5,8 @@
    Пока демо: номера условные, в вмс ничего не уходит. */
 (function () {
   "use strict";
+  // Живой режим — актировка целой паллеты (palleta.js); это демо — только с ?demo.
+  if (!/[?&]demo/.test(location.search)) return;
 
   const el = (id) => document.getElementById(id);
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));

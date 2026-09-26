@@ -1265,3 +1265,14 @@ body[data-mode="dorogie"] .searchCard { grid-column: 1; grid-row: 1; }
 .aktPs__palForma { grid-template-columns: 1fr 160px; }
 .aktPs__gotovo.is-oshibka { background: rgba(240, 93, 114, .12); border-color: rgba(240, 93, 114, .6); }
 .aktPs__gotovo + .aktPs__gotovo, .aktPs__gotovo + .aktPs__palleta { margin-top: 10px; }
+/* Актировка целой паллеты (/tsd/akt, 26.09): список штук и ход работы. */
+.palSpisok { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; max-height: 46vh; overflow: auto; }
+.palStroka { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; align-items: center;
+  padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); font-size: 13.5px; }
+.palStroka.is-bez { border-color: rgba(240, 93, 114, .5); background: rgba(240, 93, 114, .06); }
+.palStroka__tovar { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.palStroka__sht, .palStroka__akt { color: var(--muted); white-space: nowrap; }
+.palStroka.is-bez .palStroka__akt { color: #f05d72; font-weight: 600; }
+.palHod { margin-top: 14px; }
+.palHod__polosa { height: 10px; border-radius: 999px; background: rgba(143, 156, 173, .2); overflow: hidden; margin: 8px 0; }
+.palHod__polosa i { display: block; height: 100%; background: #27c46b; transition: width .3s; }
