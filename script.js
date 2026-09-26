@@ -942,9 +942,18 @@
     const code = scan.value.trim().replace(/^"|"$/g, "");
     // Наклейка стола (CEL + id ячейки, 26.09): это не товар, а смена стола —
     // актировка (akt-predsort.js) показывает решения этого стола.
-    if (/^CEL\d{5,10}$/i.test(code)) {
+    // В ВМС наклейка печатается с пробелом: «CEL 3099400».
+    if (/^CEL\s?\d{5,10}$/i.test(code)) {
       scan.value = "";
       document.dispatchEvent(new CustomEvent("picker:stol", { detail: { kod: code } }));
+      scan.focus();
+      return;
+    }
+    // Наклейка паллеты («CON 0163139122») — куда положили товар: актировка
+    // создаёт по ней перемещение (26.09).
+    if (/^CON\s?\d{5,12}$/i.test(code)) {
+      scan.value = "";
+      document.dispatchEvent(new CustomEvent("picker:palleta", { detail: { kod: code } }));
       scan.focus();
       return;
     }

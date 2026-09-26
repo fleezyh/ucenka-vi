@@ -30,6 +30,11 @@
     if (z && z.день === segodnya()) stol = z.стол;
   } catch (e) { /* нет — пикнут заново */ }
   let oshibkaStola = "";
+  // Куда положили (26.09): после решения — пик паллеты «CON …», и по ней
+  // создаётся перемещение «стол → ячейка решения → паллета» (с актом, если был).
+  let zhdemPalletu = null;   // { ishod, akt }
+  let perItog = null;        // { ok, tekst }
+  let perIdet = false;
   // Крит / косм: на предсорте это решают и так, в акт пишем вместе с дефектом.
   const KRIT = [{ k: "крит", имя: "Критичный" }, { k: "косм", имя: "Косметический" }];
   let krit = "";
@@ -93,6 +98,23 @@
 
   const RESHENIYA = () => (stol && stol.исходы) || [];
 
+  function blokPalety() {
+    if (perItog) {
+      return `<div class="aktPs__gotovo${perItog.ok ? "" : " is-oshibka"}"><b>${esc(perItog.zag)}</b>
+        <span>${esc(perItog.tekst)}</span></div>
+        <p class="aktPs__chto">${perItog.ok ? "Пикните следующий товар." : "Пикните паллету ещё раз или переместите руками в ВМС."}</p>`;
+    }
+    if (!zhdemPalletu) return "";
+    return `<div class="aktPs__palleta">
+      <p class="aktPs__zag">Куда положили</p>
+      <p class="aktPs__podskaz">${perIdet ? "Создаю перемещение…" : `Пикните наклейку паллеты в «${esc(zhdemPalletu.ishod.куда)}» (CON …)`}</p>
+      <form class="aktPs__vhod aktPs__palForma" id="aktPalForma" autocomplete="off">
+        <input name="kod" placeholder="или введите номер паллеты" inputmode="numeric">
+        <button class="aktPs__kn is-on" type="submit"${perIdet ? " disabled" : ""}>Переместить</button>
+      </form>
+    </div>`;
+  }
+
   function risovat() {
     if (!tovar) { box.hidden = true; return; }
     box.hidden = false;
@@ -113,7 +135,7 @@
       box.innerHTML = `${shapka}
         <div class="aktPs__gotovo"><b>Акт №${esc(gotovo.nomer)}</b>
           <span>${esc(gotovo.tovar)}</span><span>${esc(gotovo.reshenie)} · мех. повреждения, ${esc(gotovo.defekt)}</span></div>
-        <p class="aktPs__chto">Пикните следующий товар.</p>`;
+        ${blokPalety()}`;
       return;
     }
 
@@ -123,7 +145,7 @@
     box.innerHTML = `${shapka}
       <p class="aktPs__zag">Решение</p>
       <div class="aktPs__resheniya" style="grid-template-columns:repeat(${kolonok},minmax(0,1fr))">${RESHENIYA().map((x) => `<button type="button" class="aktPs__kn${String(x.id) === String(reshenie) ? " is-on" : ""}" data-resh="${x.id}" title="${esc(x.куда)}">${esc(x.имя)}</button>`).join("")}</div>
-      ${!r ? "" : !r.акт ? `<p class="aktPs__net">«${esc(r.имя)}» — акт не нужен, кладите в «${esc(r.куда)}».</p>` : `
+      ${!r ? "" : !r.акт ? `<p class="aktPs__net">«${esc(r.имя)}» — акт не нужен.</p>${blokPalety()}` : `
         <p class="aktPs__zag">Крит или косм</p>
         <div class="aktPs__krit">${KRIT.map((x) => `<button type="button" class="aktPs__kn${x.k === krit ? " is-on" : ""}" data-krit="${x.k}">${x.имя}</button>`).join("")}</div>
         <p class="aktPs__zag">Дефект</p>
@@ -139,8 +161,46 @@
   }
 
   document.addEventListener("picker:hit", (e) => {
-    tovar = e.detail; reshenie = ""; defekt = ""; krit = ""; gotovo = null; oshibkaAkta = ""; risovat();
+    tovar = e.detail; reshenie = ""; defekt = ""; krit = ""; gotovo = null; oshibkaAkta = "";
+    zhdemPalletu = null; perItog = null; risovat();
   });
+  document.addEventListener("picker:palleta", (e) => {
+    if (!zhdemPalletu) {
+      const m = document.getElementById("message");
+      if (m) { m.textContent = "Сначала товар и решение, потом паллета."; m.className = "message warn"; }
+      return;
+    }
+    peremestit(e.detail.kod);
+  });
+
+  async function peremestit(kod) {
+    if (perIdet || !zhdemPalletu) return;
+    perIdet = true; risovat();
+    const { ishod, akt } = zhdemPalletu;
+    try {
+      if (!boevoy) {
+        await new Promise((ok) => setTimeout(ok, 400));
+        perItog = { ok: true, zag: "Перемещение (демо)", tekst: `${stol.имя} → ${ishod.куда} · паллета ${kod}` };
+      } else {
+        const otvet = await fetch("/__akt/peremeshchenie", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ исход: ishod.id, товар: tovar.name, код: tovar.kod || "", паллета: kod, акт: akt || null }),
+        });
+        const d = await otvet.json().catch(() => ({}));
+        if (d.нужен_вход) { vms = { подключено: false }; formaVhoda = true; oshibkaVhoda = "войдите в ВМС, потом пикните паллету ещё раз"; return; }
+        if (!otvet.ok || !d.готово) throw new Error(d.ошибка || `сервер ответил ${otvet.status}`);
+        perItog = { ok: true, zag: "Перемещение создано черновиком",
+          tekst: `${ishod.куда} · ${d.паллета}${akt ? ` · с актом №${akt}` : ""}` };
+      }
+      zhdemPalletu = null;
+      if (navigator.vibrate) navigator.vibrate(120);
+    } catch (oshibka) {
+      perItog = { ok: false, zag: "Перемещение не создано", tekst: oshibka.message || String(oshibka) };
+      zhdemPalletu = null;
+    } finally {
+      perIdet = false; risovat(); vFokus();
+    }
+  }
   document.addEventListener("picker:stol", async (e) => {
     oshibkaStola = "";
     try {
@@ -162,6 +222,12 @@
   document.addEventListener("picker:miss", () => { tovar = null; risovat(); });
 
   box.addEventListener("submit", async (e) => {
+    if (e.target.id === "aktPalForma") {
+      e.preventDefault();
+      const kod = e.target.kod.value.trim();
+      if (kod) peremestit(kod);
+      return;
+    }
     if (e.target.id !== "aktVmsForma") return;
     e.preventDefault();
     const f = e.target;
@@ -213,6 +279,8 @@
     }
     zaSmenu += 1;
     gotovo = { nomer: nomerAkta, tovar: tovar.name || "", reshenie: `${r.имя} → ${r.куда}`, defekt: `${defekt}, ${krit}` };
+    zhdemPalletu = { ishod: r, akt: nomerAkta };
+    perItog = null;
     risovat();
     if (navigator.vibrate) navigator.vibrate(120);
     vFokus();
@@ -229,7 +297,12 @@
       vms = { подключено: false }; risovat(); return;
     }
     const r = e.target.closest("[data-resh]");
-    if (r) { reshenie = r.dataset.resh; defekt = ""; krit = ""; oshibkaAkta = ""; return risovat(); }
+    if (r) {
+      reshenie = r.dataset.resh; defekt = ""; krit = ""; oshibkaAkta = ""; perItog = null;
+      const ish = RESHENIYA().find((x) => String(x.id) === String(reshenie));
+      zhdemPalletu = ish && !ish.акт ? { ishod: ish, akt: null } : null;
+      return risovat();
+    }
     const kr = e.target.closest("[data-krit]");
     if (kr) { krit = kr.dataset.krit; oshibkaAkta = ""; return risovat(); }
     const d = e.target.closest("[data-def]");

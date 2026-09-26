@@ -1257,3 +1257,11 @@ body[data-mode="dorogie"] .searchCard { grid-column: 1; grid-row: 1; }
   .aktPs__resheniya[style] { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
   .aktPs__resheniya[style] .aktPs__kn { grid-column: auto !important; }
 }
+/* «Куда положили» — пик паллеты после решения (26.09). */
+.aktPs__palleta { margin-top: 14px; padding: 14px 16px; border-radius: 14px; border: 1px dashed rgba(77, 141, 247, .6);
+  background: rgba(77, 141, 247, .06); }
+.aktPs__palleta .aktPs__zag { margin-top: 0; }
+.aktPs__podskaz { margin: 0; font-size: 16px; font-weight: 600; }
+.aktPs__palForma { grid-template-columns: 1fr 160px; }
+.aktPs__gotovo.is-oshibka { background: rgba(240, 93, 114, .12); border-color: rgba(240, 93, 114, .6); }
+.aktPs__gotovo + .aktPs__gotovo, .aktPs__gotovo + .aktPs__palleta { margin-top: 10px; }
