@@ -584,9 +584,17 @@
     const sebes = Number(String(field(row, "Себес") || "").replace(/\s/g, "").replace(",", "."));
     const rrc = Number(String(field(row, "РРЦ") || "").replace(/\s/g, "").replace(",", "."));
     const nacenka = Number.isFinite(sebes) && sebes > 0 && Number.isFinite(rrc) && rrc > 0
-      ? ` · в ${(rrc / sebes).toLocaleString("ru-RU", { maximumFractionDigits: 1 })} раза к себесу`
+      ? `в ${(rrc / sebes).toLocaleString("ru-RU", { maximumFractionDigits: 1 })} раза к себесу`
       : "";
-    rrcLine.textContent = `РРЦ ${fields.rrc}${nacenka}`;
+    // 26.09: карточка плитками — цена крупно, наценка строкой ниже.
+    const summa = document.createElement("b");
+    summa.textContent = fields.rrc;
+    rrcLine.replaceChildren(summa);
+    if (nacenka) {
+      const pod = document.createElement("span");
+      pod.textContent = nacenka;
+      rrcLine.append(pod);
+    }
     rrcLine.hidden = false;
   }
 

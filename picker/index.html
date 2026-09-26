@@ -10,11 +10,11 @@
   <link rel="icon" type="image/svg+xml" href="assets/brand/vi-mark.svg?v=20260903-3">
   <link rel="preload" href="assets/fonts/VI_Sans_Regular.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="assets/fonts/VI_Sans_ExtraBold.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="style.css?v=20260926-2">
+  <link rel="stylesheet" href="style.css?v=20260926-3">
   <link rel="stylesheet" href="reeded-bg.css?v=20260907-6">
   <link rel="stylesheet" href="site-header.css?v=20260921-1">
   <script src="reeded-bg.js?v=20260906-7" defer></script>
-  <script src="script.js?v=20260925-2" defer></script>
+  <script src="script.js?v=20260926-1" defer></script>
   <script src="akt-predsort.js?v=20260926-2" defer></script>
   <script src="cost-list.js?v=20260921-2" defer></script>
   <script src="pallets.js?v=20260924-1" defer></script>
@@ -128,12 +128,16 @@
 
         <p class="message" id="message">Подключаю справочник…</p>
 
+        <!-- Карточка товара (26.09): название во всю ширину, под ним четыре
+             одинаковые плитки — главное по режиму (себестоимость или кластер),
+             рубрика, цена на сайте, габариты, — внизу штрихкод и действия.
+             Все id прежние: их заполняет script.js.
+             · Габариты показываем всегда, а когда спорят с кластером — говорим
+               об этом прямо: кластер ставится по рубрике, размер в нём не участвует.
+             · Отбор на площадки — отдельной строкой: это первое решение по товару.
+             · «Это (не) КГТ» — отметка расхождения, по ней правят габариты. -->
         <article class="answer" id="answer" aria-live="polite">
-          <div class="primary" id="primary">
-            <span id="primaryLabel">Себестоимость</span>
-            <strong id="primaryValue">—</strong>
-          </div>
-          <div class="answer__info">
+          <div class="answer__golova">
             <span class="answer__label">Наименование</span>
             <div class="nameRow">
               <h3 id="productName">—</h3>
@@ -143,31 +147,32 @@
                 <span class="copyBtn__text">Копировать</span>
               </button>
             </div>
-            <span class="secondary" id="secondary">—</span>
+          </div>
+          <div class="answer__plitki">
+            <div class="primary" id="primary">
+              <span id="primaryLabel">Себестоимость</span>
+              <strong id="primaryValue">—</strong>
+            </div>
+            <div class="answer__plitka">
+              <span class="answer__label">Рубрика</span>
+              <span class="secondary" id="secondary">—</span>
+            </div>
+            <div class="answer__plitka">
+              <span class="answer__label">Цена на сайте</span>
+              <p class="rrcLine" id="rrcLine" hidden></p>
+            </div>
+            <div class="answer__plitka">
+              <span class="answer__label">Габариты</span>
+              <p class="razmery" id="razmery" hidden></p>
+            </div>
+          </div>
+          <p class="otborMark" id="otborMark" hidden></p>
+          <div class="answer__niz">
             <p class="code" id="productCode"></p>
-            <!-- Розничная цена рядом с себестоимостью: по этой паре сразу
-                 видно, что вообще можно просить за товар, и не надо открывать
-                 карточку на сайте отдельной вкладкой. -->
-            <p class="rrcLine" id="rrcLine" hidden></p>
-            <!-- Габариты и вес одной штуки. Кластер ставится по рубрике
-                 каталога, размер в нём не участвует, и на складе это
-                 расходится: внутри крупногабарита треть позиций мельче метра,
-                 а снаружи — 440 тысяч позиций длиннее полутора. Поэтому
-                 размеры показываем всегда, а когда они спорят с кластером,
-                 говорим об этом прямо: решение остаётся за человеком. -->
-            <p class="razmery" id="razmery" hidden></p>
-            <!-- Подходит ли товар под отбор на площадки: дорогое идёт поштучно
-                 на Авито, среднее — на маркетплейс, крупногабарит маркетплейс
-                 не берёт. Стоит над ссылкой, потому что это первое, что нужно
-                 решить по товару. -->
-            <p class="otborMark" id="otborMark" hidden></p>
-            <a class="siteLink" id="siteLink" href="#" target="_blank" rel="noopener" hidden>Открыть на сайте</a>
-            <!-- Пикалка говорит про товар «КГТ» по справочнику, а кладовщик
-                 видит коробку и понимает, что это не он — и наоборот, обычный
-                 товар оказывается неподъёмным. Кнопка отправляет расхождение в
-                 ту сторону, в какую оно есть: по нему потом правят габариты в
-                 карточке. Текст и направление ставит script.js по кластеру. -->
-            <button class="kgtBtn" id="kgtMark" type="button" hidden>Это не КГТ</button>
+            <div class="answer__knopki">
+              <a class="siteLink" id="siteLink" href="#" target="_blank" rel="noopener" hidden>Открыть на сайте</a>
+              <button class="kgtBtn" id="kgtMark" type="button" hidden>Это не КГТ</button>
+            </div>
           </div>
         </article>
         <!-- Актировка с предсорта (?akt): своей панелью на всю ширину под

@@ -1176,3 +1176,38 @@ body[data-mode="dorogie"] .searchCard { grid-column: 1; grid-row: 1; }
   .aktPs__defekty { grid-template-columns: repeat(2, 1fr); }
   .aktPs__vhod { grid-template-columns: 1fr; }
 }
+
+
+/* Карточка товара плитками (26.09): «так это тоже надо прикольно сделать».
+   Название сверху, четыре одинаковые плитки, внизу штрихкод и действия —
+   тот же язык, что у панели актировки под ней. */
+.answer { flex-direction: column; align-items: stretch; gap: 14px; padding: 18px; border-radius: 18px; }
+.answer__golova .nameRow { margin: 6px 0 0; }
+.answer h3 { font-size: 22px; line-height: 1.3; }
+.answer__plitki { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.answer__plitka, .answer__plitki .primary { min-width: 0; min-height: 104px; padding: 14px 16px; border-radius: 14px;
+  display: flex; flex-direction: column; justify-content: space-between; gap: 8px; }
+.answer__plitka { border: 1px solid var(--line); background: rgba(255, 255, 255, .03); }
+.answer__plitki .primary { text-align: left; }
+.answer__plitki .primary span { font-size: 11px; }
+.answer__plitki .primary strong { margin: 0; font-size: 30px; }
+.answer__plitki .primary.category strong { font-size: 44px; line-height: 1; }
+.answer__plitka .secondary { padding: 0; border: 0; background: none; font-size: 16px; font-weight: 600; line-height: 1.3; }
+.answer__plitka .secondary.check { background: none; }
+.answer__plitka .rrcLine, .answer__plitka .razmery { margin: 0; color: var(--text); font-size: 16px; font-weight: 600; line-height: 1.3; }
+.answer__plitka .rrcLine span { display: block; margin-top: 3px; color: var(--muted); font-size: 12.5px; font-weight: 400; }
+.answer__plitka .razmery--spor { color: #f0c479; }
+/* Нет цены или габаритов — плитка остаётся на месте с прочерком: сетка не прыгает. */
+.answer__plitka:has(> p[hidden])::after { content: "—"; color: var(--muted); font-size: 16px; font-weight: 600; }
+.answer .otborMark { margin: 0; }
+.answer__niz { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+  padding-top: 12px; border-top: 1px solid var(--line); }
+.answer__niz .code { margin: 0; }
+.answer__knopki { display: flex; gap: 8px; flex-wrap: wrap; }
+.answer__knopki .siteLink, .answer__knopki .kgtBtn { margin: 0; min-height: 36px; box-sizing: border-box; align-self: auto; }
+@media (max-width: 600px) {
+  .answer__plitki { grid-template-columns: repeat(2, 1fr); }
+  .answer__plitki .primary.category strong { font-size: 40px; }
+  .answer__niz { flex-direction: column; align-items: stretch; }
+  .answer__knopki > * { flex: 1; justify-content: center; }
+}
