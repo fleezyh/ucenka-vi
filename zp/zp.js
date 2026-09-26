@@ -380,6 +380,13 @@ function karta(data, kto) {
   // У пятидневки отработанное — расчётная доля месяца, и дробное число дней
   // в тексте читается как ошибка. Турникету верим до дня.
   const otrabotano = poSkud ? ya["отработано"] : Math.round(ya["отработано"]);
+  // Пятидневке «20 из 23 по графику» рядом с «прошло 19 из 22» выглядело как
+  // ошибка: 20 — это доля 19/22 от плановых дней из HR. Считается та же доля,
+  // поэтому показываем прямо её: рабочие дни месяца минус оформленные отсутствия.
+  const bylo = Math.max(0, proshlo - (Number(ya["пропущено_дней"]) || 0));
+  const skolko = poSkud
+    ? `${otrabotano} из ${ya["план_дней"]} смен по графику`
+    : `${bylo} из ${norma} рабочих дней`;
   const avansKak = ya["аванс_точно"] ? "" : " примерно";
   const otsutstvie = ya["отсутствие"]
     ? `<p class="zpTick__away">По данным 1С у вас ${ya["отсутствие"]} —
@@ -419,15 +426,15 @@ function karta(data, kto) {
       <p class="zpTick__state" id="tickState"></p>
       ${otsutstvie}
       <div class="zpTick__bar"><span style="width:${(dolya * 100).toFixed(1)}%"></span></div>
-      <p class="zpTick__hint">Прошло ${dney(proshlo)} из ${dney(norma)} месяца ·
-        отработано ${otrabotano} из ${ya["план_дней"]} по графику · ${istochnik}</p>
+      <p class="zpTick__hint">Прошло ${proshlo} из ${norma} рабочих дней ·
+        ${poSkud ? `отработано ${skolko} · ` : ""}${istochnik}</p>
     </div>
 
     <div class="zpCheck">
       <div class="zpCheck__part">
         <p class="zpCheck__cap">Из чего сложилось</p>
         <div class="zpCheck__line">
-          <span>Окладная часть<small>${otrabotano} из ${ya["план_дней"]} по графику,
+          <span>Окладная часть<small>${skolko},
             оклад <span class="zpSecret zpSecret--inline">${rubli(ya["оклад_на_руки"])}</span></small></span>
           <b>${rubli(ya["окладная_часть"] * 0.87)}</b>
         </div>
