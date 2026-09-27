@@ -16,6 +16,7 @@
   if (!/[?&]akt\b/.test(location.search)) return;
   const box = document.getElementById("aktPs");
   if (!box) return;
+  window.__aktPs = true;   // script.js: наклейки CEL/CON есть кому принять
 
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 

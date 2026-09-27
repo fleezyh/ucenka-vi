@@ -945,7 +945,12 @@
     // В ВМС наклейка печатается с пробелом: «CEL 3099400».
     if (/^CEL\s?\d{5,10}$/i.test(code)) {
       scan.value = "";
-      document.dispatchEvent(new CustomEvent("picker:stol", { detail: { kod: code } }));
+      if (window.__aktPs) {
+        document.dispatchEvent(new CustomEvent("picker:stol", { detail: { kod: code } }));
+      } else {
+        // Без актировки (?akt) код молча пропадал (26.09, «ничего не происходит»).
+        say("Это наклейка — пикалка понимает стол только с актировкой: откройте ucenka-vi.ru/picker/?akt", "warn");
+      }
       scan.focus();
       return;
     }
@@ -953,7 +958,12 @@
     // создаёт по ней перемещение (26.09).
     if (/^CON\s?\d{5,12}$/i.test(code)) {
       scan.value = "";
-      document.dispatchEvent(new CustomEvent("picker:palleta", { detail: { kod: code } }));
+      if (window.__aktPs) {
+        document.dispatchEvent(new CustomEvent("picker:palleta", { detail: { kod: code } }));
+      } else {
+        // Без актировки (?akt) код молча пропадал (26.09, «ничего не происходит»).
+        say("Это наклейка — пикалка понимает паллету только с актировкой: откройте ucenka-vi.ru/picker/?akt", "warn");
+      }
       scan.focus();
       return;
     }
