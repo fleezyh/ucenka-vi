@@ -1321,3 +1321,6 @@ body[data-mode="dorogie"] .searchCard { grid-column: 1; grid-row: 1; }
 .palKartaAkt__fakty b { color: var(--text, #f2f6fb); font-weight: 600; }
 .palKartaAkt__knopki { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 8px; }
 .palKartaAkt__knopki .aktPs__kn { min-height: 40px; font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
+
+.palKartaAkt__per { width: 100%; margin-top: 6px; min-height: 44px; }
+.palPer .aktPs__podskaz b { font-weight: 600; }

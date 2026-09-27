@@ -137,6 +137,9 @@
   let palRabota = null;    // ход фоновой работы
   let palOshibka = "";
   let palKarta = null;     // где стоит, лот, заказы — /__palleta/karta (27.09)
+  // Перемещение целой паллеты (27.09, «а возможность перемещения?»):
+  // null | { zhdem } | { idet } | { predv, yach } | { gotovo } | { oshibka }
+  let palPer = null;
   const kartochka = document.getElementById("answer");
 
   function vRezhimPalety(vkl) {
@@ -146,7 +149,7 @@
   }
 
   async function otkrytPalletu(kod) {
-    pal = null; palKrit = ""; palDefekt = ""; palRabota = null; palOshibka = "";
+    pal = null; palKrit = ""; palDefekt = ""; palRabota = null; palOshibka = ""; palPer = null;
     tovar = null; gotovo = null; zhdemPalletu = null; perItog = null;
     vRezhimPalety(true);
     box.hidden = false;
@@ -202,6 +205,7 @@
         ${plashkaVms()}
       </header>${formaVms()}
       ${blokKarty()}
+      ${blokPeremeshcheniya()}
       ${spisok ? `<div class="palSpisok">${spisok}</div>` : ""}
       ${niz}`;
   }
@@ -225,7 +229,60 @@
         <button type="button" class="aktPs__kn" data-pkk="kopir">Копировать</button>
         ${k ? `<a class="aktPs__kn" href="${esc(k.вмс)}" target="_blank" rel="noopener">Открыть в ВМС</a>` : ""}
       </div>
+      ${palPer ? "" : `<button type="button" class="aktPs__kn palKartaAkt__per" data-pkk="peremestit">Переместить паллету</button>`}
     </div>`;
+  }
+
+  function blokPeremeshcheniya() {
+    if (!palPer) return "";
+    const p = palPer;
+    let telo = "";
+    if (p.zhdem) {
+      telo = `<p class="aktPs__podskaz">Пикните наклейку ячейки, куда везёте (CEL …)</p>
+        <form class="aktPs__vhod aktPs__palForma" id="palPerForma" autocomplete="off">
+          <input name="kod" placeholder="или номер ячейки" inputmode="numeric">
+          <button class="aktPs__kn is-on" type="submit">Дальше</button>
+        </form>`;
+    } else if (p.idet) {
+      telo = `<p class="aktPs__podskaz">${p.idet}</p>`;
+    } else if (p.predv) {
+      const d = p.predv;
+      const oshibki = d.ошибки_вмс ? Object.values(d.ошибки_вмс).flat().join("; ") : "";
+      telo = `<p class="aktPs__podskaz">${esc(d.откуда.join(", "))} → <b>${esc(d.куда)}</b></p>
+        <p class="aktPs__chto">${esc(d.склад)} · ${d.строк} строк · ${d.штук} шт${d.в_заказах ? ` · резерв ${d.в_заказах} заказа(ов) едет с товаром` : ""}</p>
+        ${oshibki ? `<p class="aktPs__net"><b class="aktPs__oshibka">ВМС не примет: ${esc(oshibki)}</b></p>` : ""}
+        <div class="aktPs__vopros">
+          <button type="button" class="aktPs__kn is-on" data-pkk="per-da"${oshibki || !boevoy ? " disabled" : ""}>${boevoy ? "Переместить" : "Актировка выключена"}</button>
+          <button type="button" class="aktPs__kn" data-pkk="per-net">Отмена</button>
+        </div>`;
+    } else if (p.gotovo) {
+      telo = `<div class="aktPs__gotovo"><b>Перемещение${p.gotovo.перемещение ? ` №${esc(p.gotovo.перемещение)}` : ""} создано черновиком</b>
+        <span>${esc(p.gotovo.паллета)} → ${esc(p.gotovo.куда)} · ${p.gotovo.строк} строк</span></div>`;
+    } else if (p.oshibka) {
+      telo = `<p class="aktPs__net"><b class="aktPs__oshibka">${esc(p.oshibka)}</b></p>
+        <button type="button" class="aktPs__kn" data-pkk="per-net">Закрыть</button>`;
+    }
+    return `<div class="aktPs__palleta palPer"><p class="aktPs__zag">Переместить паллету</p>${telo}</div>`;
+  }
+
+  async function peremestitPalletu(yach, sohranit) {
+    palPer = { idet: sohranit ? "Создаю перемещение в ВМС…" : "Проверяю в ВМС — до полуминуты…", yach };
+    risovat();
+    try {
+      const o = await fetch("/__akt/palleta/peremestit", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ паллета: String(pal.паллета_id || pal.паллета), ячейка: yach, сохранить: sohranit }),
+      });
+      const d = await o.json().catch(() => ({}));
+      if (d.нужен_вход) { vms = { подключено: false }; formaVhoda = true; oshibkaVhoda = "войдите в ВМС, потом «Переместить» ещё раз"; palPer = { predv: palPer.predv || null, yach }; risovat(); return; }
+      if (!o.ok) throw new Error(d.ошибка || `сервер ответил ${o.status}`);
+      palPer = d.готово ? { gotovo: d } : { predv: d, yach };
+      if (d.готово && navigator.vibrate) navigator.vibrate(150);
+    } catch (e) {
+      palPer = { oshibka: e.message || String(e) };
+    }
+    risovat();
+    vFokus();
   }
 
   function sostavVExcel() {
@@ -366,6 +423,8 @@
     }
   }
   document.addEventListener("picker:stol", async (e) => {
+    // Ждём ячейку для перемещения паллеты — наклейка ячейки идёт туда, а не в смену стола.
+    if (pal && palPer && palPer.zhdem) { peremestitPalletu(e.detail.kod, false); return; }
     oshibkaStola = "";
     try {
       const otvet = await fetch(`/__akt/stol?kod=${encodeURIComponent(e.detail.kod)}`, { cache: "no-store" });
@@ -386,6 +445,12 @@
   document.addEventListener("picker:miss", () => { tovar = null; risovat(); });
 
   box.addEventListener("submit", async (e) => {
+    if (e.target.id === "palPerForma") {
+      e.preventDefault();
+      const kod = e.target.kod.value.trim();
+      if (kod) peremestitPalletu(kod, false);
+      return;
+    }
     if (e.target.id === "aktPalForma") {
       e.preventDefault();
       const kod = e.target.kod.value.trim();
@@ -470,6 +535,9 @@
     const pkk = e.target.closest("[data-pkk]");
     if (pkk && pal) {
       if (pkk.dataset.pkk === "excel") sostavVExcel();
+      if (pkk.dataset.pkk === "peremestit") { palPer = { zhdem: true }; risovat(); vFokus(); }
+      if (pkk.dataset.pkk === "per-da" && palPer && palPer.yach) peremestitPalletu(palPer.yach, true);
+      if (pkk.dataset.pkk === "per-net") { palPer = null; risovat(); vFokus(); }
       if (pkk.dataset.pkk === "kopir") {
         const imya = (palKarta && palKarta.паллета) || pal.паллета;
         navigator.clipboard.writeText(imya).then(() => { pkk.textContent = "Скопировано"; setTimeout(() => { pkk.textContent = "Копировать"; }, 1500); });
