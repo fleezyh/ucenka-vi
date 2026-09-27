@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <script src="/tema.js?v=20260924-2"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <base href="../../">
+  <meta name="theme-color" content="#0a1018">
+  <title>Уценка · WTIS</title>
+  <link rel="icon" type="image/svg+xml" href="assets/brand/vi-mark.svg">
+  <link rel="preload" href="assets/fonts/VI_Sans_Regular.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="style.css?v=20260927-6">
+  <link rel="stylesheet" href="sales/sales.css?v=20260924-2">
+  <link rel="stylesheet" href="sales/wtis/wtis.css?v=20260927-2">
+  <link rel="stylesheet" href="reeded-bg.css?v=20260907-6">
+  <link rel="stylesheet" href="site-header.css?v=20260921-1">
+  <script src="reeded-bg.js?v=20260906-7" defer></script>
+  <script src="sales/wtis/wtis.js?v=20260927-1" defer></script>
+  <script src="nav.js?v=20260921-1" defer></script>
+</head>
+<body data-mode="sales">
+  <main class="shell">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="Уценка — главная">
+        <img class="brand__mark" src="assets/brand/vi-mark.svg" alt="" width="36" height="36">
+        <span>Уценка</span>
+      </a>
+      <nav class="siteNav" aria-label="Разделы сайта">
+        <span class="navGroup">
+          <span class="navGroup__label">Уценка</span>
+          <a class="navLink" href="antigen/">Антигенерация</a>
+          <a class="navLink" href="heatmap/">Хитмап</a>
+          <a class="navLink" href="sales/" aria-current="page">Продажи</a>
+          <a class="navLink" href="perf/">Производительность</a>
+        </span>
+        <span class="navGroup">
+          <span class="navGroup__label">Инструменты</span>
+          <a class="navLink" href="picker/">Пикалка</a>
+        </span>
+      </nav>
+    </header>
+
+    <section class="heroSales">
+      <div>
+        <p class="eyebrow">Продажи уценки · скрыто, видит только админ</p>
+        <h1>WTIS</h1>
+        <p class="lead">Что в продажах делается само — по пути лота. У каждого робота: что делает, когда срабатывает,
+          последний реальный случай; где можно — попробовать прямо здесь.</p>
+      </div>
+      <div class="perfTools">
+        <nav class="perfViews" aria-label="Раздел продаж">
+          <a class="perfView" href="sales/">Остатки и отгрузки</a>
+          <a class="perfView" href="sales/analitika/">Аналитика отгрузок</a>
+          <a class="perfView" href="crm/">CRM продаж</a>
+          <a class="perfView is-on" href="sales/wtis/" aria-current="page">WTIS</a>
+        </nav>
+        <p class="stamp" id="stamp"></p>
+      </div>
+    </section>
+
+    <div class="wtSvod" id="svod"></div>
+    <p class="message" id="message">Смотрю роботов…</p>
+    <div id="roboty"></div>
+  </main>
+</body>
+</html>
