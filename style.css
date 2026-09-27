@@ -1375,3 +1375,14 @@ body.vmsPlg .layout { grid-template-columns: 1fr !important; }
 .vmsStoly small { font-size: 12px; color: var(--muted, #8f9cad); font-weight: 500; }
 .vmsNazad { margin: 0 0 10px; }
 .vmsSmenit { padding: 0; border: 0; background: none; color: var(--green, #27c46b); font: inherit; text-decoration: underline; cursor: pointer; }
+/* Пикалка: WMS и ТСД под замком (27.09). */
+.pickerZamki { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px; margin-top: 8px; grid-column: -2 / -1; justify-self: end; }
+.pickerZamki__metka { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.pickerZamok { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 12px; border: 1px dashed var(--line-strong); border-radius: 999px; color: var(--muted); font-size: 13px; font-weight: 600; text-decoration: none; cursor: not-allowed; }
+.pickerZamok svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2; }
+.pickerZamok.is-otkryt { border-style: solid; color: var(--text); cursor: pointer; }
+.pickerZamok.is-otkryt:hover { border-color: var(--green, #27c46b); }
+.pickerZamok.is-on { background: rgba(255, 255, 255, .08); color: var(--text); }
+.pickerZamok--nazad { border-style: solid; color: var(--text); cursor: pointer; }
+.pickerZamok.is-drozh { animation: pickerDrozh .35s; }
+@keyframes pickerDrozh { 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
