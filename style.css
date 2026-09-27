@@ -1369,3 +1369,9 @@ body.vmsPlg .layout { grid-template-columns: 1fr !important; }
 .palIst__kogda { grid-row: span 2; color: var(--muted, #8f9cad); font-weight: 600; }
 .yachPalleta--stolb { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; }
 .yachPalleta--stolb .yachPalleta__imya { white-space: normal; }
+/* WMS: столы кнопками, «назад к товару», «сменить стол» (27.09). */
+.vmsStoly { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
+.vmsStoly .aktPs__kn { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; }
+.vmsStoly small { font-size: 12px; color: var(--muted, #8f9cad); font-weight: 500; }
+.vmsNazad { margin: 0 0 10px; }
+.vmsSmenit { padding: 0; border: 0; background: none; color: var(--green, #27c46b); font: inherit; text-decoration: underline; cursor: pointer; }

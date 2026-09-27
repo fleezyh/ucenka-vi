@@ -947,7 +947,7 @@
     if (/^(ACT|АКТ)\s?\d{5,12}$/i.test(code)) {
       scan.value = "";
       if (window.__aktPs) document.dispatchEvent(new CustomEvent("picker:akt", { detail: { kod: code } }));
-      else say("Это наклейка акта — акты показывает версия с актировкой: откройте ucenka-vi.ru/picker/?akt", "warn");
+      else say("Это наклейка акта — акты показывает версия с актировкой: откройте ucenka-vi.ru/picker/wms", "warn");
       scan.focus();
       return;
     }
@@ -957,7 +957,7 @@
         document.dispatchEvent(new CustomEvent("picker:stol", { detail: { kod: code } }));
       } else {
         // Без актировки (?akt) код молча пропадал (26.09, «ничего не происходит»).
-        say("Это наклейка — пикалка понимает стол только с актировкой: откройте ucenka-vi.ru/picker/?akt", "warn");
+        say("Это наклейка — пикалка понимает стол только с актировкой: откройте ucenka-vi.ru/picker/wms", "warn");
       }
       scan.focus();
       return;
@@ -976,7 +976,7 @@
       } else {
         // Паллеты — в тестовой версии с актировкой (27.09: «?akt — новая
         // апгрейд-версия, которую тестируем»), обычная пикалка не меняется.
-        say("Это паллета — с паллетами работает версия с актировкой: откройте ucenka-vi.ru/picker/?akt", "warn");
+        say("Это паллета — с паллетами работает версия с актировкой: откройте ucenka-vi.ru/picker/wms", "warn");
       }
       scan.focus();
       return;
