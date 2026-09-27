@@ -2,22 +2,30 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8">
+  <script src="/tema.js?v=20260924-2"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#070c13">
-  <meta name="description" content="Рабочие инструменты и аналитика уценки">
+  <meta name="description" content="Рабочий портал уценки: аналитика брака и продаж, остатки паллет, предсорт и расчёт себестоимости.">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Уценка">
+  <meta property="og:title" content="Уценка · Аналитика и инструменты">
+  <meta property="og:description" content="Аналитика брака и продаж, остатки паллет, предсорт и расчёт себестоимости — в одном рабочем портале.">
+  <meta property="og:url" content="https://ucenka-vi.ru/">
   <title>Уценка · Главная</title>
   <link rel="icon" type="image/svg+xml" href="assets/brand/vi-mark.svg?v=20260903-3">
   <link rel="preload" href="assets/fonts/VI_Sans_Regular.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="assets/fonts/VI_Sans_ExtraBold.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="news-feed.css?v=20260911-1">
-  <link rel="stylesheet" href="home.css?v=20260911-2">
+    <link rel="stylesheet" href="home.css?v=20260911-2">
   <link rel="stylesheet" href="reeded-bg.css?v=20260907-6">
   <link rel="stylesheet" href="site-header.css?v=20260927-2">
+  <link rel="stylesheet" href="glavnaya.css?v=20260928-1">
   <script src="reeded-bg.js?v=20260906-7" defer></script>
-  <script src="home.js?v=20260911-3" defer></script>
-  <script src="nav.js?v=20260914-1" defer></script>
+  <script src="glavnaya.js?v=20260928-1" defer></script>
+  <script src="nav.js?v=20260921-1" defer></script>
 </head>
-<body class="homePage">
+<!-- Главная с 28.09 — вариант D3 (Степан: «ахуенно»). Четыре контура (состав — вкладки самих
+     разделов), инструменты и новости наравне, помощник полем сверху. Прежняя главная — в git. -->
+<body class="pv homePage">
   <div class="siteHeaderShell">
     <header class="topbar">
       <a class="brand" href="./" aria-label="Уценка — главная">
@@ -29,29 +37,63 @@
     </header>
   </div>
 
-  <main class="homeShell">
-    <section class="homeHero">
-      <p class="homeEyebrow">Всё в одном месте</p>
-      <h1>Навигация</h1>
-      <p>Новый дашборд уценки: данные обновляются автоматически, а отклонения и точки роста видны сразу.</p>
+  <main class="pvShell">
+    <!-- D3: без приветствия, состав — как в разделах, у каждого контура своя живая сценка -->
+    <section class="pvGg">
+      <div class="pvF__shapka">
+        <button class="pvPomosh" id="homeAssistantOpen" type="button" aria-haspopup="dialog" aria-controls="homeAssistantModal"><span class="pvPomosh__znak">✦</span><span>Спросить или найти в данных</span><i>→</i></button>
+      </div>
+      <div class="pvF__kontury">
+        <div class="pvG" style="--c:#4d8df7" data-tilt>
+          <div class="pvS pvS--heat"><i style="--d:0.0s"></i><i style="--d:1.4s"></i><i style="--d:0.5s"></i><i style="--d:1.9s"></i><i style="--d:1.0s"></i><i style="--d:0.1s"></i><i style="--d:1.5s"></i><i style="--d:0.6s"></i><i style="--d:2.0s"></i><i style="--d:1.1s"></i><i style="--d:0.2s"></i><i style="--d:1.6s"></i><i style="--d:0.7s"></i><i style="--d:2.1s"></i><i style="--d:1.2s"></i><i style="--d:0.3s"></i><i style="--d:1.7s"></i><i style="--d:0.8s"></i><i style="--d:2.2s"></i><i style="--d:1.3s"></i><i style="--d:0.4s"></i><i style="--d:1.8s"></i><i style="--d:0.9s"></i><i style="--d:0.0s"></i></div>
+          <span class="pvG__n" aria-hidden="true">01</span>
+          <a class="pvG__imya" href="heatmap/">Управленческий</a>
+          <p class="pvG__pro">где болит и сколько стоит</p>
+          <div class="pvG__pod"><a href="heatmap/" data-pravo="heatmap">Хитмап</a><a href="zp/#svodka" data-pravo="salary_team" data-pochemu="Только тем, кто подаёт зарплату">ФОТ</a><a href="zp/#team" data-pravo="salary_team" data-pochemu="Только тем, кто подаёт зарплату">Панель</a></div>
+        </div>
+        <div class="pvG" style="--c:#27c46b" data-tilt>
+          <div class="pvS pvS--bars"><i style="--d:0.00s;--h:55%"></i><i style="--d:0.18s;--h:72%"></i><i style="--d:0.36s;--h:48%"></i><i style="--d:0.54s;--h:86%"></i><i style="--d:0.72s;--h:64%"></i><i style="--d:0.90s;--h:92%"></i><i style="--d:1.08s;--h:70%"></i><i style="--d:1.26s;--h:80%"></i></div>
+          <span class="pvG__n" aria-hidden="true">02</span>
+          <a class="pvG__imya" href="perf/">Операционный</a>
+          <p class="pvG__pro">как работают люди и склад</p>
+          <div class="pvG__pod"><a href="perf/" data-pravo="perf">Показатели</a><a href="people/" data-pravo="people">Паноптикум</a><a href="launch/" data-pravo="perf">Данилово</a><a href="priyomka/">Приёмка ДМД</a></div>
+        </div>
+        <div class="pvG" style="--c:#f05d72" data-tilt>
+          <div class="pvS pvS--line"><svg viewBox="0 0 200 70" preserveAspectRatio="none"><polyline points="0,12 25,18 50,14 75,30 100,26 125,40 150,38 175,52 200,58"/></svg></div>
+          <span class="pvG__n" aria-hidden="true">03</span>
+          <a class="pvG__imya" href="antigen/">Проектный</a>
+          <p class="pvG__pro">чтобы брака стало меньше</p>
+          <div class="pvG__pod"><a href="antigen/" data-pravo="antigen">Брак</a><a href="antigen/mashiny/" data-pravo="mashiny">Отправка ОЛ с регионов</a><a href="antigen/#roadmap" data-pravo="antigen">Дорожная карта</a></div>
+        </div>
+        <div class="pvG" style="--c:#f5ad32" data-tilt>
+          <div class="pvS pvS--boxes"><i style="--d:0.00s"></i><i style="--d:0.22s"></i><i style="--d:0.44s"></i><i style="--d:0.66s"></i><i style="--d:0.88s"></i><i style="--d:1.10s"></i><i style="--d:1.32s"></i><i style="--d:1.54s"></i><i style="--d:1.76s"></i></div>
+          <span class="pvG__n" aria-hidden="true">04</span>
+          <a class="pvG__imya" href="sales/">Коммерческий</a>
+          <p class="pvG__pro">лоты, деньги, отгрузки</p>
+          <div class="pvG__pod"><a href="sales/" data-pravo="sales">Остатки и отгрузки</a><a href="sales/analitika/" data-pravo="sales">Аналитика отгрузок</a><a href="crm/" data-pravo="crm">CRM продаж</a></div>
+        </div>
+      </div>
+      <div class="pvF__niz">
+        <div class="pvG pvG--shir" style="--c:#a985ff" data-tilt>
+          <div class="pvS pvS--scan"><b></b></div>
+          <span class="pvG__n" aria-hidden="true">05</span>
+          <span class="pvG__imya">Инструменты</span>
+          <div class="pvI__ryad">
+            <a class="pvI" href="picker/" data-pravo="picker"><b>Пикалка</b><small>штрихкод → рубрика и себес</small></a>
+            <a class="pvI pvI--zamok" href="picker/wms" data-pravo="wms" data-pochemu="В разработке — пока только для теста"><b>WMS</b><small>товар, паллета, ячейка, акт</small></a>
+            <a class="pvI pvI--zamok" href="tsd/" data-pravo="tsd" data-pochemu="В разработке — пока только для теста"><b>ТСД</b><small>брак в ячейке</small></a>
+            <a class="pvI" href="__inbox" data-pravo="inbox"><b>Конспекты</b><small>встреча → текст → сводка</small></a>
+          </div>
+        </div>
+        <div class="pvG pvG--shir" style="--c:#2fc2c9" data-tilt>
+          <div class="pvS pvS--wave"><i style="--d:0.00s"></i><i style="--d:0.12s"></i><i style="--d:0.24s"></i><i style="--d:0.36s"></i><i style="--d:0.48s"></i><i style="--d:0.60s"></i><i style="--d:0.72s"></i><i style="--d:0.84s"></i><i style="--d:0.96s"></i><i style="--d:1.08s"></i><i style="--d:1.20s"></i><i style="--d:1.32s"></i><i style="--d:1.44s"></i><i style="--d:1.56s"></i><i style="--d:1.68s"></i><i style="--d:1.80s"></i><i style="--d:1.92s"></i><i style="--d:2.04s"></i><i style="--d:2.16s"></i><i style="--d:2.28s"></i><i style="--d:2.40s"></i><i style="--d:2.52s"></i><i style="--d:2.64s"></i><i style="--d:2.76s"></i><i style="--d:2.88s"></i><i style="--d:3.00s"></i><i style="--d:3.12s"></i><i style="--d:3.24s"></i></div>
+          <span class="pvG__n" aria-hidden="true">06</span>
+          <a class="pvG__imya" href="novosti/">Новости</a>
+          <div class="pvNovosti pvNovosti--ryad" data-novosti="3"></div>
+        </div>
+      </div>
     </section>
-
-    <div class="homeSwitch glass" role="tablist" aria-label="Тип раздела">
-      <span class="homeSwitch__lens" aria-hidden="true"></span>
-      <button type="button" role="tab" data-view="analytics" aria-selected="true">Аналитика</button>
-      <button type="button" role="tab" data-view="tools" aria-selected="false">Инструменты</button>
-      <button type="button" role="tab" data-view="news" aria-selected="false">Новости</button>
-    </div>
-
-    <button class="homeAssistantTrigger glass" id="homeAssistantOpen" type="button"
-      aria-haspopup="dialog" aria-controls="homeAssistantModal">
-      <span class="homeAssistantTrigger__mark" aria-hidden="true">✦</span>
-      <span class="homeAssistantTrigger__copy">
-        <strong>Спросить или найти в данных</strong>
-        <small>Пока работает внутри разделов аналитики</small>
-      </span>
-      <span class="homeAssistantTrigger__hint">Подробнее <i aria-hidden="true">↑</i></span>
-    </button>
+  </main>
 
     <div class="homeAssistantModal" id="homeAssistantModal" hidden>
       <button class="homeAssistantModal__backdrop" type="button" data-assistant-close
@@ -81,101 +123,6 @@
         </form>
       </section>
     </div>
-
-    <section class="homePanel" data-panel="analytics" aria-label="Аналитика">
-      <div class="homeGrid">
-        <a class="homeCard homeCard--primary glass" href="antigen/">
-          <span class="homeCard__icon">А</span>
-          <span class="homeCard__copy">
-            <strong>Антигенерация</strong>
-            <small>Факт брака, динамика, причины и путь к цели</small>
-          </span>
-          <span class="homeCard__arrow" aria-hidden="true">↗</span>
-        </a>
-        <a class="homeCard glass" href="heatmap/">
-          <span class="homeCard__icon homeCard__icon--violet">Х</span>
-          <span class="homeCard__copy">
-            <strong>Хитмап</strong>
-            <small>Все показатели и отклонения одной картиной</small>
-          </span>
-          <span class="homeCard__arrow" aria-hidden="true">↗</span>
-        </a>
-        <a class="homeCard glass" href="sales/">
-          <span class="homeCard__icon homeCard__icon--amber">₽</span>
-          <span class="homeCard__copy">
-            <strong>Продажи</strong>
-            <small>Остатки, резервы и движение товара</small>
-          </span>
-          <span class="homeCard__arrow" aria-hidden="true">↗</span>
-        </a>
-        <a class="homeCard glass" href="perf/">
-          <span class="homeCard__icon homeCard__icon--green">П</span>
-          <span class="homeCard__copy">
-            <strong>Производительность</strong>
-            <small>Выход по контурам, сменам и сотрудникам</small>
-          </span>
-          <span class="homeCard__arrow" aria-hidden="true">↗</span>
-        </a>
-      </div>
-    </section>
-
-    <section class="homePanel" data-panel="tools" aria-label="Инструменты" hidden>
-      <div class="homeGrid">
-        <a class="homeCard homeCard--primary glass" href="picker/">
-          <span class="homeCard__icon homeCard__icon--green">П</span>
-          <span class="homeCard__copy">
-            <strong>Пикалка</strong>
-            <small>Уценка и предсорт по штрихкоду, поиск паллет</small>
-          </span>
-          <span class="homeCard__arrow" aria-hidden="true">↗</span>
-        </a>
-        <a class="homeCard glass" href="antigen/mashiny/">
-          <span class="homeCard__icon homeCard__icon--amber">М</span>
-          <span class="homeCard__copy">
-            <strong>Машины</strong>
-            <small>Как загрузили и как приехала: фото и рейс из ВМС</small>
-          </span>
-          <span class="homeCard__arrow" aria-hidden="true">↗</span>
-        </a>
-        <a class="homeCard glass" href="/__inbox">
-          <span class="homeCard__icon homeCard__icon--violet">Р</span>
-          <span class="homeCard__copy">
-            <strong>Расшифровка конспектов</strong>
-            <small>Запись встречи текстом, разбор в сводку</small>
-          </span>
-          <span class="homeCard__arrow" aria-hidden="true">↗</span>
-        </a>
-      </div>
-    </section>
-
-    <!-- Новости контуров. Лента РНП ниже осталась общей, а здесь читаются
-         сводки рабочих групп: у каждого контура своя. -->
-    <section class="homePanel homePanel--news" data-panel="news" aria-label="Новости" hidden>
-      <nav class="newsPick" id="newsPick" aria-label="Контур"></nav>
-      <section class="feed" id="newsFeed" data-limit="8" aria-label="Сводка контура" hidden>
-        <div class="feed__head">
-          <div>
-            <p class="feed__kicker">сводка</p>
-            <h2 id="newsFeedTitle">Антигенерация брака</h2>
-          </div>
-          <span class="feed__stamp" data-feed-stamp></span>
-        </div>
-        <div class="feed__list" data-feed-list></div>
-      </section>
-      <p class="newsEmpty" id="newsEmpty" hidden>По этому контуру сводок пока нет.</p>
-    </section>
-
-    <footer>
-      <span class="homeFooterItem"><span class="homePulse" aria-hidden="true"></span>
-        Данные справочников обрабатываются в браузере</span>
-      <span class="homeFooterSep" aria-hidden="true"></span>
-      <span class="homeViews" aria-label="Просмотры сайта">
-        <span class="homeViews__eye" aria-hidden="true">◉</span>
-        <strong id="homeViewsToday">—</strong>
-        <span>просмотров сегодня</span>
-      </span>
-    </footer>
-  </main>
   <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token":"907d91d4e2e044f682da0d451e684f83"}'></script>
 </body>
 </html>

@@ -1,0 +1,209 @@
+/* Черновик приветствия (27.09). Шрифт — VI Sans 600, как «Уценка» в шапке. */
+.pv *, .pv *::before, .pv *::after { box-sizing: border-box; }
+.pv { font-family: "VI Sans", system-ui, sans-serif; color: #f2f6fb; }
+.pvShell { width: min(1240px, calc(100% - 40px)); margin: 0 auto; padding: 4vh 0 110px; min-height: calc(100vh - 90px); display: flex; flex-direction: column; }
+
+.pv[data-v="a"] [data-var="a"], .pv[data-v="b"] [data-var="b"], .pv[data-v="c"] [data-var="c"], .pv[data-v="d"] [data-var="d"], .pv[data-v="e"] [data-var="e"], .pv[data-v="f"] [data-var="f"], .pv[data-v="g"] [data-var="g"] { display: flex; flex-direction: column; animation: pvVhod .7s cubic-bezier(.2, .8, .2, 1) both; }
+@keyframes pvVhod { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+.pvHello { margin: 0; font-size: 13px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: rgba(242, 246, 251, .6); }
+.pvTitle { margin: 10px 0 34px; font-size: clamp(44px, 7vw, 96px); font-weight: 600; letter-spacing: -.035em; line-height: .95; }
+
+/* A · Двери: четыре высокие створки, наведённая раскрывается */
+.pvDveri { display: flex; gap: 12px; height: min(470px, 58vh); }
+.pvDver { --c: #8f9cad; position: relative; flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; gap: 8px; padding: 26px 24px; overflow: hidden; border: 1px solid rgba(255, 255, 255, .09); border-radius: 26px; background: rgba(9, 11, 17, .55); backdrop-filter: blur(14px); color: inherit; text-decoration: none; transition: flex-grow .55s cubic-bezier(.2, .8, .2, 1), border-color .3s, background .3s; }
+.pvDver::before { content: ""; position: absolute; inset: auto 0 0; height: 4px; background: var(--c); transform: scaleX(.18); transform-origin: left; transition: transform .55s cubic-bezier(.2, .8, .2, 1); }
+.pvDver:hover { flex-grow: 2.1; border-color: color-mix(in srgb, var(--c) 55%, transparent); background: color-mix(in srgb, var(--c) 10%, rgba(9, 11, 17, .6)); }
+.pvDver:hover::before { transform: scaleX(1); }
+.pvDver__n { position: absolute; top: 22px; left: 24px; font-size: 13px; font-weight: 600; color: var(--c); letter-spacing: .1em; }
+.pvDver__kontur { font-size: 12px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: rgba(242, 246, 251, .55); }
+.pvDver__imya { font-size: clamp(20px, 1.9vw, 30px); font-weight: 600; letter-spacing: -.02em; line-height: 1.05; hyphens: auto; }
+.pvDver__pod { display: flex; flex-wrap: wrap; gap: 6px; max-height: 0; opacity: 0; transition: max-height .5s, opacity .35s; }
+.pvDver__pod i { font-style: normal; font-size: 13px; font-weight: 600; padding: 5px 11px; border-radius: 999px; background: rgba(255, 255, 255, .07); }
+.pvDver:hover .pvDver__pod { max-height: 80px; opacity: 1; transition-delay: .12s; }
+
+/* B · Слова: четыре строки крупным шрифтом, как оглавление журнала */
+.pvB { justify-content: center; }
+.pvSlova { display: flex; flex-direction: column; margin-top: 26px; border-top: 1px solid rgba(255, 255, 255, .1); }
+.pvSlova a { --c: #8f9cad; display: grid; grid-template-columns: 200px 1fr auto; align-items: baseline; gap: 24px; padding: 18px 6px; border-bottom: 1px solid rgba(255, 255, 255, .1); color: inherit; text-decoration: none; transition: padding .45s cubic-bezier(.2, .8, .2, 1), background .3s; }
+.pvSlova small { font-size: 12px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: rgba(242, 246, 251, .5); }
+.pvSlova b { font-size: clamp(40px, 6.4vw, 92px); font-weight: 600; letter-spacing: -.04em; line-height: 1; transition: color .3s; }
+.pvSlova em { white-space: nowrap; font-style: normal; font-size: 15px; font-weight: 600; color: var(--c); opacity: 0; transform: translateX(-12px); transition: opacity .3s, transform .45s; }
+.pvSlova a:hover { padding-left: 26px; background: linear-gradient(90deg, color-mix(in srgb, var(--c) 14%, transparent), transparent 70%); }
+.pvSlova a:hover b { color: var(--c); }
+.pvSlova a:hover em { opacity: 1; transform: none; }
+
+/* C · Орбита: ядро в центре, четыре четверти вокруг */
+.pvC { justify-content: center; }
+.pvOrbita { position: relative; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 12px; height: min(620px, 72vh); }
+.pvKv { --c: #8f9cad; display: flex; flex-direction: column; gap: 6px; padding: 30px; border: 1px solid rgba(255, 255, 255, .09); background: rgba(9, 11, 17, .5); backdrop-filter: blur(14px); color: inherit; text-decoration: none; transition: background .35s, border-color .35s; }
+.pvKv small { font-size: 12px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: rgba(242, 246, 251, .55); }
+.pvKv b { font-size: clamp(26px, 3.4vw, 48px); font-weight: 600; letter-spacing: -.03em; }
+.pvKv:hover { background: color-mix(in srgb, var(--c) 14%, rgba(9, 11, 17, .55)); border-color: color-mix(in srgb, var(--c) 60%, transparent); }
+.pvKv--1 { border-radius: 30px 8px 8px 8px; }
+.pvKv--2 { border-radius: 8px 30px 8px 8px; align-items: flex-end; text-align: right; }
+.pvKv--3 { border-radius: 8px 8px 8px 30px; justify-content: flex-end; }
+.pvKv--4 { border-radius: 8px 8px 30px 8px; align-items: flex-end; justify-content: flex-end; text-align: right; }
+.pvYadro { position: absolute; left: 50%; top: 50%; width: 260px; height: 260px; margin: -130px 0 0 -130px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, .14); background: rgba(8, 9, 14, .82); backdrop-filter: blur(18px); pointer-events: none; }
+.pvYadro::after { content: ""; position: absolute; inset: -14px; border-radius: 50%; border: 1px dashed rgba(255, 255, 255, .14); animation: pvKrug 40s linear infinite; }
+@keyframes pvKrug { to { transform: rotate(360deg); } }
+.pvYadro__t { margin: 0; font-size: 34px; font-weight: 600; letter-spacing: -.03em; }
+
+/* Инструменты и переключатель вариантов */
+.pvInstr { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 26px; font-size: 14px; font-weight: 600; }
+.pvInstr span { font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: rgba(242, 246, 251, .45); margin-right: 6px; }
+.pvInstr a { padding: 7px 14px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, .12); color: inherit; text-decoration: none; }
+.pvInstr a:hover { border-color: rgba(255, 255, 255, .35); }
+.pvZamok::before { content: ""; display: inline-block; width: 11px; height: 11px; margin-right: 5px; vertical-align: -1px; background: currentColor; opacity: .75; -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27black%27 stroke-width=%272.4%27%3E%3Crect x=%275%27 y=%2711%27 width=%2714%27 height=%2710%27 rx=%272%27/%3E%3Cpath d=%27M8 11V8a4 4 0 0 1 8 0v3%27/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27black%27 stroke-width=%272.4%27%3E%3Crect x=%275%27 y=%2711%27 width=%2714%27 height=%2710%27 rx=%272%27/%3E%3Cpath d=%27M8 11V8a4 4 0 0 1 8 0v3%27/%3E%3C/svg%3E") center / contain no-repeat; }
+.pvVybor { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 20; display: flex; align-items: center; gap: 4px; padding: 5px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, .14); background: rgba(8, 9, 14, .85); backdrop-filter: blur(14px); }
+.pvVybor span { padding: 0 10px; font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: rgba(242, 246, 251, .45); }
+.pvVybor button { padding: 8px 14px; border: 0; border-radius: 999px; background: transparent; color: rgba(242, 246, 251, .7); font: 600 13px "VI Sans", sans-serif; cursor: pointer; }
+.pvVybor button.is-on { background: #f2f6fb; color: #0a0d14; }
+
+@media (max-width: 800px) {
+  .pvDveri { flex-direction: column; min-height: 0; }
+  .pvDver { min-height: 120px; }
+  .pvDver:hover { flex-grow: 1; }
+  .pvDver__pod { max-height: none; opacity: 1; }
+  .pvSlova a { grid-template-columns: 1fr; gap: 4px; }
+  .pvSlova em { display: none; }
+  .pvOrbita { height: auto; grid-template-columns: 1fr; grid-template-rows: none; }
+  .pvYadro { position: static; margin: 0 auto 8px; order: -1; width: 200px; height: 200px; }
+  .pvKv { align-items: flex-start !important; text-align: left !important; border-radius: 18px !important; }
+}
+
+/* D и E (27.09, вторая итерация): главное — контуры, страницы внутри вторичны; всё
+   симметрично; инструменты и новости наравне; помощник на месте. */
+.pv[data-v="d"] .pvInstr, .pv[data-v="e"] .pvInstr { display: none; }
+.pvShapka { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px; margin-bottom: 28px; }
+.pvTitle--m { margin: 0; font-size: clamp(40px, 5.6vw, 76px); }
+.pvPomosh { display: inline-flex; align-items: center; gap: 12px; width: min(560px, 100%); padding: 13px 18px; border: 1px solid rgba(255, 255, 255, .14); border-radius: 999px; background: rgba(8, 9, 14, .6); backdrop-filter: blur(14px); color: rgba(242, 246, 251, .75); font-size: 15px; font-weight: 600; text-decoration: none; }
+.pvPomosh:hover { border-color: rgba(255, 255, 255, .35); color: #f2f6fb; }
+.pvPomosh__znak { color: #f05d72; }
+.pvPomosh i { margin-left: auto; font-style: normal; }
+.pvShest { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: 1fr; gap: 14px; }
+.pvPlitka { --c: #8f9cad; position: relative; display: flex; flex-direction: column; justify-content: space-between; gap: 22px; min-height: 210px; padding: 24px; overflow: hidden; border: 1px solid rgba(255, 255, 255, .09); border-radius: 24px; background: rgba(9, 11, 17, .55); backdrop-filter: blur(14px); transition: border-color .3s, background .3s, transform .35s cubic-bezier(.2, .8, .2, 1); }
+.pvPlitka::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 3px; background: var(--c); transform: scaleX(.14); transform-origin: left; transition: transform .5s cubic-bezier(.2, .8, .2, 1); }
+.pvPlitka:hover { border-color: color-mix(in srgb, var(--c) 55%, transparent); background: color-mix(in srgb, var(--c) 9%, rgba(9, 11, 17, .6)); transform: translateY(-3px); }
+.pvPlitka:hover::before { transform: scaleX(1); }
+.pvPlitka__imya { display: flex; flex-direction: column; gap: 10px; color: inherit; text-decoration: none; font-size: clamp(26px, 2.5vw, 38px); font-weight: 600; letter-spacing: -.03em; line-height: 1; }
+.pvPlitka__imya span, .pvStroka__imya span { font-size: 12px; letter-spacing: .14em; color: var(--c); }
+.pvPlitka__pod, .pvStroka__pod { display: flex; flex-wrap: wrap; gap: 6px; }
+.pvPlitka__pod a, .pvStroka__pod a { padding: 6px 12px; border-radius: 999px; background: rgba(255, 255, 255, .07); color: rgba(242, 246, 251, .82); font-size: 13px; font-weight: 600; text-decoration: none; }
+.pvPlitka__pod a:hover, .pvStroka__pod a:hover { background: color-mix(in srgb, var(--c) 30%, transparent); color: #fff; }
+.pvNovosti { display: flex; flex-direction: column; gap: 10px; }
+.pvNovost { display: grid; grid-template-columns: 44px 1fr; gap: 10px; color: inherit; text-decoration: none; font-size: 13.5px; font-weight: 600; line-height: 1.35; }
+.pvNovost small { font-size: 12px; color: rgba(242, 246, 251, .5); }
+.pvNovost:hover span { color: #2fc2c9; }
+.pvSpisok { display: grid; grid-auto-rows: 1fr; border-top: 1px solid rgba(255, 255, 255, .1); }
+.pvStroka { --c: #8f9cad; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: 24px; padding: 16px 8px; border-bottom: 1px solid rgba(255, 255, 255, .1); transition: background .3s; }
+.pvStroka:hover { background: linear-gradient(90deg, color-mix(in srgb, var(--c) 14%, transparent), transparent 80%); }
+.pvStroka__imya { display: flex; align-items: baseline; gap: 18px; color: inherit; text-decoration: none; font-size: clamp(34px, 4.6vw, 64px); font-weight: 600; letter-spacing: -.035em; line-height: 1; transition: color .3s; }
+.pvStroka:hover .pvStroka__imya { color: var(--c); }
+.pvStroka__pod { justify-content: flex-end; }
+.pvNovostiRyad { display: grid; grid-template-columns: 140px 1fr; gap: 24px; margin-top: 26px; align-items: start; }
+.pvNovostiRyad__zag { font-size: 12px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: #2fc2c9; padding-top: 4px; }
+.pvNovosti--ryad { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 900px) {
+  .pvShest { grid-template-columns: 1fr 1fr; }
+  .pvStroka { grid-template-columns: 1fr; }
+  .pvStroka__pod { justify-content: flex-start; }
+  .pvNovostiRyad, .pvNovosti--ryad { grid-template-columns: 1fr; }
+}
+@media (max-width: 560px) { .pvShest { grid-template-columns: 1fr; } }
+
+/* D2: шапка строкой, контуры рядом, инструменты и новости — широкие. */
+.pv[data-v="f"] .pvInstr { display: none; }
+.pvF__shapka { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 18px; margin-bottom: 26px; }
+.pvF__t { margin: 8px 0 0; font-size: clamp(48px, 6.4vw, 88px); font-weight: 600; letter-spacing: -.045em; line-height: .9; }
+.pvF .pvPomosh { width: min(460px, 100%); }
+.pvF__kontury { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+.pvF__niz { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 14px; }
+.pvK { --c: #8f9cad; position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; min-height: 250px; padding: 24px 22px 22px; overflow: hidden; isolation: isolate; border: 1px solid rgba(255, 255, 255, .09); border-radius: 24px; background: rgba(9, 11, 17, .58); backdrop-filter: blur(14px); transition: border-color .3s, background .35s, transform .35s cubic-bezier(.2, .8, .2, 1); }
+.pvK::before { content: ""; position: absolute; left: 22px; top: 0; width: 34px; height: 3px; border-radius: 0 0 3px 3px; background: var(--c); transition: width .5s cubic-bezier(.2, .8, .2, 1); }
+.pvK__n { position: absolute; z-index: -1; right: -6px; bottom: -34px; font-size: 170px; font-weight: 600; letter-spacing: -.06em; line-height: 1; color: var(--c); opacity: .09; transition: opacity .4s, transform .6s cubic-bezier(.2, .8, .2, 1); }
+.pvK:hover { border-color: color-mix(in srgb, var(--c) 50%, transparent); background: color-mix(in srgb, var(--c) 8%, rgba(9, 11, 17, .62)); transform: translateY(-3px); }
+.pvK:hover::before { width: calc(100% - 44px); }
+.pvK:hover .pvK__n { opacity: .2; transform: translate(-8px, -6px); }
+.pvK__imya { color: inherit; text-decoration: none; font-size: clamp(22px, 2vw, 30px); font-weight: 600; letter-spacing: -.03em; line-height: 1.05; }
+.pvK:hover .pvK__imya { color: var(--c); }
+.pvK__pro { margin: 0 0 10px; font-size: 13.5px; font-weight: 600; color: rgba(242, 246, 251, .55); }
+.pvK__pod { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.pvK__pod a { position: relative; padding: 3px 0; color: rgba(242, 246, 251, .85); font-size: 15px; font-weight: 600; text-decoration: none; }
+.pvK__pod a::after { content: "→"; margin-left: 8px; opacity: 0; color: var(--c); transition: opacity .25s, margin .25s; }
+.pvK__pod a:hover { color: #fff; }
+.pvK__pod a:hover::after { opacity: 1; margin-left: 12px; }
+.pvK--shir { min-height: 0; }
+.pvI__ryad { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; width: 100%; margin-top: 8px; }
+.pvI { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: 14px; background: rgba(255, 255, 255, .05); color: inherit; text-decoration: none; transition: background .25s; }
+.pvI:hover { background: color-mix(in srgb, #a985ff 22%, transparent); }
+.pvI b { font-size: 15px; font-weight: 600; }
+.pvI small { font-size: 12.5px; font-weight: 600; color: rgba(242, 246, 251, .5); }
+.pvI--zamok b::after { content: ""; display: inline-block; width: 11px; height: 11px; margin-left: 7px; vertical-align: 0; background: currentColor; opacity: .6; -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4'%3E%3Crect x='5' y='11' width='14' height='10' rx='2'/%3E%3Cpath d='M8 11V8a4 4 0 0 1 8 0v3'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4'%3E%3Crect x='5' y='11' width='14' height='10' rx='2'/%3E%3Cpath d='M8 11V8a4 4 0 0 1 8 0v3'/%3E%3C/svg%3E") center / contain no-repeat; }
+.pvF .pvNovosti--ryad { grid-template-columns: 1fr; gap: 12px; width: 100%; margin-top: 8px; }
+.pvF .pvNovost { padding: 10px 12px; border-radius: 12px; background: rgba(255, 255, 255, .04); }
+.pvF .pvNovost:hover { background: rgba(47, 194, 201, .14); }
+@media (max-width: 1000px) { .pvF__kontury { grid-template-columns: repeat(2, minmax(0, 1fr)); } .pvF__niz { grid-template-columns: 1fr; } }
+@media (max-width: 560px) { .pvF__kontury, .pvI__ryad { grid-template-columns: 1fr; } }
+.pvK--shir .pvK__n { font-size: 120px; bottom: -24px; opacity: .06; }
+
+/* D3: живые сценки, наклон за мышью, блик под курсором. */
+.pv[data-v="g"] .pvInstr { display: none; }
+.pvGg__t { margin: 0; }
+.pvGg__tochka { color: #f05d72; display: inline-block; animation: pvTochka 2.4s ease-in-out infinite; }
+@keyframes pvTochka { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+.pvGg .pvF__kontury, .pvGg .pvF__niz { perspective: 1200px; }
+.pvG { --c: #8f9cad; --rx: 0deg; --ry: 0deg; --mx: 50%; --my: 0%; position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; min-height: 330px; padding: 20px 22px 22px; overflow: hidden; isolation: isolate; border: 1px solid rgba(255, 255, 255, .09); border-radius: 26px; background: rgba(9, 11, 17, .6); backdrop-filter: blur(14px); transform: rotateX(var(--rx)) rotateY(var(--ry)); transform-style: preserve-3d; transition: transform .25s ease-out, border-color .3s, background .35s; }
+.pvG::after { content: ""; position: absolute; inset: 0; z-index: -1; background: radial-gradient(360px circle at var(--mx) var(--my), color-mix(in srgb, var(--c) 22%, transparent), transparent 60%); opacity: 0; transition: opacity .35s; }
+.pvG:hover { border-color: color-mix(in srgb, var(--c) 55%, transparent); }
+.pvG:hover::after { opacity: 1; }
+.pvG__n { position: absolute; z-index: -1; right: 14px; top: 14px; font-size: 13px; font-weight: 600; letter-spacing: .14em; color: var(--c); }
+.pvG__imya { margin-top: 6px; color: inherit; text-decoration: none; font-size: clamp(22px, 2vw, 30px); font-weight: 600; letter-spacing: -.03em; line-height: 1.05; transition: color .3s; }
+.pvG:hover .pvG__imya { color: var(--c); }
+.pvG__pro { margin: 0 0 8px; font-size: 13.5px; font-weight: 600; color: rgba(242, 246, 251, .55); }
+.pvG__pod { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; }
+.pvG__pod a { padding: 3px 0; color: rgba(242, 246, 251, .88); font-size: 15px; font-weight: 600; text-decoration: none; }
+.pvG__pod a::after { content: "→"; margin-left: 8px; opacity: 0; color: var(--c); transition: opacity .25s, margin .25s; }
+.pvG__pod a:hover { color: #fff; }
+.pvG__pod a:hover::after { opacity: 1; margin-left: 12px; }
+.pvG--shir { min-height: 0; }
+
+/* сценки — украшение, не данные */
+.pvS { width: 100%; height: 92px; margin-bottom: 8px; border-radius: 16px; background: rgba(255, 255, 255, .03); overflow: hidden; }
+.pvS--heat { display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(3, 1fr); gap: 4px; padding: 8px; }
+.pvS--heat i { border-radius: 5px; background: #4d8df7; opacity: .25; animation: pvHeat 3.2s ease-in-out infinite; animation-delay: var(--d); }
+@keyframes pvHeat { 0%, 100% { background: #2b4f9a; opacity: .3; } 40% { background: #4d8df7; opacity: .7; } 60% { background: #f5ad32; opacity: .9; } 75% { background: #f05d72; opacity: .95; } }
+.pvS--bars { display: flex; align-items: flex-end; gap: 6px; padding: 10px 12px; }
+.pvS--bars i { flex: 1; height: var(--h); border-radius: 5px 5px 2px 2px; background: linear-gradient(180deg, #27c46b, rgba(39, 196, 107, .25)); transform-origin: bottom; animation: pvBar 2.6s ease-in-out infinite; animation-delay: var(--d); }
+@keyframes pvBar { 0%, 100% { transform: scaleY(.55); } 50% { transform: scaleY(1); } }
+.pvS--line { padding: 10px 12px; }
+.pvS--line svg { width: 100%; height: 100%; overflow: visible; }
+.pvS--line polyline { fill: none; stroke: #f05d72; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 260; stroke-dashoffset: 260; animation: pvLine 3.6s ease-in-out infinite; vector-effect: non-scaling-stroke; }
+@keyframes pvLine { 0% { stroke-dashoffset: 260; } 55%, 80% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: -260; } }
+.pvS--boxes { display: grid; grid-template-columns: repeat(9, 1fr); align-items: end; gap: 5px; padding: 10px 12px; }
+.pvS--boxes i { aspect-ratio: 1; border-radius: 4px; border: 2px solid #f5ad32; background: rgba(245, 173, 50, .18); animation: pvBox 3s cubic-bezier(.3, 1.4, .5, 1) infinite; animation-delay: var(--d); }
+@keyframes pvBox { 0% { transform: translateY(-70px); opacity: 0; } 25%, 80% { transform: none; opacity: 1; } 100% { transform: translateX(40px); opacity: 0; } }
+.pvS--scan { position: relative; height: 56px; background: repeating-linear-gradient(90deg, rgba(242, 246, 251, .55) 0 3px, transparent 3px 6px, rgba(242, 246, 251, .55) 6px 7px, transparent 7px 11px, rgba(242, 246, 251, .55) 11px 16px, transparent 16px 19px); opacity: .35; }
+.pvS--scan b { position: absolute; top: 0; bottom: 0; width: 3px; background: #f05d72; box-shadow: 0 0 14px 3px rgba(240, 93, 114, .6); animation: pvScan 2.2s ease-in-out infinite alternate; }
+@keyframes pvScan { from { left: 2%; } to { left: 97%; } }
+.pvS--wave { display: flex; align-items: center; gap: 3px; height: 56px; padding: 0 10px; }
+.pvS--wave i { flex: 1; height: 30%; border-radius: 3px; background: #2fc2c9; opacity: .55; animation: pvWave 1.6s ease-in-out infinite; animation-delay: var(--d); }
+@keyframes pvWave { 0%, 100% { height: 18%; } 50% { height: 80%; } }
+@media (prefers-reduced-motion: reduce) { .pvS * , .pvGg__tochka { animation: none !important; } .pvG { transform: none !important; } }
+.pvS { box-sizing: border-box; }
+.pvG__n { top: auto; bottom: 16px; right: 18px; }
+.pvGg .pvNovosti--ryad { grid-template-columns: 1fr; gap: 10px; width: 100%; margin-top: 6px; }
+.pvGg .pvNovost { padding: 10px 12px; border-radius: 12px; background: rgba(255, 255, 255, .04); }
+.pvGg .pvNovost:hover { background: rgba(47, 194, 201, .14); }
+.pvGg .pvF__shapka { justify-content: center; }
+.pvGg .pvPomosh { width: min(640px, 100%); }
+.pvG__pod a.pvZakryto::before, .pvG__pod a[data-pravo="salary_team"]::before { content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 6px; vertical-align: 0; background: currentColor; opacity: .55; -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4'%3E%3Crect x='5' y='11' width='14' height='10' rx='2'/%3E%3Cpath d='M8 11V8a4 4 0 0 1 8 0v3'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4'%3E%3Crect x='5' y='11' width='14' height='10' rx='2'/%3E%3Cpath d='M8 11V8a4 4 0 0 1 8 0v3'/%3E%3C/svg%3E") center / contain no-repeat; }
+.pvG__pod a.pvZakryto { color: rgba(242, 246, 251, .38); cursor: not-allowed; }
+.pvG__pod a.pvZakryto::after { display: none; }
+
+/* Главная: секция показывается сама, без переключателя вариантов. */
+.pvGg { display: flex; flex-direction: column; animation: pvVhod .7s cubic-bezier(.2, .8, .2, 1) both; }
+.pvShell { min-height: 0; padding-bottom: 60px; }
+button.pvPomosh { font: 600 15px "VI Sans", system-ui, sans-serif; cursor: pointer; text-align: left; }
+.pvI.pvZakryto { opacity: .45; cursor: not-allowed; }
+.pvG--zakryt { opacity: .55; }
+.pvG--zakryt:hover { transform: none; }
