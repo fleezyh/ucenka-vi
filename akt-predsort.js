@@ -453,14 +453,14 @@
 
   function blokIstorii() {
     if (!istP) return "";
-    if (istP.zhdu) return '<p class="aktPs__chto">Смотрю историю паллеты за 10 дней — до полуминуты…</p>';
+    if (istP.zhdu) return `<p class="aktPs__chto">Смотрю историю паллеты за ${istP.zhdu} дней — ${istP.zhdu > 10 ? "до пары минут" : "до полуминуты"}…</p>`;
     if (istP.oshibka) return `<p class="aktPs__net"><b class="aktPs__oshibka">${esc(istP.oshibka)}</b></p>`;
     return `<p class="aktPs__zag">История за ${istP.дней} дней · ${istP.шаги.length}</p>
       ${istP.шаги.length ? `<div class="palIst">${istP.шаги.map((h) => `
         <div class="palIst__shag"><span class="palIst__kogda">${esc(`${h.когда.slice(8, 10)}.${h.когда.slice(5, 7)} ${h.когда.slice(11, 16)}`)}</span>
           <span>${esc(h.откуда || "—")} → <b>${esc(h.куда || "—")}</b></span>
           <span class="yachPalleta__zak">${esc(h.что || "")} · ${esc(h.кто)} · ${h.строк} стр.</span></div>`).join("")}</div>`
-        : '<p class="aktPs__chto">Перемещений не было.</p>'}
+        : `<p class="aktPs__chto">Перемещений не было.${istP.дней < 60 ? ' <button type="button" class="aktPs__kn" data-pkk="istoriya60">Искать за 60 дней</button>' : ""}</p>`}
       <p class="aktPs__chto">Хранилище отстаёт на несколько часов: самые свежие перемещения здесь ещё не видны.</p>`;
   }
 
@@ -780,9 +780,10 @@
     if (pkk && pal) {
       if (pkk.dataset.pkk === "excel") sostavVExcel();
       if (pkk.dataset.pkk === "peremestit") { palPer = { zhdem: true }; risovat(); vFokus(); }
-      if (pkk.dataset.pkk === "istoriya") {
-        istP = { zhdu: true }; risovat();
-        chitat(`/__vms/palleta_istoriya?kod=${encodeURIComponent(pal.паллета_id || pal.паллета)}`)
+      if (pkk.dataset.pkk === "istoriya" || pkk.dataset.pkk === "istoriya60") {
+        const dney = pkk.dataset.pkk === "istoriya60" ? 60 : 10;
+        istP = { zhdu: dney }; risovat();
+        chitat(`/__vms/palleta_istoriya?kod=${encodeURIComponent(pal.паллета_id || pal.паллета)}&dney=${dney}`)
           .then((d) => { istP = d; }).catch((err) => { istP = { oshibka: err.message || String(err) }; })
           .finally(() => { if (pal) risovat(); });
       }
