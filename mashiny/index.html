@@ -2,82 +2,9 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8">
-  <script src="/tema.js?v=20260924-2"></script>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#0a1018">
   <title>Уценка · Машины</title>
-  <link rel="icon" type="image/svg+xml" href="../assets/brand/vi-mark.svg">
-  <link rel="preload" href="../assets/fonts/VI_Sans_Regular.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="../style.css?v=20260911-3">
-  <link rel="stylesheet" href="mashiny.css?v=20260927-2">
-  <link rel="stylesheet" href="../reeded-bg.css?v=20260907-6">
-  <link rel="stylesheet" href="../site-header.css?v=20260927-2">
-  <script src="../reeded-bg.js?v=20260906-7" defer></script>
-  <script src="mashiny.js?v=20260927-2" defer></script>
-  <script src="../nav.js?v=20260921-1" defer></script>
+  <meta http-equiv="refresh" content="0; url=/antigen/mashiny/">
+  <script>location.replace("/antigen/mashiny/" + location.hash);</script>
 </head>
-<body data-mode="mashiny">
-  <main class="shell">
-    <header class="topbar">
-      <a class="brand" href="../" aria-label="Уценка — главная">
-        <img class="brand__mark" src="../assets/brand/vi-mark.svg" alt="" width="36" height="36">
-        <span>Уценка</span>
-      </a>
-      <nav class="siteNav" aria-label="Разделы сайта">
-        <span class="navGroup">
-          <span class="navGroup__label">Уценка</span>
-          <a class="navLink" href="../antigen/">Антигенерация</a>
-          <a class="navLink" href="./" aria-current="page">Машины</a>
-        </span>
-        <span class="navGroup">
-          <span class="navGroup__label">Инструменты</span>
-          <a class="navLink" href="../picker/">Пикалка</a>
-        </span>
-      </nav>
-    </header>
-
-    <section class="msHero">
-      <div>
-        <p class="msKicker">антигенерация · магистраль</p>
-        <h1>Машины</h1>
-        <p class="msLead">Как загрузили и как приехала — фото погрузки и выгрузки рядом. Машина берётся из рейса ВМС:
-          госномер, выезд и что по ней записали в брак на приёмке.</p>
-      </div>
-      <button class="msBtn msBtn--main" type="button" id="msNovaya">
-        <svg class="msPlus" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> Новая машина
-      </button>
-    </section>
-
-    <section class="msBar" aria-label="Фильтры">
-      <div class="msSeg" id="msVid" role="tablist">
-        <button type="button" data-vid="" class="is-on">Все</button>
-        <button type="button" data-vid="ol">ОЛ из регионов</button>
-        <button type="button" data-vid="otgruzka">Отгрузки из ДМД</button>
-      </div>
-      <input class="msPoisk" id="msPoisk" type="search" placeholder="Город, госномер, комментарий" autocomplete="off">
-      <button class="msBtn msBtn--ghost" type="button" id="msPokaz" title="Все фото выбранного подряд, на весь экран">Показ</button>
-    </section>
-    <div class="msGoroda" id="msGoroda" aria-label="Города"></div>
-    <p class="msSvodka" id="msSvodka">Загружаю…</p>
-
-    <section class="msSetka" id="msSetka" aria-live="polite"></section>
-  </main>
-
-  <div class="msOkno" id="msOkno" hidden>
-    <div class="msOkno__fon" data-zakryt></div>
-    <article class="msOkno__karta" id="msKarta" role="dialog" aria-modal="true"></article>
-  </div>
-
-  <div class="msSvet" id="msSvet" hidden>
-    <button class="msSvet__x" type="button" data-svet="x" aria-label="Закрыть">×</button>
-    <button class="msSvet__str msSvet__str--l" type="button" data-svet="l" aria-label="Назад">‹</button>
-    <figure class="msSvet__fig">
-      <img id="msSvetImg" alt="">
-      <figcaption id="msSvetPod"></figcaption>
-    </figure>
-    <button class="msSvet__str msSvet__str--r" type="button" data-svet="r" aria-label="Вперёд">›</button>
-  </div>
-
-  <input type="file" id="msFayl" accept="image/*" multiple hidden>
-</body>
+<body><a href="/antigen/mashiny/">Машины переехали в антигенерацию</a></body>
 </html>

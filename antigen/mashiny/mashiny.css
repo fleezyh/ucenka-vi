@@ -4,7 +4,9 @@ body[data-mode="mashiny"] .shell { gap: 18px; }
 body.msZamok { overflow: hidden; }
 
 .msKicker { margin: 0 0 6px; color: var(--muted); font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
-.msHero { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; }
+.msHero { display: flex; flex-direction: column; }
+.msKicker a { color: inherit; text-decoration: none; }
+.msKicker a:hover { color: var(--text); }
 .msHero h1 { margin: 0; font-size: clamp(34px, 5vw, 56px); font-weight: 600; letter-spacing: -.02em; line-height: 1; }
 .msLead { max-width: 640px; margin: 12px 0 0; color: var(--muted); font-size: 15px; line-height: 1.55; }
 
@@ -22,6 +24,11 @@ body.msZamok { overflow: hidden; }
 .msBtn--ghost:hover { color: var(--text); }
 
 .msBar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.msBar__prava { display: flex; gap: 8px; margin-left: auto; }
+.msPoisk { max-width: 460px; }
+.msGorodaRyad { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin-top: -4px; }
+.msGorodaRyad .msGoroda { flex: 1 1 auto; min-width: 0; }
+.msGorodaRyad .msGoroda { width: 100%; }
 .msSeg { display: inline-flex; gap: 2px; padding: 4px; border: 1px solid var(--line); border-radius: 14px; background: rgba(8, 12, 18, .55); }
 .msSeg button {
   appearance: none; cursor: pointer; min-height: 36px; padding: 0 14px; border: 0; border-radius: 10px;
@@ -245,4 +252,21 @@ body.is-svetlo .msZagruzka { background: #e7ecf3; }
   .msKarta__knopki { order: 1; width: 100%; justify-content: space-between; }
   .msKarta__polno { display: none; }
   .msVms__fakty { gap: 4px 16px; }
+}
+
+.msNomer--tyagach { border-style: dashed; color: var(--muted); }
+.msKart__meta .msNomer { margin-left: 4px; }
+/* Пустой этап — широкая зона, а не одинокий квадрат. */
+.msEtap__setka.is-pusto { grid-template-columns: 1fr; }
+.msEtap__setka.is-pusto .msFoto--dobavit { aspect-ratio: auto; min-height: 150px; flex-direction: row; flex-wrap: wrap; gap: 6px 10px; padding: 18px; }
+.msEtap__setka.is-pusto .msFoto--dobavit small { flex: 1 1 100%; text-align: center; font-size: 12px; }
+.msForma__ryad { grid-template-columns: 2fr 1fr 1fr 1fr; }
+.msTmsReys__nomer { display: flex; flex-wrap: wrap; gap: 4px; }
+@media (max-width: 760px) {
+  .msBar__prava { width: 100%; margin-left: 0; }
+  .msBar__prava .msBtn { flex: 1 1 0; justify-content: center; }
+  .msPoisk { max-width: none; }
+  .msGorodaRyad { flex-direction: column; align-items: stretch; gap: 6px; }
+  .msGorodaRyad .msSvodka { margin-left: 0; }
+  .msForma__ryad { grid-template-columns: 1fr 1fr; }
 }

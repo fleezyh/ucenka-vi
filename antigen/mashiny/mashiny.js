@@ -65,6 +65,15 @@
   const vyezd = (s) => (s ? `${korotko(s.slice(0, 10))} в ${s.slice(11, 16)}` : "");
   const chislo = (n) => Number(n || 0).toLocaleString("ru-RU");
   const src = (f, mini) => `/__mashiny/foto/${f.id}${mini && f.мини ? "-m" : ""}.jpg`;
+  // Сзади на фото виден номер прицепа, а не тягача — показываем оба, прицеп первым.
+  function nomera(r, s_podpisyu) {
+    const pr = ((r.tms || {}).прицеп || "").trim();
+    const tg = (r.госномер || "").trim();
+    const chast = [];
+    if (pr) chast.push(`${s_podpisyu ? "прицеп " : ""}<b class="msNomer" title="прицеп">${esc(pr)}</b>`);
+    if (tg) chast.push(`${s_podpisyu ? "тягач " : ""}<b class="msNomer msNomer--tyagach" title="тягач">${esc(tg)}</b>`);
+    return chast.join(s_podpisyu ? " · " : " ");
+  }
   const foto = (r, etap) => r.фото.filter((f) => !etap || f.этап === etap);
 
   // ------------------------------------------------------------ данные
@@ -151,7 +160,7 @@
         ${plashkaOcenki(r.оценка)}
         <span class="msKart__telo">
           <span class="msKart__marshrut">${esc(marshrut(r))}</span>
-          <span class="msKart__meta">${esc(data(r.дата))}${r.госномер ? ` · <b class="msNomer">${esc(r.госномер)}</b>` : ""}</span>
+          <span class="msKart__meta">${esc(data(r.дата))} ${nomera(r, false)}</span>
           <span class="msKart__schet">
             <span>погрузка ${foto(r, "pogruzka").length}</span><span>выгрузка ${foto(r, "vygruzka").length}</span>${vmsKorotko(r)}
           </span>
@@ -198,7 +207,7 @@
       : `<p class="msVms__pod">${r.вид === "ol" ? "Приёмку ОЛ в Домодедово ВМС к рейсам пока не привязывает — сравнение по фото." : "Приёмки по рейсу в ВМС пока нет."}</p>`;
     return `<div class="msVms">
       <div class="msVms__shapka"><span class="msVms__metka">ВМС</span>
-        <span>рейс <b>${esc(t.рейс)}</b> · выезд ${esc(vyezd(t.выезд))}${t.прицеп ? ` · прицеп ${esc(t.прицеп)}` : ""}</span></div>
+        <span>рейс <b>${esc(t.рейс)}</b> · выезд ${esc(vyezd(t.выезд))}${t.прицеп ? ` · прицеп ${esc(t.прицеп)}` : ""}${t.госномер ? ` · тягач ${esc(t.госномер)}` : ""}</span></div>
       ${fakty}
     </div>`;
   }
@@ -207,7 +216,7 @@
     const spisok = foto(r, etap.k);
     return `<section class="msEtap" data-etap="${etap.k}">
       <header class="msEtap__shapka"><h3>${etap.imya}</h3><span>${etap.pod} · ${spisok.length}</span></header>
-      <div class="msEtap__setka">
+      <div class="msEtap__setka${spisok.length ? "" : " is-pusto"}">
         ${spisok.map((f) => `
           <div class="msFoto">
             <button type="button" class="msFoto__img" data-foto="${f.id}"><img loading="lazy" src="${src(f, true)}" alt=""></button>
@@ -218,7 +227,7 @@
             </span>
           </div>`).join("")}
         <button type="button" class="msFoto msFoto--dobavit" data-dobavit="${etap.k}">
-          <svg class="msPlus" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Добавить фото</span><small>или перетащите сюда</small>
+          <svg class="msPlus" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>${spisok.length ? "Добавить фото" : `Добавить фото ${etap.k === "pogruzka" ? "погрузки" : "выгрузки"}`}</span><small>${spisok.length ? "или перетащите сюда" : "с телефона — сразу камерой, с компьютера — перетащите файлы сюда"}</small>
         </button>
       </div>
     </section>`;
@@ -232,7 +241,7 @@
         <div>
           <p class="msKicker">${r.вид === "ol" ? "ОЛ из региона" : "Отгрузка из ДМД"}</p>
           <h2>${esc(marshrut(r))}</h2>
-          <p class="msKarta__pod">${esc(data(r.дата))}${r.госномер ? ` · <b class="msNomer">${esc(r.госномер)}</b>` : ""}
+          <p class="msKarta__pod">${esc(data(r.дата))}${nomera(r, true) ? ` · ${nomera(r, true)}` : ""}
             <span class="msKarta__polno">${esc(r.откуда)} → ${esc(r.куда)}</span></p>
         </div>
         <div class="msKarta__knopki">
@@ -352,7 +361,8 @@
           <label><span id="msFormaGorodMetka">${vid === "ol" ? "Откуда (регион)" : "Куда (регион)"}</span>
             <input name="gorod" list="msSklady" value="${esc(drugoy)}" placeholder="Пенза, НСК, ЕКБ…" required></label>
           <label><span>Дата</span><input name="data" type="date" value="${esc(r ? r.дата : segodnya)}" required></label>
-          <label><span>Госномер</span><input name="nomer" value="${esc(r ? r.госномер : "")}" placeholder="А123ВС777" autocapitalize="characters"></label>
+          <label><span>Прицеп</span><input name="pricep" value="${esc(t.прицеп || "")}" placeholder="ВО686066" autocapitalize="characters"></label>
+          <label><span>Тягач</span><input name="nomer" value="${esc(r ? r.госномер : "")}" placeholder="Х263МВ196" autocapitalize="characters"></label>
         </div>
         <datalist id="msSklady">${(dannye.склады || []).filter((s) => !/^МСК/.test(s)).map((s) => `<option value="${esc(s)}">`).join("")}</datalist>
         <div class="msTms">
@@ -381,7 +391,7 @@
     const zapros = kod ? kod[1] : g;
     if (zapros.length < 2) { el("msTmsSpisok").innerHTML = `<p class="msTms__pusto">Введите город — покажу машины ±5 дней.</p>`; return; }
     el("msTmsHod").textContent = "ищу…";
-    const o = await fetch(`/__mashiny/tms?gorod=${encodeURIComponent(zapros)}&data=${encodeURIComponent(forma.data.value)}&nomer=${encodeURIComponent(forma.nomer.value)}`, { cache: "no-store" });
+    const o = await fetch(`/__mashiny/tms?gorod=${encodeURIComponent(zapros)}&data=${encodeURIComponent(forma.data.value)}&nomer=${encodeURIComponent(forma.pricep.value || forma.nomer.value)}`, { cache: "no-store" });
     const d = await o.json().catch(() => ({ рейсы: [] }));
     const vid = forma.dataset.vid;
     const reysy = (d.рейсы || []).filter((x) => (vid === "ol" ? /домодедов|данилов/i.test(x.куда) : /домодедов|данилов/i.test(x.откуда)));
@@ -391,7 +401,7 @@
       <button type="button" class="msTmsReys${String(x.рейс) === String(vybran) ? " is-on" : ""}" data-tms="${esc(JSON.stringify(x))}">
         <span class="msTmsReys__data">${esc(korotko(x.выезд.slice(0, 10)))}<small>${esc(x.выезд.slice(11, 16))}</small></span>
         <span class="msTmsReys__put">${esc(gorod(x.откуда))} → ${esc(gorod(x.куда))}<small>${esc(x.откуда)}</small></span>
-        <span class="msTmsReys__nomer"><b class="msNomer">${esc(x.госномер || "—")}</b>${x.прицеп ? `<small>прицеп ${esc(x.прицеп)}</small>` : ""}</span>
+        <span class="msTmsReys__nomer">${x.прицеп ? `<b class="msNomer" title="прицеп">${esc(x.прицеп)}</b>` : ""}<b class="msNomer msNomer--tyagach" title="тягач">${esc(x.госномер || "—")}</b></span>
         <span class="msTmsReys__vms">${x.вмс && x.вмс.принято ? `брак ${chislo(x.вмс.брак_в_расхождениях)} шт` : ""}</span>
       </button>`).join("") : `<p class="msTms__pusto">Рядом с этой датой рейсов не нашлось. Можно сохранить и без рейса.</p>`;
   }
@@ -401,6 +411,8 @@
     const forma = el("msForma");
     const vid = forma.dataset.vid;
     const tms = JSON.parse(forma.dataset.tms || "{}");
+    const pricep = forma.pricep.value.trim().toUpperCase();
+    if (pricep) tms.прицеп = pricep;
     const g = forma.gorod.value.trim();
     const dmd = "МСК - Склад Домодедово";
     const telo = {
@@ -496,6 +508,7 @@
       const forma = el("msForma");
       forma.dataset.tms = JSON.stringify(x);
       forma.nomer.value = x.госномер || forma.nomer.value;
+      forma.pricep.value = x.прицеп || "";
       forma.data.value = x.выезд.slice(0, 10);
       forma.gorod.value = forma.dataset.vid === "ol" ? x.откуда : x.куда;
       document.querySelectorAll("[data-tms]").forEach((b) => b.classList.toggle("is-on", b === tmsKn));
@@ -541,7 +554,7 @@
   document.addEventListener("submit", (e) => { if (e.target.id === "msForma") sohranitFormu(e); });
   document.addEventListener("input", (e) => {
     if (e.target.id === "msPoisk") { filtr.q = e.target.value; risovat(); return; }
-    if (e.target.closest("#msForma") && ["gorod", "data", "nomer"].includes(e.target.name)) {
+    if (e.target.closest("#msForma") && ["gorod", "data", "nomer", "pricep"].includes(e.target.name)) {
       if (e.target.name === "gorod") { el("msForma").dataset.tms = "{}"; el("msTmsVybran").textContent = ""; }
       clearTimeout(tmsTaymer); tmsTaymer = setTimeout(iskatTms, 350);
     }
