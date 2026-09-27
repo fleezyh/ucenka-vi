@@ -7,7 +7,7 @@
 
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const SOST = {
-    "работает": { k: "ok", t: "работает само" },
+    "работает": { k: "ok", t: "работает" },
     "тест": { k: "test", t: "тест" },
     "не запускали": { k: "test", t: "написано, не запускали" },
     "не работает": { k: "bad", t: "не работает" },
@@ -56,17 +56,28 @@
     return "";
   }
 
-  function kartochka(r) {
+  // Одна строка на робота: было руками → стало само; подробности по клику (27.09,
+  // «тут ещё и выгрузки… очень запутанно»).
+  function stroka(r, i) {
     const s = SOST[r.состояние] || SOST["нет"];
     const t = r.таймер || {};
-    return `<article class="wtRobot is-${s.k}">
-      <header class="wtRobot__shapka"><h3>${esc(r.имя)}</h3><span class="wtChip is-${s.k}">${s.t}</span></header>
-      <p class="wtRobot__chto">${esc(r.что)}</p>
-      <p class="wtRobot__kogda"><b>Когда:</b> ${esc(r.когда)}${t.был ? ` · был ${esc(kogda(t.был))}` : ""}${t.будет ? ` · будет ${esc(kogda(t.будет))}` : ""}</p>
-      ${r.примечание ? `<p class="wtRobot__prim">${esc(r.примечание)}</p>` : ""}
-      ${r.ссылка ? `<p class="wtRobot__kogda"><a href="${esc(r.ссылка.replace(/^\//, ""))}">открыть</a></p>` : ""}
-      ${sluchai(r)}${proba(r)}${zhurnal(r)}
-    </article>`;
+    const posl = (r.случаи && r.случаи[0]) ? `${kogda(r.случаи[0].когда)}${r.случаи[0].лот ? ` · лот ${r.случаи[0].лот}` : ""}` : "";
+    const est = r.случаи && r.случаи.length || r.проба || r.журнал && r.журнал.length || r.примечание || r.подробно;
+    return `<details class="wtRobot is-${s.k}"${est ? "" : " data-pusto"}>
+      <summary>
+        <span class="wtRobot__n">${i + 1}</span>
+        <span class="wtRobot__imya">${esc(r.имя)}<span class="wtChip is-${s.k}">${s.t}</span></span>
+        <span class="wtRobot__bylo"><small>было</small>${esc(r.было)}</span>
+        <span class="wtRobot__stalo"><small>стало</small>${esc(r.стало)}</span>
+        <span class="wtRobot__kogda">${esc(r.когда)}${posl ? `<br>последний раз ${esc(posl)}` : t.был ? `<br>был ${esc(kogda(t.был))}` : ""}</span>
+      </summary>
+      <div class="wtRobot__telo">
+        ${r.подробно ? `<p class="wtRobot__chto">${esc(r.подробно)}</p>` : ""}
+        ${r.примечание ? `<p class="wtRobot__prim">${esc(r.примечание)}</p>` : ""}
+        ${t.будет ? `<p class="wtRobot__chto">следующий запуск ${esc(kogda(t.будет))}</p>` : ""}
+        ${sluchai(r)}${proba(r)}${zhurnal(r)}
+      </div>
+    </details>`;
   }
 
   function risovat(d) {
@@ -75,11 +86,7 @@
     roboty.forEach((r) => { const k = (SOST[r.состояние] || SOST["нет"]).t; schet[k] = (schet[k] || 0) + 1; });
     document.getElementById("svod").innerHTML = Object.values(SOST).filter((s) => schet[s.t])
       .map((s) => `<span class="wtChip is-${s.k}">${s.t} · ${schet[s.t]}</span>`).join("");
-    const etapy = [...new Set(roboty.map((r) => r.этап))];
-    box.innerHTML = etapy.map((e, i) => `<section class="wtEtap">
-      <h2><span>${i + 1}</span>${esc(e)}</h2>
-      <div class="wtSetka">${roboty.filter((r) => r.этап === e).map(kartochka).join("")}</div>
-    </section>`).join("");
+    box.innerHTML = `<div class="wtSpisok">${roboty.map(stroka).join("")}</div>`;
     msg.hidden = true;
     document.getElementById("stamp").textContent = "состояние на " + new Date().toLocaleString("ru-RU", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
   }

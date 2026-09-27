@@ -43,3 +43,19 @@
 .wtKn { min-height: 32px; font-size: 12.5px; }
 .wtProblema { margin: 0; font-size: 13px; color: #ffd28a; }
 @media (max-width: 700px) { .wtSetka { grid-template-columns: 1fr; } .wtSluchay { grid-template-columns: 1fr; } .wtSluchay__chto { text-align: left; } }
+
+/* Список роботов строками (27.09, «очень запутанно»). */
+.wtSpisok { display: flex; flex-direction: column; gap: 8px; }
+.wtSpisok .wtRobot { padding: 0; gap: 0; }
+.wtRobot > summary { display: grid; grid-template-columns: 32px 220px 1fr 1.4fr 200px; gap: 16px; align-items: start; padding: 14px 18px; cursor: pointer; list-style: none; }
+.wtRobot > summary::-webkit-details-marker { display: none; }
+.wtRobot[data-pusto] > summary { cursor: default; }
+.wtRobot__n { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--line-strong); font-size: 13px; color: var(--muted); }
+.wtRobot__imya { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; font-size: 16px; font-weight: 600; }
+.wtRobot__bylo, .wtRobot__stalo { display: flex; flex-direction: column; gap: 3px; font-size: 14px; line-height: 1.4; }
+.wtRobot__bylo { color: var(--muted); }
+.wtRobot__bylo small, .wtRobot__stalo small { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.wtRobot__kogda { font-size: 13px; color: var(--muted); }
+.wtRobot__telo { display: flex; flex-direction: column; gap: 8px; padding: 0 18px 16px 66px; }
+.wtRobot[open] > summary { padding-bottom: 10px; }
+@media (max-width: 900px) { .wtRobot > summary { grid-template-columns: 26px 1fr; } .wtRobot__bylo, .wtRobot__stalo, .wtRobot__kogda { grid-column: 2; } .wtRobot__telo { padding-left: 18px; } }
