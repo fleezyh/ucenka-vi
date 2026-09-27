@@ -18,6 +18,55 @@
   if (!box) return;
   window.__aktPs = true;   // script.js: наклейки CEL/CON есть кому принять
 
+  /* Площадка ВМС (27.09, Степан: «из ?akt — плейграунд-тест: не уценка и
+     предсорт, а одно поле, где объясняются возможности с ВМС»). Режим
+     «Предсорт» включаем сами — решения стола живут в нём; вкладки, справочник
+     и поиск по названию прячем, под полем — что можно пикнуть и что будет. */
+  function ploshchadka() {
+    document.body.classList.add("vmsPlg");
+    const tab = document.querySelector('.tab[data-mode="presort"]');
+    if (tab && tab.getAttribute("aria-selected") !== "true") tab.click();
+    const tekst = (id, t) => { const x = document.getElementById(id); if (x) x.textContent = t; };
+    tekst("eyebrow", "тест · возможности ВМС");
+    tekst("pageTitle", "ВМС в пикалке");
+    tekst("modeDescription", "Одно поле: пикните товар, паллету или ячейку — покажу, что с этим можно сделать в ВМС.");
+    const shapka = document.querySelector(".searchHeading");
+    if (shapka) {
+      const ov = shapka.querySelector(".overline"); if (ov) ov.textContent = "ВМС";
+      const h2 = shapka.querySelector("h2"); if (h2) h2.textContent = "Пикните что угодно";
+    }
+    const metka = document.querySelector('label[for="scan"]');
+    if (metka) metka.textContent = "Товар, паллета или ячейка";
+    const scan = document.getElementById("scan");
+    const podpis = () => { if (scan && !scan.disabled) scan.placeholder = "Сканируйте что угодно…"; };
+    [300, 1500, 4000, 9000].forEach((t) => setTimeout(podpis, t));
+    const ryad = document.querySelector(".searchCard .searchRow");
+    if (ryad && !document.getElementById("vmsVozm")) {
+      ryad.insertAdjacentHTML("afterend", `<div class="vmsVozm" id="vmsVozm">
+        <button type="button" class="vmsVozm__k" data-primer="штрихкод или код товара">
+          <b>Товар</b><small>штрихкод, код сайта</small>
+          <span>Решение стола → акт уценки в ВМС (крит/косм, дефект) → «куда положили»: пик паллеты — перемещение со стола.</span></button>
+        <button type="button" class="vmsVozm__k" data-primer="CON 0163233250 или Уценка-0165326648">
+          <b>Паллета</b><small>CON …, «Уценка-…», номер</small>
+          <span>Где стоит и что на ней — прямо сейчас, лот и заказ. Заактировать всё без акта, переместить в ячейку, Excel.</span></button>
+        <button type="button" class="vmsVozm__k" data-primer="CEL 3923168">
+          <b>Ячейка</b><small>наклейка CEL …</small>
+          <span>Стол — его решения для актов. Любая другая — что в ней лежит, по паллетам; паллета открывается кликом.</span></button>
+        <div class="vmsVozm__k vmsVozm__k--kto">
+          <b>От чьего имени</b><small>вход в ВМС</small>
+          <span>Акты и перемещения создаются от вас — войдите в ВМС в карточке. Перемещения — черновиком.</span></div>
+      </div>`);
+      document.getElementById("vmsVozm").addEventListener("click", (e) => {
+        const k = e.target.closest("[data-primer]");
+        if (!k || !scan) return;
+        scan.placeholder = "например: " + k.dataset.primer;
+        scan.focus();
+      });
+    }
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", ploshchadka);
+  else ploshchadka();
+
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
   // Решения — от стола (26.09): человек пикает наклейку своего стола (CEL…),
@@ -149,7 +198,7 @@
   }
 
   async function otkrytPalletu(kod) {
-    pal = null; palKrit = ""; palDefekt = ""; palRabota = null; palOshibka = ""; palPer = null;
+    pal = null; palKrit = ""; palDefekt = ""; palRabota = null; palOshibka = ""; palPer = null; yach = null;
     tovar = null; gotovo = null; zhdemPalletu = null; perItog = null;
     vRezhimPalety(true);
     box.hidden = false;
@@ -329,7 +378,47 @@
     vFokus();
   }
 
+  // --- Ячейка (27.09, площадка ВМС): наклейка CEL не стол — что в ней лежит ---
+  let yach = null;
+  async function otkrytYacheyku(kod) {
+    yach = { zhdu: true, kod };
+    pal = null; tovar = null; vRezhimPalety(true);
+    risovat();
+    try {
+      const o = await fetch(`/__yacheyka/karta?kod=${encodeURIComponent(kod)}`, { cache: "no-store" });
+      const d = await o.json().catch(() => ({}));
+      if (!o.ok) throw new Error(d.ошибка || `сервер ответил ${o.status}`);
+      yach = d;
+    } catch (e) {
+      yach = { oshibka: e.message || String(e), kod };
+    }
+    risovat();
+  }
+
+  function risovatYacheyku() {
+    const y = yach;
+    if (y.zhdu) { box.innerHTML = '<p class="aktPs__chto">Смотрю ячейку в ВМС — большая ячейка до полуминуты…</p>'; return; }
+    if (y.oshibka) { box.innerHTML = `<p class="aktPs__net"><b class="aktPs__oshibka">${esc(y.oshibka)}</b></p>`; return; }
+    box.innerHTML = `<header class="aktPs__shapka">
+        <div><p class="aktPs__nad">${esc(y.ячейка)}</p>
+          <p class="aktPs__rezhim">${esc(y.зона)}${y.склад ? ` · ${esc(y.склад)}` : ""}</p></div>
+      </header>
+      <div class="palKartaAkt__fakty">
+        <span><b>${y.паллеты.length}</b> паллет</span><span><b>${y.штук}</b> шт</span>
+        <span class="${y.без_акта ? "is-vazhno" : ""}"><b>${y.без_акта}</b> без акта</span>
+      </div>
+      ${y.паллеты.length ? `<div class="yachPallety">${y.паллеты.map((p) => `
+        <button type="button" class="yachPalleta" data-pal-otkryt="${esc(p.паллета)}"${p.паллета ? "" : " disabled"}>
+          <span class="yachPalleta__imya">${esc(p.паллета || "без паллеты")}</span>
+          <span>${p.штук} шт</span>
+          <span class="${p.без_акта ? "is-bez" : ""}">${p.без_акта ? `${p.без_акта} без акта` : "все с актом"}</span>
+          ${p.заказы.length ? `<span class="yachPalleta__zak">${esc(p.заказы.join(", "))}</span>` : "<span></span>"}
+        </button>`).join("")}</div>` : '<p class="aktPs__chto">Ячейка пустая.</p>'}
+      <p class="aktPs__chto">Нажмите паллету — откроется её карточка: состав, актировка, перемещение.</p>`;
+  }
+
   function risovat() {
+    if (yach && !pal) { box.hidden = false; risovatYacheyku(); return; }
     if (pal) { box.hidden = false; risovatPalletu(); return; }
     if (!tovar) { box.hidden = true; return; }
     box.hidden = false;
@@ -429,6 +518,8 @@
     try {
       const otvet = await fetch(`/__akt/stol?kod=${encodeURIComponent(e.detail.kod)}`, { cache: "no-store" });
       const d = await otvet.json().catch(() => ({}));
+      // Не стол — значит, просто ячейка: показываем, что в ней лежит (площадка ВМС).
+      if (otvet.status === 404) { otkrytYacheyku(e.detail.kod); return; }
       if (!otvet.ok) throw new Error(d.ошибка || "стол не найден");
       stol = d;
       localStorage.setItem(KLYUCH_STOLA, JSON.stringify({ день: segodnya(), стол: d }));
@@ -532,6 +623,8 @@
       zhdemPalletu = ish && !ish.акт ? { ishod: ish, akt: null } : null;
       return risovat();
     }
+    const po = e.target.closest("[data-pal-otkryt]");
+    if (po && po.dataset.palOtkryt) { otkrytPalletu(po.dataset.palOtkryt); return; }
     const pkk = e.target.closest("[data-pkk]");
     if (pkk && pal) {
       if (pkk.dataset.pkk === "excel") sostavVExcel();

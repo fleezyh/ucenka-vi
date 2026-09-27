@@ -1324,3 +1324,27 @@ body[data-mode="dorogie"] .searchCard { grid-column: 1; grid-row: 1; }
 
 .palKartaAkt__per { width: 100%; margin-top: 6px; min-height: 44px; }
 .palPer .aktPs__podskaz b { font-weight: 600; }
+/* Пикалка ?akt — площадка ВМС (27.09): одно поле и что можно сделать. */
+body.vmsPlg .pickerTabs, body.vmsPlg .databaseCard, body.vmsPlg .nameLabel,
+body.vmsPlg .searchRow--name, body.vmsPlg .nameNote { display: none !important; }
+body.vmsPlg .layout { grid-template-columns: 1fr !important; }
+.vmsVozm { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 14px 0 4px; }
+.vmsVozm__k { display: flex; flex-direction: column; gap: 3px; padding: 12px 14px; border: 1px solid var(--line, #263345); border-radius: 14px;
+  background: rgba(255,255,255,.025); color: var(--muted, #8f9cad); font: inherit; font-size: 12.5px; line-height: 1.45; text-align: left; cursor: pointer; }
+.vmsVozm__k:hover { border-color: var(--line-strong, #35465c); }
+.vmsVozm__k--kto { cursor: default; }
+.vmsVozm__k b { color: var(--text, #f2f6fb); font-size: 15px; font-weight: 600; }
+.vmsVozm__k small { color: var(--green, #27c46b); font-size: 12px; font-weight: 600; }
+.yachPallety { display: flex; flex-direction: column; gap: 5px; margin: 10px 0; max-height: 460px; overflow-y: auto; }
+.yachPalleta { display: grid; grid-template-columns: 1.4fr auto auto 1fr; gap: 10px; align-items: center; padding: 9px 12px;
+  border: 1px solid var(--line, #263345); border-radius: 10px; background: transparent; color: var(--text, #f2f6fb); font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
+.yachPalleta:hover { border-color: var(--blue, #4d8df7); }
+.yachPalleta__imya { font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.yachPalleta .is-bez { color: #ffd28a; }
+.yachPalleta__zak { color: var(--muted, #8f9cad); font-size: 12px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.palKartaAkt__fakty .is-vazhno { background: rgba(245,173,50,.14); color: #ffd28a; }
+@media (max-width: 760px) {
+  .vmsVozm { grid-template-columns: 1fr 1fr; }
+  .yachPalleta { grid-template-columns: 1fr auto; }
+  .yachPalleta__zak { grid-column: 1 / -1; }
+}

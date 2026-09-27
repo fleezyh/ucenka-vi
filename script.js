@@ -959,7 +959,7 @@
     // С актировкой её принимает akt-predsort.js (перемещение / целая паллета),
     // без — открывается карточка паллеты (palleta-karta.js, 27.09: «вставляю
     // название паллеты — ничего не могу с ним сделать»).
-    if (/^CON\s?\d{5,12}$/i.test(code) || /^\S*[^\d\s]-0\d{9}$/.test(code) || /^0\d{9}$/.test(code)) {
+    if (/^CON\s?\d{5,12}$/i.test(code) || (code.length <= 60 && /[^\d\s]\s*-\s*0\d{9}$/.test(code)) || /^0\d{9}$/.test(code)) {
       scan.value = "";
       if (window.__aktPs && /^CON/i.test(code)) {
         document.dispatchEvent(new CustomEvent("picker:palleta", { detail: { kod: code } }));
