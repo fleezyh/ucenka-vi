@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <script src="/tema.js?v=20260924-2"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <base href="../">
+  <meta name="theme-color" content="#070c13">
+  <title>Уценка · Новости</title>
+  <link rel="icon" type="image/svg+xml" href="assets/brand/vi-mark.svg?v=20260903-3">
+  <link rel="preload" href="assets/fonts/VI_Sans_DemiBold.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="reeded-bg.css?v=20260907-6">
+  <link rel="stylesheet" href="site-header.css?v=20260927-2">
+  <link rel="stylesheet" href="novosti/novosti.css?v=20260927-2">
+  <script src="reeded-bg.js?v=20260906-7" defer></script>
+  <script src="nav.js?v=20260921-1" defer></script>
+  <script src="novosti/novosti.js?v=20260927-2" defer></script>
+</head>
+<!-- Новости отдельной страницей (27.09, Степан: «у новостей нет своего html, где их можно читать;
+     нравится стиль Медузы, но с нашей логикой, только картинок у нас нет»). Три ленты — те же
+     файлы, что читает главная: data/news.json (РНП «Фильтр брака»), news-antigen.json, news-sales.json. -->
+<body class="nv homePage">
+  <div class="siteHeaderShell">
+    <header class="topbar">
+      <a class="brand" href="./" aria-label="Уценка — главная">
+        <img class="brand__mark" src="assets/brand/vi-mark.svg?v=20260903-3" alt="" width="36" height="36">
+        <span>Уценка</span>
+      </a>
+      <nav class="siteNav" aria-label="Разделы сайта" data-static="true"></nav>
+    </header>
+  </div>
+  <main class="nvShell" id="nv">
+    <p class="nvZhdu">Загружаю новости…</p>
+  </main>
+</body>
+</html>
