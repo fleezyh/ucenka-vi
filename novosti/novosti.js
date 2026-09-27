@@ -26,16 +26,25 @@
   function lid(n) { return (n.цифры || [])[0] || ((n.пункты || [])[0] || {}).текст || ""; }
   function citata(n) { return (n.пункты || []).find((p) => p.цитата && p.цитата.length > 20); }
 
-  function karta(n, i) {
+  // Одна карточка на всё (28.09, «слишком вразнобой — не за что глазу зацепиться»):
+  // цвет рубрики — только полоска сверху и подпись, цитата — строкой внутри.
+  function karta(n) {
     const q = citata(n);
-    if (i % 5 === 3 && q) {
-      return `<a class="nvKarta nvKarta--cit" href="novosti/#/${n.id}" style="--c:${n.lenta.c}">
-        <span class="nvKarta__kav">«</span><p class="nvKarta__cit">${esc(q.цитата)}</p>
-        <p class="nvKarta__kto">${esc(q.кто)} · ${esc(n.заголовок)}</p></a>`;
-    }
-    return `<a class="nvKarta${i % 5 === 0 ? " nvKarta--bumaga" : ""}" href="novosti/#/${n.id}" style="--c:${n.lenta.c}">
+    return `<a class="nvKarta" href="novosti/#/${n.id}" style="--c:${n.lenta.c}">
       ${rub(n)}<h3>${esc(n.заголовок)}</h3><p class="nvKarta__lid">${esc(lid(n))}</p>
-      <p class="nvMeta">${dataTxt(n.дата)}${n.встреча ? ` · ${esc(n.встреча)}` : ""}</p></a>`;
+      ${q ? `<p class="nvKarta__q">«${esc(q.цитата)}» <span>— ${esc(q.кто)}</span></p>` : ""}
+      ${n.встреча ? `<p class="nvMeta">${esc(n.встреча)}</p>` : ""}</a>`;
+  }
+
+  // Лента по дням: дата — заголовок, под ней карточки этого дня.
+  function poDnyam(spisok) {
+    const dni = [];
+    spisok.forEach((n) => {
+      const d = dni[dni.length - 1];
+      if (d && d.data === n.дата) d.n.push(n); else dni.push({ data: n.дата, n: [n] });
+    });
+    return dni.map((d) => `<section class="nvDenBlok"><h3 class="nvDenBlok__d">${dataTxt(d.data)}</h3>
+      <div class="nvSetka">${d.n.map(karta).join("")}</div></section>`).join("");
   }
 
   let sohranitProkrutku = false;
@@ -72,7 +81,7 @@
           <div><b>Сделано</b>${(s.сделано || []).slice(0, 2).map((x) => `<p>${esc(x)}</p>`).join("")}</div>
           <div><b>Цифры</b>${(s.цифры || []).slice(0, 2).map((x) => `<p>${esc(x)}</p>`).join("")}</div>
         </div><span class="nvDalee">Читать целиком →</span></a>` : ""}
-      <section class="nvSetka">${ost.slice(6, 6 + pokazano).map(karta).join("")}</section>
+      ${poDnyam(ost.slice(6, 6 + pokazano))}
       ${ost.length > 6 + pokazano ? `<button type="button" class="nvEshyo" data-eshyo>Показать ещё · осталось ${ost.length - 6 - pokazano}</button>` : ""}`;
     if (!sohranitProkrutku) window.scrollTo(0, 0);
     sohranitProkrutku = false;
@@ -91,7 +100,7 @@
           <p><b>${esc(p.кто)}.</b> ${esc(p.текст)}</p></section>`).join("")}
         ${(n.теги || []).length ? `<p class="nvTegi">${n.теги.map((t) => `<span>${esc(t)}</span>`).join("")}</p>` : ""}
       </article>
-      ${pohozhie.length ? `<section class="nvEshe"><p class="nvZag">Ещё — ${esc(n.lenta.imya)}</p><div class="nvSetka">${pohozhie.map((x, i) => karta(x, i + 1)).join("")}</div></section>` : ""}`;
+      ${pohozhie.length ? `<section class="nvEshe"><p class="nvZag">Ещё — ${esc(n.lenta.imya)}</p><div class="nvSetka">${pohozhie.map(karta).join("")}</div></section>` : ""}`;
     window.scrollTo(0, 0);
   }
 
