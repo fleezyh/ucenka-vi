@@ -943,6 +943,14 @@
     // Наклейка стола (CEL + id ячейки, 26.09): это не товар, а смена стола —
     // актировка (akt-predsort.js) показывает решения этого стола.
     // В ВМС наклейка печатается с пробелом: «CEL 3099400».
+    // Наклейка акта приёмки «ACT 0005263917» (27.09) — в площадке ВМС карточка акта.
+    if (/^(ACT|АКТ)\s?\d{5,12}$/i.test(code)) {
+      scan.value = "";
+      if (window.__aktPs) document.dispatchEvent(new CustomEvent("picker:akt", { detail: { kod: code } }));
+      else say("Это наклейка акта — акты показывает версия с актировкой: откройте ucenka-vi.ru/picker/?akt", "warn");
+      scan.focus();
+      return;
+    }
     if (/^CEL\s?\d{5,10}$/i.test(code)) {
       scan.value = "";
       if (window.__aktPs) {

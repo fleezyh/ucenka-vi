@@ -45,16 +45,16 @@
       ryad.insertAdjacentHTML("afterend", `<div class="vmsVozm" id="vmsVozm">
         <button type="button" class="vmsVozm__k" data-primer="штрихкод или код товара">
           <b>Товар</b><small>штрихкод, код сайта</small>
-          <span>Решение стола → акт уценки в ВМС (крит/косм, дефект) → «куда положили»: пик паллеты — перемещение со стола.</span></button>
+          <span>Решение стола → акт уценки (крит/косм, дефект) → «куда положили»: перемещение со стола. Где ещё лежит такой же.</span></button>
         <button type="button" class="vmsVozm__k" data-primer="CON 0163233250 или Уценка-0165326648">
           <b>Паллета</b><small>CON …, «Уценка-…», номер</small>
-          <span>Где стоит и что на ней — прямо сейчас, лот и заказ. Заактировать всё без акта, переместить в ячейку, Excel.</span></button>
+          <span>Где стоит и что на ней — прямо сейчас, лот и заказ. Заактировать всё без акта, переместить в ячейку, история, Excel.</span></button>
         <button type="button" class="vmsVozm__k" data-primer="CEL 3923168">
           <b>Ячейка</b><small>наклейка CEL …</small>
           <span>Стол — его решения для актов. Любая другая — что в ней лежит, по паллетам; паллета открывается кликом.</span></button>
-        <div class="vmsVozm__k vmsVozm__k--kto">
-          <b>От чьего имени</b><small>вход в ВМС</small>
-          <span>Акты и перемещения создаются от вас — войдите в ВМС в строке ниже. Перемещения — черновиком.</span></div>
+        <button type="button" class="vmsVozm__k" data-primer="ACT 0005263917">
+          <b>Акт</b><small>наклейка ACT …</small>
+          <span>Что за товар, дефект, кто и когда заактировал — и где эта штука сейчас, в каком заказе.</span></button>
       </div>`);
       document.getElementById("vmsVozm").insertAdjacentHTML("afterend", `<div class="vmsPolosa" id="vmsPolosa"></div>
         <div class="vmsProba"><span>Попробовать:</span>
@@ -62,6 +62,7 @@
           <button type="button" data-probovat="CEL 3923168">ячейка «буфер, группа 3»</button>
           <button type="button" data-probovat="CEL 4089525">отгрузка уценки ДНЛ</button>
           <button type="button" data-probovat="CEL 3099400">стол 3 предсорта</button>
+          <button type="button" data-probovat="ACT 0005263917">акт на радиатор</button>
         </div>`);
       document.querySelector(".vmsProba").addEventListener("click", (e) => {
         const k = e.target.closest("[data-probovat]");
@@ -213,6 +214,7 @@
 
   async function otkrytPalletu(kod) {
     pal = null; palKrit = ""; palDefekt = ""; palRabota = null; palOshibka = ""; palPer = null; yach = null;
+    aktK = null; istP = null;
     tovar = null; gotovo = null; zhdemPalletu = null; perItog = null;
     vRezhimPalety(true);
     box.hidden = false;
@@ -269,6 +271,7 @@
       </header>${formaVms()}
       ${blokKarty()}
       ${blokPeremeshcheniya()}
+      ${blokIstorii()}
       ${spisok ? `<div class="palSpisok">${spisok}</div>` : ""}
       ${niz}`;
   }
@@ -292,7 +295,10 @@
         <button type="button" class="aktPs__kn" data-pkk="kopir">Копировать</button>
         ${k ? `<a class="aktPs__kn" href="${esc(k.вмс)}" target="_blank" rel="noopener">Открыть в ВМС</a>` : ""}
       </div>
-      ${palPer ? "" : `<button type="button" class="aktPs__kn palKartaAkt__per" data-pkk="peremestit">Переместить паллету</button>`}
+      <div class="palKartaAkt__dva">
+        ${palPer ? "" : `<button type="button" class="aktPs__kn" data-pkk="peremestit">Переместить паллету</button>`}
+        <button type="button" class="aktPs__kn" data-pkk="istoriya">История</button>
+      </div>
     </div>`;
   }
 
@@ -394,7 +400,72 @@
 
   // --- Ячейка (27.09, площадка ВМС): наклейка CEL не стол — что в ней лежит ---
   let yach = null;
+  // Акт по наклейке, «где ещё лежит» товар, история паллеты (27.09, «там не весь спектр»).
+  let aktK = null;
+  let gdeT = null;
+  let istP = null;
+  async function chitat(url) {
+    const o = await fetch(url, { cache: "no-store" });
+    const d = await o.json().catch(() => ({}));
+    if (!o.ok) throw new Error(d.ошибка || `сервер ответил ${o.status}`);
+    return d;
+  }
+
+  async function otkrytAkt(kod) {
+    aktK = { zhdu: true }; pal = null; yach = null; tovar = null; vRezhimPalety(true); risovat();
+    try { aktK = await chitat(`/__vms/akt?kod=${encodeURIComponent(kod)}`); } catch (e) { aktK = { oshibka: e.message || String(e) }; }
+    risovat();
+  }
+
+  function risovatAkt() {
+    const a = aktK;
+    if (a.zhdu) { box.innerHTML = '<p class="aktPs__chto">Смотрю акт…</p>'; return; }
+    if (a.oshibka) { box.innerHTML = `<p class="aktPs__net"><b class="aktPs__oshibka">${esc(a.oshibka)}</b></p>`; return; }
+    box.innerHTML = `<header class="aktPs__shapka"><div><p class="aktPs__nad">Акт №${esc(a.акт)}</p>
+        <p class="aktPs__rezhim">${esc(a.вид)} · ${esc(a.когда)} · ${esc(a.автор)}</p></div></header>
+      <p class="aktPs__podskaz">${esc(a.товар)}</p>
+      <p class="aktPs__chto">дефект: ${esc(a.дефект || "—")}${a.из_ячейки ? ` · заактирован в «${esc(a.из_ячейки)}»` : ""}</p>
+      <p class="aktPs__zag">Где сейчас</p>
+      ${a.где.length ? `<div class="yachPallety">${a.где.map((g) => `
+        <button type="button" class="yachPalleta yachPalleta--stolb" data-pal-otkryt="${esc(g.паллета)}"${g.паллета ? "" : " disabled"}>
+          <span class="yachPalleta__imya">${esc(g.паллета || "без паллеты")}</span>
+          <span>${esc(g.ячейка)} <span class="yachPalleta__zak">· ${esc(g.зона)}</span></span>
+          ${g.заказ ? `<span class="yachPalleta__zak">заказ ${esc(g.заказ)}</span>` : ""}
+        </button>`).join("")}</div>` : '<p class="aktPs__chto">На складе этой штуки уже нет — продана, списана или уехала.</p>'}
+      <div class="palKartaAkt__knopki"><a class="aktPs__kn" href="${esc(a.вмс)}" target="_blank" rel="noopener">Открыть акт в ВМС</a></div>
+      <p class="aktPs__chto">Данные хранилища — свежий акт появляется через несколько часов.</p>`;
+  }
+
+  function blokGde() {
+    if (!tovar) return "";
+    if (!gdeT) return `<button type="button" class="aktPs__kn palKartaAkt__per" data-gde="1">Где ещё лежит этот товар</button>`;
+    if (gdeT.zhdu) return '<p class="aktPs__chto">Ищу товар по всему складу в ВМС…</p>';
+    if (gdeT.oshibka) return `<p class="aktPs__net"><b class="aktPs__oshibka">${esc(gdeT.oshibka)}</b></p>`;
+    return `<p class="aktPs__zag">Где лежит сейчас · ${gdeT.штук} шт в ${gdeT.мест} местах</p>
+      <div class="yachPallety">${gdeT.места.map((m) => `
+        <button type="button" class="yachPalleta" data-pal-otkryt="${esc(m.паллета)}"${m.паллета ? "" : " disabled"}>
+          <span class="yachPalleta__imya">${esc(m.ячейка)}</span>
+          <span>${m.штук} шт</span>
+          <span class="yachPalleta__zak">${esc(m.паллета || "без паллеты")}</span>
+          <span class="yachPalleta__zak">${esc(m.качество.join(", "))}${m.заказы.length ? ` · заказ ${esc(m.заказы.join(", "))}` : ""}</span>
+        </button>`).join("")}</div>`;
+  }
+
+  function blokIstorii() {
+    if (!istP) return "";
+    if (istP.zhdu) return '<p class="aktPs__chto">Смотрю историю паллеты за 10 дней — до полуминуты…</p>';
+    if (istP.oshibka) return `<p class="aktPs__net"><b class="aktPs__oshibka">${esc(istP.oshibka)}</b></p>`;
+    return `<p class="aktPs__zag">История за ${istP.дней} дней · ${istP.шаги.length}</p>
+      ${istP.шаги.length ? `<div class="palIst">${istP.шаги.map((h) => `
+        <div class="palIst__shag"><span class="palIst__kogda">${esc(`${h.когда.slice(8, 10)}.${h.когда.slice(5, 7)} ${h.когда.slice(11, 16)}`)}</span>
+          <span>${esc(h.откуда || "—")} → <b>${esc(h.куда || "—")}</b></span>
+          <span class="yachPalleta__zak">${esc(h.что || "")} · ${esc(h.кто)} · ${h.строк} стр.</span></div>`).join("")}</div>`
+        : '<p class="aktPs__chto">Перемещений не было.</p>'}
+      <p class="aktPs__chto">Хранилище отстаёт на несколько часов: самые свежие перемещения здесь ещё не видны.</p>`;
+  }
+
   async function otkrytYacheyku(kod) {
+    aktK = null;
     yach = { zhdu: true, kod };
     pal = null; tovar = null; vRezhimPalety(true);
     risovat();
@@ -462,10 +533,16 @@
 
   function risovat() {
     risovatPolosu();
+    if (aktK && !pal) { box.hidden = false; risovatAkt(); return; }
     if (yach && !pal) { box.hidden = false; risovatYacheyku(); return; }
     if (pal) { box.hidden = false; risovatPalletu(); return; }
     if (!tovar) { box.hidden = true; return; }
     box.hidden = false;
+    risovatTovar();
+    box.insertAdjacentHTML("beforeend", blokGde());
+  }
+
+  function risovatTovar() {
     const r = RESHENIYA().find((x) => String(x.id) === String(reshenie));
     const shapka = `<header class="aktPs__shapka">
         <div><p class="aktPs__nad">${stol ? esc(stol.имя.replace(/^ФБ \(ДМД\) /, "")) : "Стол не выбран"}</p>
@@ -510,6 +587,7 @@
 
   document.addEventListener("picker:hit", (e) => {
     tovar = e.detail; reshenie = ""; defekt = ""; krit = ""; gotovo = null; oshibkaAkta = "";
+    aktK = null; gdeT = null; yach = null;
     zhdemPalletu = null; perItog = null;
     if (pal && !(palRabota && palRabota.идёт)) { pal = null; vRezhimPalety(false); }
     risovat();
@@ -518,6 +596,7 @@
   const palIzAdresa = new URLSearchParams(location.search).get("palleta");
   if (palIzAdresa) setTimeout(() => otkrytPalletu(palIzAdresa), 300);
 
+  document.addEventListener("picker:akt", (e) => otkrytAkt(e.detail.kod));
   document.addEventListener("picker:palleta", (e) => {
     // После решения по товару — «куда положили» (перемещение);
     // просто так — актировка целой паллеты.
@@ -687,12 +766,26 @@
       zhdemPalletu = ish && !ish.акт ? { ishod: ish, akt: null } : null;
       return risovat();
     }
+    if (e.target.closest("[data-gde]") && tovar) {
+      gdeT = { zhdu: true }; risovat();
+      const t = tovar;
+      chitat(`/__vms/tovar_gde?imya=${encodeURIComponent(t.name || "")}&kod=${encodeURIComponent(t.kod || "")}`)
+        .then((d) => { gdeT = d; }).catch((err) => { gdeT = { oshibka: err.message || String(err) }; })
+        .finally(() => { if (tovar === t) risovat(); });
+      return;
+    }
     const po = e.target.closest("[data-pal-otkryt]");
     if (po && po.dataset.palOtkryt) { otkrytPalletu(po.dataset.palOtkryt); return; }
     const pkk = e.target.closest("[data-pkk]");
     if (pkk && pal) {
       if (pkk.dataset.pkk === "excel") sostavVExcel();
       if (pkk.dataset.pkk === "peremestit") { palPer = { zhdem: true }; risovat(); vFokus(); }
+      if (pkk.dataset.pkk === "istoriya") {
+        istP = { zhdu: true }; risovat();
+        chitat(`/__vms/palleta_istoriya?kod=${encodeURIComponent(pal.паллета_id || pal.паллета)}`)
+          .then((d) => { istP = d; }).catch((err) => { istP = { oshibka: err.message || String(err) }; })
+          .finally(() => { if (pal) risovat(); });
+      }
       if (pkk.dataset.pkk === "per-da" && palPer && palPer.yach) peremestitPalletu(palPer.yach, true);
       if (pkk.dataset.pkk === "per-net") { palPer = null; risovat(); vFokus(); }
       if (pkk.dataset.pkk === "kopir") {
