@@ -243,3 +243,6 @@ body.ctSvyazOtkryt .ctSvyazKn { display: none; }
 /* Выбранная очередь «Сегодня» — залита своим цветом: в светлой теме белое на белом «пропадало» (27.09). */
 .ctDelo.is-on { background: color-mix(in srgb, var(--c, #8f9cad) 24%, transparent); border-color: var(--c, #8f9cad); box-shadow: 0 0 0 1px var(--c, #8f9cad) inset; }
 body.is-svetlo .ctDelo.is-on { background: color-mix(in srgb, var(--c, #8f9cad) 16%, #fff); border-color: var(--c, #8f9cad); }
+/* hidden должен прятать: .crmFiltry { display: flex } перебивал атрибут, и статусы из
+   «Таблицы» оставались на «Доске», где не работают (27.09, «нижняя штука, где всё остаётся»). */
+.crmFiltry[hidden], #crmSverka[hidden] { display: none !important; }
