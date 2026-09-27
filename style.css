@@ -1279,3 +1279,45 @@ body[data-mode="dorogie"] .searchCard { grid-column: 1; grid-row: 1; }
 /* Пикалка: актировка целой паллеты — карточка товара прячется, панель сверху. */
 .answer.is-palleta .answer__setka { display: none; }
 .answer.is-palleta .aktPs { margin-top: -18px; border-top: 0; }
+/* Пикалка: паллета не в ячейке решения — вопрос перед перемещением (27.09). */
+.aktPs__palleta--vopros { border-color: rgba(245, 173, 50, .7); background: rgba(245, 173, 50, .08); }
+.aktPs__vopros { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+/* Пикалка: карточка паллеты по любому её имени (27.09). */
+.palKarta { margin-top: 14px; padding: 18px 20px; border: 1px solid var(--line-strong, #35465c); border-radius: 18px; background: var(--panel, rgba(18,26,37,.92)); }
+.palKarta[hidden] { display: none; }
+.palKarta__shapka { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.palKarta__nad { margin: 0; color: var(--muted, #8f9cad); font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+.palKarta h2 { margin: 2px 0 0; font-size: clamp(20px, 3vw, 26px); font-weight: 600; word-break: break-word; }
+.palKarta__gde { margin: 6px 0 0; font-size: 15px; font-weight: 600; }
+.palKarta__gde span { color: var(--muted, #8f9cad); font-weight: 400; }
+.palKarta__x { flex: 0 0 auto; width: 44px; height: 44px; border: 1px solid var(--line, #263345); border-radius: 12px; background: transparent; color: var(--muted, #8f9cad); font-size: 24px; cursor: pointer; }
+.palKarta__fakty { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 0; }
+.palKarta__fakty span { padding: 6px 10px; border-radius: 10px; background: rgba(255,255,255,.05); font-size: 13.5px; color: var(--muted, #8f9cad); }
+.palKarta__fakty b { color: var(--text, #f2f6fb); font-weight: 600; }
+.palKarta__fakty .is-vazhno { background: rgba(245,173,50,.14); color: #ffd28a; }
+.palKarta__vnimanie { margin: 12px 0 0; padding: 10px 12px; border-radius: 10px; background: rgba(240,93,114,.12); color: #ffb3bf; font-size: 13.5px; }
+.palKarta__knopki { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.palKarta__kn { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 16px; border: 1px solid var(--line-strong, #35465c); border-radius: 12px; background: transparent; color: var(--text, #f2f6fb); font: inherit; font-size: 14px; font-weight: 600; text-decoration: none; cursor: pointer; }
+.palKarta__kn:hover { border-color: var(--blue, #4d8df7); }
+.palKarta__kn.is-glav { border-color: transparent; background: var(--green-deep, #158044); }
+.palKarta__sostav { margin-top: 14px; }
+.palKarta__sostav summary { cursor: pointer; color: var(--muted, #8f9cad); font-size: 13.5px; font-weight: 600; }
+.palKarta__tabl { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; max-height: 420px; overflow-y: auto; }
+.palKarta__str { display: grid; grid-template-columns: 1fr auto auto auto; gap: 12px; align-items: center; padding: 7px 10px; border-radius: 8px; background: rgba(255,255,255,.03); font-size: 13px; }
+.palKarta__str.is-bez { background: rgba(245,173,50,.1); }
+.palKarta__tovar { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.palKarta__zhdu { margin: 0; color: var(--muted, #8f9cad); }
+.palKarta__oshibka { margin: 0; color: #ff8fa0; }
+@media (max-width: 640px) {
+  .palKarta { padding: 14px; }
+  .palKarta__knopki .palKarta__kn { flex: 1 1 45%; }
+  .palKarta__str { grid-template-columns: 1fr auto auto; gap: 8px; }
+  .palKarta__str span:nth-child(3) { display: none; }
+}
+/* Пикалка ?akt: карточка паллеты в панели актировки (27.09). */
+.palKartaAkt { margin: 10px 0 12px; }
+.palKartaAkt__fakty { display: flex; flex-wrap: wrap; gap: 6px; }
+.palKartaAkt__fakty span { padding: 5px 10px; border-radius: 9px; background: rgba(255,255,255,.05); color: var(--muted, #8f9cad); font-size: 13px; }
+.palKartaAkt__fakty b { color: var(--text, #f2f6fb); font-weight: 600; }
+.palKartaAkt__knopki { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 8px; }
+.palKartaAkt__knopki .aktPs__kn { min-height: 40px; font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }

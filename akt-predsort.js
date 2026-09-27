@@ -36,6 +36,8 @@
   let zhdemPalletu = null;   // { ishod, akt }
   let perItog = null;        // { ok, tekst }
   let perIdet = false;
+  // Паллета стоит не в ячейке решения (живой отчёт ВМС, 27.09) — спрашиваем.
+  let perVopros = null;      // { kod, tekst }
   // Крит / косм: на предсорте это решают и так, в акт пишем вместе с дефектом.
   const KRIT = [{ k: "крит", имя: "Критичный" }, { k: "косм", имя: "Косметический" }];
   let krit = "";
@@ -106,6 +108,16 @@
         <p class="aktPs__chto">${perItog.ok ? "Пикните следующий товар." : "Пикните паллету ещё раз или переместите руками в ВМС."}</p>`;
     }
     if (!zhdemPalletu) return "";
+    if (perVopros) {
+      return `<div class="aktPs__palleta aktPs__palleta--vopros">
+        <p class="aktPs__zag">Точно эта паллета?</p>
+        <p class="aktPs__podskaz">${esc(perVopros.tekst)}</p>
+        <div class="aktPs__vopros">
+          <button type="button" class="aktPs__kn is-on" data-per-da>Всё равно переместить</button>
+          <button type="button" class="aktPs__kn" data-per-net>Пикну другую</button>
+        </div>
+      </div>`;
+    }
     return `<div class="aktPs__palleta">
       <p class="aktPs__zag">Куда положили</p>
       <p class="aktPs__podskaz">${perIdet ? "Создаю перемещение…" : `Пикните наклейку паллеты в «${esc(zhdemPalletu.ishod.куда)}» (CON …)`}</p>
@@ -124,6 +136,7 @@
   let palDefekt = "";
   let palRabota = null;    // ход фоновой работы
   let palOshibka = "";
+  let palKarta = null;     // где стоит, лот, заказы — /__palleta/karta (27.09)
   const kartochka = document.getElementById("answer");
 
   function vRezhimPalety(vkl) {
@@ -138,6 +151,10 @@
     vRezhimPalety(true);
     box.hidden = false;
     box.innerHTML = '<p class="aktPs__chto">Смотрю паллету…</p>';
+    palKarta = null;
+    // Где стоит, лот и заказы — параллельно составу; не пришло — панель и без них.
+    fetch(`/__palleta/karta?kod=${encodeURIComponent(kod)}`, { cache: "no-store" })
+      .then((o) => (o.ok ? o.json() : null)).then((d) => { palKarta = d; if (pal) risovat(); }).catch(() => {});
     try {
       const o = await fetch(`/__akt/palleta?kod=${encodeURIComponent(kod)}`, { cache: "no-store" });
       const d = await o.json().catch(() => ({}));
@@ -184,8 +201,44 @@
           <p class="aktPs__rezhim">${esc(pal.ячейка || "")}${vsego ? ` · без акта ${pal.без_акта} шт из ${vsego}` : ""}</p></div>
         ${plashkaVms()}
       </header>${formaVms()}
+      ${blokKarty()}
       ${spisok ? `<div class="palSpisok">${spisok}</div>` : ""}
       ${niz}`;
+  }
+
+  // Карточка паллеты (27.09, «вставляю название паллеты — ничего не могу
+  // сделать»): где стоит сейчас, лот, заказ, расхождение ВМС и действия.
+  function blokKarty() {
+    const k = palKarta;
+    const gde = k && (k.где || [])[0];
+    const yachTovara = k ? [...new Set((k.товары || []).map((t) => t.ячейка).filter(Boolean))] : [];
+    const rashod = gde && yachTovara.length && !yachTovara.includes(gde.ячейка);
+    return `<div class="palKartaAkt">
+      ${k ? `<div class="palKartaAkt__fakty">
+        ${!gde ? "<span>в ячейке не числится</span>" : gde.ячейка !== pal.ячейка ? `<span>стоит: <b>${esc(gde.ячейка)}</b></span>` : ""}
+        ${k.лот ? `<span>лот <b>${esc(k.лот.номер)}</b> · ${esc(k.лот.статус || "—")}</span>` : "<span>не в лоте</span>"}
+        ${(k.в_заказах || []).length ? `<span>в заказе <b>${k.в_заказах.map(esc).join(", ")}</b></span>` : ""}
+      </div>
+      ${rashod ? `<p class="aktPs__net"><b class="aktPs__oshibka">Паллета стоит в «${esc(gde.ячейка)}», а товар на ней числится в «${esc(yachTovara.join("», «"))}».</b></p>` : ""}` : ""}
+      <div class="palKartaAkt__knopki">
+        <button type="button" class="aktPs__kn" data-pkk="excel">Состав в Excel</button>
+        <button type="button" class="aktPs__kn" data-pkk="kopir">Копировать</button>
+        ${k ? `<a class="aktPs__kn" href="${esc(k.вмс)}" target="_blank" rel="noopener">Открыть в ВМС</a>` : ""}
+      </div>
+    </div>`;
+  }
+
+  function sostavVExcel() {
+    const imya = (palKarta && palKarta.паллета) || pal.паллета;
+    const stroki = [["Паллета", "Ячейка", "Товар", "Акт", "Качество", "Кол-во", "Заказ"]].concat(
+      palKarta ? palKarta.товары.map((t) => [imya, t.ячейка, t.товар, t.акт || "", t.качество, t.штук, t.заказ || ""])
+        : pal.строки.map((x) => [imya, x.ячейка, x.товар, x.акт || "", x.качество || "", x.штук, ""]));
+    const csv = "\ufeff" + stroki.map((r) => r.map((x) => `"${String(x ?? "").replace(/"/g, '""')}"`).join(";")).join("\r\n");
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    a.download = `${String(imya).replace(/[\\/:*?"<>|]/g, "_")}.csv`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
   }
 
   async function palStart() {
@@ -271,6 +324,10 @@
     if (pal && !(palRabota && palRabota.идёт)) { pal = null; vRezhimPalety(false); }
     risovat();
   });
+  // С карточки паллеты «Заактировать» ведёт сюда с ?palleta=CON… — сразу её панель.
+  const palIzAdresa = new URLSearchParams(location.search).get("palleta");
+  if (palIzAdresa) setTimeout(() => otkrytPalletu(palIzAdresa), 300);
+
   document.addEventListener("picker:palleta", (e) => {
     // После решения по товару — «куда положили» (перемещение);
     // просто так — актировка целой паллеты.
@@ -278,9 +335,9 @@
     otkrytPalletu(e.detail.kod);
   });
 
-  async function peremestit(kod) {
+  async function peremestit(kod, podtverdil = false) {
     if (perIdet || !zhdemPalletu) return;
-    perIdet = true; risovat();
+    perIdet = true; perVopros = null; risovat();
     const { ishod, akt } = zhdemPalletu;
     try {
       if (!boevoy) {
@@ -289,9 +346,11 @@
       } else {
         const otvet = await fetch("/__akt/peremeshchenie", {
           method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ исход: ishod.id, товар: tovar.name, код: tovar.kod || "", паллета: kod, акт: akt || null }),
+          body: JSON.stringify({ исход: ishod.id, товар: tovar.name, код: tovar.kod || "", паллета: kod, акт: akt || null,
+            подтвердил: podtverdil }),
         });
         const d = await otvet.json().catch(() => ({}));
+        if (d.предупреждение) { perVopros = { kod, tekst: d.предупреждение }; if (navigator.vibrate) navigator.vibrate([80, 60, 80]); return; }
         if (d.нужен_вход) { vms = { подключено: false }; formaVhoda = true; oshibkaVhoda = "войдите в ВМС, потом пикните паллету ещё раз"; return; }
         if (!otvet.ok || !d.готово) throw new Error(d.ошибка || `сервер ответил ${otvet.status}`);
         perItog = { ok: true, zag: "Перемещение создано черновиком",
@@ -408,6 +467,17 @@
       zhdemPalletu = ish && !ish.акт ? { ishod: ish, akt: null } : null;
       return risovat();
     }
+    const pkk = e.target.closest("[data-pkk]");
+    if (pkk && pal) {
+      if (pkk.dataset.pkk === "excel") sostavVExcel();
+      if (pkk.dataset.pkk === "kopir") {
+        const imya = (palKarta && palKarta.паллета) || pal.паллета;
+        navigator.clipboard.writeText(imya).then(() => { pkk.textContent = "Скопировано"; setTimeout(() => { pkk.textContent = "Копировать"; }, 1500); });
+      }
+      return;
+    }
+    if (e.target.closest("[data-per-da]") && perVopros) { peremestit(perVopros.kod, true); return; }
+    if (e.target.closest("[data-per-net]")) { perVopros = null; risovat(); vFokus(); return; }
     const pk = e.target.closest("[data-pkrit]");
     if (pk) { palKrit = pk.dataset.pkrit; return risovat(); }
     const pd = e.target.closest("[data-pdef]");
