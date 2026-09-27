@@ -1348,3 +1348,15 @@ body.vmsPlg .layout { grid-template-columns: 1fr !important; }
   .yachPalleta { grid-template-columns: 1fr auto; }
   .yachPalleta__zak { grid-column: 1 / -1; }
 }
+/* Площадка ВМС: строка состояния и «попробовать» (27.09). */
+.vmsPolosa { display: flex; flex-direction: column; gap: 6px; margin: 10px 0 4px; padding: 12px 14px; border: 1px solid var(--line, #263345); border-radius: 14px; background: rgba(8,12,18,.45); font-size: 13.5px; color: var(--muted, #8f9cad); }
+.vmsPolosa__ryad { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.vmsPolosa b { color: var(--text, #f2f6fb); font-weight: 600; }
+.vmsPolosa__ok { color: #8fe0b1; }
+.vmsPolosa__net { color: #ffd28a; }
+.vmsPolosa__kn { min-height: 34px; padding: 0 14px; border: 1px solid var(--line-strong, #35465c); border-radius: 10px; background: transparent; color: var(--text, #f2f6fb); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.vmsPolosa__kn.is-glav { border-color: transparent; background: var(--green-deep, #158044); }
+.vmsPolosa .aktPs__vhod { margin: 4px 0; }
+.vmsProba { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 6px 0 2px; font-size: 13px; color: var(--muted, #8f9cad); }
+.vmsProba button { min-height: 34px; padding: 0 12px; border: 1px dashed var(--line-strong, #35465c); border-radius: 999px; background: transparent; color: var(--text, #f2f6fb); font: inherit; font-size: 13px; cursor: pointer; }
+.vmsProba button:hover { border-color: var(--green, #27c46b); }

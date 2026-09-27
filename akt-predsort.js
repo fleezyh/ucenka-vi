@@ -54,8 +54,22 @@
           <span>Стол — его решения для актов. Любая другая — что в ней лежит, по паллетам; паллета открывается кликом.</span></button>
         <div class="vmsVozm__k vmsVozm__k--kto">
           <b>От чьего имени</b><small>вход в ВМС</small>
-          <span>Акты и перемещения создаются от вас — войдите в ВМС в карточке. Перемещения — черновиком.</span></div>
+          <span>Акты и перемещения создаются от вас — войдите в ВМС в строке ниже. Перемещения — черновиком.</span></div>
       </div>`);
+      document.getElementById("vmsVozm").insertAdjacentHTML("afterend", `<div class="vmsPolosa" id="vmsPolosa"></div>
+        <div class="vmsProba"><span>Попробовать:</span>
+          <button type="button" data-probovat="CON 0163233250">паллета на буфере столов</button>
+          <button type="button" data-probovat="CEL 3923168">ячейка «буфер, группа 3»</button>
+          <button type="button" data-probovat="CEL 4089525">отгрузка уценки ДНЛ</button>
+          <button type="button" data-probovat="CEL 3099400">стол 3 предсорта</button>
+        </div>`);
+      document.querySelector(".vmsProba").addEventListener("click", (e) => {
+        const k = e.target.closest("[data-probovat]");
+        const go = document.getElementById("go");
+        if (!k || !scan || scan.disabled) return;
+        scan.value = k.dataset.probovat;
+        if (go) go.click();
+      });
       document.getElementById("vmsVozm").addEventListener("click", (e) => {
         const k = e.target.closest("[data-primer]");
         if (!k || !scan) return;
@@ -417,7 +431,37 @@
       <p class="aktPs__chto">Нажмите паллету — откроется её карточка: состав, актировка, перемещение.</p>`;
   }
 
+  // Строка состояния площадки (27.09, «где сам тест и где вход в ВМС»): вход в
+  // ВМС, стол и включена ли актировка — видно сразу, до первого пика.
+  let formaPolosy = false;
+  function risovatPolosu() {
+    const u = document.getElementById("vmsPolosa");
+    if (!u) return;
+    const vmsChast = vms.подключено
+      ? `<span class="vmsPolosa__ok">ВМС: <b>${esc(korotko(vms.имя))}</b> — акты и перемещения от вас</span>
+         <button type="button" class="vmsPolosa__kn" data-polosa="vyyti">выйти</button>`
+      : `<span class="vmsPolosa__net">ВМС: не вошли${obshchiyMozhno ? " — пока работает общий логин (тест)" : " — без входа акты не создаются"}</span>
+         <button type="button" class="vmsPolosa__kn is-glav" data-polosa="voyti">Войти в ВМС</button>`;
+    u.innerHTML = `
+      <div class="vmsPolosa__ryad">${vmsChast}</div>
+      ${formaPolosy && !vms.подключено ? `<form class="aktPs__vhod" id="vmsPolosaForma" autocomplete="off">
+        <input name="login" placeholder="Логин ВМС" autocapitalize="off" spellcheck="false" required>
+        <input name="parol" type="password" placeholder="Пароль ВМС" required>
+        <button class="aktPs__kn is-on" type="submit">Войти</button>
+        <p class="aktPs__chto">${oshibkaVhoda ? `<b class="aktPs__oshibka">${esc(oshibkaVhoda)}</b> · ` : ""}пароль не сохраняется: сайт входит в ВМС один раз и держит сессию до конца смены</p>
+      </form>` : ""}
+      <div class="vmsPolosa__ryad">
+        <span>${stol ? `Стол: <b>${esc(stol.имя)}</b> — сменить: пикните наклейку другого` : "Стол не выбран — пикните наклейку стола (CEL …), чтобы появились решения для актов"}</span>
+      </div>
+      <div class="vmsPolosa__ryad">
+        <span class="${boevoy ? "vmsPolosa__ok" : "vmsPolosa__net"}">${boevoy
+          ? `Актировка включена — кнопки создают настоящие документы в ВМС${obshchiyMozhno ? " (тест: можно и без входа)" : ""}`
+          : "Актировка выключена в админке — всё только показывается, в ВМС ничего не создаётся"}</span>
+      </div>`;
+  }
+
   function risovat() {
+    risovatPolosu();
     if (yach && !pal) { box.hidden = false; risovatYacheyku(); return; }
     if (pal) { box.hidden = false; risovatPalletu(); return; }
     if (!tovar) { box.hidden = true; return; }
@@ -550,7 +594,10 @@
     }
     if (e.target.id !== "aktVmsForma") return;
     e.preventDefault();
-    const f = e.target;
+    await voytiVVms(e.target);
+  });
+
+  async function voytiVVms(f) {
     const kn = f.querySelector("button");
     kn.disabled = true;
     kn.textContent = "Вхожу…";
@@ -561,11 +608,28 @@
       });
       const d = await otvet.json().catch(() => ({}));
       if (!otvet.ok) throw new Error(d.ошибка || "не вошли");
-      vms = d; formaVhoda = false; oshibkaVhoda = "";
+      vms = d; formaVhoda = false; formaPolosy = false; oshibkaVhoda = "";
     } catch (oshibka) {
       oshibkaVhoda = oshibka.message || String(oshibka);
     }
     risovat();
+  }
+  document.addEventListener("submit", (e) => {
+    if (e.target.id !== "vmsPolosaForma") return;
+    e.preventDefault();
+    voytiVVms(e.target);
+  });
+  document.addEventListener("click", async (e) => {
+    const k = e.target.closest("[data-polosa]");
+    if (!k) return;
+    if (k.dataset.polosa === "voyti") {
+      formaPolosy = !formaPolosy; oshibkaVhoda = ""; risovat();
+      document.querySelector("#vmsPolosaForma input")?.focus();
+    }
+    if (k.dataset.polosa === "vyyti") {
+      await fetch("/__wms/vyyti", { method: "POST" }).catch(() => {});
+      vms = { подключено: false }; risovat();
+    }
   });
 
   async function aktirovat() {
