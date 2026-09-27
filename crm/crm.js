@@ -349,6 +349,11 @@
 
   const BEZ_SKLADA = "__bez";
 
+  function imyaOcheredi() {
+    const o = ochered && OCHEREDI.find((x) => x.klyuch === ochered);
+    return o ? `Только «${o.imya.toLowerCase()}» · ` : "";
+  }
+
   function podhodit(z) {
     // Очереди построены на полях лота, к счетам и базе КА неприменимы.
     if (ochered && vid !== "scheta" && vid !== "ka") {
@@ -768,9 +773,9 @@
       return `<tr data-nomer="${nomer}" data-id="${z.id || ""}">${yachejki}</tr>`;
     }).join("");
 
-    const skolko = vidimye.length > 600
+    const skolko = imyaOcheredi() + (vidimye.length > 600
       ? `Показаны первые 600 из ${vidimye.length}`
-      : `Строк: ${vidimye.length}`;
+      : `Строк: ${vidimye.length}`);
     const pro = sortirovka.pole
       ? `сортировка по «${(kol.find((s) => s.pole === sortirovka.pole) || {}).imya
          || sortirovka.pole}»`
@@ -3676,7 +3681,8 @@
       narisovatDosku();
       const vidimye = (dannye.лоты || []).filter(podhodit).filter(aktivnyy);
       const summa = vidimye.reduce((n, z) => n + dengiLota(z).summa, 0);
-      el("crmSchyot").textContent = `В работе ${vidimye.length} лотов на ${chislo(summa)} ₽`
+      // Какая очередь «Сегодня» сейчас выбрана — словами (27.09: «при нажатии пропадает и не фильтрует»).
+      el("crmSchyot").textContent = imyaOcheredi() + `В работе ${vidimye.length} лотов на ${chislo(summa)} ₽`
         + " (цена отгрузки, а где её нет — стартовая)"
         + " · карточку тащат мышью в соседний столбец";
     } else {
