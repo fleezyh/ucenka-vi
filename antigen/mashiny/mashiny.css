@@ -270,3 +270,14 @@ body.is-svetlo .msZagruzka { background: #e7ecf3; }
   .msGorodaRyad .msSvodka { margin-left: 0; }
   .msForma__ryad { grid-template-columns: 1fr 1fr; }
 }
+
+/* 27.09, «в машинах всё склеено»: вкладки раздела справа от заголовка, панель фильтров
+   отдельным блоком, города и сводка с воздухом. */
+.msHero__verh { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px; }
+.razdelVkladki { display: inline-flex; gap: 2px; padding: 4px; border: 1px solid var(--line); border-radius: 14px; background: rgba(8, 12, 18, .55); }
+.razdelVkladki a { padding: 8px 14px; border-radius: 10px; color: var(--muted); font-size: 14px; font-weight: 600; text-decoration: none; }
+.razdelVkladki a:hover { color: var(--text); }
+.razdelVkladki a.is-on { background: rgba(255, 255, 255, .1); color: var(--text); }
+.msBar { margin-top: 22px; padding: 12px; border: 1px solid var(--line); border-radius: 18px; background: rgba(8, 12, 18, .35); }
+.msGorodaRyad { margin: 14px 0 10px; gap: 10px; }
+.msSetka { margin-top: 6px; }

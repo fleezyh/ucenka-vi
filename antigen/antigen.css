@@ -881,3 +881,13 @@ body[data-mode="antigen"] .shell {
 .agCrumb__x { margin-left: 4px; color: var(--muted); font-size: 12px; }
 .agCrumb:hover .agCrumb__x { color: var(--red); }
 .agCrumbs__sep { color: var(--muted); font-size: 12px; }
+
+/* Вкладки раздела: брак, машины, дорожная карта (27.09 — «машины не часть антигенерации в итоге»). */
+.razdelVkladki { display: inline-flex; gap: 2px; padding: 4px; border: 1px solid var(--line); border-radius: 14px; background: rgba(8, 12, 18, .55); }
+.razdelVkladki a { padding: 8px 14px; border-radius: 10px; color: var(--muted); font-size: 14px; font-weight: 600; text-decoration: none; }
+.razdelVkladki a:hover { color: var(--text); }
+.razdelVkladki a.is-on, .razdelVkladki a[aria-expanded="true"] { background: rgba(255, 255, 255, .1); color: var(--text); }
+/* Шапка таблицы разреза: без пустой полоски и без «₽» на отдельной строке. */
+.agRow--head .agRow__bar { display: none; }
+.agRow--head .agRow__val { grid-column: span 2; white-space: nowrap; }
+.agHeroVkladki { align-self: flex-end; }
