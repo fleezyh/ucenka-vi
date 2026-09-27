@@ -1,0 +1,248 @@
+/* Машины: как загрузили и как приехала. */
+
+body[data-mode="mashiny"] .shell { gap: 18px; }
+body.msZamok { overflow: hidden; }
+
+.msKicker { margin: 0 0 6px; color: var(--muted); font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+.msHero { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; }
+.msHero h1 { margin: 0; font-size: clamp(34px, 5vw, 56px); font-weight: 600; letter-spacing: -.02em; line-height: 1; }
+.msLead { max-width: 640px; margin: 12px 0 0; color: var(--muted); font-size: 15px; line-height: 1.55; }
+
+.msBtn {
+  appearance: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;
+  min-height: 44px; padding: 0 18px; border: 1px solid var(--line-strong); border-radius: 12px;
+  background: #16233a; color: var(--text); font: inherit; font-size: 14px; font-weight: 600; white-space: nowrap;
+  transition: border-color .15s ease, background .15s ease, transform .1s ease;
+}
+.msBtn:hover { border-color: var(--blue); }
+.msBtn:active { transform: scale(.97); }
+.msBtn--main { border-color: transparent; background: var(--green-deep); }
+.msBtn--main:hover { background: #1a9651; border-color: transparent; }
+.msBtn--ghost { background: transparent; color: var(--muted); }
+.msBtn--ghost:hover { color: var(--text); }
+
+.msBar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.msSeg { display: inline-flex; gap: 2px; padding: 4px; border: 1px solid var(--line); border-radius: 14px; background: rgba(8, 12, 18, .55); }
+.msSeg button {
+  appearance: none; cursor: pointer; min-height: 36px; padding: 0 14px; border: 0; border-radius: 10px;
+  background: transparent; color: var(--muted); font: inherit; font-size: 13.5px; font-weight: 600;
+}
+.msSeg button:hover { color: var(--text); }
+.msSeg button.is-on { background: rgba(39, 196, 107, .16); color: var(--text); }
+.msPoisk {
+  flex: 1 1 220px; min-width: 0; min-height: 44px; padding: 0 14px; border: 1px solid var(--line); border-radius: 12px;
+  background: rgba(8, 12, 18, .55); color: var(--text); font: inherit; font-size: 14px;
+}
+.msPoisk:focus { outline: none; border-color: var(--blue); }
+
+.msGoroda { display: flex; flex-wrap: wrap; gap: 6px; }
+.msGoroda:empty { display: none; }
+.msChip {
+  appearance: none; cursor: pointer; min-height: 32px; padding: 0 12px; border: 1px solid var(--line); border-radius: 999px;
+  background: rgba(8, 12, 18, .45); color: var(--muted); font: inherit; font-size: 13px; font-weight: 600;
+}
+.msChip b { margin-left: 4px; color: var(--text); font-weight: 600; }
+.msChip:hover { color: var(--text); border-color: var(--line-strong); }
+.msChip.is-on { border-color: rgba(39, 196, 107, .6); background: rgba(39, 196, 107, .14); color: var(--text); }
+.msSvodka { margin: 0; color: var(--muted); font-size: 13px; }
+
+/* ---------------------------------------------------------------- сетка машин */
+
+.msSetka { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+.msKart {
+  position: relative; display: flex; flex-direction: column; overflow: hidden; padding: 0; cursor: pointer; text-align: left;
+  border: 1px solid var(--line); border-radius: 16px; background: #0d151f; color: var(--text); font: inherit;
+  transition: border-color .15s ease, transform .15s ease, box-shadow .15s ease;
+}
+.msKart:hover { border-color: var(--line-strong); transform: translateY(-2px); box-shadow: 0 14px 40px rgba(0, 0, 0, .35); }
+/* Фото не должно распирать рамку: картинка лежит поверх фиксированных 4:3. */
+.msKart__foto { position: relative; display: block; aspect-ratio: 4 / 3; overflow: hidden; background: #0a1119; }
+.msKart__foto img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.msKart__foto--dve img { width: calc(50% - 1px); }
+.msKart__foto--dve img + img { left: auto; right: 0; }
+.msKart__foto--net { display: grid; place-items: center; color: var(--muted); font-size: 13px;
+  background: repeating-linear-gradient(135deg, #0b131c 0 12px, #0d1620 12px 24px); }
+.msKart__vid, .msOcenka {
+  position: absolute; top: 10px; padding: 4px 9px; border-radius: 8px; font-size: 11.5px; font-weight: 600;
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+}
+.msKart__vid { left: 10px; background: rgba(8, 12, 18, .72); color: var(--text); }
+.msOcenka { right: 10px; }
+.msOcenka--ok { background: rgba(39, 196, 107, .85); color: #04140a; }
+.msOcenka--naval { background: rgba(240, 93, 114, .9); color: #1a0508; }
+.msOcenka--povr { background: rgba(245, 173, 50, .9); color: #1a1003; }
+.msKart__telo { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px 14px; }
+.msKart__marshrut { font-size: 16.5px; font-weight: 600; letter-spacing: -.01em; }
+.msKart__meta { color: var(--muted); font-size: 13px; }
+.msKart__schet { display: flex; flex-wrap: wrap; gap: 6px; color: var(--muted); font-size: 12px; }
+.msKart__schet > span { padding: 3px 8px; border-radius: 7px; background: rgba(255, 255, 255, .05); }
+.msKart__vms.is-brak { background: rgba(240, 93, 114, .14); color: #ffb3bf; }
+.msNomer {
+  display: inline-block; padding: 1px 6px; border: 1px solid var(--line-strong); border-radius: 5px;
+  color: var(--text); font-family: var(--mono); font-size: .92em; font-weight: 600; letter-spacing: .02em;
+}
+
+/* ---------------------------------------------------------------- окно машины */
+
+.msOkno { position: fixed; inset: 0; z-index: 60; display: grid; place-items: start center; overflow-y: auto; padding: 4vh 16px; }
+.msOkno[hidden] { display: none; }
+.msOkno__fon { position: fixed; inset: 0; background: rgba(3, 6, 10, .72); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+.msOkno__karta {
+  position: relative; width: min(1080px, 100%); display: flex; flex-direction: column; gap: 16px; padding: 22px 24px 20px;
+  border: 1px solid var(--line-strong); border-radius: 20px; background: #0c141e; box-shadow: var(--shadow);
+}
+.msKarta__shapka { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.msKarta__shapka h2 { margin: 0; font-size: clamp(22px, 3vw, 30px); font-weight: 600; letter-spacing: -.015em; }
+.msKarta__pod { margin: 8px 0 0; color: var(--muted); font-size: 14px; }
+.msKarta__polno { display: block; margin-top: 4px; font-size: 12px; opacity: .8; }
+.msKarta__knopki { display: flex; align-items: center; gap: 8px; }
+.msKarta__x {
+  appearance: none; cursor: pointer; width: 44px; height: 44px; border: 1px solid var(--line); border-radius: 12px;
+  background: transparent; color: var(--muted); font-size: 24px; line-height: 1;
+}
+.msKarta__x:hover { color: var(--text); border-color: var(--line-strong); }
+.msOcenki { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; }
+.msOcenki > span { margin-right: 4px; }
+.msOcenki [data-ocenka="навал"].is-on { border-color: rgba(240, 93, 114, .7); background: rgba(240, 93, 114, .16); }
+.msOcenki [data-ocenka="повреждения"].is-on { border-color: rgba(245, 173, 50, .7); background: rgba(245, 173, 50, .16); }
+
+.msVms { padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; background: rgba(77, 141, 247, .06); font-size: 13.5px; }
+.msVms--net { color: var(--muted); }
+.msVms__shapka { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--muted); }
+.msVms__shapka b { color: var(--text); font-weight: 600; }
+.msVms__metka { padding: 2px 7px; border-radius: 6px; background: rgba(77, 141, 247, .25); color: #cfe0ff; font-size: 11px; font-weight: 600; }
+.msVms__fakty { display: flex; flex-wrap: wrap; gap: 8px 22px; margin-top: 10px; }
+.msVms__fakty span { color: var(--muted); }
+.msVms__fakty b { color: var(--text); font-size: 18px; font-weight: 600; }
+.msVms__fakty .is-brak b { color: #ff8fa0; }
+.msVms__pod { margin: 8px 0 0; color: var(--muted); font-size: 12.5px; }
+
+.msEtapy { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.msEtap { padding: 14px; border: 1px dashed transparent; border-radius: 16px; background: rgba(255, 255, 255, .025); transition: border-color .15s, background .15s; }
+.msEtap.is-nad { border-color: var(--green); background: rgba(39, 196, 107, .08); }
+.msEtap__shapka { display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px; }
+.msEtap__shapka h3 { margin: 0; font-size: 17px; font-weight: 600; }
+.msEtap__shapka span { color: var(--muted); font-size: 13px; }
+.msEtap__setka { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 8px; }
+.msFoto { position: relative; aspect-ratio: 1; overflow: hidden; border-radius: 12px; background: #0a1119; }
+.msFoto__img { display: block; width: 100%; height: 100%; padding: 0; border: 0; cursor: zoom-in; background: none; }
+.msFoto__img img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .2s ease; }
+.msFoto:hover .msFoto__img img { transform: scale(1.04); }
+.msFoto__deystviya { position: absolute; top: 6px; right: 6px; display: flex; gap: 4px; opacity: 0; transition: opacity .15s; }
+.msFoto:hover .msFoto__deystviya, .msFoto:focus-within .msFoto__deystviya { opacity: 1; }
+@media (hover: none) { .msFoto__deystviya { opacity: 1; } }
+.msFoto__deystviya button {
+  appearance: none; cursor: pointer; width: 30px; height: 30px; border: 0; border-radius: 8px;
+  background: rgba(8, 12, 18, .78); color: var(--text); font-size: 15px; line-height: 1;
+}
+.msFoto__deystviya button:hover { background: rgba(240, 93, 114, .9); }
+.msFoto__deystviya button[data-perenos]:hover { background: rgba(77, 141, 247, .9); }
+.msFoto--dobavit {
+  appearance: none; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  border: 1px dashed var(--line-strong); color: var(--muted); font: inherit; font-size: 13px; font-weight: 600; background: transparent;
+}
+.msFoto--dobavit small { font-size: 11px; font-weight: 400; opacity: .75; }
+.msFoto--dobavit:hover { border-color: var(--green); color: var(--text); }
+@media (hover: none) { .msFoto--dobavit small { display: none; } }
+
+.msKomm { display: flex; flex-direction: column; gap: 6px; color: var(--muted); font-size: 13px; }
+.msKomm textarea, .msForma input {
+  width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px;
+  background: rgba(8, 12, 18, .55); color: var(--text); font: inherit; font-size: 14px; resize: vertical;
+}
+.msKomm textarea:focus, .msForma input:focus { outline: none; border-color: var(--blue); }
+.msKarta__niz { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; color: var(--muted); font-size: 12.5px; }
+.msSsylka { appearance: none; cursor: pointer; padding: 0; border: 0; background: none; color: var(--blue); font: inherit; font-weight: 600; }
+.msSsylka:hover { text-decoration: underline; }
+.msSsylka--red { color: #ff8fa0; }
+.msZagruzka { position: sticky; bottom: 0; margin: 0; padding: 10px 14px; border-radius: 12px; background: #16233a; font-size: 13.5px; font-weight: 600; }
+
+/* ---------------------------------------------------------------- форма */
+
+.msForma { display: flex; flex-direction: column; gap: 14px; }
+.msSeg--forma { align-self: flex-start; flex-wrap: wrap; }
+.msForma__ryad { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 10px; }
+.msForma__ryad label { display: flex; flex-direction: column; gap: 6px; color: var(--muted); font-size: 13px; }
+.msForma__ryad input { min-height: 44px; }
+.msTms { padding: 12px; border: 1px solid var(--line); border-radius: 14px; background: rgba(255, 255, 255, .02); }
+.msTms__shapka { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 8px; font-size: 13.5px; }
+.msTms__shapka span { color: var(--muted); font-size: 12px; }
+.msTms__spisok { display: flex; flex-direction: column; gap: 6px; max-height: 300px; overflow-y: auto; }
+.msTms__pusto { margin: 6px 0; color: var(--muted); font-size: 13px; }
+.msTms__vybran { margin: 8px 0 0; color: var(--green); font-size: 13px; font-weight: 600; }
+.msTms__vybran:empty { display: none; }
+.msTmsReys {
+  appearance: none; cursor: pointer; display: grid; grid-template-columns: 64px 1.6fr 1fr auto; align-items: center; gap: 12px;
+  padding: 8px 12px; border: 1px solid var(--line); border-radius: 12px; background: transparent; color: var(--text); font: inherit; text-align: left;
+}
+.msTmsReys:hover { border-color: var(--line-strong); background: rgba(255, 255, 255, .03); }
+.msTmsReys.is-on { border-color: rgba(39, 196, 107, .7); background: rgba(39, 196, 107, .1); }
+.msTmsReys small { display: block; margin-top: 2px; color: var(--muted); font-size: 11.5px; }
+.msTmsReys__data { font-weight: 600; }
+.msTmsReys__put { font-size: 13.5px; }
+.msTmsReys__vms { color: var(--muted); font-size: 12px; }
+.msForma__niz { display: flex; align-items: center; justify-content: flex-end; gap: 14px; }
+.msForma__oshibka { margin: 0; color: #ff8fa0; font-size: 13px; }
+
+/* ---------------------------------------------------------------- просмотр фото */
+
+.msSvet { position: fixed; inset: 0; z-index: 80; display: grid; grid-template-columns: 64px 1fr 64px; align-items: center; background: rgba(2, 4, 7, .94); }
+.msSvet[hidden] { display: none; }
+.msSvet__fig { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 12px; height: 100vh; justify-content: center; }
+.msSvet__fig img { max-width: 100%; max-height: calc(100vh - 90px); border-radius: 10px; object-fit: contain; box-shadow: 0 20px 60px rgba(0, 0, 0, .5); }
+.msSvet__fig figcaption { display: flex; gap: 14px; align-items: baseline; color: #c9d2de; font-size: 15px; }
+.msSvet__fig figcaption b { color: #fff; font-weight: 600; }
+.msSvet__fig figcaption span { color: #7f8a99; font-size: 13px; }
+.msSvet__str, .msSvet__x {
+  appearance: none; cursor: pointer; border: 0; background: rgba(255, 255, 255, .06); color: #fff;
+  width: 48px; height: 48px; border-radius: 50%; font-size: 30px; line-height: 1; justify-self: center;
+}
+.msSvet__str:hover, .msSvet__x:hover { background: rgba(255, 255, 255, .16); }
+.msSvet__x { position: absolute; top: 16px; right: 16px; font-size: 26px; }
+
+/* ---------------------------------------------------------------- телефон */
+
+@media (max-width: 760px) {
+  .msHero { flex-direction: column; align-items: stretch; }
+  .msHero .msBtn--main { justify-content: center; }
+  .msSeg { width: 100%; overflow-x: auto; }
+  .msSeg button { flex: 1 0 auto; }
+  .msOkno { padding: 0; }
+  .msOkno__karta { min-height: 100vh; border-radius: 0; padding: 16px 14px 20px; }
+  .msEtapy { grid-template-columns: 1fr; }
+  .msEtap__setka { grid-template-columns: repeat(3, 1fr); }
+  .msForma__ryad { grid-template-columns: 1fr 1fr; }
+  .msForma__ryad label:first-child { grid-column: 1 / -1; }
+  .msTmsReys { grid-template-columns: 52px 1fr auto; }
+  .msTmsReys__vms { display: none; }
+  .msSvet { grid-template-columns: 1fr; }
+  .msSvet__str { position: absolute; bottom: 20px; }
+  .msSvet__str--l { left: 20px; }
+  .msSvet__str--r { right: 20px; }
+  .msSvet__fig figcaption { flex-direction: column; gap: 4px; padding: 0 16px; text-align: center; font-size: 14px; }
+}
+
+/* Светлая тема. */
+body.is-svetlo .msKart, body.is-svetlo .msOkno__karta { background: #fff; }
+body.is-svetlo .msKart__foto, body.is-svetlo .msFoto { background: #e7ecf3; }
+body.is-svetlo .msBtn { background: #fff; color: #121a25; }
+body.is-svetlo .msBtn--main { background: #169a52; color: #fff; }
+body.is-svetlo .msSeg, body.is-svetlo .msPoisk, body.is-svetlo .msChip,
+body.is-svetlo .msKomm textarea, body.is-svetlo .msForma input { background: #fff; }
+body.is-svetlo .msZagruzka { background: #e7ecf3; }
+
+.msPlus { width: 18px; height: 18px; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; }
+.msFoto--dobavit .msPlus { width: 28px; height: 28px; color: var(--green); }
+.msBtn--mal { min-height: 44px; padding: 0 14px; }
+.msKart { justify-content: flex-start; }
+@media (max-width: 760px) {
+  /* Города — одной прокручиваемой строкой, а не стеной чипов на пол-экрана. */
+  .msGoroda { flex-wrap: nowrap; overflow-x: auto; margin: 0 -14px; padding: 0 14px 2px; scrollbar-width: none; }
+  .msGoroda::-webkit-scrollbar { display: none; }
+  .msChip { flex: 0 0 auto; }
+  .msKarta__shapka { flex-wrap: wrap; }
+  .msKarta__shapka > div:first-child { flex: 1 1 100%; order: 2; }
+  .msKarta__knopki { order: 1; width: 100%; justify-content: space-between; }
+  .msKarta__polno { display: none; }
+  .msVms__fakty { gap: 4px 16px; }
+}
