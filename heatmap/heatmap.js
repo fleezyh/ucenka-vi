@@ -428,6 +428,51 @@
   // логично, чтобы и график под ней был про август, а не про последние 30 дней
   // вне зависимости от выбора. Остальные глубины остаются кнопками.
   let dailyDepth = "период";
+  // Шаг графика плитки (28.09, Степан: «показать динамику — неудобно; надо внутри
+  // графика: день, неделя к неделе, месяц к месяцу»).
+  let dailyShag = "день";
+  const MES_KOROTKO = ["янв", "фев", "мар", "апр", "май", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"];
+
+  /** Понедельник ISO-недели даты «2026-09-24» → «2026-09-21». */
+  function ponedelnik(iso) {
+    const d = new Date(`${iso}T12:00:00Z`);
+    d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
+    return d.toISOString().slice(0, 10);
+  }
+
+  /** Дни → недели или месяцы. Поток складываем, долю считаем из сумм
+   * числителя и знаменателя, остаток и уровень — последний снимок корзины. */
+  function agregirovat(entry, points, shag) {
+    const korziny = new Map();
+    for (const p of points) {
+      const k = shag === "неделя" ? ponedelnik(p.день) : `${p.день.slice(0, 7)}-01`;
+      if (!korziny.has(k)) korziny.set(k, []);
+      korziny.get(k).push(p);
+    }
+    const segodnya = new Date().toISOString().slice(0, 10);
+    return [...korziny.entries()].sort(([a], [b]) => (a < b ? -1 : 1)).map(([k, dni]) => {
+      let znachenie;
+      if (entry.вид === "доля") {
+        const verh = dni.reduce((a, p) => a + (p.числитель || 0), 0);
+        const niz = dni.reduce((a, p) => a + (p.знаменатель || 0), 0);
+        znachenie = niz ? (verh / niz) * (entry.множитель || 1) : 0;
+      } else if (!entry.вид) {
+        znachenie = dni.reduce((a, p) => a + (p.значение || 0), 0);
+      } else {
+        znachenie = dni[dni.length - 1].значение;
+      }
+      const [g, m, d] = k.split("-");
+      const konec = shag === "неделя"
+        ? new Date(Date.parse(`${k}T12:00:00Z`) + 6 * 86400000).toISOString().slice(0, 10)
+        : new Date(Date.UTC(+g, +m, 0)).toISOString().slice(0, 10);
+      const nepolnaya = konec >= segodnya;
+      const podpis = shag === "неделя" ? `${d}.${m}` : `${MES_KOROTKO[+m - 1]} ${g.slice(2)}`;
+      return { день: k, значение: znachenie, подпись: podpis + (nepolnaya ? "*" : ""),
+               подсказка: shag === "неделя" ? `неделя ${d}.${m} — ${konec.slice(8, 10)}.${konec.slice(5, 7)}${nepolnaya ? " (идёт)" : ""}`
+                                           : `${MES_KOROTKO[+m - 1]} ${g}${nepolnaya ? " (идёт)" : ""}`,
+               дней: dni.length };
+    });
+  }
 
   /** Границы периода датами: 2026-08, 2026-Q3, 2026-H1, 2026.
    *
@@ -706,9 +751,10 @@
 
     // Неделя — это семь дней, но у денег выходных в ряду нет: там неделя —
     // пять точек подряд.
-    const weekend = (point) => [0, 6].includes(new Date(`${point.день}T12:00:00`).getDay());
+    const weekend = (point) => !point.подпись && [0, 6].includes(new Date(`${point.день}T12:00:00`).getDay());
     const trend = rolling(values, list.some(weekend) ? 7 : 5);
-    const withTrend = flow && n >= 10;
+    const agg = Boolean(list[0]?.подпись);
+    const withTrend = flow && n >= 10 && !agg;
     if (withTrend) {
       svgNode("path", { class: "dgraph__trend", d: smoothPath(trend.map((v, i) => [x(i), y(v)])) }, svg);
     }
@@ -774,7 +820,7 @@
       const before = values[i - 1];
       const delta = before ? (point.значение - before) / Math.abs(before) : null;
       const old = ghost[i];
-      return `<b>${DNI_NEDELI[date.getDay()]}, ${dayLabel(point.день)}</b>`
+      return (point.подсказка ? `<b>${point.подсказка}</b>` : `<b>${DNI_NEDELI[date.getDay()]}, ${dayLabel(point.день)}</b>`)
         + `<strong>${niceNumber(point.значение)} ${unit}</strong>`
         + (withTrend ? `<span>среднее за неделю ${shortNumber(trend[i])}</span>` : "")
         + (delta === null ? ""
@@ -823,14 +869,14 @@
       if (i !== n - 1 && (i % axisStep || n - 1 - i < axisStep)) return;
       const mark = document.createElement("span");
       if (weekend(point)) mark.className = "is-weekend";
-      mark.textContent = dayLabel(point.день);
+      mark.textContent = point.подпись || dayLabel(point.день);
       mark.style.left = pct(x(i), W);
       axis.appendChild(mark);
     });
 
     const legend = document.createElement("div");
     legend.className = "dgraph__legend";
-    legend.innerHTML = "<span><i class=\"k k--line\"></i>день</span>"
+    legend.innerHTML = `<span><i class="k k--line"></i>${agg ? (list[0].подсказка.startsWith("неделя") ? "неделя" : "месяц") : "день"}</span>`
       + (withTrend ? "<span><i class=\"k k--trend\"></i>среднее за неделю</span>" : "")
       + (withMedian ? `<span><i class="k k--median"></i>медиана ${shortNumber(median)}</span>` : "")
       + (ghost.length > 1 ? `<span><i class="k k--ghost"></i>${previousLabel}, те же дни</span>` : "")
@@ -1590,7 +1636,19 @@
 
     const unit = entry.единица || "";
     const all = entry.точки;
-    const list = materialize(entry, sliceDaily(all, periodSelect.value));
+    const dniOkna = sliceDaily(all, periodSelect.value);
+    let list;
+    if (dailyShag === "день") {
+      list = materialize(entry, dniOkna);
+    } else if (dailyShag === "неделя") {
+      // Неделю берём целиком: с понедельника первой до конца последней.
+      const ot = ponedelnik(dniOkna[0].день);
+      list = agregirovat(entry, all.filter((p) => p.день >= ot && p.день <= dniOkna[dniOkna.length - 1].день), "неделя");
+    } else {
+      list = agregirovat(entry, all, "месяц");     // месяц к месяцу — весь ряд
+    }
+    const agg = dailyShag !== "день";
+    const SHAGI = { день: ["по дням", "дней"], неделя: ["по неделям", "недель"], месяц: ["по месяцам", "месяцев"] };
 
     const box = document.createElement("section");
     box.className = "daily";
@@ -1603,16 +1661,35 @@
     title.textContent = entry.metric;
     const sub = document.createElement("p");
     sub.className = "daily__sub";
-    sub.textContent = `по дням, ${unit} · ${dayLabel(list[0].день)} — ${dayLabel(list[list.length - 1].день)}`;
+    sub.textContent = `${SHAGI[dailyShag][0]}, ${unit} · ${agg ? list[0].подсказка.replace(/ \(идёт\)/, "") : dayLabel(list[0].день)}`
+      + ` — ${agg ? list[list.length - 1].подсказка : dayLabel(list[list.length - 1].день)}${agg ? " · * — ещё идёт" : ""}`;
     const close = document.createElement("button");
     close.className = "daily__close";
     close.type = "button";
     close.textContent = "Закрыть";
     close.addEventListener("click", closeDaily);
 
+    const shagi = document.createElement("div");
+    shagi.className = "daily__ranges daily__shagi";
+    for (const [shag, [podpis]] of Object.entries(SHAGI)) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "daily__range" + (dailyShag === shag ? " is-on" : "");
+      b.textContent = podpis.replace("по ", "");
+      b.title = shag === "день" ? "каждый день" : shag === "неделя" ? "неделя к неделе" : "месяц к месяцу";
+      b.addEventListener("click", (event) => {
+        event.stopPropagation();
+        dailyShag = shag;
+        openMetric = null;
+        openDaily(metricKey, cell);
+      });
+      shagi.appendChild(b);
+    }
+
     const hasPeriodDays = daysOfPeriod(all, periodSelect.value).length > 0;
     const ranges = document.createElement("div");
     ranges.className = "daily__ranges";
+    if (dailyShag === "месяц") ranges.hidden = true;     // месяцы — всегда весь ряд
     for (const [days, label] of [["период", periodLabel(periodSelect.value)],
                                  [30, "30 дней"], [90, "3 месяца"], [0, "всё"]]) {
       if (days === "период" && !hasPeriodDays) continue;
@@ -1645,7 +1722,7 @@
 
     const tools = document.createElement("div");
     tools.className = "daily__tools";
-    tools.append(ranges, save, close);
+    tools.append(shagi, ranges, save, close);
     const heading = document.createElement("div");
     heading.append(title, sub);
     head.append(heading, tools);
@@ -1653,7 +1730,7 @@
     // Тот же отрезок прошлого периода — только когда на экране сам период:
     // на «30 днях» или «всём» накладывать нечего, там окно скользящее.
     const previous = previousPeriod(periodSelect.value);
-    const ghost = dailyDepth === "период"
+    const ghost = dailyDepth === "период" && !agg
       ? materialize(entry, all.filter((point) => {
           const [from, to] = headOfPeriod(previous, list.length);
           return point.день >= from && point.день <= to;
@@ -1673,7 +1750,20 @@
     facts.className = "daily__facts";
     // Итог окна у каждого вида свой: у потока это сумма, у доли — накопленное
     // значение на последний день, у остатка — сам последний снимок.
-    facts.textContent = flow
+    // Сравниваем полные недели и месяцы: идущая неделя против прошлой давала «−99%».
+    const polnye = agg ? list.filter((p) => !p.подпись.endsWith("*")) : list;
+    const lp = polnye[polnye.length - 1];
+    const pp = polnye[polnye.length - 2];
+    const kPred = lp && pp && pp.значение ? (lp.значение - pp.значение) / Math.abs(pp.значение) : null;
+    const idet = agg && last.подпись.endsWith("*") ? last : null;
+    facts.textContent = agg
+      ? `${SHAGI[dailyShag][1]}: ${list.length}`
+        + (flow ? ` · всего ${niceNumber(sum)} ${unit}` : "")
+        + (lp ? ` · последняя полная (${lp.подсказка}) ${niceNumber(lp.значение)} ${unit}` : "")
+        + (kPred === null ? "" : ` · к предыдущей ${kPred >= 0 ? "+" : "−"}${Math.round(Math.abs(kPred) * 100)}%`)
+        + (idet ? ` · идёт (${idet.подсказка.replace(/ \(идёт\)/, "")}): ${niceNumber(idet.значение)} ${unit}` : "")
+        + ` · максимум ${niceNumber(high)} ${unit}`
+      : flow
       ? `дней: ${list.length} · всего ${niceNumber(sum)} ${unit}`
         + ` · среднее за день ${niceNumber(sum / list.length)} ${unit}`
         + ` · максимум ${niceNumber(high)} ${unit}`
@@ -1687,7 +1777,7 @@
 
     // Один день часто и делает весь месяц: 03.09 дал 90% сентябрьского
     // списания. Пока это не сказано словами, в графике оно теряется.
-    if (flow) {
+    if (flow && !agg) {
       const peak = list.reduce((best, p) => (p.значение > best.значение ? p : best), list[0]);
       const peakShare = sum ? peak.значение / sum : 0;
       if (peakShare >= 0.4 && list.length > 3) {
@@ -2347,7 +2437,9 @@
     document.body.classList.remove("pokaz-on");
   }
 
-  document.getElementById("pokazBtn")?.addEventListener("click", otkrytPokaz);
+  // «Показать динамику» убрана 28.09: шаг «недели / месяцы» теперь внутри графика плитки.
+  document.getElementById("pokazBtn")?.remove();
+  void otkrytPokaz;
 
   document.addEventListener("keydown", (event) => {
     const sloy = document.getElementById("pokaz");
