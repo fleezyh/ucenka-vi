@@ -412,7 +412,7 @@
     // значения из неё убраны: они подписаны прямо под своими точками, и
     // дублировать их в тултипе значило топить принцип в перечислении.
     const method = methodOf(tile.metric_key);
-    const hint = [tile.metric, method?.формула, tile.meta_txt,
+    const hint = [tile.metric, method?.формула, tile.podskazka_rezerv || tile.meta_txt,
                   "клик — история по дням и как считается"]
       .filter(Boolean).join(" — ");
     if (hint) cell.title = hint;
