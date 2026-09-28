@@ -71,6 +71,81 @@
     "4. движения не найдено": { podpis: "без следа прихода", klass: "pr--net" },
   };
 
+  /* Бэклог по участкам — п.3 бэклога (Карташев, 18.09): хватает ли людей на
+     участке или перебрасывать. По сектору: сделали за сутки, темп на человека,
+     сколько людей работает «сейчас», сколько ждёт и за сколько часов разгребут.
+     «Сейчас» — край данных DWH, он отстаёт от склада на часы; пишем это прямо. */
+  const UCH_CVET = { "красный": "pr--krasnyy", "жёлтый": "pr--zhyoltyy", "зелёный": "pr--zelyonyy" };
+
+  function narisovatUchastki() {
+    const u = dannye.участки;
+    const uzel = el("prUchastki");
+    if (!uzel || !u || !u.строки || !u.строки.length) return;
+    const it = u.итого || {};
+    const pr = it["приёмка"] || {};
+    const rz = it["размещение"] || {};
+    const kray = u.край ? new Date(u.край.replace(" ", "T") + ":00+03:00") : null;
+    const otstayot = kray ? Math.round((Date.now() - kray) / 36e5) : null;
+    // Секторы первыми, служебные зоны (возвраты, сортировка) — в конце.
+    const sluzhebnaya = (x) => /Сектор/.test(x.сектор) ? 0 : 1;
+    const razm = u.строки.filter((x) => x.участок === "размещение" && (x.штук_24 || x.ждёт))
+      .sort((a, b) => sluzhebnaya(a) - sluzhebnaya(b) || String(a.сектор).localeCompare(String(b.сектор)));
+    // «Хуже всех» — по часам; где людей нет, часы считаем как будто работает один
+    // человек в среднем темпе, иначе 285 штук в возвратах перебивают сектор на 37 часов.
+    const chasyDlyaRanga = (x) => x.часов ?? (x.ждёт / Math.max(rz.темп || 1, 1));
+    const hudshiy = razm.filter((x) => x.цвет === "красный")
+      .sort((a, b) => chasyDlyaRanga(b) - chasyDlyaRanga(a))[0];
+    const imya = (x) => String(x || "").replace(/^\d+\s*/, "").replace(/\s*ДМД$/, "");
+    const chasy = (x) => x.ждёт && !x.людей_сейчас ? "никого нет"
+      : x.часов == null ? "—" : x.часов < 1 ? "меньше часа" : `${String(x.часов).replace(".", ",")} ч`;
+
+    const plitki = [
+      plitka("Приёмка за сутки", `${chislo(pr.штук_24)} шт`, `${chislo(pr.темп)} шт на человеко-час`, ""),
+      plitka("Размещение за сутки", `${chislo(rz.штук_24)} шт`, `${chislo(rz.темп)} шт на человеко-час`, ""),
+      plitka("Ждёт размещения", `${chislo(rz.ждёт)} шт`, "лежит в буферах до недели", rz.ждёт > rz.штук_2ч * 6 ? "pr--zhyoltyy" : ""),
+      plitka("Висяки в буферах", `${chislo(rz.висяки)} шт`, "старше недели, в темп не входят", "pr--krasnyy"),
+      hudshiy ? plitka("Хуже всех", imya(hudshiy.сектор), `${chasy(hudshiy)} до разгрёба · ${hudshiy.людей_сейчас} чел.`, "pr--krasnyy")
+        : plitka("Хуже всех", "нет", "красных участков нет", "pr--zelyonyy"),
+    ].join("");
+
+    const tr = (x, razmeshchenie) => `<tr class="prUch__str ${razmeshchenie ? UCH_CVET[x.цвет] || "" : ""}" data-sektor="${escape(x.сектор)}" tabindex="0">
+        <td>${razmeshchenie ? '<span class="prRow__cvet prUch__tochka"></span>' : ""}${escape(imya(x.сектор))}</td>
+        <td class="prNum">${chislo(x.штук_24)}</td>
+        <td class="prNum">${chislo(x.темп)}</td>
+        <td class="prNum">${chislo(x.людей_24)}</td>
+        <td class="prNum"><b>${chislo(x.людей_сейчас)}</b></td>
+        <td class="prNum">${chislo(x.штук_2ч)}</td>
+        ${razmeshchenie ? `<td class="prNum">${chislo(x.ждёт)}</td><td class="prNum prUch__vis">${chislo(x.висяки)}</td>
+        <td class="prNum"><b>${chasy(x)}</b></td>` : ""}
+      </tr>`;
+    const shapka = (razmeshchenie) => `<thead><tr><th>Сектор</th><th class="prNum">сделано за сутки, шт</th>
+        <th class="prNum">шт на чел.-час</th><th class="prNum">людей за сутки</th><th class="prNum">людей сейчас</th>
+        <th class="prNum">шт за 2 ч</th>${razmeshchenie ? '<th class="prNum">ждёт, шт</th><th class="prNum">висяки</th><th class="prNum">до разгрёба</th>' : ""}</tr></thead>`;
+    const priyom = u.строки.filter((x) => x.участок === "приёмка" && x.штук_24);
+
+    uzel.innerHTML = `<h2 class="prVozrast__zag">Бэклог по участкам: хватает ли людей</h2>
+      <p class="prHint">данные WMS на ${escape(u.край)}${otstayot != null && otstayot >= 1 ? ` — DWH отстаёт от склада на ${otstayot} ч` : ""}.
+        «сейчас» — последние 2 часа до этого момента. темп — штук на человеко-час за сутки: человеко-час
+        это час, в который человек что-то сделал в WMS, без табеля. до разгрёба = ждёт ÷ (темп × людей сейчас).
+        красный — больше 12 часов или очередь есть, а людей нет; жёлтый — 4–12 часов</p>
+      <div class="prPlitki prPlitki--vozrast">${plitki}</div>
+      <h3 class="prUch__zag">Размещение — из буферов приёмки в хранение</h3>
+      <table class="prVozrast__tab prUch__tab">${shapka(true)}<tbody>${razm.map((x) => tr(x, true)).join("")}</tbody></table>
+      <h3 class="prUch__zag">Приёмка — по сектору ячейки приёмки</h3>
+      <p class="prHint">сколько ждёт приёмки, WMS не знает: разгруженное, но не принятое в системе не числится.
+        очередь на вход — в блоке «Двор сейчас» выше: машины и паллеты у ворот</p>
+      <table class="prVozrast__tab prUch__tab">${shapka(false)}<tbody>${priyom.map((x) => tr(x, false)).join("")}</tbody></table>`;
+    uzel.hidden = false;
+    uzel.onclick = (e) => {
+      const r = e.target.closest("[data-sektor]");
+      if (r) otkrytSektor(r.dataset.sektor);
+    };
+    uzel.onkeydown = (e) => {
+      const r = e.target.closest("[data-sektor]");
+      if (r && e.key === "Enter") otkrytSektor(r.dataset.sektor);
+    };
+  }
+
   function narisovatVozrast() {
     const vozrast = dannye.возраст;
     const uzel = el("prVozrast");
@@ -572,6 +647,7 @@
     el("stamp").textContent = `${dannye.склад} · обновлено ${dannye.обновлено}`;
 
     narisovatPlitki();
+    narisovatUchastki();
     narisovatKartu();
     narisovatVozrast();
     narisovatFiltry();

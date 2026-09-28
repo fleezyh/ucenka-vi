@@ -192,3 +192,14 @@
 .prZap__doc p { font-size: 14px; line-height: 1.65; margin: 0 0 10px; color: #cbd5e1; }
 .prZap__doc ul { margin: 0 0 12px; padding-left: 20px; }
 .prZap__doc li { font-size: 14px; line-height: 1.65; margin-bottom: 7px; color: #cbd5e1; }
+
+/* Бэклог по участкам (28.09) */
+.prUch { margin-top: 26px; }
+.prUch .prHint { margin: -6px 0 12px; max-width: 900px; }
+.prUch__zag { font-size: 15px; font-weight: 600; margin: 20px 0 8px; }
+.prUch__str { cursor: pointer; }
+.prUch__str:hover td { background: rgba(127, 127, 127, .08); }
+.prUch__tochka { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; vertical-align: middle; background: #46525f; }
+.prUch__vis { color: var(--muted, #64748b); }
+.prUch__str.pr--krasnyy td:last-child b { color: #f05d72; }
+.prUch__str.pr--zhyoltyy td:last-child b { color: #d9a441; }
