@@ -148,3 +148,32 @@ body.is-svetlo .dvkRyad { background: #fff; border-color: rgba(16, 32, 58, .1); 
 .dvkTabl th { background: rgba(15, 23, 42, .96); }
 .dvkTabl td { padding: 9px 10px; vertical-align: middle; }
 .dvkTabl tbody tr:hover td { background: rgba(255, 255, 255, .03); }
+
+/* решение по лоту целиком (28.09) */
+.dvkShagi--ryad { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; max-width: none; margin: 2px 0; }
+.dvkShagi--ryad em { color: var(--muted); font-style: normal; font-size: 12px; }
+.dvkShag { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px 3px 4px; border-radius: 999px; font-size: 12px;
+  border: 1px solid var(--line-strong); color: var(--muted); }
+.dvkShag i { display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; font-style: normal; font-size: 11px;
+  background: rgba(255, 255, 255, .06); }
+.dvkShag b { font-weight: 600; }
+.dvkShag.is-zel { color: #6fe0a0; border-color: rgba(39, 196, 107, .45); }
+.dvkShag.is-zel i { background: rgba(39, 196, 107, .25); }
+.dvkShag.is-krasn { color: #f7a3ae; border-color: rgba(240, 93, 114, .45); }
+.dvkShag.is-krasn i { background: rgba(240, 93, 114, .25); }
+.dvkSluzhby { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 6px 0 12px; }
+.dvkSluzhba { display: grid; gap: 6px; align-content: start; padding: 12px 14px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, .09);
+  background: rgba(255, 255, 255, .03); }
+.dvkSluzhba.is-ok { border-color: rgba(39, 196, 107, .45); background: rgba(39, 196, 107, .07); }
+.dvkSluzhba.is-net { border-color: rgba(240, 93, 114, .45); background: rgba(240, 93, 114, .07); }
+.dvkSluzhba.is-zhdet { border-color: rgba(245, 173, 50, .35); }
+.dvkSluzhba__imya { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.dvkSluzhba__sost { font-size: 13.5px; }
+.dvkSluzhba__sost small { display: block; margin-top: 2px; color: var(--muted); }
+.dvkSluzhba__kn { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 2px; }
+.dvkSluzhba__kn .crmKn:disabled { opacity: .45; cursor: not-allowed; }
+.dvkSluzhba__kn small { width: 100%; font-size: 12px; }
+.dvkZag { margin: 4px 0 6px; color: var(--muted); font-size: 11.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+.dvkOkno__doc h2 .dvkChip { font-size: 12px; vertical-align: middle; margin-left: 6px; }
+.dvkTabl--okno tr.is-bez td:first-child { box-shadow: inset 3px 0 0 #f05d72; }
+@media (max-width: 760px) { .dvkSluzhby { grid-template-columns: 1fr; } }

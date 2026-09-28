@@ -41,12 +41,10 @@
 
   function demoZayavka() {
     const nashi = (pl.паллеты || []).filter((p) => p.в_книге !== "нельзя продавать");
-    const s_ = nashi.filter((p) => p.пломба).slice(0, 5);
-    const b_ = nashi.filter((p) => !p.пломба).slice(0, 1);
-    const pal = [...s_, ...b_].map((p, i) => ({
+    const pal = nashi.filter((p) => p.пломба).slice(0, 6).map((p) => ({
       паллета: p.паллета, склад: p.склад, ячейка: p.ячейка, штук: p.штук, себестоимость: 0,
       в_остатках: true, нельзя: "", пломба: p.пломба || "", пломба_кто: p.проверил || "", пломба_когда: p.когда || "",
-      двк: i < 2 ? true : null, двк_кто: i < 2 ? "Шаблов" : "", двк_когда: i < 2 ? "2026-09-28 10:15" : "", двк_почему: "",
+      двк: null, двк_кто: "", двк_когда: "", двк_почему: "",
       сб: null, сб_кто: "", сб_когда: "", сб_почему: "",
     }));
     return {
@@ -70,7 +68,7 @@
       mozhno = { ...mozhno, двк: true, сб: true, запрос: true };
       const d = demoZayavka();
       sg = { ...sg, ждут: [{ id: "demo", лот: d.заявка.lot, ка: d.заявка.ka, ка_статус: d.заявка.ka_status, склад: d.заявка.sklad,
-        статус: "ждёт", паллет: d.паллеты.length, двк_ок: 2, двк_нет: 0, сб_ок: 0, дата_отгрузки: d.заявка.data_otgruzki,
+        статус: "ждёт", паллет: d.паллеты.length, двк_ок: 0, двк_нет: 0, сб_ок: 0, дата_отгрузки: d.заявка.data_otgruzki,
         создал: d.заявка.sozdal, создан: d.заявка.sozdan }, ...(sg.ждут || [])] };
     }
     if (!root.dataset.vybrano) razdel = (pl.без_пломбы || !(sg.ждут || []).length) ? "plomby" : "soglas";
@@ -206,35 +204,49 @@
       <span class="dvkPolosa__lin"><i style="width:${d}%"></i></span><b>${sdelano}/${vsego}</b></span>`;
   }
 
-  function kartaLota(z) {
+  /* Согласование — решение по лоту целиком (28.09: «они весь лот согласовывают,
+     а не паллеты отдельные»). Паллеты и их состав внутри — чтобы было видно,
+     что именно отгружаем. */
+
+  // Этап лота в списке: ДВК → СБ → в канал склада.
+  function etapy(z) {
     const vsego = z.паллет || 0;
-    const dvk = (z.двк_ок || 0) + (z.двк_нет || 0);
-    const gotov = z.статус === "согласован";
-    const etap = gotov ? ["согласован", "is-zel"] : dvk < vsego ? ["ждёт ДВК", "is-krasn"] : ["ждёт СБ", "is-zhelt"];
+    const dvk = z.статус === "отклонён" && (z.двк_нет || 0) ? "нет" : vsego && (z.двк_ок || 0) === vsego ? "ок" : "ждёт";
+    const sb = z.статус === "согласован" ? "ок" : z.статус === "отклонён" && dvk !== "нет" ? "нет" : "ждёт";
+    return { dvk, sb };
+  }
+
+  function shag(imya, sost, pod) {
+    const k = sost === "ок" ? "is-zel" : sost === "нет" ? "is-krasn" : "";
+    const znak = sost === "ок" ? "✓" : sost === "нет" ? "✗" : "…";
+    return `<span class="dvkShag ${k}"><i>${znak}</i><b>${imya}</b>${pod ? `<small>${pod}</small>` : ""}</span>`;
+  }
+
+  function kartaLota(z) {
+    const e = etapy(z);
+    const chip = z.статус === "согласован" ? ["согласован", "is-zel"] : z.статус === "отклонён" ? ["отклонён", "is-krasn"]
+      : e.dvk === "ждёт" ? ["ждёт ДВК", "is-zhelt"] : ["ждёт СБ", "is-zhelt"];
     return `<button class="dvkLot" type="button" data-zayavka="${z.id}">
-      <span class="dvkLot__verh"><b>Лот ${esc(z.лот)}</b><span class="dvkChip ${etap[1]}">${etap[0]}</span></span>
+      <span class="dvkLot__verh"><b>Лот ${esc(z.лот)}</b><span class="dvkChip ${chip[1]}">${chip[0]}</span></span>
       <span class="dvkLot__ka">${esc(z.ка || "контрагент не указан")}</span>
       <span class="dvkTiho">${esc([z.склад || z.регион, z.ка_статус].filter(Boolean).join(" · "))}</span>
-      ${gotov ? polosa("к отгрузке", z.к_отгрузке || 0, vsego, "is-zel")
-        : polosa("ДВК", dvk, vsego, dvk === vsego && vsego ? "is-zel" : "") + polosa("СБ", z.сб_ок || 0, z.двк_ок || 0, "")}
-      <span class="dvkLot__niz"><span>отгрузка <b>${esc(data(z.дата_отгрузки))}</b></span>
-        <span>${gotov ? (z.канал_когда ? "в канале " + esc(data(z.канал_когда)) : "в канал не ушло") : "отправил " + esc(z.создал || "—") + " " + esc(data(z.создан))}</span></span>
+      <span class="dvkShagi dvkShagi--ryad">${shag("ДВК", e.dvk)}<em>→</em>${shag("СБ", e.sb)}<em>→</em>${shag("склад", z.канал_когда ? "ок" : "ждёт")}</span>
+      <span class="dvkLot__niz"><span><b>${z.паллет || 0}</b> паллет · отгрузка <b>${esc(data(z.дата_отгрузки))}</b></span>
+        <span>${z.статус === "согласован" ? (z.канал_когда ? "в канале " + esc(data(z.канал_когда)) : "в канал не ушло") : "отправил " + esc(z.создал || "—") + " " + esc(data(z.создан))}</span></span>
     </button>`;
   }
 
   function razdelSoglas() {
-    const zhdut = sg.ждут || [], ok = sg.согласованы || [];
-    const spisok = filtrSoglas === "согласованы" ? ok : zhdut;
+    const spiski = { ждут: sg.ждут || [], согласованы: sg.согласованы || [], отклонены: sg.отклонены || [] };
+    const spisok = spiski[filtrSoglas] || [];
+    const PUSTO = { ждут: "Ждать нечего — все лоты решены.", согласованы: "Согласованных лотов пока нет.", отклонены: "Отклонённых нет." };
     return `
       <div class="dvkVerh">
-        <nav class="crmFiltry dvkSeg">
-          <button class="crmFiltr${filtrSoglas === "ждут" ? " is-on" : ""}" type="button" data-fsoglas="ждут">ждут · ${zhdut.length}</button>
-          <button class="crmFiltr${filtrSoglas === "согласованы" ? " is-on" : ""}" type="button" data-fsoglas="согласованы">согласованы · ${ok.length}</button>
-        </nav>
+        <nav class="crmFiltry dvkSeg">${Object.keys(spiski).map((k) =>
+          `<button class="crmFiltr${filtrSoglas === k ? " is-on" : ""}" type="button" data-fsoglas="${k}">${k} · ${spiski[k].length}</button>`).join("")}</nav>
         <span class="crmSchyot">лот на согласование отправляют из карточки оплаченного лота в CRM</span>
       </div>
-      <div class="dvkLoty">${spisok.map(kartaLota).join("")
-        || `<p class="dvkPusto">${filtrSoglas === "ждут" ? "Все лоты согласованы — ждать нечего." : "Согласованных лотов пока нет."}</p>`}</div>`;
+      <div class="dvkLoty">${spisok.map(kartaLota).join("") || `<p class="dvkPusto">${PUSTO[filtrSoglas]}</p>`}</div>`;
   }
 
   /* окно согласования — в стиле окна лота CRM */
@@ -269,19 +281,6 @@
     }
   }
 
-  function yacheyka(p, sl, zhdyot) {
-    const ok = p[sl], kto = p[sl + "_кто"], kogda = p[sl + "_когда"], pochemu = p[sl + "_почему"];
-    const pravo = sl === "двк" ? mozhno.двк : mozhno.сб;
-    if (sl === "сб" && p.двк === false) return '<span class="dvkTiho">—</span>';
-    if (zhdyot && pravo && (sl === "двк" || p.двк === true)) {
-      return `<label class="dvkGal"><input type="checkbox" data-gal="${sl}" data-pallet="${esc(p.паллета)}"${ok === true ? " checked" : ""}${sl === "двк" && !p.пломба ? " disabled" : ""}>
-        ${sl === "двк" && !p.пломба ? '<span class="dvkNet">нет пломбы</span>' : ok === false ? `<span class="dvkNet">нет · ${esc(pochemu || "")}</span>` : ""}</label>`;
-    }
-    if (ok === true) return `<span class="dvkOk">✓</span> <span class="dvkTiho">${esc(kto)} ${esc(data(kogda))}</span>`;
-    if (ok === false) return `<span class="dvkNet">✗ ${esc(pochemu || "")}</span> <span class="dvkTiho">${esc(kto)}</span>`;
-    return '<span class="dvkTiho">ждёт</span>';
-  }
-
   function sostavHtml(pallet) {
     const s = sostavy.get(pallet);
     if (!s) return '<p class="dvkPusto">Смотрю, что в паллете…</p>';
@@ -295,80 +294,95 @@
         <td class="crmNum">${chislo(r["Цена закупочная"])}</td></tr>`).join("")}</tbody></table>`;
   }
 
+  // Решение службы по лоту из паллет заявки: все да — согласовал, есть нет — отклонил.
+  function reshenieSluzhby(p, sl) {
+    const svoi = sl === "сб" ? p.filter((x) => x.двк === true) : p;
+    const net = svoi.find((x) => x[sl] === false);
+    if (net) return { sost: "нет", kto: net[sl + "_кто"], kogda: net[sl + "_когда"], pochemu: net[sl + "_почему"] };
+    if (svoi.length && svoi.every((x) => x[sl] === true)) return { sost: "ок", kto: svoi[0][sl + "_кто"], kogda: svoi[0][sl + "_когда"] };
+    return { sost: "ждёт" };
+  }
+
+  function blokSluzhby(sl, imya, r, zhdyot, mozhnoReshat, pochemuNelzya) {
+    const sost = r.sost === "ок" ? `<b class="dvkOk">согласовал</b> ${esc(r.kto || "")} <span class="dvkTiho">${esc(data(r.kogda))}</span>`
+      : r.sost === "нет" ? `<b class="dvkNet">отклонил</b> ${esc(r.kto || "")} <span class="dvkTiho">${esc(data(r.kogda))}</span><small>${esc(r.pochemu || "")}</small>`
+      : '<span class="dvkTiho">ждёт решения</span>';
+    const kn = zhdyot && r.sost === "ждёт" && mozhnoReshat
+      ? `<div class="dvkSluzhba__kn">
+          <button class="crmKn crmKn--glav" type="button" data-reshit="${sl}" data-ok="1"${pochemuNelzya ? " disabled" : ""}>Согласовать лот</button>
+          <button class="crmKn crmKn--udalit" type="button" data-reshit="${sl}" data-ok="0">Отклонить…</button>
+          ${pochemuNelzya ? `<small class="dvkNet">${esc(pochemuNelzya)}</small>` : ""}</div>` : "";
+    return `<div class="dvkSluzhba is-${r.sost === "ок" ? "ok" : r.sost === "нет" ? "net" : "zhdet"}">
+      <span class="dvkSluzhba__imya">${imya}</span><div class="dvkSluzhba__sost">${sost}</div>${kn}</div>`;
+  }
+
   function risovatZayavku() {
     const d = zayavka, z = d.заявка, lot = d.лот || {};
     const zhdyot = z.status === "ждёт";
     const p = d.паллеты || [];
-    const dvkReshil = p.filter((x) => x.двк !== null).length;
-    const dvkOk = p.filter((x) => x.двк === true).length;
-    const sbReshil = p.filter((x) => x.двк === true && x.сб !== null).length;
-    const kOtgr = p.filter((x) => x.двк === true && x.сб === true).length;
     const bez = p.filter((x) => !x.пломба);
+    const dvk = reshenieSluzhby(p, "двк"), sb = reshenieSluzhby(p, "сб");
     const sebes = p.reduce((n, x) => n + (Number(x.себестоимость) || 0), 0);
+    const shtuk = p.reduce((n, x) => n + (Number(x.штук) || 0), 0);
     const okup = lot.окуп ? (Number(lot.окуп) <= 1.5 ? Number(lot.окуп) * 100 : Number(lot.окуп)) : 0;
+    const status = z.status === "согласован" ? ["согласован к отгрузке", "is-zel"] : z.status === "отклонён" ? ["отклонён", "is-krasn"]
+      : z.status === "отменён" ? ["отменён", ""] : dvk.sost === "ждёт" ? ["ждёт ДВК", "is-zhelt"] : ["ждёт СБ", "is-zhelt"];
     oknoOtkryt(`
       <div class="crmOkno__top">
         <span class="crmOkno__teg">Согласование отгрузки</span>
-        <div class="crmOkno__act"><button class="crmKn" type="button" data-dvk-zakryt>Закрыть</button></div>
+        <div class="crmOkno__act">${zhdyot && mozhno.запрос ? '<button class="crmKn crmKn--udalit" type="button" data-otmenit>Отменить заявку</button>' : ""}
+          <button class="crmKn" type="button" data-dvk-zakryt>Закрыть</button></div>
       </div>
-      <h2>Лот ${esc(z.lot)} · ${esc(z.ka || "контрагент не указан")}</h2>
-      <p class="dvkStroka">${esc(z.ka_status || "")}${z.kommentariy ? " · " + esc(z.kommentariy) : ""}</p>
+      <h2>Лот ${esc(z.lot)} · ${esc(z.ka || "контрагент не указан")} <span class="dvkChip ${status[1]}">${status[0]}</span></h2>
+      <p class="dvkStroka">${esc(z.ka_status || "")}${z.kommentariy ? " · " + esc(z.kommentariy) : ""} · отправил ${esc(z.sozdal || "—")} ${esc(data(z.sozdan))}</p>
       <div class="dvkFakty">
         <span><i>Отгрузка</i><b>${esc(data(z.data_otgruzki))}</b></span>
         <span><i>Склад</i><b>${esc(z.sklad || z.region || "—")}</b></span>
-        <span><i>Паллет</i><b>${p.length}</b></span>
-        <span><i>Себестоимость</i><b>${chislo(sebes)} ₽</b></span>
+        <span><i>Паллет · штук</i><b>${p.length} · ${chislo(shtuk)}</b></span>
+        <span><i>Себестоимость</i><b>${sebes ? chislo(sebes) + " ₽" : "—"}</b></span>
         <span><i>Цена отгрузки</i><b>${lot.цена ? chislo(lot.цена) + " ₽" : "—"}</b></span>
         <span><i>Окуп</i><b>${okup ? okup.toLocaleString("ru-RU", { maximumFractionDigits: 1 }) + "%" : "—"}</b></span>
       </div>
-      <div class="dvkShagi">
-        ${polosa("ДВК", dvkReshil, p.length, z.dvk_kogda ? "is-zel" : "")}
-        ${polosa("СБ", sbReshil, dvkOk, z.sb_kogda ? "is-zel" : "")}
-        ${z.status === "согласован" ? polosa("к отгрузке", kOtgr, p.length, "is-zel") : ""}
+      <div class="dvkSluzhby">
+        ${blokSluzhby("двк", "ДВК", dvk, zhdyot, mozhno.двк, bez.length ? `без пломбы ${bez.length} — сначала пломба` : "")}
+        ${blokSluzhby("сб", "СБ", sb, zhdyot, mozhno.сб, dvk.sost !== "ок" ? "сначала решение ДВК" : "")}
+        <div class="dvkSluzhba is-${z.kanal_kogda ? "ok" : "zhdet"}"><span class="dvkSluzhba__imya">Склад</span>
+          <div class="dvkSluzhba__sost">${z.kanal_kogda ? `<b class="dvkOk">в канале склада</b> <span class="dvkTiho">${esc(data(z.kanal_kogda))}</span>`
+            : z.status === "согласован" ? (d.канал_настроен ? '<span class="dvkNet">в канал не ушло</span>' : '<span class="dvkTiho">канал не настроен</span>')
+            : '<span class="dvkTiho">уйдёт в канал, когда согласуют ДВК и СБ</span>'}</div></div>
       </div>
-      <p class="dvkStroka">ДВК: ${z.dvk_kto ? esc(z.dvk_kto) + " " + esc(data(z.dvk_kogda)) : "ждёт"} · СБ: ${z.sb_kto ? esc(z.sb_kto) + " " + esc(data(z.sb_kogda)) : "ждёт"}
-        ${z.status === "согласован" ? " · " + (z.kanal_kogda ? "в канал склада " + esc(data(z.kanal_kogda)) : d.канал_настроен ? "в канал не ушло" : "канал склада не настроен") : ""}
-        · отправил ${esc(z.sozdal || "—")} ${esc(data(z.sozdan))}</p>
-      ${zhdyot && bez.length ? `<p class="dvkSoob is-oshibka">Без пломбы ${bez.length}: ${bez.map((x) => esc(x.паллета)).join(", ")} — ДВК их не согласует, пока не внесёт пломбу во вкладке «Пломбы».</p>` : ""}
-      ${zhdyot && (mozhno.двк || mozhno.сб) ? `<div class="dvkDeystviya">
-        ${mozhno.двк ? '<button class="crmKn" type="button" data-vse="двк">Отметить все · ДВК</button><button class="crmKn crmKn--glav" type="button" data-sohr="двк">Сохранить решение ДВК</button>' : ""}
-        ${mozhno.сб ? '<button class="crmKn" type="button" data-vse="сб">Отметить все · СБ</button><button class="crmKn crmKn--glav" type="button" data-sohr="сб">Сохранить решение СБ</button>' : ""}
-        <span class="dvkTiho">неотмеченная — «не согласовано», спросим причину</span></div>` : ""}
+      ${zhdyot && bez.length ? `<p class="dvkSoob is-oshibka">Без пломбы ${bez.length}: ${bez.map((x) => esc(x.паллета)).join(", ")} — лот не согласовать, пока ДВК не внесёт пломбу во вкладке «Пломбы».</p>` : ""}
+      <p class="dvkZag">Что в лоте · клик по паллете — её состав</p>
       <div class="crmTabl dvkTabl dvkTabl--okno"><table>
-        <thead><tr><th>Паллета</th><th>Склад · ячейка</th><th class="crmNum">Шт</th><th class="crmNum">Себес, ₽</th>
-          <th>Пломба</th><th>ДВК</th><th>СБ</th></tr></thead>
-        <tbody>${p.map((x) => `<tr data-sostav="${esc(x.паллета)}">
+        <thead><tr><th>Паллета</th><th>Склад · ячейка</th><th class="crmNum">Шт</th><th class="crmNum">Себес, ₽</th><th>Пломба</th></tr></thead>
+        <tbody>${p.map((x) => `<tr data-sostav="${esc(x.паллета)}" class="${x.пломба ? "" : "is-bez"}">
           <td><b>${otkryty.has(x.паллета) ? "▾" : "▸"} ${esc(x.паллета)}</b>${x.нельзя ? `<span class="dvkPometka">${esc(x.нельзя)}</span>` : ""}${!x.в_остатках ? '<span class="dvkPometka">нет в остатках</span>' : ""}</td>
           <td>${esc(x.склад || "—")} <span class="dvkTiho">${esc(x.ячейка || "")}</span></td>
-          <td class="crmNum">${chislo(x.штук)}</td><td class="crmNum">${chislo(x.себестоимость)}</td>
-          <td>${x.пломба ? `<b>${esc(x.пломба)}</b>` : '<span class="dvkNet">нет</span>'}</td>
-          <td data-stop>${yacheyka(x, "двк", zhdyot)}</td><td data-stop>${yacheyka(x, "сб", zhdyot)}</td>
-        </tr>${otkryty.has(x.паллета) ? `<tr class="crmReestr__sostav"><td colspan="7">${sostavHtml(x.паллета)}</td></tr>` : ""}`).join("")}</tbody>
-      </table></div>
-      ${zhdyot && mozhno.запрос ? '<div class="dvkDeystviya"><button class="crmKn crmKn--udalit" type="button" data-otmenit>Отменить заявку</button></div>' : ""}`);
+          <td class="crmNum">${chislo(x.штук)}</td><td class="crmNum">${x.себестоимость ? chislo(x.себестоимость) : "—"}</td>
+          <td>${x.пломба ? `<b class="dvkPlombaEst">${esc(x.пломба)}</b>` : '<span class="dvkNet">нет пломбы</span>'}</td>
+        </tr>${otkryty.has(x.паллета) ? `<tr class="crmReestr__sostav"><td colspan="5">${sostavHtml(x.паллета)}</td></tr>` : ""}`).join("")}</tbody>
+      </table></div>`);
   }
 
-  async function sohranitResheniya(sl) {
-    const galki = [...okno.querySelectorAll(`input[data-gal="${sl}"]:not([disabled])`)];
-    if (!galki.length) return;
-    const net = galki.filter((g) => !g.checked);
+  async function reshit(sl, ok) {
     let pochemu = "";
-    if (net.length) {
-      pochemu = prompt(`Не согласовано ${net.length} паллет. Почему? (увидят продажи и склад)`) || "";
-      if (!pochemu.trim()) return;
+    if (!ok) {
+      pochemu = (prompt(`${sl.toUpperCase()}: почему лот не согласован? Увидят продажи и склад.`) || "").trim();
+      if (!pochemu) return;
+    } else if (!confirm(`${sl.toUpperCase()}: согласовать лот ${zayavka.заявка.lot} целиком (${(zayavka.паллеты || []).length} паллет)?`)) {
+      return;
     }
-    const resheniya = {};
-    galki.forEach((g) => { resheniya[g.dataset.pallet] = g.checked ? true : { ок: false, почему: pochemu }; });
-    if (DEMO && String(zayavka.заявка.id) === "demo") {
-      galki.forEach((g) => {
-        const x = zayavka.паллеты.find((q) => q.паллета === g.dataset.pallet);
-        x[sl] = g.checked ? true : false; x[sl + "_кто"] = "вы (демо)"; x[sl + "_когда"] = "2026-09-28 17:30";
-        x[sl + "_почему"] = g.checked ? "" : pochemu;
+    if (String(zayavka.заявка.id) === "demo") {
+      (zayavka.паллеты || []).forEach((x) => {
+        if (sl === "сб" && x.двк !== true) return;
+        x[sl] = ok; x[sl + "_кто"] = "вы (демо)"; x[sl + "_когда"] = "2026-09-28 17:30"; x[sl + "_почему"] = pochemu;
       });
+      if (!ok) zayavka.заявка.status = "отклонён";
+      else if (sl === "сб") zayavka.заявка.status = "согласован";
       return risovatZayavku();
     }
     try {
-      zayavka = { ...(await poslat({ действие: "отметить", id: zayavka.заявка.id, служба: sl, решения: resheniya })), можно: mozhno };
+      zayavka = { ...(await poslat({ действие: "решение_лота", id: zayavka.заявка.id, служба: sl, ок: ok, почему: pochemu })), можно: mozhno };
       risovatZayavku();
       await zagruzit();
       risovat();
@@ -380,25 +394,23 @@
   async function klikOkna(e) {
     const t = e.target;
     if (t.closest("[data-dvk-zakryt]")) return oknoZakryt();
-    const vse = t.closest("[data-vse]");
-    if (vse) { okno.querySelectorAll(`input[data-gal="${vse.dataset.vse}"]:not([disabled])`).forEach((g) => { g.checked = true; }); return; }
-    const sohr = t.closest("[data-sohr]");
-    if (sohr) return sohranitResheniya(sohr.dataset.sohr);
+    const r = t.closest("[data-reshit]");
+    if (r && !r.disabled) return reshit(r.dataset.reshit, r.dataset.ok === "1");
     if (t.closest("[data-otmenit]") && zayavka && confirm("Отменить заявку на согласование?")) {
       try { await poslat({ действие: "отменить", id: zayavka.заявка.id }); oknoZakryt(); await zagruzit(); risovat(); }
       catch (err) { alert(err.message || err); }
       return;
     }
-    if (t.closest("[data-stop]")) return;
     const s = t.closest("tr[data-sostav]");
     if (s) {
       const pal = s.dataset.sostav;
       if (otkryty.has(pal)) otkryty.delete(pal); else otkryty.add(pal);
       risovatZayavku();
       if (otkryty.has(pal) && !sostavy.has(pal)) {
+        if (String(zayavka.заявка.id) === "demo") sostavy.set(pal, { строки: [] });
         try {
-          const r = await fetch(`/__soglas/sostav?паллета=${encodeURIComponent(pal)}`, { cache: "no-store" });
-          sostavy.set(pal, r.ok ? await r.json() : { ошибка: `сервер ответил ${r.status}` });
+          const r2 = await fetch(`/__soglas/sostav?паллета=${encodeURIComponent(pal)}`, { cache: "no-store" });
+          sostavy.set(pal, r2.ok ? await r2.json() : { ошибка: `сервер ответил ${r2.status}` });
         } catch (err) { sostavy.set(pal, { ошибка: String(err.message || err) }); }
         if (zayavka) risovatZayavku();
       }
