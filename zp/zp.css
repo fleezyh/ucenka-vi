@@ -1283,3 +1283,42 @@ input::-webkit-datetime-edit-day-field, input::-webkit-datetime-edit-month-field
 input::-webkit-datetime-edit-year-field, input::-webkit-datetime-edit-text,
 input::-webkit-datetime-edit-hour-field, input::-webkit-datetime-edit-minute-field {
   font-variant-numeric: normal !important; font-feature-settings: "tnum" 0, "pnum" 1 !important; letter-spacing: 0 !important; }
+
+/* ── Сводка ФОТ, 28.09.2026: выбор направления и график как в хитмапе ───── */
+.fsNapr { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 14px; }
+.fsNapr button { padding: 7px 13px; border: 1px solid rgba(164, 231, 203, 0.18); border-radius: 99px; background: rgba(255, 255, 255, 0.03); color: var(--muted); font: 600 12.5px/1.2 var(--ui); cursor: pointer; transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease; }
+.fsNapr button:hover { color: var(--text); border-color: rgba(164, 231, 203, 0.4); }
+.fsNapr button.is-on { color: #0f1b1f; background: #a4e7cb; border-color: #a4e7cb; }
+.fsRow.is-klik { cursor: pointer; transition: background 0.15s ease; }
+.fsRow.is-klik:hover { background: rgba(164, 231, 203, 0.05); }
+
+.fsG { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 8px; margin-top: 6px; }
+.fsG__shkala { position: relative; height: 260px; color: var(--muted); font-size: 11px; font-feature-settings: "tnum" 0, "pnum" 1; }
+.fsG__shkala span { position: absolute; right: 0; transform: translateY(-50%); white-space: nowrap; }
+.fsG__holst { position: relative; height: 260px; }
+.fsG__svg { display: block; width: 100%; height: 260px; overflow: visible; }
+.fsG__grid { stroke: rgba(255, 255, 255, 0.06); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.fsG__band { fill: rgba(164, 231, 203, 0.06); }
+.fsG__area { fill: url(#fsGZaliv); stroke: none; }
+.fsG__line { fill: none; stroke: #a4e7cb; stroke-width: 2.6; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.fsG__line--prognoz { stroke: #bdacff; stroke-dasharray: 7 6; }
+.fsG__limit { fill: none; stroke: #f6bc71; stroke-width: 1.8; stroke-dasharray: 5 6; vector-effect: non-scaling-stroke; opacity: 0.85; }
+.fsG__sloy { position: absolute; inset: 0; }
+.fsG__dot { position: absolute; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; border-radius: 50%; background: #0f1b1f; box-shadow: inset 0 0 0 2px #a4e7cb; pointer-events: none; }
+.fsG__dot--prognoz, .fsG__dot--shtat { box-shadow: inset 0 0 0 2px #bdacff; }
+.fsG__dot.is-seychas { background: #bdacff; box-shadow: 0 0 0 5px rgba(189, 172, 255, 0.25); }
+.fsG__dot.is-nad { background: var(--fs-red, #f05d72); box-shadow: 0 0 0 4px rgba(240, 93, 114, 0.28); }
+.fsG__pin { position: absolute; transform: translate(-50%, calc(-100% - 9px)); color: #d9efe6; font: 600 12px/1 var(--ui); white-space: nowrap; pointer-events: none; }
+.fsG__pin.is-vybran { color: #fff; font-size: 13.5px; }
+.fsG__pin.is-nad { color: #ff8a9a; }
+.fsG__net { position: absolute; transform: translate(-50%, -50%); color: var(--muted); font-size: 11.5px; font-style: normal; white-space: nowrap; pointer-events: none; }
+.fsG__mes { position: absolute; bottom: -2px; transform: translateX(-50%); color: var(--muted); font: 600 12px/1 var(--ui); letter-spacing: 0.04em; pointer-events: none; }
+.fsG__mes.is-vybran { color: #a4e7cb; }
+.fsG__mes.is-seychas { color: #bdacff; }
+.fsG__hit { position: absolute; top: 0; bottom: 0; width: 8.3%; padding: 0; transform: translateX(-50%); border: 0; background: transparent; cursor: pointer; }
+.fsG__hit:hover { background: linear-gradient(to bottom, transparent, rgba(164, 231, 203, 0.07)); }
+.fsG__hit:focus-visible { outline: 1px solid #a4e7cb; outline-offset: -1px; }
+@media (max-width: 700px) {
+  .fsG__pin { font-size: 10px; }
+  .fsG__mes { font-size: 10px; }
+}

@@ -99,50 +99,113 @@
       </div>`;
   }
 
-  /* Линия факта и прогноза; пропуск месяца разрывает ряд, а не соединяет точки. */
-  function godGrafik(god, period, tekushchiy) {
-    const mesyacy = (god && god["месяцы"]) || [];
-    if (!mesyacy.length) return "<div class=\"fsGod__pusto\">загружаю год…</div>";
+  /* Плавная линия, которая не уходит за точки (монотонный сплайн) — как в
+     хитмапе: обычная кривая Безье рисовала бы провал там, где его нет. */
+  function gladko(pts) {
+    const f = (v) => v.toFixed(1);
+    if (pts.length < 3) return pts.map((p, i) => `${i ? "L" : "M"}${f(p[0])},${f(p[1])}`).join(" ");
+    const n = pts.length;
+    const m = [];
+    for (let i = 0; i < n - 1; i++) m[i] = (pts[i + 1][1] - pts[i][1]) / (pts[i + 1][0] - pts[i][0]);
+    const t = [m[0]];
+    for (let i = 1; i < n - 1; i++) t[i] = m[i - 1] * m[i] <= 0 ? 0 : (m[i - 1] + m[i]) / 2;
+    t[n - 1] = m[n - 2];
+    for (let i = 0; i < n - 1; i++) {
+      if (!m[i]) { t[i] = 0; t[i + 1] = 0; continue; }
+      const a = t[i] / m[i];
+      const b = t[i + 1] / m[i];
+      const q = a * a + b * b;
+      if (q > 9) { const k = 3 / Math.sqrt(q); t[i] = k * a * m[i]; t[i + 1] = k * b * m[i]; }
+    }
+    let d = `M${f(pts[0][0])},${f(pts[0][1])}`;
+    for (let i = 0; i < n - 1; i++) {
+      const h = (pts[i + 1][0] - pts[i][0]) / 3;
+      d += ` C${f(pts[i][0] + h)},${f(pts[i][1] + t[i] * h)} ${f(pts[i + 1][0] - h)},${f(pts[i + 1][1] - t[i + 1] * h)} ${f(pts[i + 1][0])},${f(pts[i + 1][1])}`;
+    }
+    return d;
+  }
+
+  /* ФОТ по месяцам — как большой график хитмапа: плавная линия с заливкой,
+     подписи над точками, лимит пунктиром. Факт — сплошной, прогноз и «по штату» —
+     пунктиром; месяц без данных рвёт линию. Клик по месяцу выбирает его. */
+  function godGrafik(mesyacy, period, tekushchiy) {
+    if (!mesyacy || !mesyacy.length) return "<div class=\"fsGod__pusto\">загружаю год…</div>";
     const chisla = mesyacy.flatMap((m) => [m["фот"], m["цель"]]).filter((v) => Number(v) > 0).map(Number);
     if (!chisla.length) return "<div class=\"fsGod__pusto\">За год данных пока нет</div>";
-    const minimum = Math.max(0, Math.floor(Math.min(...chisla) / 5e6) * 5e6 - 5e6);
-    const maksimum = Math.max(minimum + 5e6, Math.ceil(Math.max(...chisla) / 5e6) * 5e6);
-    const x = (j) => 64 + j * 101;
-    const y = (v) => 202 - (Number(v) - minimum) / (maksimum - minimum) * 158;
-    const vybrano = new Set(periodMesyacy(period, god));
-    const setka = [minimum, (minimum + maksimum) / 2, maksimum].map((v) => `
-      <line class="fsLine__grid" x1="54" x2="1185" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}"/>
-      <text class="fsLine__axis" x="3" y="${(y(v) + 4).toFixed(1)}">${mlnKor(v)}</text>`).join("");
-    const liniya = (pole, klass) => mesyacy.slice(1).map((m, j) => {
-      const prezhniy = mesyacy[j];
-      if (m[pole] == null || prezhniy[pole] == null) return "";
-      const vid = pole === "цель" ? klass :
-        m["вид"] === "факт" && prezhniy["вид"] === "факт" ? "fakt" : "prognoz";
-      return `<line class="fsLine__segment fsLine__segment--${vid}" x1="${x(j)}" y1="${y(prezhniy[pole]).toFixed(1)}" x2="${x(j + 1)}" y2="${y(m[pole]).toFixed(1)}"/>`;
-    }).join("");
+    let niz = Math.min(...chisla);
+    let verh = Math.max(...chisla);
+    const zapas = (verh - niz) * 0.18 || verh * 0.1 || 1;
+    niz = Math.max(0, niz - zapas);
+    verh += zapas;
+    // Ровные деления шкалы: шаг 1, 2 или 5 × 10^k, края — по делениям.
+    const grubyy = (verh - niz) / 3;
+    const poryadok = 10 ** Math.floor(Math.log10(grubyy));
+    const shagD = [1, 2, 5, 10].map((k) => k * poryadok).find((v) => v >= grubyy);
+    niz = Math.floor(niz / shagD) * shagD;
+    verh = Math.ceil(verh / shagD) * shagD;
+    const W = 1000;
+    const H = 260;
+    const n = mesyacy.length;
+    const x = (j) => 30 + (j / Math.max(n - 1, 1)) * (W - 60);
+    const y = (v) => 34 + (1 - (Number(v) - niz) / (verh - niz)) * (H - 58);
+    const pct = (v, vsego) => `${(v / vsego * 100).toFixed(3)}%`;
+    const delenia = [];
+    for (let v = niz; v <= verh + shagD / 2; v += shagD) delenia.push(v);
+    const vybrano = new Set(periodMesyacy(period, { "месяцы": mesyacy }));
+
+    // Куски без пропусков: факт отдельно, прогноз продолжает его пунктиром.
+    const kuski = [];
+    let tek = [];
+    mesyacy.forEach((m, j) => {
+      if (m["фот"] == null) { if (tek.length) kuski.push(tek); tek = []; return; }
+      tek.push(j);
+    });
+    if (tek.length) kuski.push(tek);
+    let lini = "";
+    for (const kusok of kuski) {
+      const pts = kusok.map((j) => [x(j), y(mesyacy[j]["фот"])]);
+      const osn = (H - 24).toFixed(1);
+      lini += `<path class="fsG__area" d="${gladko(pts)} L${pts[pts.length - 1][0].toFixed(1)},${osn} L${pts[0][0].toFixed(1)},${osn} Z"/>`;
+      const fakt = kusok.filter((j) => mesyacy[j]["вид"] === "факт");
+      const dalshe = kusok.filter((j) => mesyacy[j]["вид"] !== "факт");
+      if (fakt.length) lini += `<path class="fsG__line" d="${gladko(fakt.map((j) => [x(j), y(mesyacy[j]["фот"])]))}"/>`;
+      if (dalshe.length) {
+        const s = fakt.length && dalshe[0] === fakt[fakt.length - 1] + 1 ? [fakt[fakt.length - 1], ...dalshe] : dalshe;
+        lini += `<path class="fsG__line fsG__line--prognoz" d="${gladko(s.map((j) => [x(j), y(mesyacy[j]["фот"])]))}"/>`;
+      }
+    }
+    const limitTochki = mesyacy.map((m, j) => (Number(m["цель"]) > 0 ? [x(j), y(m["цель"])] : null)).filter(Boolean);
+    const limit = limitTochki.length > 1 ? `<path class="fsG__limit" d="${gladko(limitTochki)}"/>` : "";
+    const polosy = mesyacy.map((m, j) => (vybrano.has(m["месяц"])
+      ? `<rect class="fsG__band" x="${(x(j) - (W - 60) / (n - 1) / 2).toFixed(1)}" y="0" width="${((W - 60) / (n - 1)).toFixed(1)}" height="${H}"/>` : "")).join("");
+    const setka = delenia.map((v) => `<line class="fsG__grid" x1="0" x2="${W}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}"/>`).join("");
+
     const tochki = mesyacy.map((m, j) => {
       const nomer = Number(m["месяц"].slice(5, 7)) - 1;
-      const vid = VID_KLASS[m["вид"]] || "net";
       const est = m["фот"] != null;
-      const xx = x(j);
-      const yy = est ? y(m["фот"]) : 145;
+      const nad = est && Number(m["цель"]) > 0 && m["фот"] > m["цель"];
       const opisanie = `${nazvanie(m["месяц"])}: ${VID[m["вид"]]}${est ? " " + mln(m["фот"]) + " млн ₽" : ""}; лимит ${mln(m["цель"])} млн ₽`;
-      return `
-        <g class="fsLine__point fsLine__point--${vid}${vybrano.has(m["месяц"]) ? " is-vybran" : ""}${m["месяц"] === tekushchiy ? " is-seychas" : ""}">
-          <title>${esc(opisanie)}</title>
-          ${est ? `<circle class="fsLine__halo" cx="${xx}" cy="${yy.toFixed(1)}" r="14"/>
-            <circle class="fsLine__dot" cx="${xx}" cy="${yy.toFixed(1)}" r="6"/>
-            <text class="fsLine__value" x="${xx}" y="${(yy - 17).toFixed(1)}">${mlnKor(m["фот"])}</text>`
-            : `<text class="fsLine__missing" x="${xx}" y="152">нет данных</text>`}
-          <text class="fsLine__month" x="${xx}" y="240">${MES_KOR[nomer]}</text>
-        </g>`;
+      const left = pct(x(j), W);
+      const top = pct(est ? y(m["фот"]) : H - 60, H);
+      return (est ? `<i class="fsG__dot fsG__dot--${VID_KLASS[m["вид"]] || "net"}${nad ? " is-nad" : ""}${m["месяц"] === tekushchiy ? " is-seychas" : ""}" style="left:${left};top:${top}"></i>
+          <b class="fsG__pin${nad ? " is-nad" : ""}${vybrano.has(m["месяц"]) ? " is-vybran" : ""}" style="left:${left};top:${top}">${mlnKor(m["фот"])}</b>`
+          : `<em class="fsG__net" style="left:${left};top:${top}">нет данных</em>`)
+        + `<button type="button" class="fsG__hit" data-period="${m["месяц"]}" title="${esc(opisanie)}" aria-label="${esc(opisanie)}" style="left:${left}"></button>`
+        + `<span class="fsG__mes${vybrano.has(m["месяц"]) ? " is-vybran" : ""}${m["месяц"] === tekushchiy ? " is-seychas" : ""}" style="left:${left}">${MES_KOR[nomer]}</span>`;
     }).join("");
-    const knopki = mesyacy.map((m, j) => {
-      const opisanie = `${nazvanie(m["месяц"])}: ${VID[m["вид"]]}${m["фот"] != null ? " " + mln(m["фот"]) + " млн ₽" : ""}; лимит ${mln(m["цель"])} млн ₽`;
-      const yy = m["фот"] != null ? y(m["фот"]) : 145;
-      return `<button type="button" class="fsLine__hit" data-period="${m["месяц"]}" aria-label="${esc(opisanie)}" title="${esc(opisanie)}" style="left:${(x(j) / 1200 * 100).toFixed(2)}%;--y:${(yy / 258 * 100).toFixed(2)}%"></button>`;
-    }).join("");
-    return `<div class="fsLine" aria-label="ФОТ по месяцам, млн рублей"><div class="fsLine__canvas"><svg viewBox="0 0 1200 258" role="img" aria-label="Линия ФОТ и лимита по месяцам">${setka}${liniya("цель", "limit")}${liniya("фот", "fakt")}${tochki}</svg>${knopki}</div></div>`;
+    const shkala = delenia.map((v) => `<span style="top:${pct(y(v), H)}">${mlnKor(v)}</span>`).join("");
+    return `
+      <div class="fsG">
+        <div class="fsG__shkala">${shkala}</div>
+        <div class="fsG__holst">
+          <svg class="fsG__svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
+            <defs><linearGradient id="fsGZaliv" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#a4e7cb" stop-opacity="0.34"/><stop offset="100%" stop-color="#a4e7cb" stop-opacity="0.02"/></linearGradient></defs>
+            ${polosy}${setka}${limit}${lini}
+          </svg>
+          <div class="fsG__sloy">${tochki}</div>
+        </div>
+      </div>`;
   }
 
   function periodMesyacy(period, god) {
@@ -153,12 +216,63 @@
     return [period];
   }
 
+  /* Разрез выбранного направления по отделам. Отделы есть только у текущего
+     месяца: факт бухгалтерии приходит по направлениям целиком. */
+  function razrezOtdelov(n, seychas) {
+    const otdely = [...(n["отделы"] || [])].sort((p, q) => (q["фот"] || 0) - (p["фот"] || 0));
+    if (!seychas || !otdely.length) {
+      return `<p class="fsRow__fondy">По отделам — только текущий месяц: факт бухгалтерии за прошлые месяцы приходит по направлению целиком. Нажмите «Сейчас».</p>`;
+    }
+    // В 1С люди разложены по бригадам и сменам, а лимит ШР — по крупным
+    // отделам с другими названиями. Где имя совпало — сравниваем с лимитом,
+    // остальным показываем долю в ФОТ направления; лимиты ШР — строкой ниже.
+    const limity = new Map((n["цель_отделы"] || []).map((o) => [o["отдел"], o]));
+    const vsego = otdely.reduce((sum, o) => sum + (o["фот"] || 0), 0) || 1;
+    const maks = Math.max(...otdely.map((o) => o["фот"] || 0), 1);
+    const stroki = otdely.map((o) => {
+      const l = limity.get(o["отдел"]);
+      const cel = l ? l["фот"] || 0 : 0;
+      const raznica = cel - (o["фот"] || 0);
+      return `
+        <div class="fsRow${cel && raznica < 0 ? " is-nad" : ""}">
+          <div class="fsRow__imya"><b>${esc(o["отдел"])}</b>
+            <span>${o["человек"] || 0} чел.${l && l["человек"] ? ` · ${l["человек"]} ${slovo(l["человек"], ["ставка", "ставки", "ставок"])}` : ""}${o["отсутствуют"] ? ` · отсутствуют ${o["отсутствуют"]}` : ""}</span></div>
+          <div class="fsRow__polosa">${cel ? polosa(o["фот"] || 0, cel, null)
+            : `<div class="fsPolosa is-bez"><i class="fsPolosa__fot" style="width:${((o["фот"] || 0) / maks * 100).toFixed(1)}%"></i></div>`}</div>
+          <div class="fsRow__cifry">
+            <span><b>${mln(o["фот"])}</b>${cel ? ` / ${mln(cel)}` : ""}</span>
+            <em class="fsChip ${cel ? (raznica < 0 ? "is-nad" : "is-ok") : ""}">${cel ? (raznica < 0 ? "сверх " : "запас ") + mln(Math.abs(raznica))
+              : `${Math.round((o["фот"] || 0) / vsego * 100)}% направления`}</em>
+          </div>
+        </div>`;
+    }).join("");
+    const bezPary = [...limity.values()].filter((l) => !otdely.some((o) => o["отдел"] === l["отдел"]));
+    return stroki + (bezPary.length ? `<p class="fsRow__fondy">Лимит по ШР задан крупнее, чем бригады в 1С: ${
+      bezPary.map((l) => `${esc(l["отдел"])} — ${mln(l["фот"])} млн, ${l["человек"] || 0} ${slovo(l["человек"] || 0, ["ставка", "ставки", "ставок"])}`).join(" · ")
+    }. Всего по направлению — ${mln(n["цель_фот"])} млн.</p>` : "");
+  }
+
   /* ── экран ────────────────────────────────────────────────────────── */
 
   function narisovat(koren, s) {
     const { data, god, period, tekushchiy, pravka, shr } = s;
-    const i = data["итого"] || {};
-    const spisok = (data["направления"] || []).filter((n) => n["человек"] || n["цель_фот"] || n["фот"]);
+    // Выбранное направление (28.09.2026, Степан: «не могу выбрать отдел, чтоб
+    // смотреть только его разрез»): вся страница — карточка, график, разрез —
+    // считается по нему; «Все» возвращает свод.
+    const vse = (data["направления"] || []).filter((n) => n["человек"] || n["цель_фот"] || n["фот"]);
+    const sel = s.napr ? (data["направления"] || []).find((n) => n["направление"] === s.napr) || null : null;
+    const i = sel ? {
+      ...sel,
+      "цель_сравнимая": sel["цель_сравнимая"] ?? sel["цель_фот"],
+      "вручную": sel["цель_источник"] === "вручную" ? 1 : 0,
+      "без_данных": (sel["месяцы"] || []).filter((t) => t["фот"] == null).map((t) => t["месяц"]),
+    } : (data["итого"] || {});
+    const spisok = vse;
+    const godMes = !god ? [] : s.napr
+      ? ((god["направления"] || []).find((n) => n["направление"] === s.napr)?.["месяцы"] || [])
+      : (god["месяцы"] || []);
+    const imenaNapr = [...new Set(((god && god["направления"]) || data["направления"] || [])
+      .filter((n) => n["человек"] || n["фот"] || n["цель_фот"]).map((n) => n["направление"]))];
     const mozhno = data["можно"] || {};
     const sravn = i["цель_сравнимая"] ?? i["цель_фот"] ?? 0;
     const zapas = sravn - (i["фот"] || 0);
@@ -167,7 +281,7 @@
     const seychas = period === tekushchiy;
     const bez = i["без_данных"] || [];
     const bezTekst = bez.map((m) => MES_ROD[Number(m.slice(5, 7)) - 1]).join(", ");
-    const vidy = [...new Set((data["месяцы"] || []).map((m) => m["вид"]))].filter((v) => v !== "нет данных");
+    const vidy = [...new Set(((sel ? sel["месяцы"] : null) || data["месяцы"] || []).map((m) => m["вид"]))].filter((v) => v !== "нет данных");
     const estDannye = vidy.length > 0 && i["фот"] != null;
     const nad = estDannye && estLimit && zapas < 0;
     const god4 = tekushchiy.slice(0, 4);
@@ -193,10 +307,15 @@
           </div>
         </div>` : ""}
 
+        <nav class="fsNapr" aria-label="Направление">
+          <button type="button" class="${s.napr ? "" : "is-on"}" data-napr-vybor="">Все направления</button>
+          ${imenaNapr.map((imya) => `<button type="button" class="${s.napr === imya ? "is-on" : ""}" data-napr-vybor="${esc(imya)}">${esc(imya)}</button>`).join("")}
+        </nav>
+
         <section class="fsOverview${nad ? " is-nad" : ""}">
           <div class="fsOverview__main">
             <div class="fsOverview__top">
-              <span class="fsOverview__eyebrow">${vidy.length === 1 && vidy[0] === "факт" ? "ФОТ за период" : "Прогноз полного ФОТ"}</span>
+              <span class="fsOverview__eyebrow">${vidy.length === 1 && vidy[0] === "факт" ? "ФОТ за период" : "Прогноз полного ФОТ"}${sel ? ` · ${esc(sel["направление"])}` : ""}</span>
               <span class="fsOverview__period">${esc(zagolovok)} · ${vidy.map((v) => VID[v]).join(" + ") || "нет данных"}</span>
             </div>
             <div class="fsOverview__figure">${estDannye ? `<b data-schet="${i["фот"] || 0}">0</b><span>млн ₽</span>` : "<b>—</b>"}</div>
@@ -234,7 +353,7 @@
               <button type="button" class="${seychas ? "is-on" : ""}" data-period="${tekushchiy}">Сейчас</button>
             </div>
           </div>
-          ${godGrafik(god, period, tekushchiy)}
+          ${godGrafik(godMes, period, tekushchiy)}
           <div class="fsLegenda">
             <span><i class="k k--fakt"></i>факт бухгалтерии</span>
             <span><i class="k k--prognoz"></i>прогноз месяца</span>
@@ -246,10 +365,10 @@
 
         <section class="fsBlok">
           <div class="fsBlok__head">
-            <h3>По направлениям</h3>
+            <h3>${sel ? `По отделам · ${esc(sel["направление"])}` : "По направлениям"}</h3>
             <span class="fs__sub">${pravka ? `лимит на ${esc(zagolovok)}, млн ₽` : "ФОТ / лимит, млн ₽"}</span>
           </div>
-          ${spisok.map((n) => {
+          ${sel && !pravka ? razrezOtdelov(sel, seychas) : spisok.map((n) => {
             const cel = n["цель_сравнимая"] ?? n["цель_фот"] ?? 0;
             const raznica = cel - (n["фот"] || 0);
             const bezLimita = !n["цель_фот"];
@@ -257,7 +376,7 @@
             const mes = n["месяцы"] || [];
             const netDannyh = mes.length > 0 && mes.every((t) => t["фот"] == null);
             return `
-            <div class="fsRow${!bezLimita && !netDannyh && raznica < 0 ? " is-nad" : ""}">
+            <div class="fsRow${!bezLimita && !netDannyh && raznica < 0 ? " is-nad" : ""}${pravka ? "" : " is-klik"}"${pravka ? "" : ` data-napr-vybor="${esc(n["направление"])}" title="Показать только это направление"`}>
               <div class="fsRow__imya">
                 <b>${esc(n["направление"])}</b>
                 <span>${n["человек"] || 0} чел.${n["цель_человек"] ? ` · ${n["цель_человек"]} ${slovo(n["цель_человек"],
@@ -437,6 +556,13 @@
     };
 
     koren.addEventListener("click", async (event) => {
+      const napr = event.target.closest("[data-napr-vybor]");
+      if (napr && !event.target.closest("input, label")) {
+        s.napr = napr.dataset.naprVybor || null;
+        s.anim = true;
+        narisovat(koren, s);
+        return;
+      }
       const period = event.target.closest("[data-period]");
       if (period) {
         perejti(period.dataset.period);
