@@ -324,7 +324,8 @@ button.total__label:hover { color: #fff; }
   padding: 0; border: 0; background: transparent; box-shadow: none;
 }
 
-.funnelWrap[data-tema="svet"] {
+.funnelWrap[data-tema="svet"],
+body.is-svetlo .funnelWrap {
   --vt-card: #ffffff;
   --vt-line: #d3dce8;
   --vt-text: #10203a;
@@ -714,3 +715,8 @@ body.is-svetlo .topbar .brand, body.is-svetlo .topbar .brand span { color: var(-
    страницы чуть темнее, у блоков чёткая рамка и тень. */
 body.is-svetlo { --bg: #e3e9f1; }
 html:has(body.is-svetlo) { background: #e3e9f1 !important; }
+
+/* 28.09: на светлой теме nav.js затемнял квадрат «План месяца» фильтром целиком (класс sv-deep) —
+   фон становился бурым. Значку фильтр не нужен: свой тёмно-янтарный цвет. */
+body.is-svetlo .vtPlitka__znak.sv-deep, body.is-svetlo .vtZakr__znak.sv-deep, body.is-svetlo .vtItog__znak.sv-deep { filter: none; }
+body.is-svetlo .vtPlitka--plan .vtPlitka__znak { color: #b36b00; }
