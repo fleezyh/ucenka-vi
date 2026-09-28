@@ -111,12 +111,14 @@
       </div>
       <div class="tsdPrichiny">${(y.причины || []).map((p) => `<button class="tsdPrichina${p === prichina ? " is-on" : ""}" type="button" data-prichina="${esc(p)}">${esc(p)}</button>`).join("")}</div>
       <input class="tsdKomment" id="tsdKomment" placeholder="Комментарий, если нужно">
-      <button class="tsdKrasnaya" type="button" id="tsdKrasnaya"${prichina ? "" : " disabled"}>БРАК В ЯЧЕЙКЕ</button>`;
+      <button class="tsdKrasnaya" type="button" id="tsdKrasnaya"${prichina ? "" : " disabled"}>БРАК В ЯЧЕЙКЕ</button>
+      ${window.WmsDeystviya && !DEMO ? '<button class="tsdPrichina" type="button" id="tsdUz" style="width:100%;margin-top:8px">Универсальное задание в WMS</button>' : ""}`;
   }
 
   async function skan(kod) {
     kod = String(kod || "").trim();
     if (!kod) return;
+    if (el("tsdUzHost")) el("tsdUzHost").innerHTML = "";
     prichina = "";
     el("tsdYacheyka").innerHTML = '<p class="tsdPusto">Ищу ячейку…</p>';
     try {
@@ -271,4 +273,12 @@
   }
   obnovitSchetchik();
   setInterval(() => { if (vkladka === "uborka") narisovatUborku(); else obnovitSchetchik(); }, 60000);
+  // «Сделать в WMS» (28.09): то же окно универсального задания, что в пикалке (wms-deystviya.js).
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest("#tsdUz") || !tekushaya || !window.WmsDeystviya) return;
+    let host = el("tsdUzHost");
+    if (!host) { host = document.createElement("div"); host.id = "tsdUzHost"; el("tsdYacheyka").insertAdjacentElement("afterend", host); }
+    window.WmsDeystviya.uz(host, { yacheyka: `CEL ${tekushaya.id}`, otkuda: "тсд", podpis: tekushaya.имя });
+    host.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  });
 })();

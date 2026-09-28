@@ -221,7 +221,22 @@
     if (vkl) kartochka.style.display = "flex";
   }
 
+  // «Сделать в WMS» (28.09): универсальное задание — общий блок с ТСД (wms-deystviya.js).
+  function wmsHost() {
+    let h = document.getElementById("wmsDHost");
+    if (!h) { h = document.createElement("div"); h.id = "wmsDHost"; box.insertAdjacentElement("afterend", h); }
+    return h;
+  }
+  function wmsZakryt() { const h = document.getElementById("wmsDHost"); if (h) h.innerHTML = ""; }
+  function wmsUz(opc) {
+    if (!window.WmsDeystviya) return;
+    const h = wmsHost();
+    window.WmsDeystviya.uz(h, { otkuda: "пикалка", ...opc });
+    h.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
   async function otkrytPalletu(kod) {
+    wmsZakryt();
     pal = null; palKrit = ""; palDefekt = ""; palRabota = null; palOshibka = ""; palPer = null; yach = null;
     aktK = null; istP = null;
     tovar = null; gotovo = null; zhdemPalletu = null; perItog = null;
@@ -307,6 +322,7 @@
       <div class="palKartaAkt__dva">
         ${palPer ? "" : `<button type="button" class="aktPs__kn" data-pkk="peremestit">Переместить паллету</button>`}
         <button type="button" class="aktPs__kn" data-pkk="istoriya">История</button>
+        <button type="button" class="aktPs__kn" data-pkk="uz">Универсальное задание</button>
       </div>
     </div>`;
   }
@@ -517,6 +533,7 @@
   }
 
   async function otkrytYacheyku(kod) {
+    wmsZakryt();
     aktK = null;
     yach = { zhdu: true, kod };
     pal = null; tovar = null; vRezhimPalety(true);
@@ -525,7 +542,7 @@
       const o = await fetch(`/__yacheyka/karta?kod=${encodeURIComponent(kod)}`, { cache: "no-store" });
       const d = await o.json().catch(() => ({}));
       if (!o.ok) throw new Error(d.ошибка || `сервер ответил ${o.status}`);
-      yach = d;
+      yach = { ...d, kod };
     } catch (e) {
       yach = { oshibka: e.message || String(e), kod };
     }
@@ -539,6 +556,7 @@
     box.innerHTML = `<header class="aktPs__shapka">
         <div><p class="aktPs__nad">${esc(y.ячейка)}</p>
           <p class="aktPs__rezhim">${esc(y.зона)}${y.склад ? ` · ${esc(y.склад)}` : ""}</p></div>
+        <button type="button" class="aktPs__kn" data-yach-uz="1">Универсальное задание</button>
       </header>
       <div class="palKartaAkt__fakty">
         <span><b>${y.паллеты.length}</b> паллет</span><span><b>${y.штук}</b> шт</span>
@@ -638,6 +656,7 @@
   }
 
   document.addEventListener("picker:hit", (e) => {
+    wmsZakryt();
     tovar = e.detail; reshenie = ""; defekt = ""; krit = ""; gotovo = null; oshibkaAkta = "";
     aktK = null; gdeT = null; yach = null; vozvrat = null; vyborStola = false;
     zagruzitTovar(tovar);
@@ -848,11 +867,13 @@
       tovar = v.tovar; gdeT = v.gdeT; aktyT = v.aktyT; reshenie = v.reshenie;
       return risovat();
     }
+    if (e.target.closest("[data-yach-uz]") && yach && yach.kod) { wmsUz({ yacheyka: yach.kod, podpis: yach.ячейка }); return; }
     const po = e.target.closest("[data-pal-otkryt]");
     if (po && po.dataset.palOtkryt) { zapomnit(); otkrytPalletu(po.dataset.palOtkryt); return; }
     const pkk = e.target.closest("[data-pkk]");
     if (pkk && pal) {
       if (pkk.dataset.pkk === "excel") sostavVExcel();
+      if (pkk.dataset.pkk === "uz") wmsUz({ palleta: `CON ${String(pal.паллета_id || "").padStart(10, "0")}`, podpis: (palKarta && palKarta.паллета) || pal.паллета });
       if (pkk.dataset.pkk === "peremestit") { palPer = { zhdem: true }; risovat(); vFokus(); }
       if (pkk.dataset.pkk === "istoriya" || pkk.dataset.pkk === "istoriya60") {
         const dney = pkk.dataset.pkk === "istoriya60" ? 60 : 10;
