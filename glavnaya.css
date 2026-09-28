@@ -207,3 +207,6 @@ button.pvPomosh { font: 600 15px "VI Sans", system-ui, sans-serif; cursor: point
 .pvI.pvZakryto { opacity: .45; cursor: not-allowed; }
 .pvG--zakryt { opacity: .55; }
 .pvG--zakryt:hover { transform: none; }
+/* 28.09: блок — по центру экрана, а не прижат к верху. */
+.pv .pvShell { min-height: calc(100vh - 110px); justify-content: center; padding-top: 0; }
+.pv .pvGg { flex: 0 0 auto; }
