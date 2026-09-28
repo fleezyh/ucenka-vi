@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#06090e">
+  <title>Уценка · Хитмап · биржевой вид (тест)</title>
+  <link rel="icon" type="image/svg+xml" href="../assets/brand/vi-mark.svg">
+  <link rel="preload" href="../assets/fonts/VI_Sans_DemiBold.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="birzha.css?v=20260929-1">
+  <!-- Тестовый вид (29.09.2026): те же плитки и данные, что у обычного хитмапа,
+       только раскладкой «как на бирже» — квадраты по блокам, размер = важность,
+       цвет = насколько факт лучше или хуже цели. Обычный хитмап не трогаем. -->
+  <script src="metodika.js?v=20260928-1" defer></script>
+  <script src="birzha.js?v=20260929-1" defer></script>
+</head>
+<body>
+  <header class="bar">
+    <a class="brand" href="../" aria-label="Уценка — главная">
+      <img src="../assets/brand/vi-mark.svg" alt="" width="28" height="28">
+      <span>Хитмап уценки</span>
+    </a>
+    <span class="tag">биржевой вид · тест</span>
+    <label class="period"><span>Период</span><select id="period"></select></label>
+    <div class="legend" aria-label="Шкала цвета">
+      <span>хуже цели</span>
+      <i class="c-r3">≥10%</i><i class="c-r2">2–10%</i><i class="c-r1">&lt;2%</i>
+      <i class="c-a">на грани</i><i class="c-n">справочно</i>
+      <i class="c-g1">&lt;2%</i><i class="c-g2">2–10%</i><i class="c-g3">≥10%</i>
+      <span>лучше цели</span>
+    </div>
+    <span class="stamp" id="stamp"></span>
+    <a class="back" href="./" id="back">обычный вид</a>
+  </header>
+
+  <p class="message" id="message">Загружаю показатели…</p>
+  <main class="map" id="map" aria-label="Показатели квадратами"></main>
+  <p class="note">Размер квадрата — важность показателя: с целью — крупнее, справочные — мельче.
+    Цвет — отклонение от цели в процентах от цели, чем ярче — тем дальше. Клик — история по дням
+    и откуда число, Escape закрывает.</p>
+
+  <div class="scrim" id="scrim" hidden></div>
+  <aside class="drawer" id="drawer" aria-hidden="true">
+    <div class="drawer__head">
+      <div><p class="drawer__block" id="drBlock"></p><h2 id="drTitle"></h2></div>
+      <button type="button" class="drawer__close" id="drClose" aria-label="Закрыть">✕</button>
+    </div>
+    <div class="drawer__body" id="drBody"></div>
+  </aside>
+</body>
+</html>
