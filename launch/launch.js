@@ -45,126 +45,165 @@
   const escape = (text) => String(text ?? "").replace(/[&<>"]/g,
     (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
 
-  /* Одна плитка карты держит всё, что нужно знать про зону: имя, id в WMS,
-     сколько ячеек, чем питается и чего не хватает. Клик ничего не раскрывает
-     — раскрывать нечего, он только подсвечивает узел и его строку в списке
-     работ, чтобы не искать глазами. */
-  function nodeTile(node) {
+  /* ── Карта потока (29.09.2026) ───────────────────────────────────────────
+     Оммаж карте движения из Superset: буфер приёмки слева, от него
+     вертикальный хребет раздаёт товар по четырём контурам, вдоль контура —
+     цепочка узлов. Стиль — наш новый: тёмные карточки, свечение контура.
+     Стрелки живые: по связи, где за 30 дней шёл товар, бегут огоньки — чем
+     больше прошло, тем их больше и тем быстрее. Пустая связь — тусклый
+     пунктир. Обход схемы (товар мимо столов) — красной дугой поверх ряда. */
+
+  const CVET = { priemka: "#5ec8f2", presort: "#f5ad32", repack: "#ff8a4c", ucenka: "#8f7cff", util: "#27c46b" };
+  const ISTOCHNIKI = [85536, 85537, 85524];
+  const KOREN = 85529;
+  const tiho = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
+  function nodeCard(node, cvet) {
     const isPicked = picked === node.зона;
-    const parts = [];
-
-    parts.push(`<span class="tile__head">` +
-      `<span class="tile__name">${escape(node.название)}</span>` +
-      `<span class="tile__zone">id ${node.зона}</span>` +
-    `</span>`);
-
-    /* Главное число узла — остаток: сколько лежит в зоне прямо сейчас. Так же
-       устроена карта в Superset, и это правильно: узел — место хранения, а не
-       счётчик прихода. Пока склад не запущен, остатка нигде нет, и на первый
-       план выходит готовность — сколько ячеек нарезано. */
-    if (node.остаток > 0) {
-      parts.push(`<span class="tile__value">${nice(node.остаток)}</span>` +
-        `<span class="tile__unit">штук лежит · ${nice(node.ячеек)} ` +
-        `${plural(node.ячеек, CELL_WORDS)}</span>`);
-    } else if (node.статус !== "пусто") {
-      parts.push(`<span class="tile__value">${nice(node.ячеек)}</span>` +
-        `<span class="tile__unit">${plural(node.ячеек, CELL_WORDS)} · пусто</span>`);
-    } else {
-      parts.push(`<span class="tile__value tile__value--empty">нет</span>` +
-        `<span class="tile__unit">ячеек не заведено</span>`);
-    }
-
-    if (node.штук_месяц) {
-      parts.push(`<span class="tile__flow">прошло за 30 дней: ${nice(node.штук_месяц)}</span>`);
-    }
-
-    parts.push(`<span class="tile__full">${escape(node.полное)}</span>`);
-    parts.push(`<span class="tile__hint">${escape(node.пояснение)}</span>`);
-
-    if (node.надо) {
-      const reference = node.надо.эталон
-        ? ` · на ДМД ${nice(node.надо.эталон)}`
-        : "";
-      parts.push(`<span class="tile__need">Завести: ${escape(node.надо.что)}${reference}</span>`);
-    } else if (node.статус === "готово" && node.эталон) {
-      parts.push(`<span class="tile__ref">на ДМД ${nice(node.эталон)} ` +
-        `${plural(node.эталон, CELL_WORDS)}</span>`);
-    }
-
-    if (node.первое) {
-      parts.push(`<span class="tile__ref">первое движение ${niceDate(node.первое)}</span>`);
-    }
-
-    return (
-      `<button class="tile is-${node.статус}${isPicked ? " is-picked" : ""}" type="button" ` +
-        `data-zone="${node.зона}" aria-pressed="${isPicked}">${parts.join("")}</button>`
-    );
-  }
-
-  /* Ряд контура. Узлы стоят по колонкам карты, а не подряд: если у контура
-     нет узла в колонке — там остаётся пустое место со стрелкой, и видно, что
-     этап пропущен, а не просто «короткий контур». */
-  function contourRow(contour, columns) {
-    const byColumn = new Map();
-    contour.узлы.forEach((node) => {
-      if (node.колонка === "приёмка") return;      // приёмка стоит отдельно, слева
-      byColumn.set(node.колонка, node);
-    });
-
-    /* Стрелка между узлами несёт число: сколько прошло по этой связи за 30
-       дней. Это второй слой карты — узлы говорят, где лежит, связи говорят,
-       куда течёт. Связь ищем по паре зон, а не по позиции: если этап
-       пропущен, стрелка всё равно свяжет соседей по факту. */
-    let previous = entryZone;      // слева от первой колонки стоит приёмка
-    const cells = columns.map((column) => {
-      const node = byColumn.get(column.ключ);
-      if (!node) return `<div class="slot is-blank"><span class="link" aria-hidden="true"></span></div>`;
-      const flow = flowBetween(previous, node.зона);
-      const label = flow ? `<span class="link__num">${nice(flow)}</span>` : "";
-      previous = node.зона;
-      return `<div class="slot"><span class="link">${label}</span>${nodeTile(node)}</div>`;
-    }).join("");
-
-    const done = contour.узлы.filter((node) => node.статус !== "пусто").length;
-    return (
-      `<div class="rowLabel">` +
-        `<b>${escape(contour.название)}</b>` +
-        `<span>${escape(contour.пояснение)}</span>` +
-        `<em>${done} из ${contour.узлы.length}</em>` +
-      `</div>` +
-      cells
-    );
+    const glavnoe = node.остаток > 0
+      ? `<b class="fx__num">${nice(node.остаток)}</b><span class="fx__sub">штук лежит · ${nice(node.ячеек)} ${plural(node.ячеек, CELL_WORDS)}</span>`
+      : node.статус !== "пусто"
+        ? `<b class="fx__num">${nice(node.ячеек)}</b><span class="fx__sub">${plural(node.ячеек, CELL_WORDS)} · пусто</span>`
+        : `<b class="fx__num fx__num--net">нет ячеек</b><span class="fx__sub">${node.надо ? `на ДМД ${nice(node.надо.эталон)}` : "работать негде"}</span>`;
+    const potok = node.штук_месяц
+      ? `<span class="fx__flow">+${nice(node.штук_месяц)} за 30 дн.${node.штук_сутки ? ` · <em>+${nice(node.штук_сутки)} за сутки</em>` : ""}</span>` : "";
+    return `
+      <button class="fx is-${node.статус}${isPicked ? " is-picked" : ""}" type="button" data-zone="${node.зона}"
+              style="--c:${cvet}" aria-pressed="${isPicked}" title="${escape(node.полное)} · id ${node.зона}&#10;${escape(node.пояснение)}">
+        <span class="fx__glow" aria-hidden="true"></span>
+        <span class="fx__name"><i class="fx__dot"></i>${escape(node.название)}</span>
+        ${glavnoe}${potok}
+      </button>`;
   }
 
   function mapBlock(data) {
-    // Приёмка общая для всех контуров: она одна, и от неё товар расходится.
-    // Поэтому стоит слева отдельной колонкой во всю высоту карты.
-    const priemka = (data.контуры || []).find((c) => c.ключ === "priemka");
-    const flows = (data.контуры || []).filter((c) => c.ключ !== "priemka");
-    const columns = (data.колонки || []).filter((c) => c.ключ !== "приёмка");
+    const kontury = data.контуры || [];
+    const vse = new Map(kontury.flatMap((c) => c.узлы.map((n) => [n.зона, { ...n, _c: CVET[c.ключ] || "#8f9cad" }])));
+    const kolonki = ["вход", "столы", "контроль", "хранение", "отгрузка"];
+    const nazv = { вход: "Буферы входа", столы: "Столы", контроль: "Контроль и выход", хранение: "Хранение", отгрузка: "Отгрузка" };
+    const ryady = kontury.filter((c) => c.ключ !== "priemka");
 
-    const heads = `<div class="head head--label"></div>` +
-      `<div class="head head--in">Приёмка</div>` +
-      columns.map((column) => `<div class="head">${escape(column.название)}</div>`).join("");
+    const istochniki = ISTOCHNIKI.map((z) => vse.get(z)).filter(Boolean)
+      .map((n) => nodeCard(n, n.зона === 85524 ? "#ff6fae" : n._c)).join("");
+    const koren = vse.get(KOREN);
 
-    // Ряды начинаются от буфера приёмки: он и есть общий вход площадки.
-    entryZone = priemka
-      ? (priemka.узлы.find((node) => node.колонка === "приёмка") || {}).зона ?? null
-      : null;
+    const stroki = ryady.map((c, r) => {
+      const po = new Map(c.узлы.map((n) => [n.колонка, n]));
+      const gotovo = c.узлы.filter((n) => n.статус !== "пусто").length;
+      return `
+        <div class="fxRow" style="grid-row:${r + 2}">
+          <b style="color:${CVET[c.ключ]}">${escape(c.название)}</b><span>${escape(c.пояснение)}</span><em>${gotovo} из ${c.узлы.length} узлов</em>
+        </div>` + kolonki.map((k, i) => {
+        const n = po.get(k);
+        return `<div class="fxCell" style="grid-row:${r + 2};grid-column:${i + 4}">${n ? nodeCard(n, CVET[c.ключ]) : ""}</div>`;
+      }).join("");
+    }).join("");
 
-    const entry = priemka ? (
-      `<div class="entry">` +
-        priemka.узлы.map(nodeTile).join("") +
-      `</div>`
-    ) : `<div class="entry"></div>`;
+    return `
+      <div class="fxMap" style="--rows:${ryady.length}">
+        <div class="fxHead" style="grid-column:1">Контур</div>
+        <div class="fxHead" style="grid-column:2">Откуда</div>
+        <div class="fxHead" style="grid-column:3">Приёмка</div>
+        ${kolonki.map((k, i) => `<div class="fxHead" style="grid-column:${i + 4}">${nazv[k]}</div>`).join("")}
+        <div class="fxSrc" style="grid-row:2 / span ${ryady.length}">${istochniki}</div>
+        <div class="fxRoot" style="grid-row:2 / span ${ryady.length}">${koren ? nodeCard(koren, CVET.priemka) : ""}</div>
+        ${stroki}
+        <svg class="fxLinks" aria-hidden="true"></svg>
+        <div class="fxBadges"></div>
+      </div>`;
+  }
 
-    const rows = flows.map((contour) => contourRow(contour, columns)).join("");
+  /* Стрелки рисуем после раскладки: берём прямоугольники карточек и ведём
+     кривые между ними. На ресайз — перерисовка. */
+  function drawLinks() {
+    const map = mapBox.querySelector(".fxMap");
+    if (!map || !payload) return;
+    const svg = map.querySelector(".fxLinks");
+    const badges = map.querySelector(".fxBadges");
+    const box = map.getBoundingClientRect();
+    svg.setAttribute("viewBox", `0 0 ${box.width} ${box.height}`);
+    svg.setAttribute("width", box.width);
+    svg.setAttribute("height", box.height);
+    const rect = (z) => {
+      const el = map.querySelector(`.fx[data-zone="${z}"]`);
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      return { l: r.left - box.left, r: r.right - box.left, t: r.top - box.top, b: r.bottom - box.top,
+               cy: (r.top + r.bottom) / 2 - box.top, cx: (r.left + r.right) / 2 - box.left };
+    };
+    const cvetUzla = new Map([...map.querySelectorAll(".fx")].map((el) => [Number(el.dataset.zone), el.style.getPropertyValue("--c")]));
+    const defs = `<defs><marker id="fxArr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker></defs>`;
+    let paths = "";
+    let metki = "";
+    let n = 0;
+    const koren = rect(KOREN);
+    const spineX = koren ? koren.r + 26 : 0;
+    let obhodov = 0;
 
-    return (
-      `<div class="mapGrid" style="--flows:${flows.length};--cols:${columns.length}">` +
-        heads + entry + rows +
-      `</div>`
-    );
+    for (const link of payload.связи || []) {
+      if (link.вид === "перекрёстно") continue;
+      const flow = link.штук_месяц || 0;
+      const vid = link.вид;
+      if ((vid === "обход" || vid === "возврат") && !flow) continue;
+      const a = rect(link.от);
+      const b = rect(link.до);
+      if (!a || !b) continue;
+      let d;
+      let mx;
+      let my;
+      if (vid === "ветка" && koren) {
+        // От буфера приёмки — по хребту вниз/вверх и вправо в ряд.
+        const y0 = koren.cy;
+        const r = 10;
+        const dir = b.cy > y0 ? 1 : -1;
+        d = Math.abs(b.cy - y0) < 4
+          ? `M${a.r},${y0} L${b.l - 3},${b.cy}`
+          : `M${a.r},${y0} L${spineX - r},${y0} Q${spineX},${y0} ${spineX},${y0 + dir * r} L${spineX},${b.cy - dir * r} Q${spineX},${b.cy} ${spineX + r},${b.cy} L${b.l - 3},${b.cy}`;
+        mx = (spineX + b.l) / 2; my = b.cy;
+      } else if (vid === "обход") {
+        // По просвету над рядом цели: со входа вправо над узлами и вниз в
+        // хранение или отгрузку. Второй обход идёт чуть выше, чтобы метки не слипались.
+        const yg = b.t - 15 - obhodov * 13;
+        obhodov += 1;
+        d = `M${a.r},${a.cy} C${a.r + 40},${a.cy} ${a.r + 30},${yg} ${a.r + 70},${yg} L${b.cx - 36},${yg} Q${b.cx},${yg} ${b.cx},${b.t - 3}`;
+        mx = b.cx - 150 - (obhodov - 1) * 40; my = yg;
+      } else if (vid === "возврат") {
+        const bot = Math.max(a.b, b.b) + 34;
+        d = `M${a.cx},${a.b} C${a.cx},${bot} ${b.cx},${bot} ${b.cx},${b.b + 3}`;
+        mx = (a.cx + b.cx) / 2; my = bot - 8;
+      } else if (Math.abs(a.cy - b.cy) < 4) {
+        d = `M${a.r},${a.cy} L${b.l - 3},${b.cy}`;
+        mx = (a.r + b.l) / 2; my = a.cy;
+      } else {
+        const x1 = a.r;
+        const x2 = b.l - 3;
+        const k = (x2 - x1) * 0.55;
+        d = `M${x1},${a.cy} C${x1 + k},${a.cy} ${x2 - k},${b.cy} ${x2},${b.cy}`;
+        mx = (x1 + x2) / 2; my = (a.cy + b.cy) / 2;
+      }
+      const id = `fxL${n++}`;
+      const cvet = vid === "обход" ? "#f05d72" : vid === "возврат" ? "#f5ad32" : (cvetUzla.get(link.до) || "#5ec8f2");
+      const zhivoy = flow > 0;
+      // Чем больше прошло, тем быстрее бегут огоньки: 1 шт — 6 с на путь, 5 000 — ~1,5 с.
+      const skorost = zhivoy ? Math.max(1.2, 6 - Math.log10(flow + 1) * 1.2) : 0;
+      paths += `<path id="${id}" class="fxLink${zhivoy ? " is-live" : ""} fxLink--${vid}" d="${d}" style="--c:${cvet};--sp:${skorost.toFixed(2)}s" marker-end="url(#fxArr)"/>`;
+      if (zhivoy && !tiho) {
+        const iskr = Math.min(6, 1 + Math.round(Math.log10(flow + 1) * 1.2));
+        for (let i = 0; i < iskr; i++) {
+          paths += `<circle class="fxSpark" r="${vid === "обход" ? 3.8 : 3.2}" style="--c:${cvet}">`
+            + `<animateMotion dur="${skorost.toFixed(2)}s" begin="${(-skorost * i / iskr).toFixed(2)}s" repeatCount="indefinite"><mpath href="#${id}"/></animateMotion></circle>`;
+        }
+      }
+      if (zhivoy || vid !== "ветка") {
+        metki += `<span class="fxBadge${zhivoy ? " is-live" : ""}${vid === "обход" ? " is-obhod" : ""}" style="left:${mx.toFixed(0)}px;top:${my.toFixed(0)}px;--c:${cvet}"
+          title="${escape(link.от_имя)} → ${escape(link.до_имя)}: ${nice(flow)} шт за 30 дней, ${nice(link.штук_сутки)} за сутки">`
+          + `${vid === "обход" ? "в обход столов · " : vid === "возврат" ? "обратно · " : ""}${nice(flow)}`
+          + `${link.штук_сутки ? `<em>+${nice(link.штук_сутки)}</em>` : ""}</span>`;
+      }
+    }
+    svg.innerHTML = defs + paths;
+    badges.innerHTML = metki;
   }
 
   function readyBlock(data) {
@@ -264,6 +303,7 @@
     readyBox.innerHTML = readyBlock(payload);
     readyBox.hidden = false;
     mapBox.innerHTML = mapBlock(payload);
+    requestAnimationFrame(drawLinks);
     todoBox.innerHTML = todoBlock(payload);
     todoBox.hidden = !todoBox.innerHTML;
   }
@@ -274,8 +314,10 @@
     render();
   }
 
+  if (window.ResizeObserver) new ResizeObserver(() => drawLinks()).observe(mapBox);
+
   mapBox.addEventListener("click", (event) => {
-    const tile = event.target.closest(".tile");
+    const tile = event.target.closest(".fx");
     if (tile) pick(Number(tile.dataset.zone));
   });
 

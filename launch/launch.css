@@ -291,3 +291,106 @@
   .todoRow { grid-template-columns: minmax(0, 1fr); }
   .todoRow__ref { text-align: left; }
 }
+
+/* ── Навигация раздела (29.09.2026): на этой странице не было её стилей —
+   «Показатели · Паноптикум · Данилово · Приёмка» висели голыми ссылками. */
+.perfViews { display: inline-flex; gap: 4px; padding: 4px; border: 1px solid var(--line); border-radius: 13px; background: rgba(8, 13, 20, 0.72); }
+.perfView { padding: 8px 14px; border-radius: 9px; color: var(--muted); font-size: 13px; font-weight: 600; text-decoration: none; }
+.perfView:hover { color: var(--text); }
+.perfView.is-on { color: #fff; background: rgba(255, 255, 255, 0.12); }
+
+/* ── Карта потока (29.09.2026) — оммаж карте Superset в новом стиле ─────── */
+.fxMap {
+  position: relative;
+  display: grid;
+  grid-template-columns: 150px 190px 190px repeat(5, minmax(170px, 1fr));
+  grid-template-rows: auto repeat(var(--rows), minmax(138px, auto));
+  column-gap: 34px;
+  row-gap: 30px;
+  min-width: 1480px;
+  padding: 34px 6px 34px;
+}
+.fxHead { grid-row: 1; padding-bottom: 8px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+.fxRow { grid-column: 1; display: flex; flex-direction: column; justify-content: center; gap: 4px; }
+.fxRow b { font-size: 15px; }
+.fxRow span { color: var(--muted); font-size: 12px; line-height: 1.35; }
+.fxRow em { align-self: flex-start; margin-top: 4px; padding: 2px 8px; border-radius: 99px; background: rgba(255, 255, 255, 0.06); color: var(--muted); font-size: 11px; font-style: normal; }
+.fxSrc { grid-column: 2; display: flex; flex-direction: column; justify-content: center; gap: 26px; z-index: 2; }
+.fxRoot { grid-column: 3; display: flex; align-items: center; z-index: 2; }
+.fxCell { display: flex; align-items: center; z-index: 2; }
+.fxCell:empty::before { content: ""; width: 100%; height: 1px; border-top: 1px dashed rgba(255, 255, 255, 0.1); }
+
+.fx {
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 13px 14px 12px;
+  border: 1px solid color-mix(in srgb, var(--c) 34%, transparent);
+  border-radius: 16px;
+  background:
+    radial-gradient(120% 90% at 0% 0%, color-mix(in srgb, var(--c) 22%, transparent), transparent 62%),
+    linear-gradient(180deg, rgba(20, 29, 42, 0.96), rgba(9, 14, 22, 0.96));
+  box-shadow: 0 14px 34px -22px color-mix(in srgb, var(--c) 70%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+.fx:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--c) 70%, transparent); }
+.fx.is-picked { border-color: var(--c); box-shadow: 0 0 0 1px var(--c), 0 18px 40px -18px var(--c); }
+.fx__glow { position: absolute; inset: -40% -20% auto auto; width: 120px; height: 120px; border-radius: 50%; background: var(--c); opacity: 0.08; filter: blur(30px); pointer-events: none; }
+.fx__name { display: flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 600; line-height: 1.25; }
+.fx__dot { flex: 0 0 7px; width: 7px; height: 7px; border-radius: 50%; background: var(--c); box-shadow: 0 0 10px var(--c); }
+.fx__num { font-size: 26px; font-weight: 700; line-height: 1.05; letter-spacing: -0.01em; }
+.fx__num--net { color: #ff8a9a; font-size: 17px; }
+.fx__sub { color: var(--muted); font-size: 11.5px; }
+.fx__flow { margin-top: 2px; color: color-mix(in srgb, var(--c) 70%, #fff); font-size: 11.5px; font-weight: 600; }
+.fx__flow em { color: #fff; font-style: normal; }
+.fx.is-пусто { border-style: dashed; border-color: rgba(240, 93, 114, 0.45); }
+.fx.is-пусто .fx__dot { background: #f05d72; box-shadow: 0 0 10px #f05d72; animation: fxMig 1.6s ease-in-out infinite; }
+.fx.is-готово .fx__dot { box-shadow: none; opacity: 0.6; }
+.fx.is-работает .fx__dot { animation: fxPuls 1.8s ease-in-out infinite; }
+
+.fxLinks { position: absolute; inset: 0; z-index: 1; overflow: visible; pointer-events: none; }
+.fxLink { fill: none; stroke: rgba(160, 190, 230, 0.3); stroke-width: 1.6; stroke-dasharray: 4 6; }
+.fxLink.is-live {
+  stroke: var(--c);
+  stroke-width: 2.4;
+  stroke-dasharray: 12 8;
+  filter: drop-shadow(0 0 5px var(--c));
+  animation: fxBeg var(--sp) linear infinite;
+  opacity: 0.85;
+}
+.fxLink--обход.is-live { stroke-width: 3; stroke-dasharray: 10 6; }
+.fxSpark { fill: #fff; filter: drop-shadow(0 0 6px var(--c)) drop-shadow(0 0 3px var(--c)); }
+
+.fxBadges { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
+.fxBadge {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  padding: 3px 9px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 99px;
+  background: rgba(8, 13, 20, 0.92);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  pointer-events: auto;
+}
+.fxBadge.is-live { border-color: color-mix(in srgb, var(--c) 60%, transparent); color: #fff; box-shadow: 0 0 14px -4px var(--c); }
+.fxBadge.is-obhod { background: rgba(60, 12, 20, 0.95); color: #ffb3bf; }
+.fxBadge em { margin-left: 6px; color: color-mix(in srgb, var(--c) 60%, #fff); font-style: normal; }
+
+@keyframes fxBeg { to { stroke-dashoffset: -40; } }
+@keyframes fxPuls { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.6); opacity: 0.55; } }
+@keyframes fxMig { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+@media (prefers-reduced-motion: reduce) {
+  .fxLink.is-live, .fx__dot { animation: none !important; }
+}
+body.is-svetlo .fx { background: linear-gradient(180deg, #fff, #f3f6fa); }
+body.is-svetlo .fxBadge { background: #fff; color: #334; }
