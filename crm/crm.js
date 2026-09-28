@@ -2147,6 +2147,7 @@
         Паллеты лота подставляются сами, пломбы, состав и себестоимость — тоже.</p>
       <form class="crmForma" id="crmFormaSoglas">
         <label class="crmPole"><span>Дата отгрузки</span><input type="date" name="дата" required value="${zavtra}"></label>
+        <label class="crmPole"><span>Ворота</span><input name="ворота" placeholder="если известны"></label>
         <label class="crmPole crmPole--shirokoe"><span>Паллеты лота · <i data-otkuda>подбираю по заказам лота…</i></span>
           <textarea name="паллеты" rows="8" required></textarea></label>
         <label class="crmPole crmPole--shirokoe"><span>Комментарий</span><input name="комментарий" placeholder="если нужно"></label>
@@ -2189,7 +2190,7 @@
         const otvet = await fetch("/__soglas", {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ действие: "создать", лот: z.nomer, дата: f.get("дата"),
-            паллеты: f.get("паллеты"), комментарий: f.get("комментарий") }),
+            паллеты: f.get("паллеты"), комментарий: f.get("комментарий"), ворота: f.get("ворота") }),
         });
         const d = await otvet.json().catch(() => ({}));
         if (!otvet.ok) throw new Error(d.ошибка || `сервер ответил ${otvet.status}`);

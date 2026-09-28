@@ -177,3 +177,52 @@ body.is-svetlo .dvkRyad { background: #fff; border-color: rgba(16, 32, 58, .1); 
 .dvkOkno__doc h2 .dvkChip { font-size: 12px; vertical-align: middle; margin-left: 6px; }
 .dvkTabl--okno tr.is-bez td:first-child { box-shadow: inset 3px 0 0 #f05d72; }
 @media (max-width: 760px) { .dvkSluzhby { grid-template-columns: 1fr; } }
+
+/* путь лота из четырёх шагов (28.09): точки в карточке и шаги в окне */
+.is-sin { color: #4d8df7; }
+.dvkPut { display: flex; align-items: center; margin: 4px 0 2px; }
+.dvkPut__t { position: relative; display: grid; justify-items: center; gap: 4px; flex: 1; font-size: 11px; color: var(--muted); }
+.dvkPut__t::before { content: ""; position: absolute; top: 5px; left: -50%; width: 100%; height: 2px; background: rgba(255, 255, 255, .1); z-index: 0; }
+.dvkPut__t:first-child::before { display: none; }
+.dvkPut__t i { position: relative; z-index: 1; width: 12px; height: 12px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, .22); background: #0f1621; box-sizing: border-box; }
+.dvkPut__t b { font-weight: 600; }
+.dvkPut__t.is-ok { color: #6fe0a0; }
+.dvkPut__t.is-ok i { background: #27c46b; border-color: #27c46b; }
+.dvkPut__t.is-ok::before, .dvkPut__t.is-chast::before, .dvkPut__t.is-sejchas::before { background: rgba(39, 196, 107, .5); }
+.dvkPut__t.is-chast i { background: linear-gradient(90deg, #27c46b 50%, transparent 50%); border-color: #27c46b; }
+.dvkPut__t.is-sejchas { color: #f5ad32; }
+.dvkPut__t.is-sejchas i { border-color: #f5ad32; box-shadow: 0 0 0 4px rgba(245, 173, 50, .18); }
+.dvkPut__t.is-net { color: #f7a3ae; }
+.dvkPut__t.is-net i { background: #f05d72; border-color: #f05d72; }
+
+.dvkPutOkno { display: flex; align-items: flex-start; margin: 6px 0 14px; }
+.dvkPutOkno__shag { display: grid; justify-items: center; text-align: center; gap: 3px; min-width: 110px; font-size: 12px; color: var(--muted); }
+.dvkPutOkno__shag b { font-size: 13.5px; color: var(--text); font-weight: 600; }
+.dvkPutOkno__shag small { font-size: 11.5px; line-height: 1.3; }
+.dvkPutOkno__pod { color: var(--muted); }
+.dvkPutOkno__krug { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; font-weight: 600; font-size: 14px;
+  border: 2px solid rgba(255, 255, 255, .18); background: rgba(255, 255, 255, .04); color: var(--muted); }
+.dvkPutOkno__lin { flex: 1; height: 2px; margin-top: 17px; background: rgba(255, 255, 255, .1); }
+.dvkPutOkno__shag.is-ok .dvkPutOkno__krug { background: #27c46b; border-color: #27c46b; color: #06140c; }
+.dvkPutOkno__shag.is-ok small { color: #6fe0a0; }
+.dvkPutOkno__shag.is-chast .dvkPutOkno__krug { border-color: #27c46b; color: #6fe0a0; }
+.dvkPutOkno__shag.is-sejchas .dvkPutOkno__krug { border-color: #f5ad32; color: #f5ad32; box-shadow: 0 0 0 5px rgba(245, 173, 50, .15); }
+.dvkPutOkno__shag.is-sejchas small { color: #f5ad32; }
+.dvkPutOkno__shag.is-net .dvkPutOkno__krug { background: #f05d72; border-color: #f05d72; color: #fff; }
+
+.dvkPanelD { display: grid; gap: 6px; margin: 0 0 12px; padding: 14px 16px; border-radius: 18px; border: 1px solid rgba(245, 173, 50, .35);
+  background: linear-gradient(135deg, rgba(245, 173, 50, .08), rgba(255, 255, 255, .02)); }
+.dvkPanelD b { font-size: 15px; }
+.dvkPanelD p { margin: 0; font-size: 13px; color: rgba(242, 246, 251, .75); }
+.dvkPanelD small { color: var(--muted); font-size: 12px; }
+.dvkPanelD.is-net { border-color: rgba(240, 93, 114, .45); background: rgba(240, 93, 114, .07); }
+.dvkPanelD.is-ok { border-color: rgba(39, 196, 107, .45); background: rgba(39, 196, 107, .07); }
+.dvkPanelD__kn { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.dvkPanelD__kn .crmKn:disabled { opacity: .45; cursor: not-allowed; }
+.dvkSobytiya { display: grid; gap: 3px; margin: -4px 0 12px; font-size: 12px; color: var(--muted); }
+.dvkSobytiya b { color: var(--text); font-weight: 600; }
+.dvkSobytiya i { font-style: normal; }
+@media (max-width: 760px) {
+  .dvkPutOkno__shag { min-width: 0; flex: 1; }
+  .dvkPutOkno__shag small { display: none; }
+}
