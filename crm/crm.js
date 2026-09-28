@@ -2138,7 +2138,7 @@
         <p class="crmPodskazka">${sg.статус === "ждёт"
           ? `На согласовании с ${escape(String(sg.создан || "").slice(0, 16))}: ДВК решил ${(sg.двк_ок || 0) + (sg.двк_нет || 0)} из ${sg.паллет}, СБ — ${sg.сб_ок || 0}. Отправил ${escape(sg.создал || "—")}.`
           : `Согласован к отгрузке: ${sg.к_отгрузке} паллет из ${sg.паллет}${sg.канал_когда ? ", ушло в канал склада " + escape(String(sg.канал_когда).slice(0, 16)) : ""}.`}</p>
-        <div class="crmForma__niz"><a class="crmKn crmKn--glav" href="/soglas/?id=${sg.id}" target="_blank">Открыть согласование ↗</a></div>`;
+        <div class="crmForma__niz"><button class="crmKn crmKn--glav" type="button" data-dvk-zayavka="${sg.id}">Открыть согласование</button></div>`;
       el("crmOkno").hidden = false;
       return;
     }
@@ -2170,7 +2170,7 @@
         const bez = d.без_пломбы || [];
         if (bez.length) {
           el("crmOtvetSoglas").innerHTML = `<b class="crmBezPlomby">Без пломбы ДВК ${bez.length}: ${escape(bez.slice(0, 8).join(", "))}${bez.length > 8 ? "…" : ""}.</b>
-            Без пломбы согласование не отправится: пусть ДВК внесёт пломбы на <a href="/soglas/plomby/" target="_blank">экране пломб</a> или уберите эти паллеты из списка.`;
+            Без пломбы согласование не отправится: пусть ДВК внесёт пломбы во вкладке «ДВК» или уберите эти паллеты из списка.`;
         }
       } else if (podpis) {
         podpis.textContent = (d.заказы || []).length
@@ -2202,7 +2202,7 @@
         const bez = p.filter((x) => !x.пломба).length;
         el("crmOknoDoc").innerHTML = shapka + `
           <p class="crmPodskazka">Отправлено: ${p.length} паллет ждут ДВК и СБ.${bez ? ` Без пломбы ${bez} — ДВК их не согласует, пока пломбы нет.` : ""}</p>
-          <div class="crmForma__niz"><a class="crmKn crmKn--glav" href="/soglas/?id=${d.заявка.id}" target="_blank">Открыть согласование ↗</a>
+          <div class="crmForma__niz"><button class="crmKn crmKn--glav" type="button" data-dvk-zayavka="${d.заявка.id}">Открыть согласование</button>
             <button class="crmKn" type="button" data-zakryt>Готово</button></div>`;
         narisovat();
       } catch (e) {
@@ -3838,6 +3838,16 @@
   }
 
   /** Переключает вид: доска, таблица лотов, счета. */
+  document.addEventListener("click", (event) => {
+    const kn = event.target.closest("[data-dvk-zayavka]");
+    if (!kn) return;
+    el("crmOkno").hidden = true;
+    perekluchit("dvk");
+    narisovat();
+    el("crmDvk").dataset.gotov = "1";
+    window.Dvk.mount(el("crmDvk"), { razdel: "soglas", zayavka: kn.dataset.dvkZayavka });
+  });
+
   function perekluchit(novyy) {
     vid = novyy;
     document.querySelectorAll(".crmVid[data-vid]").forEach((kn) =>
@@ -3858,9 +3868,12 @@
     // «Паллеты» живут в своей обёртке со своими фильтрами — общее прячем
     // так же, как для сверки.
     const palletyVid = vid === "pallety";
-    const sverkaVid = vid === "sverka" || palletyVid;
+    // «ДВК» (28.09): пломбы и согласование отгрузок — внутри CRM, не отдельной страницей.
+    const dvkVid = vid === "dvk";
+    const sverkaVid = vid === "sverka" || palletyVid || dvkVid;
+    el("crmDvk").hidden = !dvkVid;
     el("crmReestr").hidden = !palletyVid;
-    el("crmPoisk").hidden = palletyVid;
+    el("crmPoisk").hidden = palletyVid || dvkVid;
     el("crmDoska").hidden = !doska || zadachi || pochta || sverkaVid;
     el("crmTabl").hidden = doska || zadachi || pochta || sverkaVid;
     el("crmZadachi").hidden = !zadachi;
@@ -3880,7 +3893,13 @@
     el("crmNabor").textContent = vseKolonki ? "Главные колонки" : "Все колонки";
     narisovatUdalennye(vid === "loty");
 
-    if (palletyVid) {
+    if (dvkVid) {
+      el("crmSchyot").textContent = "";
+      if (!el("crmDvk").dataset.gotov && window.Dvk) {
+        el("crmDvk").dataset.gotov = "1";
+        window.Dvk.mount(el("crmDvk"));
+      }
+    } else if (palletyVid) {
       narisovatReestr();
       el("crmSchyot").textContent = "";
     } else if (sverkaVid) {

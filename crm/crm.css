@@ -947,3 +947,5 @@ body.is-svetlo .crmStFiltr__poisk { background: #fff; }
 .crmSvyaz__forma input { font: inherit; font-size: 13px; color: var(--text); background: #0b1220; border: 1px solid var(--line-strong);
   border-radius: 8px; padding: 6px 8px; min-width: 260px; }
 body.is-svetlo .crmSvyaz__forma input { background: #fff; }
+
+.crmDvk[hidden] { display: none; }

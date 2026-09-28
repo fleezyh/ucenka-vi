@@ -1,0 +1,105 @@
+/* Рабочее место ДВК (вкладка CRM и /soglas/). Карточки работ — как плитки на
+   главной: тёмное стекло, цветная планка сверху, живая мини-картинка, крупное
+   имя; выбранная работа подсвечена своим цветом. Всё остальное — классы CRM. */
+.dvkRaboty { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin: 4px 0 18px; }
+.dvkG { --c: #8f9cad; position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 6px;
+  padding: 18px 22px 20px; overflow: hidden; isolation: isolate; text-align: left; font: inherit; color: var(--text); cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, .09); border-radius: 26px; background: rgba(9, 11, 17, .6); backdrop-filter: blur(14px);
+  transition: border-color .3s, background .35s, transform .35s cubic-bezier(.2, .8, .2, 1); }
+.dvkG::before { content: ""; position: absolute; left: 22px; top: 0; width: 34px; height: 3px; border-radius: 0 0 3px 3px;
+  background: var(--c); transition: width .5s cubic-bezier(.2, .8, .2, 1); }
+.dvkG:hover { border-color: color-mix(in srgb, var(--c) 45%, transparent); transform: translateY(-2px); }
+.dvkG.is-on { border-color: color-mix(in srgb, var(--c) 60%, transparent); background: color-mix(in srgb, var(--c) 9%, rgba(9, 11, 17, .66)); }
+.dvkG.is-on::before { width: calc(100% - 44px); }
+.dvkG__n { position: absolute; z-index: -1; right: 18px; bottom: 16px; font-size: 13px; font-weight: 600; letter-spacing: .14em; color: var(--c); }
+.dvkG__imya { margin-top: 4px; font-size: clamp(22px, 2vw, 30px); font-weight: 600; letter-spacing: -.03em; line-height: 1.05; transition: color .3s; }
+.dvkG.is-on .dvkG__imya, .dvkG:hover .dvkG__imya { color: var(--c); }
+.dvkG__pro { font-size: 13.5px; font-weight: 600; color: rgba(242, 246, 251, .55); }
+.dvkG__cifry { display: grid; grid-template-columns: auto 1fr auto 1fr; align-items: baseline; gap: 4px 8px; margin-top: 8px; width: 100%; }
+.dvkG__cifry b { font-size: 30px; font-weight: 600; line-height: 1; }
+.dvkG__cifry small { color: var(--muted); font-size: 12.5px; }
+.is-krasn { color: #f05d72; }
+.is-zhelt { color: #f5ad32; }
+.is-zel { color: #27c46b; }
+
+.dvkS { display: flex; width: 100%; height: 78px; margin-bottom: 8px; border-radius: 16px; background: rgba(255, 255, 255, .03); overflow: hidden; box-sizing: border-box; }
+.dvkS--pallety { display: grid; grid-template-columns: repeat(18, 1fr); grid-auto-rows: 1fr; align-content: center; gap: 5px; padding: 10px 12px; }
+.dvkS--pallety i { aspect-ratio: 1; border-radius: 4px; background: rgba(39, 196, 107, .55); animation: dvkBox 3s cubic-bezier(.3, 1.4, .5, 1) infinite; animation-delay: var(--d); }
+.dvkS--pallety i.is-bez { background: rgba(240, 93, 114, .12); border: 2px solid #f05d72; box-sizing: border-box; }
+.dvkS--loty { align-items: flex-end; gap: 8px; padding: 10px 12px; }
+.dvkS--loty i { flex: 1; max-width: 42px; height: var(--h); border-radius: 5px 5px 2px 2px; background: linear-gradient(180deg, #f5ad32, rgba(245, 173, 50, .25));
+  transform-origin: bottom; animation: dvkBar 2.6s ease-in-out infinite; animation-delay: var(--d); }
+.dvkS--loty i.is-ok { background: linear-gradient(180deg, #27c46b, rgba(39, 196, 107, .25)); }
+.dvkS--loty em { align-self: center; margin: 0 auto; color: var(--muted); font-style: normal; font-size: 13px; }
+@keyframes dvkBox { 0%, 100% { transform: scale(1); } 50% { transform: scale(.86); } }
+@keyframes dvkBar { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(.82); } }
+@media (prefers-reduced-motion: reduce) { .dvkS * { animation: none !important; } .dvkG { transform: none !important; } }
+
+.dvkRazdel { padding: 16px 18px; border: 1px solid rgba(255, 255, 255, .08); border-radius: 22px; background: rgba(9, 11, 17, .45); }
+.dvkVerh { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 10px; }
+.dvkSkan { flex: 1 1 380px; }
+.dvkSkan__pole { width: 100%; box-sizing: border-box; font-size: 15px; padding: 10px 16px; }
+.dvkGalka { display: inline-flex; gap: 6px; align-items: center; color: var(--muted); font-size: 13px; }
+.dvkSoob { margin: 0 0 10px; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--line-strong); font-size: 13.5px; }
+.dvkSoob.is-ok { border-color: rgba(39, 196, 107, .55); background: rgba(39, 196, 107, .1); }
+.dvkSoob.is-oshibka { border-color: rgba(240, 93, 114, .55); background: rgba(240, 93, 114, .08); }
+.dvkTabl { max-height: 62vh; }
+.dvkTabl tbody tr { cursor: default; }
+.dvkTabl tr.is-bez td:first-child { box-shadow: inset 3px 0 0 #f05d72; }
+.dvkTabl tr.is-vydelena td { background: rgba(77, 141, 247, .14); }
+.dvkTabl--okno { max-height: 52vh; }
+.dvkTabl--okno tbody tr[data-sostav] { cursor: pointer; }
+.dvkPometka { display: block; margin-top: 2px; font-size: 11.5px; color: #f0a45d; }
+.dvkPometka.is-tiho { color: var(--muted); }
+.dvkTiho { color: var(--muted); font-size: 12px; }
+.dvkStroka { margin: 0 0 6px; color: var(--muted); font-size: 12.5px; font-weight: 400; line-height: 1.45; }
+.dvkNet { color: #f05d72; font-weight: 600; }
+.dvkOk { color: #27c46b; font-weight: 600; }
+.dvkPusto { color: var(--muted); font-size: 13px; padding: 10px 2px; }
+.dvkPlomba { white-space: nowrap; }
+.dvkPlomba > b, .dvkPlomba > .dvkNet { margin-right: 8px; }
+.dvkVvod { display: inline-flex; gap: 4px; vertical-align: middle; }
+.dvkVvod input { font: inherit; font-size: 12.5px; width: 120px; color: var(--text); background: rgba(255, 255, 255, .04);
+  border: 1px solid var(--line-strong); border-radius: 999px; padding: 5px 11px; }
+.dvkVvod .crmKn { padding: 4px 11px; }
+.dvkGal { display: inline-flex; gap: 6px; align-items: center; }
+.dvkGal input { width: 17px; height: 17px; }
+
+.dvkLoty { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
+.dvkLot { display: grid; gap: 6px; padding: 14px 16px; text-align: left; font: inherit; color: var(--text); cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, .09); border-radius: 18px; background: rgba(9, 11, 17, .55); transition: border-color .25s, transform .25s; }
+.dvkLot:hover { border-color: rgba(245, 173, 50, .5); transform: translateY(-2px); }
+.dvkLot__verh { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.dvkLot__verh b { font-size: 17px; }
+.dvkLot__ka { font-size: 14px; font-weight: 600; }
+.dvkLot__niz { display: flex; justify-content: space-between; gap: 10px; color: var(--muted); font-size: 12px; margin-top: 2px; }
+.dvkLot__niz b { color: var(--text); font-weight: 600; }
+.dvkChip { font-size: 11.5px; padding: 2px 9px; border-radius: 999px; border: 1px solid currentColor; white-space: nowrap; }
+.dvkPolosa { display: grid; grid-template-columns: 78px 1fr auto; align-items: center; gap: 8px; font-size: 12px; }
+.dvkPolosa__imya { color: var(--muted); }
+.dvkPolosa__lin { height: 6px; border-radius: 3px; background: rgba(255, 255, 255, .07); overflow: hidden; }
+.dvkPolosa__lin i { display: block; height: 100%; border-radius: 3px; background: #f5ad32; }
+.dvkPolosa.is-zel .dvkPolosa__lin i { background: #27c46b; }
+.dvkPolosa b { font-weight: 600; font-size: 12px; }
+.dvkFakty { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px 14px; margin: 10px 0 12px; }
+.dvkFakty span { display: grid; gap: 2px; }
+.dvkFakty i { font-style: normal; color: var(--muted); font-size: 11.5px; }
+.dvkFakty b { font-size: 14px; font-weight: 600; }
+.dvkShagi { display: grid; gap: 6px; max-width: 460px; margin-bottom: 6px; }
+.dvkDeystviya { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 10px 0; }
+.dvkOkno__doc { width: min(1100px, 100%); }
+
+body.is-svetlo .dvkG, body.is-svetlo .dvkLot, body.is-svetlo .dvkRazdel { background: #fff; border-color: rgba(16, 32, 58, .12); }
+body.is-svetlo .dvkG__pro { color: rgba(16, 32, 58, .55); }
+body.is-svetlo .dvkS { background: rgba(16, 32, 58, .04); }
+
+@media (max-width: 760px) {
+  .dvkRaboty { grid-template-columns: 1fr; gap: 10px; }
+  .dvkS { height: 56px; }
+  .dvkG__cifry b { font-size: 24px; }
+  .dvkTabl th:nth-child(3), .dvkTabl td:nth-child(3), .dvkTabl th:nth-child(4), .dvkTabl td:nth-child(4),
+  .dvkTabl th:nth-child(7), .dvkTabl td:nth-child(7) { display: none; }
+  .dvkPlomba { white-space: normal; }
+  .dvkVvod input { width: 96px; }
+  .dvkLoty { grid-template-columns: 1fr; }
+}
