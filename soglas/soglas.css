@@ -116,3 +116,50 @@ input::-webkit-datetime-edit-hour-field, input::-webkit-datetime-edit-minute-fie
 .plTabl tr:hover td { background: rgba(255, 255, 255, .03); }
 .plTabl .num { text-align: right; }
 body.is-svetlo .plPole input, body.is-svetlo .plPoisk { background: #fff; }
+
+/* Рабочее место ДВК (28.09): итоги, вкладки, пломбы прямо в строке */
+.dvkItogi { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 6px 0 14px; }
+.dvkItog { appearance: none; text-align: left; font: inherit; color: var(--text); cursor: pointer; padding: 14px 16px;
+  border: 1px solid var(--line); border-radius: 14px; background: var(--panel); display: grid; gap: 2px; }
+.dvkItog:hover { border-color: var(--line-strong); }
+.dvkItog b { font-size: 28px; font-weight: 600; line-height: 1.1; }
+.dvkItog span { color: var(--muted); font-size: 13px; }
+.dvkItog--krasn b { color: #f05d72; }
+.dvkItog--zel b { color: #27c46b; }
+.dvkVkladki { display: flex; gap: 6px; margin: 0 0 12px; border-bottom: 1px solid var(--line); }
+.dvkVkladka { appearance: none; font: inherit; font-size: 15px; font-weight: 600; color: var(--muted); background: none; border: 0;
+  border-bottom: 2px solid transparent; padding: 10px 14px; cursor: pointer; margin-bottom: -1px; }
+.dvkVkladka.is-on { color: var(--text); border-bottom-color: #4d8df7; }
+.dvkVkladka i { font-style: normal; margin-left: 4px; padding: 1px 8px; border-radius: 999px; background: rgba(240, 93, 114, .18); color: #f7a3ae; font-size: 12px; }
+.dvkVkladka i:empty { display: none; }
+.dvkPanel[hidden] { display: none; }
+.dvkPlomby__verh { display: flex; gap: 14px; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; margin-bottom: 10px; }
+.dvkPlomby__verh form { flex: 1 1 420px; }
+.dvkPlomby__verh .plPole input { max-width: none; width: 100%; box-sizing: border-box; }
+.plFiltry { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.plSoobshchenie { margin: 0 0 10px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line-strong); font-size: 14px; }
+.plSoobshchenie[hidden] { display: none; }
+.plSoobshchenie.is-ok { border-color: rgba(39, 196, 107, .6); background: rgba(39, 196, 107, .12); }
+.plSoobshchenie.is-oshibka { border-color: rgba(240, 93, 114, .6); background: rgba(240, 93, 114, .1); }
+.plTabl td { cursor: default; vertical-align: middle; }
+.plTabl tr.is-bez td:first-child { box-shadow: inset 3px 0 0 #f05d72; }
+.plTabl tr.is-vydelena td { background: rgba(77, 141, 247, .12); }
+.plPometka { display: block; font-style: normal; font-size: 12px; color: #f0a45d; }
+.plYach { color: var(--muted); font-size: 12.5px; }
+.plKto { color: var(--muted); font-size: 12px; }
+.plPlomba { white-space: nowrap; }
+.plEst { font-weight: 600; margin-right: 8px; }
+.plNet { margin-right: 8px; }
+.plStrokaForma { display: inline-flex; gap: 4px; vertical-align: middle; }
+.plStrokaForma input { font: inherit; font-size: 13.5px; width: 130px; color: var(--text); background: #0b1220;
+  border: 1px solid var(--line-strong); border-radius: 8px; padding: 5px 8px; }
+.plStrokaForma .sgKn { padding: 5px 10px; }
+body.is-svetlo .plStrokaForma input { background: #fff; }
+@media (max-width: 760px) {
+  .dvkItogi { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dvkItog b { font-size: 22px; }
+  .plTabl th:nth-child(2), .plTabl td:nth-child(2), .plTabl th:nth-child(3), .plTabl td:nth-child(3),
+  .plTabl th:nth-child(4), .plTabl td:nth-child(4), .plTabl th:nth-child(7), .plTabl td:nth-child(7) { display: none; }
+  .plPlomba { white-space: normal; }
+  .plStrokaForma input { width: 96px; }
+}

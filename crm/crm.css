@@ -829,6 +829,7 @@ body.is-svetlo .crmNovayaStroka input, body.is-svetlo .crmNovayaStroka select { 
 .crmReestr__status.is-3 { color: #f05d72; }
 .crmReestr__status.is-4 { color: #8f9cad; }
 .crmReestr__status.is-5 { color: #ff4d4d; background: rgba(255,77,77,.12); }
+.crmReestr__status.is-6 { color: #f0a45d; background: rgba(240,164,93,.14); }
 .crmReestr__lot { font: inherit; font-size: 12px; padding: 1px 9px; border-radius: 999px; cursor: pointer;
   border: 1px solid rgba(77,141,247,.5); background: transparent; color: #4d8df7; }
 .crmReestr__lot:hover { background: rgba(77,141,247,.12); }

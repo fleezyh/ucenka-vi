@@ -1,4 +1,4 @@
-/* Согласование отгрузок: две колонки заявок, окно лота с паллетами,
+/* Рабочее место ДВК · согласование отгрузок: две колонки заявок, окно лота с паллетами,
    галочки ДВК и СБ, форма «лот на согласование». */
 (function () {
   "use strict";
@@ -58,6 +58,8 @@
     el("sgOkN").textContent = ok.length;
     el("sgZhdut").innerHTML = zhdut.map(karta).join("") || '<p class="sgPusto">Все лоты согласованы.</p>';
     el("sgOk").innerHTML = ok.map(karta).join("") || '<p class="sgPusto">Пока ничего.</p>';
+    // Итоги и вкладки рабочего места ДВК (dvk.js).
+    document.dispatchEvent(new CustomEvent("dvk:soglas", { detail: { ждут: zhdut.length, согласованы: ok.length } }));
   }
 
   /* ── окно лота ─────────────────────────────────────────── */

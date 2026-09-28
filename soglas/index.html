@@ -4,65 +4,90 @@
   <meta charset="utf-8">
   <script src="/tema.js?v=20260924-2"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Согласование отгрузок · Уценка</title>
+  <title>Рабочее место ДВК · Уценка</title>
   <link rel="icon" type="image/svg+xml" href="../assets/brand/vi-mark.svg">
   <link rel="preload" href="../assets/fonts/VI_Sans_DemiBold.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="../style.css?v=20260921-1">
   <link rel="stylesheet" href="../perf/perf.css?v=20260921-2">
-  <link rel="stylesheet" href="soglas.css?v=20260928-1">
+  <link rel="stylesheet" href="soglas.css?v=20260928-2">
   <link rel="stylesheet" href="../reeded-bg.css?v=20260907-6">
   <link rel="stylesheet" href="../site-header.css?v=20260921-1">
   <script src="../reeded-bg.js?v=20260906-7" defer></script>
-  <script src="soglas.js?v=20260925-2" defer></script>
+  <script src="dvk.js?v=20260928-1" defer></script>
+  <script src="plomby/plomby.js?v=20260928-2" defer></script>
+  <script src="soglas.js?v=20260928-1" defer></script>
   <script src="../nav.js?v=20260921-1" defer></script>
 </head>
 <body data-mode="perf">
-  <!-- Согласование отгрузок лотов вместо письма «на отгрузку» (25.09.2026).
-       Оператор отправляет оплаченный лот, ДВК и СБ ставят свои галочки,
-       согласованное бот отправляет в канал склада. -->
+  <!-- Рабочее место ДВК (28.09.2026): две работы на одном экране, без переходов.
+       1) Пломбы: каждая паллета в наших остатках должна быть проверена ДВК —
+          без пломбы её не продают, не берут в лот и не согласуют.
+       2) Согласование отгрузок: оплаченный лот из CRM, галочки ДВК и СБ по
+          паллетам, согласованное бот отправляет в канал склада. -->
   <main class="shell">
     <header class="topbar">
       <a class="brand" href="../" aria-label="Уценка — главная">
         <img class="brand__mark" src="../assets/brand/vi-mark.svg" alt="" width="36" height="36">
         <span>Уценка</span>
       </a>
-      <nav class="siteNav" aria-label="Разделы сайта">
-        <span class="navGroup">
-          <span class="navGroup__label">Уценка</span>
-          <a class="navLink" href="../antigen/">Антигенерация</a>
-          <a class="navLink" href="../heatmap/">Хитмап</a>
-          <a class="navLink" href="../sales/">Продажи</a>
-          <a class="navLink" href="../perf/">Производительность</a>
-        </span>
-      </nav>
     </header>
 
-    <section class="heroPerf">
+    <section class="heroPerf dvkHero">
       <div>
-        <p class="eyebrow">Продажи · отгрузка</p>
-        <h1>Согласование отгрузок</h1>
-        <p class="lead">Вместо письма «на отгрузку»: оператор отправляет оплаченный лот из CRM,
-          ДВК и СБ ставят свои галочки по паллетам, согласованное уходит в канал склада.</p>
+        <p class="eyebrow">Продажи · ДВК</p>
+        <h1>Рабочее место ДВК</h1>
+        <p class="lead">Проверить паллету и повесить пломбу, согласовать отгрузку лота.
+          Паллету без пломбы не продают, не берут в лот и не согласуют.</p>
       </div>
       <div class="perfTools">
-        <a class="sgKn" href="plomby/">Пломбы ДВК ↗</a>
         <a class="sgKn" href="../crm/" id="sgVCrm" hidden>Отправить лот — из карточки лота в CRM</a>
         <p class="stamp" id="stamp"></p>
       </div>
     </section>
 
-    <p class="message" id="message">Загружаю…</p>
+    <section class="dvkItogi" aria-label="Что сейчас ждёт ДВК">
+      <button class="dvkItog dvkItog--krasn" type="button" data-vkl="plomby"><b id="dvkBez">…</b><span>паллет ждут пломбу</span></button>
+      <button class="dvkItog" type="button" data-vkl="soglas"><b id="dvkZhdut">…</b><span>лотов ждут согласования</span></button>
+      <button class="dvkItog dvkItog--zel" type="button" data-vkl="soglas"><b id="dvkOk">…</b><span>лотов согласовано к отгрузке</span></button>
+      <button class="dvkItog" type="button" data-vkl="plomby"><b id="dvkSPlomboy">…</b><span>паллет проверено, с пломбой</span></button>
+    </section>
 
-    <section class="sgDoska" id="sgDoska" hidden>
-      <div class="sgKolonka">
-        <h2>Ждут согласования <span id="sgZhdutN"></span></h2>
-        <div class="sgSpisok" id="sgZhdut"></div>
+    <nav class="dvkVkladki" role="tablist">
+      <button class="dvkVkladka" type="button" role="tab" data-vkl="plomby">Пломбы <i id="dvkVklBez"></i></button>
+      <button class="dvkVkladka" type="button" role="tab" data-vkl="soglas">Согласование отгрузок <i id="dvkVklZhdut"></i></button>
+    </nav>
+
+    <section class="dvkPanel" id="dvkPlomby" data-panel="plomby" hidden>
+      <div class="dvkPlomby__verh">
+        <form id="plSkanForma" autocomplete="off">
+          <label class="plPole"><span>Отсканируйте паллету — строка найдётся сама, впишите пломбу и Enter</span>
+            <input id="plSkan" placeholder="наклейка паллеты или номер"></label>
+        </form>
+        <div class="plFiltry">
+          <input class="plPoisk" id="plPoisk" placeholder="поиск: номер, склад, ячейка">
+          <label class="plTolko"><input type="checkbox" id="plTolkoBez" checked> только без пломбы</label>
+        </div>
       </div>
-      <div class="sgKolonka sgKolonka--ok">
-        <h2>Согласованы к отгрузке <span id="sgOkN"></span></h2>
-        <div class="sgSpisok" id="sgOk"></div>
+      <p class="plSoobshchenie" id="plSoobshchenie" hidden></p>
+      <div class="plTablWrap"><table class="plTabl"><thead><tr>
+        <th>Паллета</th><th>Склад</th><th>Ячейка</th><th class="num">SKU</th><th class="num">Штук</th>
+        <th>Пломба</th><th>Кто · когда</th></tr></thead><tbody id="plStroki"></tbody></table></div>
+    </section>
+
+    <section class="dvkPanel" id="dvkSoglas" data-panel="soglas" hidden>
+      <div class="sgDoska" id="sgDoska" hidden>
+        <div class="sgKolonka">
+          <h2>Ждут согласования <span id="sgZhdutN"></span></h2>
+          <div class="sgSpisok" id="sgZhdut"></div>
+        </div>
+        <div class="sgKolonka sgKolonka--ok">
+          <h2>Согласованы к отгрузке <span id="sgOkN"></span></h2>
+          <div class="sgSpisok" id="sgOk"></div>
+        </div>
       </div>
     </section>
+
+    <p class="message" id="message">Загружаю…</p>
   </main>
 
   <div class="sgOkno" id="sgOkno" hidden>
