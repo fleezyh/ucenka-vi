@@ -3,7 +3,7 @@
 (function () {
   "use strict";
   const hero = document.querySelector(".hero");
-  if (!hero || document.querySelector(".kabVkladki")) return;
+  if (!hero || document.querySelector(".kabVkladki") || /^\/zp\/fot\/?$/.test(location.pathname)) return;
   const nav = document.createElement("nav");
   nav.className = "kabVkladki";
   nav.setAttribute("aria-label", "Кабинет");

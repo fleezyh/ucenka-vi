@@ -1265,7 +1265,21 @@ function cheklist() {
     .catch(() => false);
 }
 
+// 28.09 Степан: «зарплата внутри кабинета в том же виде, как была, а в ФОТе — ФОТ и
+// панель подачи». Одна страница, два адреса: /zp/ — своя зарплата (вкладка кабинета),
+// /zp/fot — ФОТ и панель подачи (управленческий контур, право salary_team).
+const REZHIM_FOT = /^\/zp\/fot\/?$/.test(location.pathname);
+
 async function start() {
+  if (REZHIM_FOT) {
+    const nad = document.querySelector(".hero .eyebrow");
+    if (nad) nad.textContent = "Управленческий";
+    document.title = "Уценка · ФОТ";
+    const svoya = views.querySelector('[data-view="me"]');
+    if (svoya) svoya.hidden = true;
+    const panel = views.querySelector('[data-view="team"]');
+    if (panel) panel.textContent = "Панель подачи";
+  }
   let moya;
   try {
     const response = await fetch("/__zp", { credentials: "same-origin" });
@@ -1283,7 +1297,10 @@ async function start() {
 
   stamp.textContent = moya["обновлено"] ? "Обновлено " + moya["обновлено"] : "";
 
-  if (!moya["я"]) {
+  if (REZHIM_FOT) {
+    message.textContent = "Загружаю ФОТ…";
+    message.className = "message";
+  } else if (!moya["я"]) {
     message.textContent = moya["почему_пусто"] || "По вам расчёта пока нет.";
     message.className = "message warn";
   } else {
@@ -1291,6 +1308,9 @@ async function start() {
     message.className = "message";
     karta(moya);
   }
+
+  // В кабинете — только своя зарплата: ФОТ и панель подачи живут на /zp/fot.
+  if (!REZHIM_FOT) return;
 
   // Свою строку видят не все: часть отделов ещё не подключена к расчёту, и
   // у самого руководства ФБ её нет. Показывать им пустой экран нельзя —
@@ -1301,7 +1321,11 @@ async function start() {
   // чужие деньги проверяется на сервере, а не прячется в интерфейсе.
   try {
     const all = await fetch("/__zp/all", { credentials: "same-origin" });
-    if (!all.ok) return;
+    if (!all.ok) {
+      message.textContent = "ФОТ и панель подачи — только тем, кто подаёт зарплату.";
+      message.className = "message warn";
+      return;
+    }
     const data = await all.json();
     if (!data["люди"] || !data["люди"].length) return;
     tablica(data);
@@ -1327,7 +1351,7 @@ async function start() {
       document.body.classList.toggle("zp-summary-active", vid === "svodka");
       const zagolovok = document.querySelector(".hero h1");
       const opisanie = document.querySelector(".hero .lead");
-      if (zagolovok) zagolovok.textContent = vid === "svodka" ? "Фонд оплаты труда" : "Моя зарплата";
+      if (zagolovok) zagolovok.textContent = vid === "svodka" ? "Фонд оплаты труда" : vid === "team" && REZHIM_FOT ? "Панель подачи" : "Моя зарплата";
       if (opisanie) opisanie.textContent = vid === "svodka"
         ? "Прогноз расходов, лимит и отклонения по направлениям."
         : "Сколько заработано на сегодня и когда это придёт. Считается каждый день по вашему окладу и фактическим выходам — не нужно ждать конца месяца, чтобы понять, что получится.";
@@ -1341,7 +1365,7 @@ async function start() {
       if (vid === "me" && !blockMe.innerHTML) {
         blockMe.hidden = true;
         message.textContent = moya["почему_пусто"] || "По вам расчёта пока нет.";
-      } else if (svoeyNet) {
+      } else if (svoeyNet || REZHIM_FOT) {
         message.textContent = "";
         message.className = "message";
       }
@@ -1357,7 +1381,7 @@ async function start() {
     const zhelaemyy = location.hash.slice(1);
     if (zhelaemyy === "team" || (zhelaemyy === "svodka" && estSvodka)) {
       otkryt(zhelaemyy);
-    } else if (svoeyNet) {
+    } else if (svoeyNet || REZHIM_FOT) {
       otkryt(estSvodka ? "svodka" : "team");
     }
   } catch (error) {
