@@ -1142,6 +1142,123 @@
     table.append(row, podrobno);
   }
 
+  // --- Резерв: из чего он и что за день пришло/ушло ---------------------------
+  // 28.09.2026, Степан: «не увидел тут блока с разбором что где и как». Данные —
+  // rezerv-fk.json: расчёт книги ФК по 383-му отчёту 1С акт к акту.
+
+  let rezervData = null;       // null — ещё не спрашивали, false — не вышло
+
+  async function rezervPull() {
+    if (rezervData !== null) return rezervData;
+    try {
+      const answer = await fetch("../data/rezerv-fk.json", { cache: "no-store" });
+      rezervData = answer.ok ? await answer.json() : false;
+    } catch { rezervData = false; }
+    return rezervData;
+  }
+
+  const mln = (v) => (Number(v) / 1e6).toLocaleString("ru-RU", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const mlnZnak = (v) => (Math.abs(v) < 5000 ? "0,00" : `${v > 0 ? "+" : "−"}${mln(Math.abs(v))}`);
+  const znakKlass = (v) => (Math.abs(v) < 5000 ? "flat" : v > 0 ? "up" : "down");
+
+  function rezervBlock() {
+    const box = document.createElement("section");
+    box.className = "how zones";
+    const title = document.createElement("h4");
+    title.className = "how__title";
+    title.textContent = "Из чего резерв · по 383-му";
+    const lead = document.createElement("p");
+    lead.className = "how__lead";
+    lead.textContent = "собираю разбор…";
+    box.append(title, lead);
+
+    rezervPull().then((d) => {
+      if (!d || !d.по_зонам?.length) { box.remove(); return; }
+      lead.textContent = `на ${dayLabel(d.день)}: ${mln(d.уровень)} млн = резерв книги ${mln(d.R)} × 0,97`
+        + ` + неактированные ${mln(d.N)} · баланс ${mln(d.баланс)} млн · актов с резервом ${shtuki(d.актов_с_резервом)}`;
+
+      // Пришло / ушло / пересчёт — за день и с 1-го числа.
+      const f = d.факторы || {};
+      const fTable = document.createElement("table");
+      fTable.className = "zones__table";
+      fTable.innerHTML = "<thead><tr><th></th><th>Пришло новыми актами</th><th>Ушло</th>"
+        + "<th>Пересчёт старых (срок, цена, зона)</th><th>Итого, млн</th></tr></thead>";
+      const fBody = document.createElement("tbody");
+      [["за день", f.день, f.день_с], ["с 1-го числа", f.месяц, f.месяц_с]].forEach(([imya, x, s]) => {
+        if (!x) return;
+        const itog = x.пришло + x.ушло + x.пересчёт;
+        const tr = document.createElement("tr");
+        tr.className = "zones__row";
+        tr.innerHTML = `<td>${imya}${s ? ` <small>(с ${dayLabel(s)})</small>` : ""}</td>`
+          + `<td class="zones__num zones__up">${mlnZnak(x.пришло)} <small>${shtuki(x.пришло_актов)} акт.</small></td>`
+          + `<td class="zones__num zones__down">${mlnZnak(x.ушло)} <small>${shtuki(x.ушло_актов)} акт.</small></td>`
+          + `<td class="zones__num zones__${znakKlass(x.пересчёт)}">${mlnZnak(x.пересчёт)} <small>${shtuki(x.пересчёт_актов)} акт.</small></td>`
+          + `<td class="zones__num zones__${znakKlass(itog)}"><b>${mlnZnak(itog)}</b></td>`;
+        fBody.append(tr);
+      });
+      fTable.append(fBody);
+
+      // Разрез как в «Своде» книги: Зона 5 → Зона 6.
+      const zTable = document.createElement("table");
+      zTable.className = "zones__table";
+      zTable.innerHTML = "<thead><tr><th>Узел</th><th>Куда</th><th>Актов</th><th>Баланс, млн</th>"
+        + "<th>Резерв, млн</th><th>За день</th><th>С 1-го</th></tr></thead>";
+      const zBody = document.createElement("tbody");
+      d.по_зонам.forEach((z) => {
+        const tr = document.createElement("tr");
+        tr.className = "zones__row";
+        tr.innerHTML = `<td>${z.зона5}</td><td>${z.зона6}</td>`
+          + `<td class="zones__num">${shtuki(z.актов)}</td>`
+          + `<td class="zones__num">${mln(z.баланс)}</td>`
+          + `<td class="zones__num"><b>${mln(z.резерв)}</b></td>`
+          + `<td class="zones__num zones__${znakKlass(z.за_день)}">${mlnZnak(z.за_день)}</td>`
+          + `<td class="zones__num zones__${znakKlass(z.с_1_числа)}">${mlnZnak(z.с_1_числа)}</td>`;
+        zBody.append(tr);
+      });
+      zTable.append(zBody);
+
+      const wrapF = document.createElement("div");
+      wrapF.className = "zones__wrap";
+      wrapF.append(fTable);
+      const wrapZ = document.createElement("div");
+      wrapZ.className = "zones__wrap";
+      wrapZ.append(zTable);
+
+      // Двоевластие по дням: ФК против нашего лёгкого.
+      const hist = document.createElement("details");
+      hist.className = "zones__method";
+      hist.innerHTML = "<summary>ФК против нашего лёгкого по дням</summary>"
+        + "<table class=\"zones__table\"><thead><tr><th>Файл 1С</th><th>ФК, млн</th>"
+        + "<th>Наш лёгкий накануне</th><th>Разрыв</th></tr></thead><tbody>"
+        + (d.история || []).map((h) => {
+          const nash = h.наш_накануне;
+          return `<tr><td>${dayLabel(h.день)}</td><td class="zones__num">${mln(h.уровень)}</td>`
+            + `<td class="zones__num">${nash ? nash.toLocaleString("ru-RU", { minimumFractionDigits: 2 }) : "—"}</td>`
+            + `<td class="zones__num">${nash ? mlnZnak(h.уровень - nash * 1e6) : "—"}</td></tr>`;
+        }).join("")
+        + "</tbody></table>";
+
+      const zony = document.createElement("details");
+      zony.className = "zones__method";
+      const kt = d.книга_теряет || {};
+      zony.innerHTML = `<summary>Новые зоны — куда отнесли (${(d.новые_зоны || []).length})</summary>`
+        + `<p>В книге ФК новую зону дописывают в справочник руками; если забыли — акты молча выпадают. `
+        + `Сейчас так выпадает ${shtuki(kt.актов || 0)} актов, резерв на них был бы ${mln(kt.резерв_если_дописать || 0)} млн `
+        + `(в число ФК не входит, как и у них).</p>`
+        + `<div class="zones__list">${(d.новые_зоны || []).map((z) => `<span title="${z.правило || ""}">`
+          + `${z.Зона} → ${z["Зона 5"] || "?"}${z["Зона 6"] ? " / " + z["Зона 6"] : ""}</span>`).join("")}</div>`;
+
+      [hist, zony].forEach((el) => el.addEventListener("click", (event) => event.stopPropagation()));
+
+      const hint = document.createElement("p");
+      hint.className = "how__caveat";
+      hint.textContent = `Файл ${d.файл}. ${d.N_источник ? "Неактированные: " + d.N_источник + "." : ""}`;
+
+      box.append(wrapF, wrapZ, hist, zony, hint);
+    });
+    return box;
+  }
+
   function backlogBlock() {
     const box = document.createElement("section");
     box.className = "how zones";
@@ -1622,6 +1739,7 @@
       const how = methodBlock(metricKey);
       if (how) bare.append(how);
       if (metricKey === "backlog") bare.append(backlogBlock());
+      if (metricKey === "reserve_now") bare.append(rezervBlock());
       const bareGoal = goalBox(metricKey);
       if (bareGoal) bare.append(bareGoal);
       if (metricKey === "finres_pct") {
@@ -1821,6 +1939,7 @@
     const how = methodBlock(metricKey);
     if (how) box.append(how);
     if (metricKey === "backlog") box.append(backlogBlock());
+    if (metricKey === "reserve_now") box.append(rezervBlock());
     const goal = goalBox(metricKey);
     if (goal) box.append(goal);
     if (metricKey === "finres_pct") {
