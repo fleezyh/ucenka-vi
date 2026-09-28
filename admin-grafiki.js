@@ -71,7 +71,9 @@
     const os = r.map((p, i) => (i % shagOsi && i !== n - 1) ? "" :
       `<text x="${x(i)}" y="${H - 8}" text-anchor="middle" class="vsG__os${p[2] ? " is-idet" : ""}">${shag === "неделя" ? podpis(p[0]) : podpis(p[0])}${p[2] ? "*" : ""}</text>`).join("");
     const maxI = r.reduce((b, p, i) => (p[1] > r[b][1] ? i : b), 0);
-    const metki = r.map((p, i) => (i === maxI || i === n - 1 || n <= 12)
+    // Числа над каждой точкой, как в хитмапе (28.09); при густом ряде — через одну.
+    const kazhdaya = n <= 32 ? 1 : 2;
+    const metki = r.map((p, i) => (i === maxI || i === n - 1 || i % kazhdaya === 0)
       ? `<text x="${x(i)}" y="${y(p[1]) - 9}" text-anchor="middle" class="vsG__znach">${chislo(p[1])}</text>` : "").join("");
     const hvost = idet
       ? `<path d="M${x(n - 2)},${y(r[n - 2][1])} L${x(n - 1)},${y(r[n - 1][1])}" class="vsG__hvost" stroke="${cvet}"/>`
