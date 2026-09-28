@@ -99,113 +99,40 @@
       </div>`;
   }
 
-  /* Плавная линия, которая не уходит за точки (монотонный сплайн) — как в
-     хитмапе: обычная кривая Безье рисовала бы провал там, где его нет. */
-  function gladko(pts) {
-    const f = (v) => v.toFixed(1);
-    if (pts.length < 3) return pts.map((p, i) => `${i ? "L" : "M"}${f(p[0])},${f(p[1])}`).join(" ");
-    const n = pts.length;
-    const m = [];
-    for (let i = 0; i < n - 1; i++) m[i] = (pts[i + 1][1] - pts[i][1]) / (pts[i + 1][0] - pts[i][0]);
-    const t = [m[0]];
-    for (let i = 1; i < n - 1; i++) t[i] = m[i - 1] * m[i] <= 0 ? 0 : (m[i - 1] + m[i]) / 2;
-    t[n - 1] = m[n - 2];
-    for (let i = 0; i < n - 1; i++) {
-      if (!m[i]) { t[i] = 0; t[i + 1] = 0; continue; }
-      const a = t[i] / m[i];
-      const b = t[i + 1] / m[i];
-      const q = a * a + b * b;
-      if (q > 9) { const k = 3 / Math.sqrt(q); t[i] = k * a * m[i]; t[i + 1] = k * b * m[i]; }
+  function grafikGoda(mesyacy, period, perejti) {
+    if (!window.ViGrafik || !mesyacy.length) {
+      const pusto = document.createElement("div");
+      pusto.className = "fsGod__pusto";
+      pusto.textContent = mesyacy.length ? "график не загрузился" : "загружаю год…";
+      return pusto;
     }
-    let d = `M${f(pts[0][0])},${f(pts[0][1])}`;
-    for (let i = 0; i < n - 1; i++) {
-      const h = (pts[i + 1][0] - pts[i][0]) / 3;
-      d += ` C${f(pts[i][0] + h)},${f(pts[i][1] + t[i] * h)} ${f(pts[i + 1][0] - h)},${f(pts[i + 1][1] - t[i + 1] * h)} ${f(pts[i + 1][0])},${f(pts[i + 1][1])}`;
-    }
-    return d;
-  }
-
-  /* ФОТ по месяцам — как большой график хитмапа: плавная линия с заливкой,
-     подписи над точками, лимит пунктиром. Факт — сплошной, прогноз и «по штату» —
-     пунктиром; месяц без данных рвёт линию. Клик по месяцу выбирает его. */
-  function godGrafik(mesyacy, period, tekushchiy) {
-    if (!mesyacy || !mesyacy.length) return "<div class=\"fsGod__pusto\">загружаю год…</div>";
-    const chisla = mesyacy.flatMap((m) => [m["фот"], m["цель"]]).filter((v) => Number(v) > 0).map(Number);
-    if (!chisla.length) return "<div class=\"fsGod__pusto\">За год данных пока нет</div>";
-    let niz = Math.min(...chisla);
-    let verh = Math.max(...chisla);
-    const zapas = (verh - niz) * 0.18 || verh * 0.1 || 1;
-    niz = Math.max(0, niz - zapas);
-    verh += zapas;
-    // Ровные деления шкалы: шаг 1, 2 или 5 × 10^k, края — по делениям.
-    const grubyy = (verh - niz) / 3;
-    const poryadok = 10 ** Math.floor(Math.log10(grubyy));
-    const shagD = [1, 2, 5, 10].map((k) => k * poryadok).find((v) => v >= grubyy);
-    niz = Math.floor(niz / shagD) * shagD;
-    verh = Math.ceil(verh / shagD) * shagD;
-    const W = 1000;
-    const H = 260;
-    const n = mesyacy.length;
-    const x = (j) => 30 + (j / Math.max(n - 1, 1)) * (W - 60);
-    const y = (v) => 34 + (1 - (Number(v) - niz) / (verh - niz)) * (H - 58);
-    const pct = (v, vsego) => `${(v / vsego * 100).toFixed(3)}%`;
-    const delenia = [];
-    for (let v = niz; v <= verh + shagD / 2; v += shagD) delenia.push(v);
     const vybrano = new Set(periodMesyacy(period, { "месяцы": mesyacy }));
-
-    // Куски без пропусков: факт отдельно, прогноз продолжает его пунктиром.
-    const kuski = [];
-    let tek = [];
-    mesyacy.forEach((m, j) => {
-      if (m["фот"] == null) { if (tek.length) kuski.push(tek); tek = []; return; }
-      tek.push(j);
+    return window.ViGrafik.sozdat({
+      tochki: mesyacy.map((m) => {
+        const nomer = Number(m["месяц"].slice(5, 7)) - 1;
+        return {
+          znach: m["фот"] == null ? null : Number(m["фот"]),
+          os: MES_KOR[nomer],
+          zag: `${nazvanie(m["месяц"])} · ${VID[m["вид"]] || ""}`,
+          vid: m["вид"] === "факт" ? "" : "prognoz",
+          vybrano: vybrano.has(m["месяц"]),
+          krasnaya: m["фот"] != null && Number(m["цель"]) > 0 && m["фот"] > m["цель"],
+          pustoPodpis: "нет данных",
+          dop: [m["людей"] ? `${m["людей"]} человек` : ""].filter(Boolean),
+        };
+      }),
+      format: (v) => mlnKor(v),
+      formatTochno: (v) => mln(v),
+      edinica: "млн ₽",
+      otNulya: false,
+      osVse: true,
+      legendaLinii: "факт бухгалтерии",
+      legendaPrognoz: "прогноз и по нынешнему штату",
+      legendaKrasnaya: "сверх лимита",
+      linii: [{ znach: mesyacy.map((m) => (Number(m["цель"]) > 0 ? Number(m["цель"]) : null)), klass: "limit", podpis: "лимит ШР" }],
+      vysota: 260,
+      klik: (i) => perejti && perejti(mesyacy[i]["месяц"]),
     });
-    if (tek.length) kuski.push(tek);
-    let lini = "";
-    for (const kusok of kuski) {
-      const pts = kusok.map((j) => [x(j), y(mesyacy[j]["фот"])]);
-      const osn = (H - 24).toFixed(1);
-      lini += `<path class="fsG__area" d="${gladko(pts)} L${pts[pts.length - 1][0].toFixed(1)},${osn} L${pts[0][0].toFixed(1)},${osn} Z"/>`;
-      const fakt = kusok.filter((j) => mesyacy[j]["вид"] === "факт");
-      const dalshe = kusok.filter((j) => mesyacy[j]["вид"] !== "факт");
-      if (fakt.length) lini += `<path class="fsG__line" d="${gladko(fakt.map((j) => [x(j), y(mesyacy[j]["фот"])]))}"/>`;
-      if (dalshe.length) {
-        const s = fakt.length && dalshe[0] === fakt[fakt.length - 1] + 1 ? [fakt[fakt.length - 1], ...dalshe] : dalshe;
-        lini += `<path class="fsG__line fsG__line--prognoz" d="${gladko(s.map((j) => [x(j), y(mesyacy[j]["фот"])]))}"/>`;
-      }
-    }
-    const limitTochki = mesyacy.map((m, j) => (Number(m["цель"]) > 0 ? [x(j), y(m["цель"])] : null)).filter(Boolean);
-    const limit = limitTochki.length > 1 ? `<path class="fsG__limit" d="${gladko(limitTochki)}"/>` : "";
-    const polosy = mesyacy.map((m, j) => (vybrano.has(m["месяц"])
-      ? `<rect class="fsG__band" x="${(x(j) - (W - 60) / (n - 1) / 2).toFixed(1)}" y="0" width="${((W - 60) / (n - 1)).toFixed(1)}" height="${H}"/>` : "")).join("");
-    const setka = delenia.map((v) => `<line class="fsG__grid" x1="0" x2="${W}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}"/>`).join("");
-
-    const tochki = mesyacy.map((m, j) => {
-      const nomer = Number(m["месяц"].slice(5, 7)) - 1;
-      const est = m["фот"] != null;
-      const nad = est && Number(m["цель"]) > 0 && m["фот"] > m["цель"];
-      const opisanie = `${nazvanie(m["месяц"])}: ${VID[m["вид"]]}${est ? " " + mln(m["фот"]) + " млн ₽" : ""}; лимит ${mln(m["цель"])} млн ₽`;
-      const left = pct(x(j), W);
-      const top = pct(est ? y(m["фот"]) : H - 60, H);
-      return (est ? `<i class="fsG__dot fsG__dot--${VID_KLASS[m["вид"]] || "net"}${nad ? " is-nad" : ""}${m["месяц"] === tekushchiy ? " is-seychas" : ""}" style="left:${left};top:${top}"></i>
-          <b class="fsG__pin${nad ? " is-nad" : ""}${vybrano.has(m["месяц"]) ? " is-vybran" : ""}" style="left:${left};top:${top}">${mlnKor(m["фот"])}</b>`
-          : `<em class="fsG__net" style="left:${left};top:${top}">нет данных</em>`)
-        + `<button type="button" class="fsG__hit" data-period="${m["месяц"]}" title="${esc(opisanie)}" aria-label="${esc(opisanie)}" style="left:${left}"></button>`
-        + `<span class="fsG__mes${vybrano.has(m["месяц"]) ? " is-vybran" : ""}${m["месяц"] === tekushchiy ? " is-seychas" : ""}" style="left:${left}">${MES_KOR[nomer]}</span>`;
-    }).join("");
-    const shkala = delenia.map((v) => `<span style="top:${pct(y(v), H)}">${mlnKor(v)}</span>`).join("");
-    return `
-      <div class="fsG">
-        <div class="fsG__shkala">${shkala}</div>
-        <div class="fsG__holst">
-          <svg class="fsG__svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
-            <defs><linearGradient id="fsGZaliv" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="#a4e7cb" stop-opacity="0.34"/><stop offset="100%" stop-color="#a4e7cb" stop-opacity="0.02"/></linearGradient></defs>
-            ${polosy}${setka}${limit}${lini}
-          </svg>
-          <div class="fsG__sloy">${tochki}</div>
-        </div>
-      </div>`;
   }
 
   function periodMesyacy(period, god) {
@@ -353,14 +280,7 @@
               <button type="button" class="${seychas ? "is-on" : ""}" data-period="${tekushchiy}">Сейчас</button>
             </div>
           </div>
-          ${godGrafik(godMes, period, tekushchiy)}
-          <div class="fsLegenda">
-            <span><i class="k k--fakt"></i>факт бухгалтерии</span>
-            <span><i class="k k--prognoz"></i>прогноз месяца</span>
-            <span><i class="k k--shtat"></i>по нынешнему штату</span>
-            <span><i class="k k--limit"></i>лимит ШР</span>
-            <span><i class="k k--nad"></i>сверх лимита</span>
-          </div>
+          <div data-grafik></div>
         </section>
 
         <section class="fsBlok">
@@ -425,6 +345,10 @@
 
         <div class="zpShr" data-dash="shrOkno" ${shr ? "" : "hidden"}>${shr || ""}</div>
       </div>`;
+
+    // График — общий модуль сайта (../grafik.js), тот же, что в хитмапе.
+    const mesto = koren.querySelector("[data-grafik]");
+    if (mesto) mesto.replaceWith(grafikGoda(godMes, period, s.perejti));
 
     schet(koren, s.anim !== false);
     s.anim = false;
@@ -534,6 +458,8 @@
       }
       narisovat(koren, s);
     };
+
+    s.perejti = (period) => perejti(period);
 
     const zagruzitShr = async (list) => {
       const okno = koren.querySelector("[data-dash=\"shrOkno\"]");

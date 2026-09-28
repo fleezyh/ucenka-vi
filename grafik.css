@@ -1,0 +1,107 @@
+/* Общий график сайта (grafik.js) — копия графика хитмапа (29.09.2026).
+   Легенда сверху, шкала с ровными делениями слева, даты снизу. Линия дня
+   синяя, неделя зелёная, медиана и прошлый период — пунктиром разной частоты. */
+.vg {
+  padding: 14px 16px 10px;
+  border: 1px solid var(--line, rgba(255, 255, 255, 0.08));
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(15, 23, 35, 0.92), rgba(8, 13, 20, 0.92));
+}
+.vg--pusto { display: grid; place-items: center; min-height: 160px; color: var(--muted, #8f9cad); font-size: 13px; }
+
+.vg__legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-bottom: 12px; color: var(--muted, #8f9cad); font-size: 12px; }
+.vg__legend span { display: inline-flex; align-items: center; gap: 7px; }
+.vg__legend .k { display: inline-block; width: 16px; height: 3px; border-radius: 2px; }
+.vg__legend .k--line { background: #4d8df7; }
+.vg__legend .k--prognoz { height: 2px; background: repeating-linear-gradient(90deg, #9d8cff 0 5px, transparent 5px 8px); }
+.vg__legend .k--trend { height: 4px; background: #27c46b; }
+.vg__legend .k--median { height: 2px; background: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.55) 0 5px, transparent 5px 9px); }
+.vg__legend .k--ghost { height: 2px; background: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.6) 0 2px, transparent 2px 5px); }
+.vg__legend .k--limit { height: 2px; background: repeating-linear-gradient(90deg, #f5ad32 0 5px, transparent 5px 9px); }
+.vg__legend .k--over { width: 9px; height: 9px; border-radius: 50%; background: #f05d72; }
+
+.vg__plot { display: grid; grid-template-columns: 50px minmax(0, 1fr); gap: 8px; }
+.vg__scale { position: relative; color: var(--muted, #8f9cad); font-size: 11px; font-feature-settings: "tnum" 0, "pnum" 1; }
+.vg__scale span { position: absolute; right: 0; transform: translateY(-50%); white-space: nowrap; }
+
+.vg__canvas { position: relative; cursor: crosshair; }
+.vg__canvas.is-klik { cursor: pointer; }
+.vg__svg { display: block; width: 100%; height: 280px; overflow: visible; }
+.vg__grid { stroke: rgba(255, 255, 255, 0.06); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.vg__zero { stroke: rgba(255, 255, 255, 0.3); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.vg__band { fill: rgba(77, 141, 247, 0.07); }
+.vg__median { stroke: rgba(255, 255, 255, 0.3); stroke-width: 1; stroke-dasharray: 6 6; vector-effect: non-scaling-stroke; }
+.vg__ghost { fill: none; stroke: rgba(255, 255, 255, 0.4); stroke-width: 1.6; stroke-dasharray: 2 5; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.vg__extra { fill: none; stroke-width: 1.8; stroke-dasharray: 5 6; vector-effect: non-scaling-stroke; }
+.vg__extra--limit { stroke: #f5ad32; opacity: 0.9; }
+.vg__area { stroke: none; }
+.vg__line { fill: none; stroke: #4d8df7; stroke-width: 2.4; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.vg__line--prognoz { stroke: #9d8cff; stroke-dasharray: 7 6; }
+.vg__trend { fill: none; stroke: #27c46b; stroke-width: 2.6; stroke-linejoin: round; vector-effect: non-scaling-stroke; opacity: 0.9; }
+
+.vg__dots { position: absolute; inset: 0; pointer-events: none; }
+.vg__dots i {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  border-radius: 50%;
+  background: #0b1320;
+  box-shadow: inset 0 0 0 2px #7fb0ff;
+  transition: transform 120ms ease, background 120ms ease;
+}
+.vg--tall .vg__dots i,
+.vg--sparse .vg__dots i { width: 5px; height: 5px; margin: -2.5px 0 0 -2.5px; box-shadow: inset 0 0 0 1.5px #7fb0ff; }
+.vg__dots i.is-prognoz { box-shadow: inset 0 0 0 2px #9d8cff; }
+.vg__dots i.is-last { background: #4d8df7; box-shadow: 0 0 0 4px rgba(77, 141, 247, 0.28); }
+.vg__dots i.is-last.is-prognoz { background: #9d8cff; box-shadow: 0 0 0 4px rgba(157, 140, 255, 0.28); }
+.vg__dots i.is-over { background: #f05d72; box-shadow: 0 0 0 4px rgba(240, 93, 114, 0.28); }
+.vg__dots i.is-on { transform: scale(1.7); background: #fff; }
+.vg__guide { position: absolute; top: 0; bottom: 0; width: 1px; margin-left: -0.5px; background: rgba(255, 255, 255, 0.2); }
+.vg__guide[hidden] { display: none; }
+.vg__net { position: absolute; transform: translate(-50%, -50%); color: var(--muted, #8f9cad); font-size: 11.5px; font-style: normal; white-space: nowrap; }
+
+.vg__pin {
+  position: absolute;
+  transform: translate(-50%, calc(-100% - 9px));
+  color: #e6efff;
+  font: 600 11.5px/1 var(--ui, inherit);
+  font-feature-settings: "tnum" 0, "pnum" 1;
+  white-space: nowrap;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9), 0 0 8px rgba(5, 9, 15, 0.85);
+}
+.vg__pin.is-below { transform: translate(-50%, 10px); color: #b9c7da; }
+.vg__pin.is-first { transform: translate(-25%, calc(-100% - 9px)); }
+.vg__pin.is-first.is-below { transform: translate(-25%, 10px); }
+.vg__pin.is-last { color: #fff; font-size: 12.5px; font-weight: 700; transform: translate(-75%, calc(-100% - 10px)); }
+.vg__pin.is-last.is-below { transform: translate(-75%, 11px); }
+.vg__pin.is-over { color: #ff8a9a; }
+.vg__pin.is-vybrano { color: #fff; font-size: 13px; }
+.vg__pin.is-tall { writing-mode: vertical-rl; font-size: 10px; transform: translate(-50%, calc(-100% - 6px)) rotate(180deg); }
+
+.vg__axis { position: relative; height: 18px; margin: 6px 0 0 58px; color: var(--muted, #8f9cad); font-size: 11px; font-feature-settings: "tnum" 0, "pnum" 1; }
+.vg__axis span { position: absolute; top: 0; transform: translateX(-50%); white-space: nowrap; }
+.vg__axis span.is-weekend { opacity: 0.5; }
+.vg__axis span.is-vybrano { color: #7fb0ff; font-weight: 700; }
+.vg__axis span:last-child { color: var(--text, #e6efff); font-weight: 600; }
+
+.vgTip {
+  position: fixed;
+  z-index: 60;
+  min-width: 150px;
+  max-width: 290px;
+  padding: 9px 12px 10px;
+  border: 1px solid var(--line-strong, rgba(255, 255, 255, 0.16));
+  border-radius: 11px;
+  background: rgba(10, 15, 23, 0.97);
+  box-shadow: 0 18px 40px -18px rgba(0, 0, 0, 0.9);
+  color: var(--text, #e6efff);
+  font: 12.5px/1.45 var(--ui, inherit);
+  pointer-events: none;
+}
+.vgTip[hidden] { display: none; }
+.vgTip b { display: block; color: var(--muted, #8f9cad); font-size: 12px; font-weight: 600; }
+.vgTip strong { display: block; margin: 1px 0 4px; font-size: 17px; font-weight: 700; }
+.vgTip span { display: block; color: var(--muted, #8f9cad); }
+.vgTip .vgTip__over { color: #ff8a9a; }
+body.is-svetlo .vgTip { background: rgba(255, 255, 255, 0.98); }

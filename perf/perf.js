@@ -268,234 +268,59 @@
    */
   const PODPISI_DO = 16;
 
+  // 29.09.2026, Степан: «в производительности тоже такие нужны, как в хитмапе».
+  // Оба графика — общий модуль сайта ../grafik.js: плавная линия с заливкой,
+  // подпись над каждой точкой (у провала — снизу), перекрестье с подсказкой,
+  // медиана пунктиром, выброс красным у потолка, среднее за неделю.
+  const DNI_NEDELI = ["вс", "пн", "вт", "ср", "чт", "пт", "сб"];
+
   function renderLine(list, options) {
     const opts = options || {};
     const label = opts.label || ((row) => row.ключ || "");
-    const wrap = document.createElement("div");
-    wrap.className = "chart chart--series";
-
-    const values = list.map((row) => row.на_смену);
-    const max = Math.max(...values, 1);
-    const cap = max * 1.18;
-    const avg = values.reduce((sum, v) => sum + v, 0) / (values.length || 1);
-    const podpisi = list.length <= PODPISI_DO;
-
-    const W = 1000;
-    const H = 240;
-    const padTop = podpisi ? 30 : 16;
-    const padBottom = 24;
-    const x = (i) => (list.length === 1 ? W / 2 : (i / (list.length - 1)) * W);
-    const y = (v) => padTop + (1 - Math.min(v, cap) / cap) * (H - padTop - padBottom);
-
-    const svg = document.createElementNS(SVG, "svg");
-    svg.setAttribute("class", "chart__svg");
-    svg.setAttribute("viewBox", "0 0 " + W + " " + H);
-    svg.setAttribute("preserveAspectRatio", "none");
-
-    const sred = document.createElementNS(SVG, "line");
-    sred.setAttribute("class", "chart__median");
-    sred.setAttribute("x1", 0);
-    sred.setAttribute("x2", W);
-    sred.setAttribute("y1", y(avg));
-    sred.setAttribute("y2", y(avg));
-    svg.appendChild(sred);
-
-    const path = values
-      .map((v, i) => (i ? "L" : "M") + x(i).toFixed(1) + "," + y(v).toFixed(1))
-      .join(" ");
-
-    const area = document.createElementNS(SVG, "path");
-    area.setAttribute("class", "chart__area");
-    area.setAttribute("d", path + " L" + x(values.length - 1) + "," + (H - padBottom) +
-                      " L" + x(0) + "," + (H - padBottom) + " Z");
-    svg.appendChild(area);
-
-    const line = document.createElementNS(SVG, "path");
-    line.setAttribute("class", "chart__line");
-    line.setAttribute("d", path);
-    svg.appendChild(line);
-
-    const canvas = document.createElement("div");
-    canvas.className = "chart__canvas";
-    canvas.appendChild(svg);
-
-    const dots = document.createElement("div");
-    dots.className = "chart__dots";
-    list.forEach((row, index) => {
-      const dot = document.createElement("i");
-      if (row.неполная) dot.className = "isPartial";
-      dot.style.left = (x(index) / W * 100).toFixed(2) + "%";
-      dot.style.top = (y(row.на_смену) / H * 100).toFixed(2) + "%";
-      const prev = index > 0 ? list[index - 1].на_смену : null;
-      const delta = prev ? ((row.на_смену - prev) / prev) * 100 : null;
-      bindTip(dot,
-        "<b>" + label(row) + "</b>" +
-        "<span>" + one(row.на_смену) + " штук за смену" +
-        (row.неполная ? " — период не закончен" : "") + "</span>" +
-        (row.штук ? "<span>" + count(row.штук) + " штук · " + count(row.смен) +
-         " смен</span>" : "") +
-        (delta === null ? "" : "<span>" + (delta >= 0 ? "+" : "") +
-         delta.toFixed(0) + "% к прошлому</span>"));
-      dots.appendChild(dot);
-
-      if (!podpisi) return;
-      const value = document.createElement("b");
-      value.className = "chart__value";
-      value.textContent = Math.round(row.на_смену);
-      value.style.left = (x(index) / W * 100).toFixed(2) + "%";
-      value.style.top = (y(row.на_смену) / H * 100).toFixed(2) + "%";
-      dots.appendChild(value);
+    const edinica = opts.legenda || "штук за смену";
+    return window.ViGrafik.sozdat({
+      tochki: list.map((row) => ({
+        znach: row.на_смену,
+        os: row.метка || label(row),
+        zag: label(row),
+        vid: row.неполная ? "prognoz" : "",
+        dop: [
+          row.штук ? `${count(row.штук)} штук · ${count(row.смен)} ${opts.smen || "смен"}` : "",
+          row.неполная ? "период не закончен" : "",
+        ].filter(Boolean),
+      })),
+      format: (v) => (Math.abs(v) >= 10000 ? window.ViGrafik.shortNumber(v) : one(v)),
+      formatTochno: one,
+      edinica,
+      mediana: true,
+      osVse: list.length <= 31,
+      legendaLinii: edinica,
+      legendaPrognoz: "период не закончен",
+      vysota: 240,
     });
-    canvas.appendChild(dots);
-
-    const scale = document.createElement("div");
-    scale.className = "chart__scale";
-    scale.innerHTML = "<span>" + Math.round(cap) + "</span><span>" +
-      Math.round(cap / 2) + "</span><span>0</span>";
-
-    const axis = document.createElement("div");
-    axis.className = "chart__axis";
-    const step = Math.max(1, Math.ceil(list.length / 12));
-    list.forEach((row, index) => {
-      if (index % step && index !== list.length - 1) return;
-      const mark = document.createElement("span");
-      mark.textContent = label(row);
-      mark.style.left = (x(index) / W * 100).toFixed(2) + "%";
-      axis.appendChild(mark);
-    });
-
-    const legend = document.createElement("div");
-    legend.className = "chart__legend";
-    legend.innerHTML = "<span class=\"k k--line\"></span>"
-      + (opts.legenda || "штук за смену")
-      + "<span class=\"k k--median\"></span>среднее " + one(avg);
-
-    const plot = document.createElement("div");
-    plot.className = "chart__plot";
-    plot.append(scale, canvas);
-
-    wrap.append(legend, plot, axis);
-    return wrap;
   }
 
   function renderDaily(list) {
-    const wrap = document.createElement("div");
-    wrap.className = "chart";
-
-    const values = list.map((row) => row.на_смену);
-    const sorted = [...values].sort((a, b) => a - b);
-    // Потолок шкалы — 95-й перцентиль: единственный день на 312 штук иначе
-    // прижимает рабочие 60-90 ко дну, и график перестаёт что-либо показывать.
-    const cap = Math.max(quantile(sorted, 0.95) * 1.15, 10);
-    const median = quantile(sorted, 0.5);
-    const avg7 = rolling(values, 7);
-
-    const W = 1000;
-    const H = 260;
-    const padTop = 16;
-    const padBottom = 24;
-    const x = (i) => (list.length === 1 ? W / 2 : (i / (list.length - 1)) * W);
-    const y = (v) => padTop + (1 - Math.min(v, cap) / cap) * (H - padTop - padBottom);
-
-    const svg = document.createElementNS(SVG, "svg");
-    svg.setAttribute("class", "chart__svg");
-    svg.setAttribute("viewBox", "0 0 " + W + " " + H);
-    svg.setAttribute("preserveAspectRatio", "none");
-
-    const med = document.createElementNS(SVG, "line");
-    med.setAttribute("class", "chart__median");
-    med.setAttribute("x1", 0);
-    med.setAttribute("x2", W);
-    med.setAttribute("y1", y(median));
-    med.setAttribute("y2", y(median));
-    svg.appendChild(med);
-
-    const path = values
-      .map((v, i) => (i ? "L" : "M") + x(i).toFixed(1) + "," + y(v).toFixed(1))
-      .join(" ");
-
-    const area = document.createElementNS(SVG, "path");
-    area.setAttribute("class", "chart__area");
-    area.setAttribute("d", path + " L" + x(values.length - 1) + "," + (H - padBottom) +
-                      " L" + x(0) + "," + (H - padBottom) + " Z");
-    svg.appendChild(area);
-
-    const line = document.createElementNS(SVG, "path");
-    line.setAttribute("class", "chart__line");
-    line.setAttribute("d", path);
-    svg.appendChild(line);
-
-    const trend = document.createElementNS(SVG, "path");
-    trend.setAttribute("class", "chart__trend");
-    trend.setAttribute("d", avg7
-      .map((v, i) => (i ? "L" : "M") + x(i).toFixed(1) + "," + y(v).toFixed(1))
-      .join(" "));
-    svg.appendChild(trend);
-
-    const canvas = document.createElement("div");
-    canvas.className = "chart__canvas";
-    canvas.appendChild(svg);
-
-    // Точки поверх холста обычными элементами: внутри растянутого по ширине
-    // SVG круг превратился бы в эллипс.
-    const dots = document.createElement("div");
-    dots.className = "chart__dots";
-    list.forEach((row, index) => {
-      const dot = document.createElement("i");
-      const over = row.на_смену > cap;
-      if (over) dot.className = "isOver";
-      dot.style.left = (x(index) / W * 100).toFixed(2) + "%";
-      dot.style.top = (y(row.на_смену) / H * 100).toFixed(2) + "%";
-      bindTip(dot,
-        "<b>" + dayLabel(row.день) + "</b>" +
-        "<span>" + one(row.на_смену) + " штук за смену" + (over ? " — выброс" : "") + "</span>" +
-        "<span>" + count(row.штук) + " штук · " + count(row.смен) + " смен · " +
-        count(row.человек) + " человек</span>" +
-        "<span>среднее за неделю " + one(avg7[index]) + "</span>");
-      dots.appendChild(dot);
-
-      // Число над точкой — только когда дней мало. На месяце их за тридцать,
-      // и подписи сливаются в сплошную полосу поверх самой линии.
-      if (list.length > PODPISI_DO) return;
-      const value = document.createElement("b");
-      value.className = "chart__value";
-      value.textContent = Math.round(row.на_смену);
-      value.style.left = (x(index) / W * 100).toFixed(2) + "%";
-      value.style.top = (y(row.на_смену) / H * 100).toFixed(2) + "%";
-      dots.appendChild(value);
+    return window.ViGrafik.sozdat({
+      tochki: list.map((row) => {
+        const d = new Date(`${row.день}T12:00:00`);
+        return {
+          znach: row.на_смену,
+          os: dayLabel(row.день),
+          zag: `${DNI_NEDELI[d.getDay()]}, ${dayLabel(row.день)}`,
+          tusklo: [0, 6].includes(d.getDay()),
+          dop: [`${count(row.штук)} штук · ${count(row.смен)} смен · ${count(row.человек)} человек`],
+        };
+      }),
+      format: one,
+      formatTochno: one,
+      edinica: "штук за смену",
+      trend: 7,
+      mediana: true,
+      vybros: true,
+      legendaLinii: "день",
+      vysota: 260,
     });
-    canvas.appendChild(dots);
-
-    const scale = document.createElement("div");
-    scale.className = "chart__scale";
-    scale.innerHTML = "<span>" + Math.round(cap) + "</span><span>" +
-      Math.round(cap / 2) + "</span><span>0</span>";
-
-    const axis = document.createElement("div");
-    axis.className = "chart__axis";
-    const step = Math.max(1, Math.ceil(list.length / 10));
-    list.forEach((row, index) => {
-      if (index % step) return;
-      const mark = document.createElement("span");
-      mark.textContent = dayLabel(row.день);
-      mark.style.left = (x(index) / W * 100).toFixed(2) + "%";
-      axis.appendChild(mark);
-    });
-
-    const legend = document.createElement("div");
-    legend.className = "chart__legend";
-    legend.innerHTML =
-      "<span class=\"k k--line\"></span>день" +
-      "<span class=\"k k--trend\"></span>среднее за неделю" +
-      "<span class=\"k k--median\"></span>медиана " + one(median) +
-      "<span class=\"k k--over\"></span>выше " + Math.round(cap);
-
-    const plot = document.createElement("div");
-    plot.className = "chart__plot";
-    plot.append(scale, canvas);
-
-    wrap.append(legend, plot, axis);
-    return wrap;
   }
 
   // --- Недели -----------------------------------------------------------------
@@ -733,10 +558,71 @@
   }
 
   /** Контуры рядом: одна шкала, чтобы их можно было сравнить глазами. */
+  /* «Весь отдел» (24.09: «сумма производа… среднее всего отдела»).
+   *
+   * Отдельной выгрузки нет — собираем из пяти контуров: штуки и смены по
+   * дням, неделям, месяцам, часам и дням недели складываем, штук за смену
+   * считаем заново как все штуки на все смены, людей объединяем по человеку.
+   * Смена в двух контурах за один день считается дважды: это человеко-дни
+   * в контурах, так их и считает каждый контур по отдельности.
+   */
+  function sobratOtdel(kontury) {
+    const spisok = Object.values(kontury);
+    const slozhit = (pole, klyuch, summy) => {
+      const acc = new Map();
+      spisok.forEach((k) => (k[pole] || []).forEach((r) => {
+        const est = acc.get(r[klyuch]) || { [klyuch]: r[klyuch], ...Object.fromEntries(summy.map((x) => [x, 0])) };
+        summy.forEach((x) => { est[x] += r[x] || 0; });
+        acc.set(r[klyuch], est);
+      }));
+      return [...acc.values()]
+        .map((r) => ({ ...r, на_смену: r.смен ? +(r.штук / r.смен).toFixed(1) : 0 }))
+        .sort((a, b) => String(a[klyuch]).localeCompare(String(b[klyuch])));
+    };
+    // Люди: один человек мог работать в нескольких контурах.
+    const lyudi = new Map();
+    spisok.forEach((k) => (k.сотрудники || []).forEach((p) => {
+      const kto = p.сотрудник + "|" + (p.площадка || "");
+      const est = lyudi.get(kto) || { сотрудник: p.сотрудник, площадка: p.площадка, тип: p.тип,
+        штук: 0, смен: 0, поМесяцам: new Map(), поНеделям: new Map(), первая_смена: p.первая_смена,
+        разброс: null, тренд: null };
+      est.штук += p.штук || 0;
+      est.смен += p.смен || 0;
+      if (p.первая_смена && (!est.первая_смена || p.первая_смена < est.первая_смена)) est.первая_смена = p.первая_смена;
+      [["поМесяцам", "месяц"], ["поНеделям", "неделя"]].forEach(([pole, klyuch]) => {
+        (p[pole] || []).forEach((r) => {
+          const m = est[pole].get(r[klyuch]) || { [klyuch]: r[klyuch], штук: 0, смен: 0 };
+          m.штук += r.штук || 0; m.смен += r.смен || 0;
+          est[pole].set(r[klyuch], m);
+        });
+      });
+      lyudi.set(kto, est);
+    }));
+    const sotrudniki = [...lyudi.values()].map((p) => {
+      const razvernut = (mapa, klyuch) => [...mapa.values()]
+        .map((r) => ({ ...r, на_смену: r.смен ? +(r.штук / r.смен).toFixed(1) : 0 }))
+        .sort((a, b) => String(a[klyuch]).localeCompare(String(b[klyuch])));
+      return { ...p, на_смену: p.смен ? +(p.штук / p.смен).toFixed(1) : 0,
+        поМесяцам: razvernut(p.поМесяцам, "месяц"), поНеделям: razvernut(p.поНеделям, "неделя") };
+    });
+    return {
+      название: "Весь отдел",
+      поДням: slozhit("поДням", "день", ["штук", "смен", "человек"]),
+      поНеделям: slozhit("поНеделям", "неделя", ["штук", "смен", "человек"]),
+      поМесяцам: slozhit("поМесяцам", "месяц", ["штук", "смен", "человек"]),
+      // Эти два ряда slice() и так складывает по ключу — достаточно склеить.
+      поДнямНедели: spisok.flatMap((k) => k.поДнямНедели || []),
+      поЧасам: spisok.flatMap((k) => k.поЧасам || []),
+      сотрудники: sotrudniki,
+      выходНаНорму: [],
+    };
+  }
+
   function renderContours(all, months) {
     // Все контуры — за тот же период, что и остальная страница: иначе рядом
-    // стоят цифры за разные промежутки и сравнивать их нельзя.
-    const rows = Object.entries(all).map(([key, data]) => {
+    // стоят цифры за разные промежутки и сравнивать их нельзя. «Весь отдел»
+    // здесь не строка: он и есть сумма этих строк.
+    const rows = Object.entries(all).filter(([key]) => key !== "vse").map(([key, data]) => {
       const item = slice(data, months).итог;
       return { ключ: key, название: data.название, ...item };
     });
@@ -1263,6 +1149,9 @@
     })
     .then((data) => {
       payload = data;
+      if (payload.контуры && !payload.контуры.vse) {
+        payload.контуры = { vse: sobratOtdel(payload.контуры), ...payload.контуры };
+      }
       render();
     })
     .catch((error) => {
