@@ -307,11 +307,9 @@
     const name = document.createElement("h3");
     name.className = "tile__name";
     name.textContent = tile.metric || "";
-    const group = blockOf(tile);
-    const block = document.createElement("span");
-    block.className = "tile__block";
-    block.textContent = `${group.icon} ${group.label}`;
-    head.append(name, block);
+    // Подпись блока в углу («💰 ДЕНЬГИ») убрана 28.09: стояла как попало
+    // (ФОТ — «Деньги»), что в ней писать — решаем отдельно.
+    head.append(name);
 
     const value = document.createElement("p");
     value.className = "tile__value";
