@@ -504,6 +504,8 @@
 
   /** Следующий шаг одной кнопкой. Оплату отмечаем вместе с датой — иначе
       сверка потом снова найдёт «деньги есть, даты нет». */
+  const otgruzochnyy = (s) => /^(8|9|10)\./.test(String(s || ""));
+
   function dalshe(z) {
     const kuda = sleduyushchiy(z.status);
     if (!kuda) return;
@@ -680,8 +682,95 @@
                                  stroki().filter((z) => z[pole] === s).length)).join("");
   }
 
+  /* Фильтр в заголовке колонки, как в Excel (встреча 28.09): «в колонке как в
+     таблицах фильтр — для привычной работы», например по договору. Значение
+     сравниваем так, как оно показано в ячейке. */
+  let stolbFiltry = {};
+
+  function pokazZnach(z, s) {
+    let v = z[s.pole];
+    if (s.tip === "otgruzka" || s.tip === "otgruzkaData") {
+      const para = (z.otgruzki || [])[s.nomer] || {};
+      v = s.tip === "otgruzka" ? para["что"] : para["когда"];
+    }
+    if (s.tip === "da-net") return v ? "да" : "нет";
+    if (v === null || v === undefined || v === "") return "(пусто)";
+    if (s.tip === "data" || s.tip === "otgruzkaData") return data(v) || "(пусто)";
+    if (s.tip === "dolya") return dolya(v);
+    if (s.tip === "procent") return Number(v).toFixed(0) + "%";
+    if (s.tip === "dengi" || s.tip === "chislo") return chislo(v);
+    return String(v);
+  }
+
+  function prohoditStolb(z, krome) {
+    const kol = stolbcy();
+    return Object.entries(stolbFiltry).every(([klyuch, nabor]) => {
+      if (klyuch === krome || !nabor) return true;
+      const s = kol.find((x) => stolbKlyuch(x) === klyuch);
+      return !s || nabor.has(pokazZnach(z, s));
+    });
+  }
+
+  const stolbKlyuch = (s) => s.pole + (s.nomer !== undefined ? "#" + s.nomer : "");
+
+  function otkrytStolbFiltr(th, s) {
+    document.querySelector(".crmStFiltr")?.remove();
+    const klyuch = stolbKlyuch(s);
+    const bazovye = stroki().filter(podhodit).filter((z) => prohoditStolb(z, klyuch));
+    const schet = new Map();
+    bazovye.forEach((z) => { const v = pokazZnach(z, s); schet.set(v, (schet.get(v) || 0) + 1); });
+    const vse = [...schet.keys()].sort((a, b) => a.localeCompare(b, "ru", { numeric: true }));
+    const tekushiy = stolbFiltry[klyuch];
+    const okno = document.createElement("div");
+    okno.className = "crmStFiltr";
+    okno.innerHTML = `<input class="crmStFiltr__poisk" placeholder="поиск">
+      <div class="crmStFiltr__kn"><button type="button" data-vse>все</button><button type="button" data-nichego>снять</button>
+        <button type="button" data-sbros>сбросить фильтр</button></div>
+      <div class="crmStFiltr__spisok">${vse.map((v) => `<label><input type="checkbox" value="${escape(v)}"${
+        !tekushiy || tekushiy.has(v) ? " checked" : ""}> <span>${escape(v)}</span> <i>${schet.get(v)}</i></label>`).join("")}</div>`;
+    document.body.appendChild(okno);
+    const r = th.getBoundingClientRect();
+    okno.style.left = `${Math.max(8, Math.min(r.left, window.innerWidth - okno.offsetWidth - 8))}px`;
+    okno.style.top = `${r.bottom + 4}px`;
+    const primenit = () => {
+      const vybrano = [...okno.querySelectorAll(".crmStFiltr__spisok input")].filter((x) => x.checked).map((x) => x.value);
+      if (vybrano.length === vse.length) delete stolbFiltry[klyuch];
+      else stolbFiltry[klyuch] = new Set(vybrano);
+      narisovatTablicu();
+    };
+    okno.addEventListener("change", primenit);
+    okno.querySelector(".crmStFiltr__poisk").addEventListener("input", (e) => {
+      const slovo = e.target.value.trim().toLowerCase();
+      okno.querySelectorAll(".crmStFiltr__spisok label").forEach((l) => {
+        l.hidden = slovo && !l.textContent.toLowerCase().includes(slovo);
+      });
+    });
+    okno.querySelector("[data-vse]").addEventListener("click", () => {
+      okno.querySelectorAll(".crmStFiltr__spisok label:not([hidden]) input").forEach((x) => { x.checked = true; });
+      primenit();
+    });
+    okno.querySelector("[data-nichego]").addEventListener("click", () => {
+      okno.querySelectorAll(".crmStFiltr__spisok label:not([hidden]) input").forEach((x) => { x.checked = false; });
+      primenit();
+    });
+    okno.querySelector("[data-sbros]").addEventListener("click", () => {
+      delete stolbFiltry[klyuch];
+      okno.remove();
+      narisovatTablicu();
+    });
+    okno.querySelector(".crmStFiltr__poisk").focus();
+    setTimeout(() => {
+      const zakryt = (e) => {
+        if (okno.contains(e.target) || e.target.closest("[data-stfiltr]")) return;
+        okno.remove();
+        document.removeEventListener("mousedown", zakryt);
+      };
+      document.addEventListener("mousedown", zakryt);
+    }, 0);
+  }
+
   function narisovatTablicu() {
-    const vidimye = otsortirovat(stroki().filter(podhodit));
+    const vidimye = otsortirovat(stroki().filter(podhodit).filter((z) => prohoditStolb(z)));
     const kol = stolbcy();
     const gruppy = [];
     kol.forEach((s) => {
@@ -694,9 +783,11 @@
     const niz = kol.map((s, nomer) => {
       const idet = sortirovka.pole === s.pole;
       const strelka = idet ? (sortirovka.vniz ? " ↓" : " ↑") : "";
+      const fOn = Boolean(stolbFiltry[stolbKlyuch(s)]);
       return `<th class="crmSort${idet ? " is-on" : ""}${nomer === 0 ? " crmLipkiy" : ""}"
         data-sort="${s.pole}"${s.shirina ? ` style="width:${s.shirina}px"` : ""}
-        title="Сортировать по «${escape(s.imya)}»">${escape(s.imya)}${strelka}</th>`;
+        title="Сортировать по «${escape(s.imya)}»">${escape(s.imya)}${strelka}<span class="crmStolbFiltr${fOn ? " is-on" : ""}"
+        data-stfiltr="${nomer}" title="Фильтр по колонке">▾</span></th>`;
     }).join("");
     const shapka = `<tr class="crmShapkaGruppy">${verh}</tr><tr>${niz}</tr>`;
     const mozhno = vid === "loty";
@@ -780,7 +871,13 @@
       ? `сортировка по «${(kol.find((s) => s.pole === sortirovka.pole) || {}).imya
          || sortirovka.pole}»`
       : "клик по заголовку сортирует";
-    el("crmSchyot").textContent = `${skolko} · ${kol.length} колонок · ${pro}`;
+    const nFiltrov = Object.keys(stolbFiltry).length;
+    el("crmSchyot").innerHTML = `${escape(skolko)} · ${kol.length} колонок · ${escape(pro)}${nFiltrov
+      ? ` · <button class="crmSbrosFiltrov" type="button" data-sbros-stolb>сбросить фильтры колонок (${nFiltrov})</button>` : ""}`;
+    el("crmSchyot").querySelector("[data-sbros-stolb]")?.addEventListener("click", () => {
+      stolbFiltry = {};
+      narisovatTablicu();
+    });
     el("crmTabl").innerHTML = `<table><thead>${shapka}</thead><tbody>${novayaStroka}${telo}</tbody></table>`
       + (mozhno ? `<datalist id="crmKaSpisokT">${(dannye.ка || [])
         .map((k) => `<option value="${escape(k.ka || "")}">`).join("")}</datalist>` : "");
@@ -811,6 +908,12 @@
       novaya.addEventListener("keydown", (event) => { if (event.key === "Enter") { event.preventDefault(); zavesti(); } });
     }
 
+    el("crmTabl").querySelectorAll("[data-stfiltr]").forEach((kn) => {
+      kn.addEventListener("click", (event) => {
+        event.stopPropagation();
+        otkrytStolbFiltr(kn.closest("th"), kol[Number(kn.dataset.stfiltr)]);
+      });
+    });
     el("crmTabl").querySelectorAll("th[data-sort]").forEach((th) => {
       th.addEventListener("click", () => {
         const pole = th.dataset.sort;
@@ -1037,7 +1140,9 @@
     karta.className = "crmKarta ctKarta";
     karta.draggable = true;
     karta.dataset.id = z.id;
-    const kuda = sleduyushchiy(z.status);
+    // Встреча 28.09: «отгружен» отмечают операторы, проверив каждую паллету, —
+    // только из окна лота. На карточке остаётся шаг до «оплачен».
+    const kuda = otgruzochnyy(sleduyushchiy(z.status)) ? null : sleduyushchiy(z.status);
     const metki = metkiLota(z);
     karta.innerHTML = teloKarty(z) + `
       <div class="ctMetki">${metki.length ? metki.map(([t, k, pod]) =>
@@ -1335,11 +1440,22 @@
   /** Справочник контрагентов по имени — связь лота с базой КА.
    *  Имена в лотах и в базе иногда расходятся («Железный Аист» против
    *  «Желеный Аист»), поэтому сверяем по нижнему регистру и без краёв. */
-  const klyuchKa = (imya) => String(imya || "").trim().toLowerCase();
+  /* Один клиент — две записи КА (встреча 28.09: «в воронке один контрагент
+     два раза»). Связанные записи сравниваем по главному: у них общие лоты,
+     юрлица и лента. Связи хранит сервер отдельно от книги (ка_связи). */
+  const normKa = (imya) => String(imya || "").trim().toLowerCase();
+  const klyuchKa = (imya) => {
+    const k = normKa(imya);
+    const g = ((dannye && dannye.ка_связи) || {})[k];
+    return g ? normKa(g) : k;
+  };
 
   function kontragentPoImeni(imya) {
     if (!imya) return null;
     const klyuch = klyuchKa(imya);
+    // Сначала сама главная запись, потом любая связанная с ней.
+    const glavnaya = (dannye.ка || []).find((k) => normKa(k.ka) === klyuch);
+    if (glavnaya) return glavnaya;
     // В лоте бывает записано юрлицо, а не КА — ищем и по нему.
     return (dannye.ка || []).find((k) => klyuchKa(k.ka) === klyuch)
       || (dannye.ка || []).find((k) => klyuchKa(k.yur_lico) === klyuch) || null;
@@ -1432,11 +1548,47 @@
 
   /** Обратная сторона связи: в карточке контрагента — его лоты и открытые
    *  задачи. Без этого база КА остаётся справочником, а не историей клиента. */
+  /** «Это тот же клиент, что…» — связать две записи КА в одну. */
+  function blokSvyazi(k) {
+    const g = ((dannye.ка_связи) || {})[normKa(k.ka)];
+    const svyazany = Object.entries(dannye.ка_связи || {})
+      .filter(([, glavnyy]) => normKa(glavnyy) === normKa(k.ka)).map(([imya]) =>
+        ((dannye.ка || []).find((x) => normKa(x.ka) === imya) || {}).ka || imya);
+    return `<div class="crmSvyaz" data-ka-svyaz="${escape(k.ka)}">
+      ${g ? `<p>Это тот же клиент, что <b>${escape(g)}</b>: лоты, юрлица и лента общие.
+          <button class="crmKn" type="button" data-razvyazat>развязать</button></p>`
+        : `<p class="crmObsh__zag">Тот же клиент, что другая запись КА?</p>
+          <div class="crmSvyaz__forma"><input list="crmKaSpisokSv" placeholder="главный контрагент" data-glavnyy>
+          <button class="crmKn" type="button" data-svyazat>Связать</button></div>
+          <datalist id="crmKaSpisokSv">${(dannye.ка || []).filter((x) => normKa(x.ka) !== normKa(k.ka))
+            .map((x) => `<option value="${escape(x.ka || "")}">`).join("")}</datalist>`}
+      ${svyazany.length ? `<p class="crmHint">Связаны с этим: ${svyazany.map(escape).join(", ")}</p>` : ""}
+      <span class="crmHint" data-svyaz-otvet></span></div>`;
+  }
+
+  async function svyazatKa(imya, glavnyy, otvetEl) {
+    otvetEl.textContent = "сохраняю…";
+    try {
+      const o = await fetch("/__crm/obshchenie", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ действие: "связать_ка", ка: imya, главный: glavnyy }),
+      });
+      const d = await o.json().catch(() => ({}));
+      if (!o.ok) throw new Error(d.ошибка || `сервер ответил ${o.status}`);
+      dannye.ка_связи = d.ка_связи || {};
+      narisovat();
+      const k = (dannye.ка || []).find((x) => normKa(x.ka) === normKa(imya));
+      if (k) otkrytKartochku(k);
+    } catch (e) {
+      otvetEl.textContent = e.message || String(e);
+    }
+  }
+
   function blokLotovKontragenta(k) {
     const ego = (dannye.лоты || []).filter((x) => klyuchKa(x.ka) === klyuchKa(k.ka));
     if (!ego.length) {
       return `<div class="crmKa"><p class="crmKa__net">Лотов по этому контрагенту
-        в CRM нет — либо он новый, либо в лотах имя написано иначе</p>${blokYurlic(k)}</div>`;
+        в CRM нет — либо он новый, либо в лотах имя написано иначе</p>${blokYurlic(k)}</div>${blokSvyazi(k)}`;
     }
     const otgruzheno = ego.filter((x) => String(x.status || "").startsWith("10"));
     const v_rabote = ego.filter((x) => {
@@ -1457,7 +1609,7 @@
            ${escape(x.nomer || "—")} · ${escape(String(x.status || "").slice(0, 22))}
          </button>`).join("")}</div>
       ${blokYurlic(k)}
-    </div>`;
+    </div>${blokSvyazi(k)}`;
   }
 
   /** Деньги лота с быстрой правкой цены.
@@ -1827,6 +1979,7 @@
         <div class="crmOkno__act">
           ${tip === "lot" ? '<button class="crmKn" type="button" data-pravit>Править</button>' : ""}
           ${tip === "lot" && (z.status === "7. Оплачен" || soglasLota(z)) ? '<button class="crmKn crmKn--glav" type="button" data-soglas-okno>Согласование отгрузки</button>' : ""}
+          ${tip === "lot" && otgruzochnyy(sleduyushchiy(z.status)) ? `<button class="crmKn" type="button" data-dalshe-okno>→ ${escape(imyaEtapa(sleduyushchiy(z.status)).toLowerCase())}</button>` : ""}
           ${tip === "lot" ? '<button class="crmKn crmKn--udalit" type="button" data-udalit title="Лот заведён по ошибке — спрятать. Вернуть можно в «Таблице» внизу">Удалить</button>' : ""}
           <button class="crmKn" type="button" data-zakryt>Закрыть</button>
         </div>
@@ -1834,7 +1987,7 @@
       <h2>${escape(zag)}</h2>
       ${tip === "ka" ? blokLotovKontragenta(z) : ""}
       ${tip === "lot" ? blokKontragenta(z) + blokNaSchet(z) + blokSchetPismo(z) + blokDeneg(z) + blokSchetov(z) : ""}
-      ${tip === "lot" ? '<div class="crmPallety" id="crmPallety"></div>' : ""}
+      ${tip === "lot" ? '<div class="crmPallety" id="crmPallety"></div><div class="crmVtis" id="crmVtis"></div>' : ""}
       ${tip === "lot" || tip === "ka" ? '<div class="crmLenta" id="crmLenta"></div>' : ""}
       ${tip === "ka" || (tip === "lot" && z.ka)
         ? '<div class="crmObsh" id="crmObshchenie"></div>' : ""}
@@ -1845,8 +1998,21 @@
     el("crmOkno").hidden = false;
     const pravit = el("crmOknoDoc").querySelector("[data-pravit]");
     if (pravit) pravit.addEventListener("click", () => otkrytFormu(z));
+    const svyaz = el("crmOknoDoc").querySelector("[data-ka-svyaz]");
+    if (svyaz) {
+      const otvetSv = svyaz.querySelector("[data-svyaz-otvet]");
+      svyaz.querySelector("[data-svyazat]")?.addEventListener("click", () => {
+        const g = svyaz.querySelector("[data-glavnyy]").value.trim();
+        if (!g) { otvetSv.textContent = "выберите главного контрагента"; return; }
+        if (!confirm(`«${svyaz.dataset.kaSvyaz}» — это тот же клиент, что «${g}»?`)) return;
+        svyazatKa(svyaz.dataset.kaSvyaz, g, otvetSv);
+      });
+      svyaz.querySelector("[data-razvyazat]")?.addEventListener("click", () => svyazatKa(svyaz.dataset.kaSvyaz, "", otvetSv));
+    }
     const soglasKn = el("crmOknoDoc").querySelector("[data-soglas-okno]");
     if (soglasKn) soglasKn.addEventListener("click", () => soglasovanieLota(z));
+    const dalsheKn = el("crmOknoDoc").querySelector("[data-dalshe-okno]");
+    if (dalsheKn) dalsheKn.addEventListener("click", () => { dalshe(z); el("crmOkno").hidden = true; });
     const pismoKn = el("crmPismoKn");
     if (pismoKn) pismoKn.addEventListener("click", () => schetVChernoviki(z, pismoKn));
     const naSchet = el("crmNaSchetKn");
@@ -1901,6 +2067,7 @@
     if (el("crmKontakty")) narisovatKontakty(z);
     if (el("crmPochta")) narisovatPochtu(z.email);
     if (el("crmPallety")) narisovatPallety(z.nomer);
+    if (el("crmVtis")) narisovatVtis(z.nomer);
     if (el("crmLenta")) narisovatLentu(tip === "ka" ? z.ka : z.ka, tip === "lot" ? z.nomer : null);
     // Соседние лоты того же контрагента открываются прямо из карточки.
     el("crmOknoDoc").querySelectorAll("[data-lot-ka]").forEach((kn) => {
@@ -2000,6 +2167,11 @@
       if (pole && !pole.value && (d.паллеты || []).length) {
         pole.value = d.паллеты.join("\n");
         if (podpis) podpis.textContent = `${d.паллеты.length} паллет ${d.откуда}${d.в_лоте && d.в_лоте !== d.паллеты.length ? ` (в лоте указано ${d.в_лоте})` : ""} — проверьте и отправляйте`;
+        const bez = d.без_пломбы || [];
+        if (bez.length) {
+          el("crmOtvetSoglas").innerHTML = `<b class="crmBezPlomby">Без пломбы ДВК ${bez.length}: ${escape(bez.slice(0, 8).join(", "))}${bez.length > 8 ? "…" : ""}.</b>
+            Без пломбы согласование не отправится: пусть ДВК внесёт пломбы на <a href="/soglas/plomby/" target="_blank">экране пломб</a> или уберите эти паллеты из списка.`;
+        }
       } else if (podpis) {
         podpis.textContent = (d.заказы || []).length
           ? `по заказам лота (${d.заказы.join(", ")}) паллет в остатках не нашлось — вставьте списком`
@@ -2633,6 +2805,47 @@
     }
   }
 
+  /* --- Заказы ВТИС по лоту (27.09) ----------------------------------------
+     Робот вместо операторов: паллеты лота → акты из ВМС → заказы «ск»/«сц» по
+     ≤1000 актов → импорт актов в копию прошлого заказа покупателя. Пока только
+     план — что робот сделал бы; создание включат после проверки. */
+  function narisovatVtis(lot) {
+    const uzel = el("crmVtis");
+    if (!uzel) return;
+    uzel.innerHTML = `<div class="crmPallety__shapka"><p class="crmObsh__zag">Заказы ВТИС</p>
+        <button class="crmKn" type="button" id="crmVtisPlan">Показать план</button></div>
+      <p class="crmHint">Заказы во ВТИС собирает робот — по паллетам лота и их актам, как это делают операторы.</p>
+      <div id="crmVtisItog"></div>`;
+    el("crmVtisPlan").addEventListener("click", () => pokazatPlanVtis(lot));
+  }
+
+  async function pokazatPlanVtis(lot) {
+    const itog = el("crmVtisItog");
+    const kn = el("crmVtisPlan");
+    kn.disabled = true;
+    itog.innerHTML = '<p class="crmHint">смотрю паллеты в ВМС — это до минуты…</p>';
+    try {
+      const o = await fetch(`/__crm/vtis_plan?лот=${encodeURIComponent(lot)}`, { cache: "no-store" });
+      const d = await o.json().catch(() => ({}));
+      if (!o.ok) throw new Error(d.ошибка || `сервер ответил ${o.status}`);
+      const chasti = d.части || [];
+      itog.innerHTML = `
+        ${chasti.length ? `<div class="crmVtis__chasti">${chasti.map((c) => `
+          <div class="crmVtis__chast">
+            <b>${escape(c.часть)}</b>
+            <span>${chislo(c.паллеты.length)} паллет</span>
+            <span class="crmNum">${chislo(c.акты.length)} актов</span>
+          </div>`).join("")}</div>` : ""}
+        <p class="crmHint">${d.шаблон ? `Шапку возьмём из прошлого заказа покупателя ${escape(d.шаблон.номер)}.` : ""}
+          Всего ${chislo(d.паллет || 0)} паллет, ${chislo(d.актов || 0)} актов.</p>
+        ${(d.проблемы || []).length ? `<ul class="crmVtis__problemy">${d.проблемы.map((p) => `<li>${escape(p)}</li>`).join("")}</ul>` : ""}`;
+    } catch (e) {
+      itog.innerHTML = `<p class="crmHint crmHint--oshibka">Не вышло: ${escape(e.message || String(e))}</p>`;
+    } finally {
+      kn.disabled = false;
+    }
+  }
+
   async function narisovatPallety(lot) {
     const uzel = el("crmPallety");
     if (!uzel || !lot) return;
@@ -2650,10 +2863,13 @@
       .sort((a, b) => (svoySklad(b) - svoySklad(a)) || ((b.себестоимость || 0) - (a.себестоимость || 0)));
 
     const spisok = sostav.паллеты || [];
+    // Без пломбы ДВК в лот не берём (встреча 28.09): чекбокс выключен, сервер тоже не примет.
+    const bezPlomby = (p) => p.пломба !== undefined && !p.пломба;
     const stroka = (p, vybor) => `
-      <${vybor ? "label" : "div"} class="crmPalletR${vybor ? " crmPalletR--vybor" : ""}" data-pallet="${escape(p.паллета)}">
-        ${vybor ? `<input type="checkbox" value="${escape(p.паллета)}" data-sebes="${Number(p.себестоимость) || 0}">` : "<span></span>"}
-        <span class="crmPalletR__imya" title="${escape(p.паллета)}">${escape(p.паллета)}</span>
+      <${vybor ? "label" : "div"} class="crmPalletR${vybor ? " crmPalletR--vybor" : ""}${vybor && bezPlomby(p) ? " is-bez-plomby" : ""}" data-pallet="${escape(p.паллета)}"
+        ${vybor && bezPlomby(p) ? 'title="Без пломбы ДВК в лот нельзя — пусть ДВК проверит паллету и внесёт пломбу"' : ""}>
+        ${vybor ? `<input type="checkbox" value="${escape(p.паллета)}" data-sebes="${Number(p.себестоимость) || 0}"${bezPlomby(p) ? " disabled" : ""}>` : "<span></span>"}
+        <span class="crmPalletR__imya" title="${escape(p.паллета)}">${escape(p.паллета)}${vybor && bezPlomby(p) ? ' <i class="crmBezPlomby">без пломбы</i>' : ""}</span>
         <span>${escape(p.регион || "—")}</span>
         <span class="crmNum">${chislo(p.sku)} SKU</span>
         <span class="crmNum">${chislo(p.штук)} шт</span>
@@ -2777,15 +2993,19 @@
       if (!slova.length) return;
       const poImeni = new Map(svobodnye.map((p) => [p.паллета.toLowerCase(), p.паллета]));
       const netu = [];
+      const bezPl = [];
       slova.forEach((slovo) => {
         const imya = poImeni.get(slovo.toLowerCase());
-        if (imya) otmecheno.add(imya); else netu.push(slovo);
+        const p = imya && svobodnye.find((x) => x.паллета === imya);
+        if (p && bezPlomby(p)) bezPl.push(imya);
+        else if (imya) otmecheno.add(imya); else netu.push(slovo);
       });
       if (el("crmPalletySvoy")) el("crmPalletySvoy").checked = false;
       el("crmPalletyFiltr").value = "";
       pokazat();
       obnovitKnopku();
-      el("crmPalletyVstavkaOtvet").textContent = `Отмечено ${slova.length - netu.length} из ${slova.length}`
+      el("crmPalletyVstavkaOtvet").textContent = `Отмечено ${slova.length - netu.length - bezPl.length} из ${slova.length}`
+        + (bezPl.length ? ` · без пломбы, в лот нельзя: ${bezPl.slice(0, 12).join(", ")}${bezPl.length > 12 ? "…" : ""}` : "")
         + (netu.length ? ` · нет среди свободных (в другом лоте, не найдены или уже проданы): ${netu.slice(0, 12).join(", ")}${netu.length > 12 ? "…" : ""}` : "");
     };
     el("crmPalletyOtmetit").addEventListener("click", otmetitVstavku);
@@ -3690,8 +3910,8 @@
       narisovatTablicu();
       // Подсказка про правку: пунктир под ячейкой замечают не все.
       if (vid === "loty") {
-        el("crmSchyot").textContent += " · ячейки с пунктиром правятся кликом,"
-          + " статус и площадка выбираются из списка";
+        el("crmSchyot").insertAdjacentText("beforeend", " · ячейки с пунктиром правятся кликом,"
+          + " статус и площадка выбираются из списка");
       }
     }
     el("crmPanel").hidden = false;

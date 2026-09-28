@@ -92,3 +92,27 @@ input::-webkit-datetime-edit-day-field, input::-webkit-datetime-edit-month-field
 input::-webkit-datetime-edit-year-field, input::-webkit-datetime-edit-text,
 input::-webkit-datetime-edit-hour-field, input::-webkit-datetime-edit-minute-field {
   font-variant-numeric: normal !important; font-feature-settings: "tnum" 0, "pnum" 1 !important; letter-spacing: 0 !important; }
+
+/* Пломбы ДВК (/soglas/plomby/, 28.09) */
+.plVvod { margin: 10px 0 18px; }
+.plPole { display: grid; gap: 6px; font-size: 13px; color: var(--muted); }
+.plPole input { font: inherit; font-size: 18px; color: var(--text); background: #0b1220; border: 1px solid var(--line-strong);
+  border-radius: 12px; padding: 12px 14px; max-width: 520px; }
+.plKarta { margin-top: 12px; padding: 16px; border: 1px solid var(--line-strong); border-radius: 14px; background: var(--panel); max-width: 720px; }
+.plKarta h2 { margin: 0 0 4px; font-size: 20px; font-weight: 600; }
+.plForma { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; margin-top: 10px; }
+.plNet { color: #f05d72; font-weight: 600; }
+.plNelzya { color: #f7a3ae; font-style: normal; font-size: 12px; }
+.plGotovo { margin-top: 12px; padding: 12px 14px; border-radius: 12px; background: rgba(39, 196, 107, .14);
+  border: 1px solid rgba(39, 196, 107, .6); max-width: 720px; }
+.plSpisokShapka { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+.plSpisokShapka h2 { margin: 0; }
+.plPoisk { font: inherit; color: var(--text); background: #0b1220; border: 1px solid var(--line-strong); border-radius: 10px; padding: 7px 10px; }
+.plTolko { display: flex; gap: 6px; align-items: center; font-size: 13px; color: var(--muted); }
+.plTablWrap { overflow-x: auto; }
+.plTabl { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.plTabl th { text-align: left; color: var(--muted); font-size: 12px; font-weight: 600; padding: 6px 8px; border-bottom: 1px solid var(--line-strong); }
+.plTabl td { padding: 7px 8px; border-bottom: 1px solid var(--line); cursor: pointer; }
+.plTabl tr:hover td { background: rgba(255, 255, 255, .03); }
+.plTabl .num { text-align: right; }
+body.is-svetlo .plPole input, body.is-svetlo .plPoisk { background: #fff; }

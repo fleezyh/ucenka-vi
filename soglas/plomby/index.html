@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <script src="/tema.js?v=20260924-2"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Пломбы ДВК · Уценка</title>
+  <link rel="icon" type="image/svg+xml" href="../../assets/brand/vi-mark.svg">
+  <link rel="preload" href="../../assets/fonts/VI_Sans_DemiBold.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="../../style.css?v=20260921-1">
+  <link rel="stylesheet" href="../../perf/perf.css?v=20260921-2">
+  <link rel="stylesheet" href="../soglas.css?v=20260928-1">
+  <link rel="stylesheet" href="../../site-header.css?v=20260921-1">
+  <script src="plomby.js?v=20260928-1" defer></script>
+  <script src="../../nav.js?v=20260921-1" defer></script>
+</head>
+<body data-mode="perf">
+  <!-- Пломбы ДВК (встреча 28.09.2026): пломба — факт проверки паллеты ДВК.
+       ДВК вносит её здесь и только на паллету из наших остатков; без пломбы
+       паллету не берут ни в лот, ни на согласование отгрузки. -->
+  <main class="shell">
+    <header class="topbar">
+      <a class="brand" href="../../" aria-label="Уценка — главная">
+        <img class="brand__mark" src="../../assets/brand/vi-mark.svg" alt="" width="36" height="36">
+        <span>Уценка</span>
+      </a>
+    </header>
+
+    <section class="heroPerf">
+      <div>
+        <p class="eyebrow">Продажи · проверка ДВК</p>
+        <h1>Пломбы на паллетах</h1>
+        <p class="lead">Отсканируйте паллету: если она есть в наших остатках, впишите пломбу.
+          Без пломбы паллету не возьмут ни в лот, ни на согласование отгрузки.</p>
+      </div>
+      <div class="perfTools">
+        <a class="sgKn" href="../">Согласование отгрузок ↗</a>
+        <p class="stamp" id="stamp"></p>
+      </div>
+    </section>
+
+    <section class="plVvod">
+      <form id="plSkanForma" autocomplete="off">
+        <label class="plPole"><span>Паллета</span>
+          <input id="plSkan" placeholder="отсканируйте наклейку паллеты или введите номер" autofocus></label>
+      </form>
+      <div id="plKarta"></div>
+    </section>
+
+    <section class="sgKolonka plSpisokBlok">
+      <div class="plSpisokShapka">
+        <h2>Наши паллеты <span id="plItog"></span></h2>
+        <input class="plPoisk" id="plPoisk" placeholder="поиск по номеру или складу">
+        <label class="plTolko"><input type="checkbox" id="plTolkoBez" checked> только без пломбы</label>
+      </div>
+      <div class="plTablWrap"><table class="plTabl"><thead><tr>
+        <th>Паллета</th><th>Склад</th><th>Ячейка</th><th class="num">SKU</th><th class="num">Штук</th>
+        <th>Пломба</th><th>Кто · когда</th></tr></thead><tbody id="plStroki"></tbody></table></div>
+    </section>
+    <p class="message" id="message">Загружаю…</p>
+  </main>
+</body>
+</html>

@@ -737,6 +737,9 @@ body.is-svetlo .crmKarta__nedelya.is-net { color: #a86400; }
 .crmPalletR:last-child { border-bottom: 0; }
 .crmPalletR--vybor { cursor: pointer; }
 .crmPalletR--vybor:hover { background: rgba(77,141,247,.08); }
+.crmPalletR--vybor.is-bez-plomby { cursor: not-allowed; opacity: .55; }
+.crmPalletR--vybor.is-bez-plomby:hover { background: none; }
+.crmBezPlomby { color: #f05d72; font-style: normal; font-weight: 600; }
 .crmPalletR:has(input:checked) { background: rgba(39,196,107,.12); }
 .crmPalletR__imya { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .crmPalletR .crmNum { text-align: right; }
@@ -910,3 +913,36 @@ input::-webkit-datetime-edit-day-field, input::-webkit-datetime-edit-month-field
 input::-webkit-datetime-edit-year-field, input::-webkit-datetime-edit-text,
 input::-webkit-datetime-edit-hour-field, input::-webkit-datetime-edit-minute-field {
   font-variant-numeric: normal !important; font-feature-settings: "tnum" 0, "pnum" 1 !important; letter-spacing: 0 !important; }
+
+/* Заказы ВТИС по лоту: план робота (27.09). */
+.crmVtis { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line, #263345); }
+.crmVtis__chasti { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; }
+.crmVtis__chast { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 10px; align-items: center; padding: 8px 12px; border: 1px solid var(--line, #263345); border-radius: 10px; }
+.crmVtis__problemy { margin: 6px 0 0; padding-left: 18px; color: var(--amber, #f5ad32); font-size: 13px; }
+
+/* Фильтр в заголовке колонки (28.09) */
+.crmStolbFiltr { display: inline-block; margin-left: 4px; padding: 0 4px; border-radius: 4px; color: var(--muted); cursor: pointer; font-size: 11px; }
+.crmStolbFiltr:hover { background: rgba(255,255,255,.08); color: var(--text); }
+.crmStolbFiltr.is-on { background: #4d8df7; color: #fff; }
+.crmStFiltr { position: fixed; z-index: 90; width: 260px; max-height: 360px; display: flex; flex-direction: column; gap: 6px; padding: 10px;
+  background: #0f1621; border: 1px solid var(--line-strong); border-radius: 12px; box-shadow: 0 12px 30px rgba(0,0,0,.45); }
+.crmStFiltr__poisk { font: inherit; font-size: 13px; color: var(--text); background: #0b1220; border: 1px solid var(--line-strong); border-radius: 8px; padding: 6px 8px; }
+.crmStFiltr__kn { display: flex; gap: 6px; flex-wrap: wrap; }
+.crmStFiltr__kn button, .crmSbrosFiltrov { appearance: none; font: inherit; font-size: 12px; color: var(--muted); background: transparent;
+  border: 1px solid var(--line-strong); border-radius: 8px; padding: 3px 8px; cursor: pointer; }
+.crmStFiltr__spisok { overflow-y: auto; display: grid; gap: 2px; font-size: 13px; }
+.crmStFiltr__spisok label { display: flex; gap: 6px; align-items: center; padding: 3px 4px; border-radius: 6px; cursor: pointer; }
+.crmStFiltr__spisok label:hover { background: rgba(255,255,255,.05); }
+.crmStFiltr__spisok label[hidden] { display: none; }
+.crmStFiltr__spisok span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.crmStFiltr__spisok i { color: var(--muted); font-style: normal; font-size: 12px; }
+body.is-svetlo .crmStFiltr { background: #fff; }
+body.is-svetlo .crmStFiltr__poisk { background: #fff; }
+
+/* Связь двух записей КА (28.09) */
+.crmSvyaz { margin: 10px 0; padding: 10px 12px; border: 1px dashed var(--line-strong); border-radius: 12px; font-size: 13.5px; }
+.crmSvyaz p { margin: 0 0 6px; }
+.crmSvyaz__forma { display: flex; gap: 8px; flex-wrap: wrap; }
+.crmSvyaz__forma input { font: inherit; font-size: 13px; color: var(--text); background: #0b1220; border: 1px solid var(--line-strong);
+  border-radius: 8px; padding: 6px 8px; min-width: 260px; }
+body.is-svetlo .crmSvyaz__forma input { background: #fff; }
