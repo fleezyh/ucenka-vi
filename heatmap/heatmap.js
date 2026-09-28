@@ -2033,6 +2033,40 @@
 
   periodSelect.addEventListener("change", () => render(periodSelect.value));
 
+  /* «Простыня» (28.09.2026): шаблон «Цели: Направление по работе с браком» —
+     показатели строками, месяцы года столбцами, в каждом месяце факт и план.
+     Факт — плитка месяца (прошлое по финрезу и резерву — FFC), план — цель. */
+  function vygruzitProstynyu() {
+    if (!payload) return;
+    const god = String(payload.период || "").slice(0, 4) || String(new Date().getFullYear());
+    const MES = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август",
+      "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
+    const EDIN = { mln_rub: "млн ₽", thousand_pcs: "тыс шт", percent: "%", ratio: "коэф.", count: "шт" };
+    const mesyacy = MES.map((_, i) => `${god}-${String(i + 1).padStart(2, "0")}`);
+    const obrazec = (payload.поПериодам?.[payload.период] || payload.плитки || [])
+      .slice().sort((a, b) => (a.block_ord - b.block_ord) || (a.ord - b.ord));
+    const celi = payload.цели || {};
+    const kvartal = (i) => `Q${Math.floor(i / 3) + 1} ${god}`;
+    const rows = [
+      ["", "", ...mesyacy.flatMap((_, i) => [kvartal(i), kvartal(i)])],
+      ["", "", ...MES.flatMap((m) => [m, m])],
+      ["Показатель", "Ед.", ...MES.flatMap(() => ["Факт", "План"])],
+    ];
+    obrazec.forEach((plitka) => {
+      const k = plitka.metric_key;
+      rows.push([plitka.metric, EDIN[plitka.unit_code] || "", ...mesyacy.flatMap((m) => {
+        const f = (payload.поПериодам?.[m] || []).find((x) => x.metric_key === k);
+        const fakt = f && f.fact_num !== null && f.fact_num !== undefined ? Number(f.fact_num) : "";
+        const plan = celi[k]?.[m];
+        return [fakt, plan === undefined || plan === null ? "" : Number(plan)];
+      })]);
+    });
+    rows.push([]);
+    rows.push([`Факт — хитмап уценки на ${payload.обновлено || ""}. Финрез и резерв по ${payload.ffc_правда_до || "—"} включительно — из FFC финконтроллеров, дальше — наш расчёт. План — цели хитмапа.`]);
+    saveXlsx(rows, `Цели ${god}`, `Цели и факт направления брака ${god}`);
+  }
+  document.getElementById("prostynyaBtn")?.addEventListener("click", vygruzitProstynyu);
+
   // Escape закрывает раскрытый график: кнопка «Закрыть» уезжает вверх, когда
   // смотришь длинный ряд, и до неё приходится возвращаться прокруткой.
   document.addEventListener("keydown", (event) => {

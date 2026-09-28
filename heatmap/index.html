@@ -2,6 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8">
+  <script src="/tema.js?v=20260924-2"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0a1018">
   <title>Уценка · Хитмап</title>
@@ -17,7 +18,7 @@
   <script src="../xlsx.js?v=20260907-13" defer></script>
   <!-- Описания расчёта идут до самого хитмапа: он их только показывает. -->
   <script src="metodika.js?v=20260911-10" defer></script>
-  <script src="heatmap.js?v=20260928-5" defer></script>
+  <script src="heatmap.js?v=20260928-6" defer></script>
   <script src="../nav.js?v=20260921-1" defer></script>
 </head>
 <body data-mode="heatmap">
@@ -58,6 +59,10 @@
              а спрашивают чаще другое: «как менялось». Раньше это собиралось
              в Excel руками перед каждым показом. -->
         <button class="pokazBtn" id="pokazBtn" type="button">Показать динамику</button>
+        <!-- «Простыня» для шаблона целей направления (28.09.2026): все показатели
+             хитмапа по месяцам года, факт и план — как в листе, который присылают
+             заполнить. Прошлое по финрезу и резерву — из FFC финконтроллеров. -->
+        <button class="pokazBtn" id="prostynyaBtn" type="button" title="Все показатели по месяцам: факт и план, книгой Excel">Выгрузить цели и факт</button>
       </div>
     </section>
 
