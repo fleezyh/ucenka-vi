@@ -810,7 +810,8 @@ body.is-svetlo .crmPallety__vstavka textarea { background: #fff; }
 .crmOplata--net { color: #f0788a; }
 .crmNovayaStroka td { padding: 4px 6px; background: rgba(39,196,107,.06); }
 .crmNovayaStroka input, .crmNovayaStroka select { width: 100%; min-width: 70px; padding: 4px 6px; border: 1px solid rgba(143,156,173,.35); border-radius: 4px; background: transparent; color: inherit; font: inherit; font-size: 12px; }
-.crmNovayaStroka select option { color: #10203a; }
+.crmNovayaStroka select option { background: #0f1826; color: #e8edf5; }
+body.is-svetlo .crmNovayaStroka select option { background: #fff; color: #10203a; }
 body.is-svetlo .crmNovayaStroka input, body.is-svetlo .crmNovayaStroka select { background: #fff; }
 
 /* ---- Паллеты: база с наполнением (встреча 24.09) ------------------------- */

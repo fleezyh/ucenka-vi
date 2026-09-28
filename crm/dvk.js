@@ -551,6 +551,18 @@
       <div class="dvkRaboty">${kartaPlomby()}${kartaSoglas()}</div>
       <section class="dvkRazdel">${razdel === "plomby" ? razdelPlomby() : razdelSoglas()}</section>`;
     if (fokus) { const p = root.querySelector("[data-poisk]"); p.focus(); p.setSelectionRange(p.value.length, p.value.length); }
+    // Лот открываем прямым обработчиком на карточке: 28.09 клик по лоту в CRM
+    // до общего обработчика не доходил — карточка «пропадала», окно не открывалось.
+    root.querySelectorAll("[data-zayavka]").forEach((kn) => {
+      kn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        otkrytZayavku(kn.dataset.zayavka).catch((oshibka) => {
+          // Чтобы «лот пропал» не повторилось молча: ошибку видно и она уходит в след.
+          alert("Лот не открылся: " + (oshibka.message || oshibka));
+          try { navigator.sendBeacon("/__sled", new Blob([JSON.stringify({ действие: "ошибка ДВК: " + String(oshibka.message || oshibka).slice(0, 120) })], { type: "application/json" })); } catch (x) { /* не важно */ }
+        });
+      });
+    });
   }
 
   function podklyuchit() {
@@ -559,8 +571,7 @@
       if (r) { razdel = r.dataset.razdel; root.dataset.vybrano = "1"; soobshchenie = null; risovat(); return; }
       const f = e.target.closest("[data-fsoglas]");
       if (f) { filtrSoglas = f.dataset.fsoglas; root.dataset.fsoglas = "1"; risovat(); return; }
-      const l = e.target.closest("[data-zayavka]");
-      if (l) otkrytZayavku(l.dataset.zayavka);
+
     });
     root.addEventListener("submit", (e) => {
       e.preventDefault();
