@@ -203,3 +203,30 @@
 .prUch__vis { color: var(--muted, #64748b); }
 .prUch__str.pr--krasnyy td:last-child b { color: #f05d72; }
 .prUch__str.pr--zhyoltyy td:last-child b { color: #d9a441; }
+
+/* «Стоит ли склад?» (28.09) */
+.stoit { margin: 18px 0 8px; display: flex; flex-direction: column; gap: 12px; }
+.stOtvet { padding: 18px 22px; border-radius: 16px; border: 1px solid var(--line); border-left: 6px solid #46525f; background: rgba(16, 24, 35, .72); }
+.stOtvet__vopros { margin: 0; font-size: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.stOtvet__da { margin: 4px 0 6px; font-size: 30px; font-weight: 600; line-height: 1.15; }
+.stOtvet__pochemu { margin: 0; font-size: 14px; color: var(--muted); max-width: 980px; line-height: 1.45; }
+.stKarty { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.stKart { display: block; padding: 14px 16px; border-radius: 14px; border: 1px solid var(--line); border-left: 4px solid #46525f; background: rgba(16, 24, 35, .72); color: var(--text); text-decoration: none; }
+.stKart:hover { border-color: var(--red); }
+.stKart__zag { margin: 0; font-size: 13px; color: var(--muted); }
+.stKart__zag b { font-weight: 600; }
+.stKart__znak { margin: 6px 0 4px; font-size: 22px; font-weight: 600; }
+.stKart__znak small { font-size: 13px; font-weight: 500; color: var(--muted); }
+.stKart__pod { margin: 0 0 8px; font-size: 12.5px; color: var(--muted); line-height: 1.4; }
+.stGr { width: 100%; height: 46px; display: block; }
+.stGr__fakt { fill: none; stroke: #e8eef6; stroke-width: 1.6; vector-effect: non-scaling-stroke; }
+.stGr__norma { fill: none; stroke: #8f9cad; stroke-width: 1.2; stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; }
+.stSnoska { margin: 0; font-size: 12px; color: var(--muted); }
+.st--krasnyy { border-left-color: #f05d72; } .st--krasnyy .stKart__zag b, .stOtvet.st--krasnyy .stOtvet__da { color: #f05d72; }
+.st--zhyoltyy { border-left-color: #d9a441; } .st--zhyoltyy .stKart__zag b, .stOtvet.st--zhyoltyy .stOtvet__da { color: #d9a441; }
+.st--zelyonyy { border-left-color: #2fc97c; } .st--zelyonyy .stKart__zag b { color: #2fc97c; }
+.st--seryy { border-left-color: #8f9cad; }
+body.is-svetlo .stOtvet, body.is-svetlo .stKart { background: #fff; }
+body.is-svetlo .stGr__fakt { stroke: #10203a; }
+.cep--zastyl { border-top-color: #8f9cad; opacity: .75; }
+.cep--zastyl .cepZveno__vremya { color: #8f9cad; }

@@ -25,7 +25,9 @@
       <span class="cepZveno__vremya">${vremya}</span>
     </a>`;
 
-  function sobrat(dvor, priyomka) {
+  // sv — data/svezhest.json (28.09): когда DWH застыл, двор красится серым,
+  // иначе «дольше всех 7 часов» растёт на бумаге и звено горит без причины.
+  function sobrat(dvor, priyomka, sv) {
     const dmd = (dvor?.склады || []).find((s) => s.склад === "ДМД");
     const porogiDvor = dvor?.пороги_мин || { тревога: 120, пробка: 240 };
     const vozrast = priyomka?.возраст?.итого || {};
@@ -33,21 +35,23 @@
     const sektory = priyomka?.секторы || [];
     const porogi = priyomka?.пороги || { недогруз: 80, норма: 90, тревога: 92 };
 
+    const zastyl = !!(sv && sv.застыл);
+    const kray = zastyl ? (sv.источники || []).map((x) => x.край).sort().pop() : "";
     const cvetMinut = (m) => m >= porogiDvor.пробка ? "krasnyy" : m >= porogiDvor.тревога ? "zhyoltyy" : "zelyonyy";
     const zvenya = [];
 
     if (dmd) {
       zvenya.push(zveno({
-        imya: "Двор", yakor: "dvor", cvet: dmd.ждут_ворот ? cvetMinut(dmd.дольше_всех_мин) : "zelyonyy",
+        imya: "Двор", yakor: "dvor", cvet: zastyl ? "zastyl" : dmd.ждут_ворот ? cvetMinut(dmd.дольше_всех_мин) : "zelyonyy",
         glavnoe: `${num(dmd.ждут_ворот)} машин`,
         pod: `ждут ворот · ${num(dmd.паллет_в_очереди)} паллет`,
-        vremya: dmd.ждут_ворот ? `дольше всех ${chmm(dmd.дольше_всех_мин)}` : "очереди нет",
+        vremya: zastyl ? `данные застыли в ${String(kray).slice(11, 16)}` : dmd.ждут_ворот ? `дольше всех ${chmm(dmd.дольше_всех_мин)}` : "очереди нет",
       }));
       // Среднее ожидание строже, чем худшая машина: час в среднем — уже
       // тормозит, два — ворота не справляются.
       const cvetSrednee = (m) => m > 120 ? "krasnyy" : m > 60 ? "zhyoltyy" : "zelyonyy";
       zvenya.push(zveno({
-        imya: "Ворота и разгрузка", yakor: "dvor", cvet: cvetSrednee(dmd.среднее_ожидание_мин),
+        imya: "Ворота и разгрузка", yakor: "dvor", cvet: zastyl ? "zastyl" : cvetSrednee(dmd.среднее_ожидание_мин),
         glavnoe: `${num(dmd.на_разгрузке)} на воротах`,
         pod: `разгружено ${num(dmd.разгружено)} · по ${chmm(dmd.средняя_разгрузка_мин)}`,
         vremya: `ожидание ${chmm(dmd.среднее_ожидание_мин)} в ср.`,
@@ -99,8 +103,8 @@
 
   function zagruzit() {
     const vzyat = (url) => fetch(url, { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
-    Promise.all([vzyat("../data/dvor.json"), vzyat("../data/priyomka.json")]).then(([dvor, priyomka]) => {
-      const zvenya = sobrat(dvor, priyomka);
+    Promise.all([vzyat("../data/dvor.json"), vzyat("../data/priyomka.json"), vzyat("../data/svezhest.json")]).then(([dvor, priyomka, sv]) => {
+      const zvenya = sobrat(dvor, priyomka, sv);
       if (!zvenya.length) { box.hidden = true; return; }
       box.hidden = false;
       box.querySelector(".cepRyad").innerHTML = zvenya.map(html).join('<span class="cepStrelka" aria-hidden="true">→</span>');
