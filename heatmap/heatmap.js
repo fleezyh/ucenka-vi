@@ -1646,6 +1646,22 @@
       list = agregirovat(entry, all.filter((p) => p.день >= ot && p.день <= dniOkna[dniOkna.length - 1].день), "неделя");
     } else {
       list = agregirovat(entry, all, "месяц");     // месяц к месяцу — весь ряд
+      // Месяцы раньше дневного ряда — из месячных итогов плитки (2025-й — по отчёту
+      // ФБ, у ФОТ и аутсорса дни есть только с лета). 28.09: «что ж там только с апреля».
+      const pervyy = list.length ? list[0].день.slice(0, 7) : "9999-99";
+      const MNOZH = { mln_rub: 1e6, thousand_pcs: 1e3 };
+      const ranshe = Object.keys(payload.поПериодам || {})
+        .filter((k) => /^\d{4}-\d{2}$/.test(k) && k < pervyy).sort()
+        .map((k) => {
+          const t = (payload.поПериодам[k] || []).find((x) => x.metric_key === metricKey);
+          if (!t || t.fact_num === null || t.fact_num === undefined || /нет|—/.test(String(t.fact_txt || ""))) return null;
+          const [g, m] = k.split("-");
+          return { день: `${k}-01`, значение: Number(t.fact_num) * (MNOZH[t.unit_code] || 1),
+                   подпись: `${MES_KOROTKO[+m - 1]} ${g.slice(2)}`,
+                   подсказка: `${MES_KOROTKO[+m - 1]} ${g} · итог месяца`, дней: 0 };
+        })
+        .filter(Boolean);
+      list = ranshe.concat(list);
     }
     const agg = dailyShag !== "день";
     const SHAGI = { день: ["по дням", "дней"], неделя: ["по неделям", "недель"], месяц: ["по месяцам", "месяцев"] };
