@@ -1,0 +1,5 @@
+/* Вкладки кабинета на /zp/ — как в /__account (28.09). */
+.kabVkladki { display: inline-flex; gap: 2px; margin: 4px 0 18px; padding: 4px; border: 1px solid var(--line, #263345); border-radius: 14px; background: rgba(8, 12, 18, .55); }
+.kabVkladki__a { padding: 9px 16px; border-radius: 10px; color: var(--muted, #8f9cad); font-size: 14px; font-weight: 600; text-decoration: none; }
+.kabVkladki__a:hover { color: var(--text, #f2f6fb); }
+.kabVkladki__a.is-on { background: rgba(255, 255, 255, .1); color: var(--text, #f2f6fb); }
