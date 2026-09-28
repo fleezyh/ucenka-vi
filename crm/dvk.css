@@ -23,9 +23,11 @@
 .is-zel { color: #27c46b; }
 
 .dvkS { display: flex; width: 100%; height: 78px; margin-bottom: 8px; border-radius: 16px; background: rgba(255, 255, 255, .03); overflow: hidden; box-sizing: border-box; }
-.dvkS--pallety { display: grid; grid-template-columns: repeat(18, 1fr); grid-auto-rows: 1fr; align-content: center; gap: 5px; padding: 10px 12px; }
-.dvkS--pallety i { aspect-ratio: 1; border-radius: 4px; background: rgba(39, 196, 107, .55); animation: dvkBox 3s cubic-bezier(.3, 1.4, .5, 1) infinite; animation-delay: var(--d); }
-.dvkS--pallety i.is-bez { background: rgba(240, 93, 114, .12); border: 2px solid #f05d72; box-sizing: border-box; }
+.dvkS--pallety { display: flex; flex-wrap: wrap; align-content: center; gap: 6px; padding: 10px 14px; }
+.dvkS--pallety i { width: 20px; height: 20px; border-radius: 5px; border: 2px solid #f05d72; background: rgba(240, 93, 114, .14);
+  box-sizing: border-box; animation: dvkBox 3s cubic-bezier(.3, 1.4, .5, 1) infinite; animation-delay: var(--d); }
+.dvkS--pallety em { align-self: center; color: #f7a3ae; font-style: normal; font-size: 13px; font-weight: 600; margin-left: 4px; }
+.dvkS--pallety em.is-zel { color: #27c46b; margin: 0 auto; }
 .dvkS--loty { align-items: flex-end; gap: 8px; padding: 10px 12px; }
 .dvkS--loty i { flex: 1; max-width: 42px; height: var(--h); border-radius: 5px 5px 2px 2px; background: linear-gradient(180deg, #f5ad32, rgba(245, 173, 50, .25));
   transform-origin: bottom; animation: dvkBar 2.6s ease-in-out infinite; animation-delay: var(--d); }
@@ -97,9 +99,52 @@ body.is-svetlo .dvkS { background: rgba(16, 32, 58, .04); }
   .dvkRaboty { grid-template-columns: 1fr; gap: 10px; }
   .dvkS { height: 56px; }
   .dvkG__cifry b { font-size: 24px; }
-  .dvkTabl th:nth-child(3), .dvkTabl td:nth-child(3), .dvkTabl th:nth-child(4), .dvkTabl td:nth-child(4),
-  .dvkTabl th:nth-child(7), .dvkTabl td:nth-child(7) { display: none; }
+  .dvkTabl th:nth-child(2), .dvkTabl td:nth-child(2), .dvkTabl th:nth-child(4), .dvkTabl td:nth-child(4) { display: none; }
   .dvkPlomba { white-space: normal; }
   .dvkVvod input { width: 96px; }
   .dvkLoty { grid-template-columns: 1fr; }
 }
+
+/* список паллет вместо сырой таблицы (28.09, «таблица страшная») */
+.dvkSchyot { margin: 2px 0 8px; color: var(--muted); font-size: 12.5px; }
+.dvkSpisok { display: grid; gap: 6px; max-height: 64vh; overflow-y: auto; padding-right: 4px; }
+.dvkRyad { display: grid; grid-template-columns: minmax(0, 1.6fr) 110px minmax(200px, 1fr) minmax(0, .8fr); align-items: center; gap: 14px;
+  padding: 10px 14px; border: 1px solid rgba(255, 255, 255, .06); border-radius: 14px; background: rgba(255, 255, 255, .025); }
+.dvkRyad:hover { border-color: rgba(255, 255, 255, .14); background: rgba(255, 255, 255, .04); }
+.dvkRyad.is-bez { border-left: 3px solid #f05d72; }
+.dvkRyad.is-vydelena { border-color: rgba(77, 141, 247, .7); background: rgba(77, 141, 247, .12); }
+.dvkRyad--shapka { padding: 0 14px 2px; border: 0; background: none; color: var(--muted); font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+.dvkRyad--shapka:hover { background: none; }
+.dvkRyad__imya { display: grid; gap: 2px; min-width: 0; }
+.dvkRyad__imya b { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dvkRyad__imya small, .dvkRyad__sostav small, .dvkRyad__kto small { display: block; color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dvkRyad__sostav { font-size: 12.5px; color: var(--muted); }
+.dvkRyad__sostav b { color: var(--text); font-size: 15px; }
+.dvkRyad__kto { font-size: 12.5px; min-width: 0; }
+.dvkTeg { justify-self: start; margin-top: 2px; padding: 1px 8px; border-radius: 999px; font-style: normal; font-size: 11px;
+  color: #f0a45d; background: rgba(240, 164, 93, .12); }
+.dvkTeg.is-tiho { color: var(--muted); background: rgba(255, 255, 255, .05); }
+.dvkVvod { display: flex; align-items: center; width: 100%; max-width: 240px; border: 1px solid var(--line-strong); border-radius: 999px;
+  background: rgba(255, 255, 255, .04); overflow: hidden; transition: border-color .2s; }
+.dvkVvod:focus-within { border-color: #4d8df7; }
+.dvkVvod.is-est { border-color: rgba(39, 196, 107, .45); }
+.dvkVvod.is-est input::placeholder { color: #6fe0a0; opacity: 1; font-weight: 600; }
+.dvkVvod input { flex: 1; min-width: 0; font: inherit; font-size: 13px; color: var(--text); background: none; border: 0; padding: 7px 12px; outline: none; }
+.dvkVvod button { font: inherit; font-size: 14px; color: #6fe0a0; background: rgba(39, 196, 107, .14); border: 0; border-left: 1px solid var(--line-strong);
+  padding: 7px 13px; cursor: pointer; }
+.dvkVvod button:hover { background: rgba(39, 196, 107, .28); }
+.dvkPlombaEst { color: #6fe0a0; }
+body.is-svetlo .dvkRyad { background: #fff; border-color: rgba(16, 32, 58, .1); }
+@media (max-width: 760px) {
+  .dvkRyad { grid-template-columns: minmax(0, 1fr) auto; gap: 8px 10px; }
+  .dvkRyad--shapka { display: none; }
+  .dvkRyad__plomba { grid-column: 1 / -1; }
+  .dvkRyad__kto { display: none; }
+  .dvkVvod { max-width: none; }
+}
+
+/* таблица в окне согласования: без липкой тёмной первой колонки CRM */
+.dvkTabl th:first-child, .dvkTabl td:first-child { position: static; background: transparent; }
+.dvkTabl th { background: rgba(15, 23, 42, .96); }
+.dvkTabl td { padding: 9px 10px; vertical-align: middle; }
+.dvkTabl tbody tr:hover td { background: rgba(255, 255, 255, .03); }

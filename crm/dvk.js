@@ -37,6 +37,26 @@
 
   /* ── данные ───────────────────────────────────────────── */
 
+  const DEMO = /[?&]dvkdemo\b/.test(location.search);
+
+  function demoZayavka() {
+    const nashi = (pl.паллеты || []).filter((p) => p.в_книге !== "нельзя продавать");
+    const s_ = nashi.filter((p) => p.пломба).slice(0, 5);
+    const b_ = nashi.filter((p) => !p.пломба).slice(0, 1);
+    const pal = [...s_, ...b_].map((p, i) => ({
+      паллета: p.паллета, склад: p.склад, ячейка: p.ячейка, штук: p.штук, себестоимость: 0,
+      в_остатках: true, нельзя: "", пломба: p.пломба || "", пломба_кто: p.проверил || "", пломба_когда: p.когда || "",
+      двк: i < 2 ? true : null, двк_кто: i < 2 ? "Шаблов" : "", двк_когда: i < 2 ? "2026-09-28 10:15" : "", двк_почему: "",
+      сб: null, сб_кто: "", сб_когда: "", сб_почему: "",
+    }));
+    return {
+      заявка: { id: "demo", lot: "1666(демо)", ka: "ООО «Пример»", ka_status: "действующий договор № ВИ-0000-Пн-26",
+        status: "ждёт", data_otgruzki: "2026-09-30", sklad: pal[0]?.склад || "ДМД", zakazy: "", kommentariy: "демо: ничего не сохраняется",
+        sozdal: "Оператор продаж", sozdan: "2026-09-28 09:40" },
+      лот: { цена: 480000, окуп: 0.21 }, паллеты: pal, канал_настроен: true,
+    };
+  }
+
   async function zagruzit() {
     const [a, b] = await Promise.all([
       fetch("/__soglas/plomby", { cache: "no-store" }),
@@ -46,6 +66,13 @@
     if (a.ok) pl = await a.json();
     if (b.ok) sg = await b.json();
     mozhno = { ...(sg.можно || {}), двк: Boolean((pl.можно || {}).двк || (sg.можно || {}).двк) };
+    if (DEMO) {
+      mozhno = { ...mozhno, двк: true, сб: true, запрос: true };
+      const d = demoZayavka();
+      sg = { ...sg, ждут: [{ id: "demo", лот: d.заявка.lot, ка: d.заявка.ka, ка_статус: d.заявка.ka_status, склад: d.заявка.sklad,
+        статус: "ждёт", паллет: d.паллеты.length, двк_ок: 2, двк_нет: 0, сб_ок: 0, дата_отгрузки: d.заявка.data_otgruzki,
+        создал: d.заявка.sozdal, создан: d.заявка.sozdan }, ...(sg.ждут || [])] };
+    }
     if (!root.dataset.vybrano) razdel = (pl.без_пломбы || !(sg.ждут || []).length) ? "plomby" : "soglas";
     // Ждать нечего — сразу показываем согласованные, а не пустую колонку.
     if (!root.dataset.fsoglas) filtrSoglas = (sg.ждут || []).length ? "ждут" : "согласованы";
@@ -64,10 +91,12 @@
     const vse = (pl.паллеты || []).filter((p) => p.в_книге !== "нельзя продавать");
     const bez = pl.без_пломбы || 0;
     const s = vse.length - bez;
-    // Полоса паллет: закрашенные — проверены, пустые красные — ждут пломбу.
-    const kvadratov = Math.min(36, vse.length);
-    const krasnyh = vse.length ? Math.max(bez ? 1 : 0, Math.round(kvadratov * bez / vse.length)) : 0;
-    const kv = Array.from({ length: kvadratov }, (_, i) => `<i class="${i < krasnyh ? "is-bez" : ""}" style="--d:${(i * 0.05).toFixed(2)}s"></i>`).join("");
+    // Один квадрат — одна паллета без пломбы: видно, сколько работы осталось.
+    const POKAZ = 40;
+    const kv = bez
+      ? Array.from({ length: Math.min(bez, POKAZ) }, (_, i) => `<i style="--d:${(i * 0.06).toFixed(2)}s"></i>`).join("")
+        + (bez > POKAZ ? `<em>+${bez - POKAZ}</em>` : "")
+      : '<em class="is-zel">✓ все паллеты с пломбой</em>';
     return `<button class="dvkG${razdel === "plomby" ? " is-on" : ""}" type="button" data-razdel="plomby" style="--c:#f05d72">
       <span class="dvkS dvkS--pallety">${kv}</span>
       <span class="dvkG__n">01</span>
@@ -113,22 +142,23 @@
         <label class="dvkGalka"><input type="checkbox" data-tolko${tolkoBez ? " checked" : ""}> только без пломбы</label>
       </div>
       ${soobshchenie ? `<p class="dvkSoob ${soobshchenie[1] || ""}">${soobshchenie[0]}</p>` : ""}
-      <p class="crmSchyot">${stroki.length} паллет${tolkoBez ? " без пломбы" : ""} · остатки на ${esc(data(pl.остатки_на))}
-        ${mozhno.двк ? "" : " · вносить пломбы может только ДВК"}</p>
-      <div class="crmTabl dvkTabl"><table>
-        <thead><tr><th>Паллета</th><th>Склад</th><th>Ячейка</th><th class="crmNum">SKU</th><th class="crmNum">Шт</th>
-          <th>Пломба</th><th>Кто · когда</th></tr></thead>
-        <tbody>${stroki.slice(0, 800).map((p) => `
-          <tr data-pallet="${esc(p.паллета)}" class="${bezPlombyNado(p) ? "is-bez" : ""}${p.паллета === vydelena ? " is-vydelena" : ""}">
-            <td><b>${esc(p.паллета)}</b>${STATUS[p.в_книге] ? `<span class="dvkPometka${p.в_книге === "резерв" ? " is-tiho" : ""}">${esc(STATUS[p.в_книге])}</span>` : ""}</td>
-            <td>${esc(p.склад)}</td><td class="dvkTiho">${esc(p.ячейка)}</td>
-            <td class="crmNum">${chislo(p.sku)}</td><td class="crmNum">${chislo(p.штук)}</td>
-            <td class="dvkPlomba">${p.пломба ? `<b>${esc(p.пломба)}</b>` : '<span class="dvkNet">нет</span>'}
-              ${mozhno.двк && p.в_книге !== "нельзя продавать" ? `<form class="dvkVvod" data-vvod="${esc(p.паллета)}">
-                <input name="plomba" autocomplete="off" placeholder="${p.пломба ? "заменить" : "пломба"}"><button class="crmKn crmKn--glav" type="submit">✓</button></form>` : ""}</td>
-            <td class="dvkTiho">${p.пломба ? `${esc(p.проверил || p.источник)} · ${esc(data(p.когда))}` : ""}</td>
-          </tr>`).join("") || `<tr><td colspan="7" class="dvkPusto">${tolkoBez && !slovo ? "Все наши паллеты проверены ДВК." : "Ничего не нашлось."}</td></tr>`}</tbody>
-      </table></div>`;
+      <p class="dvkSchyot">${stroki.length} ${stroki.length === 1 ? "паллета" : "паллет"}${tolkoBez ? " без пломбы" : ""} · остатки на ${esc(data(pl.остатки_на))}${mozhno.двк ? "" : " · вносить пломбы может только ДВК"}</p>
+      <div class="dvkSpisok">
+        <div class="dvkRyad dvkRyad--shapka"><span>Паллета</span><span>Состав</span><span>Пломба</span><span>Проверил</span></div>
+        ${stroki.slice(0, 800).map((p) => `
+        <div class="dvkRyad${bezPlombyNado(p) ? " is-bez" : ""}${p.паллета === vydelena ? " is-vydelena" : ""}" data-pallet="${esc(p.паллета)}">
+          <span class="dvkRyad__imya"><b>${esc(p.паллета)}</b>
+            <small>${esc(p.склад)}${p.ячейка ? " · " + esc(p.ячейка) : ""}</small>
+            ${STATUS[p.в_книге] ? `<em class="dvkTeg${p.в_книге === "резерв" ? " is-tiho" : ""}">${esc(STATUS[p.в_книге])}</em>` : ""}</span>
+          <span class="dvkRyad__sostav"><b>${chislo(p.штук)}</b> шт<small>${chislo(p.sku)} SKU</small></span>
+          <span class="dvkRyad__plomba">${mozhno.двк && p.в_книге !== "нельзя продавать"
+            ? `<form class="dvkVvod${p.пломба ? " is-est" : ""}" data-vvod="${esc(p.паллета)}">
+                <input name="plomba" autocomplete="off" placeholder="${p.пломба ? esc(p.пломба) : "номер пломбы"}">
+                <button type="submit" title="Сохранить">✓</button></form>`
+            : p.пломба ? `<b class="dvkPlombaEst">${esc(p.пломба)}</b>` : '<span class="dvkNet">нет пломбы</span>'}</span>
+          <span class="dvkRyad__kto">${p.пломба ? `${esc(p.проверил || p.источник)}<small>${esc(data(p.когда))}</small>` : ""}</span>
+        </div>`).join("") || `<p class="dvkPusto">${tolkoBez && !slovo ? "Все наши паллеты проверены ДВК." : "Ничего не нашлось."}</p>`}
+      </div>`;
   }
 
   async function sohranitPlombu(pallet, plomba, forma) {
@@ -164,7 +194,7 @@
     soobshchenie = [p.пломба ? `${esc(p.паллета)} уже с пломбой ${esc(p.пломба)} — можно заменить.`
       : `${esc(p.паллета)}: ${esc(p.склад)}, ${esc(p.ячейка)}, ${chislo(p.sku)} SKU, ${chislo(p.штук)} шт. Впишите пломбу.`, ""];
     risovat();
-    const tr = root.querySelector(`tr[data-pallet="${CSS.escape(p.паллета)}"]`);
+    const tr = root.querySelector(`.dvkRyad[data-pallet="${CSS.escape(p.паллета)}"]`);
     if (tr) { tr.scrollIntoView({ block: "center" }); tr.querySelector("input")?.focus(); }
   }
 
@@ -226,6 +256,7 @@
   }
 
   async function otkrytZayavku(id) {
+    if (String(id) === "demo") { zayavka = demoZayavka(); risovatZayavku(); return; }
     oknoOtkryt('<p class="dvkPusto">Загружаю лот…</p>');
     try {
       const r = await fetch(`/__soglas/zayavka?id=${encodeURIComponent(id)}`, { cache: "no-store" });
@@ -328,6 +359,14 @@
     }
     const resheniya = {};
     galki.forEach((g) => { resheniya[g.dataset.pallet] = g.checked ? true : { ок: false, почему: pochemu }; });
+    if (DEMO && String(zayavka.заявка.id) === "demo") {
+      galki.forEach((g) => {
+        const x = zayavka.паллеты.find((q) => q.паллета === g.dataset.pallet);
+        x[sl] = g.checked ? true : false; x[sl + "_кто"] = "вы (демо)"; x[sl + "_когда"] = "2026-09-28 17:30";
+        x[sl + "_почему"] = g.checked ? "" : pochemu;
+      });
+      return risovatZayavku();
+    }
     try {
       zayavka = { ...(await poslat({ действие: "отметить", id: zayavka.заявка.id, служба: sl, решения: resheniya })), можно: mozhno };
       risovatZayavku();
