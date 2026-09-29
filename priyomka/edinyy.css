@@ -1,0 +1,149 @@
+/* Единый вид страницы приёмки (29.09.2026).
+   Степан: «по визуалу щас пиздец — как будто каждый показатель из разных
+   миров». Блоки делались в разное время и каждый со своим оформлением:
+   карточки с полосой слева, плитки с цветной шапкой, жёлтая лента во всю
+   ширину, таблицы прямо на фоне страницы. Этот слой грузится последним и
+   сводит всё к трём вещам — одна карточка, одна панель, одна таблица.
+   Статус — точкой у заголовка и цветом числа, без цветных полос по краям. */
+
+:root {
+  --e-ok: #27c46b;
+  --e-warn: #f5ad32;
+  --e-bad: #f05d72;
+  --e-info: #4d8df7;
+  --e-mute: #8f9cad;
+  --e-card: linear-gradient(180deg, rgba(20, 29, 42, 0.96), rgba(10, 15, 23, 0.96));
+  --e-panel: rgba(9, 14, 21, 0.78);
+  --e-line: rgba(255, 255, 255, 0.08);
+}
+
+/* ── Панель: каждый крупный блок ─────────────────────────────────────────── */
+.stoit, .cep, .dvor, .prUch, .prKarta, .prPanel, .prVozrast, .prVisyaki {
+  margin-bottom: 18px;
+  padding: 18px 20px 20px;
+  border: 1px solid var(--e-line);
+  border-radius: 20px;
+  background: var(--e-panel);
+  box-shadow: 0 24px 60px -40px rgba(0, 0, 0, 0.9);
+  backdrop-filter: blur(6px);
+}
+.stoit[hidden], .cep[hidden], .dvor[hidden], .prUch[hidden], .prKarta[hidden],
+.prPanel[hidden], .prVozrast[hidden], .prVisyaki[hidden] { display: none; }
+.dvor h2, .prUch h2, .prKarta h2, .prPanel h2, .prVozrast h2, .prVisyaki h2,
+.prUch__zag, .prKarta__zag, .prVozrast__zag, .prBlok__zag {
+  margin: 0 0 4px;
+  color: var(--text);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+.prPlitki { margin-bottom: 18px; }
+
+/* ── Карточка: все плитки с числом ──────────────────────────────────────── */
+.stKart, .cepZveno, .prPlitka {
+  position: relative;
+  padding: 14px 16px 14px;
+  border: 1px solid var(--e-line) !important;
+  border-radius: 16px;
+  background: var(--e-card);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  --st: var(--e-mute);
+}
+.stKart::before, .cepZveno::before, .prPlitka::before {
+  content: "";
+  position: absolute;
+  top: 17px;
+  right: 16px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--st);
+  box-shadow: 0 0 10px var(--st);
+}
+.stKart:hover { border-color: rgba(255, 255, 255, 0.18) !important; }
+.st--krasnyy, .cep--krasnyy, .pr--krasnyy { --st: var(--e-bad); }
+.st--zhyoltyy, .cep--zhyoltyy, .pr--zhyoltyy { --st: var(--e-warn); }
+.st--zelyonyy, .cep--zelyonyy, .pr--zelyonyy { --st: var(--e-ok); }
+.cep--nedogruz, .pr--nedogruz { --st: var(--e-info); }
+.st--seryy, .cep--zastyl, .pr--net { --st: var(--e-mute); }
+
+.prPlitka__zag, .cepZveno__imya, .stKart__zag {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.prPlitka__znak, .cepZveno__glavnoe {
+  margin: 6px 0 4px;
+  color: var(--text);
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+.pr--krasnyy .prPlitka__znak, .cep--krasnyy .cepZveno__glavnoe { color: #ff8a9a; }
+.pr--zhyoltyy .prPlitka__znak, .cep--zhyoltyy .cepZveno__glavnoe { color: #ffc45c; }
+.prPlitka__pod, .cepZveno__pod, .stKart__pod { color: var(--muted); font-size: 12px; line-height: 1.4; }
+
+/* Ответ «стоит ли склад» — та же карточка, крупнее. */
+.stOtvet {
+  position: relative;
+  border: 1px solid var(--e-line) !important;
+  border-radius: 16px;
+  background: var(--e-card);
+  --st: var(--e-mute);
+  padding-left: 42px !important;
+}
+.stOtvet::before {
+  content: "";
+  position: absolute;
+  top: 24px;
+  left: 20px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--st);
+  box-shadow: 0 0 14px var(--st);
+}
+
+/* ── Двор: лента этапов тонкой полосой, а не жёлтой стеной ──────────────── */
+.dvEtapy { height: 34px; border-radius: 10px; overflow: hidden; }
+.dvEtap { font-size: 12px; }
+.dvEtap b { font-size: 14px; }
+.dvEtap--zhdut { background: linear-gradient(90deg, rgba(245, 173, 50, 0.55), rgba(245, 173, 50, 0.35)); color: #fff; }
+.dvEtap--razgruzka { background: linear-gradient(90deg, rgba(77, 141, 247, 0.6), rgba(77, 141, 247, 0.4)); }
+.dvEtap--gotovo { background: linear-gradient(90deg, rgba(39, 196, 107, 0.55), rgba(39, 196, 107, 0.35)); }
+.dvSvezhest { border-radius: 14px; border: 1px solid rgba(245, 173, 50, 0.35); background: rgba(245, 173, 50, 0.08); }
+
+/* ── Таблицы: одна для всех ─────────────────────────────────────────────── */
+.dvTablica, .prUch table, .prVisyaki table, .prVozrast table, .prPanel table {
+  width: 100%;
+  border-collapse: collapse;
+  background: transparent;
+  font-size: 13px;
+}
+.dvTablica th, .prUch th, .prVisyaki th, .prVozrast th, .prPanel th {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--e-line);
+  background: rgba(9, 14, 21, 0.96) !important;
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.dvTablica td, .prUch td, .prVisyaki td, .prVozrast td, .prPanel td {
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  background: transparent !important;
+}
+.dvTablica tr:hover td, .prUch tr:hover td, .prVisyaki tr:hover td, .prVozrast tr:hover td {
+  background: rgba(77, 141, 247, 0.06) !important;
+}
+
+/* ── Карта входа внутри панели ──────────────────────────────────────────── */
+.prKartaBok { border: 1px solid var(--e-line); border-radius: 16px; background: var(--e-card); }
+
+body.is-svetlo .stoit, body.is-svetlo .cep, body.is-svetlo .dvor, body.is-svetlo .prUch,
+body.is-svetlo .prKarta, body.is-svetlo .prPanel, body.is-svetlo .prVozrast, body.is-svetlo .prVisyaki { background: rgba(255, 255, 255, 0.9); }
+body.is-svetlo .stKart, body.is-svetlo .cepZveno, body.is-svetlo .prPlitka, body.is-svetlo .stOtvet { background: #fff; }
