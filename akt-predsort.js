@@ -336,6 +336,15 @@
     </div>`;
   }
 
+  // Варианты «куда» — ячейки из решений столов (сервер присылает с составом паллеты).
+  function variantyKuda(atr) {
+    const v = (pal && pal.куда_варианты) || kudaVarianty || [];
+    if (!v.length) return "";
+    return `<div class="kudaVarianty">${v.map((x) => `<button type="button" class="aktPs__kn" ${atr}="${esc(x.код)}" title="${esc(x.решения)}">
+      <b>${esc(x.ячейка)}</b><small>${esc(x.решения)}</small></button>`).join("")}</div>`;
+  }
+  let kudaVarianty = null;
+
   function blokDb() {
     if (!palDb) return "";
     const p = palDb;
@@ -396,7 +405,8 @@
     const p = palPer;
     let telo = "";
     if (p.zhdem) {
-      telo = `<p class="aktPs__podskaz">Пикните наклейку ячейки, куда везёте (CEL …)</p>
+      telo = `<p class="aktPs__podskaz">Пикните наклейку ячейки, куда везёте (CEL …), или выберите:</p>
+        ${variantyKuda("data-per-kuda")}
         <form class="aktPs__vhod aktPs__palForma" id="palPerForma" autocomplete="off">
           <input name="kod" placeholder="или номер ячейки" inputmode="numeric">
           <button class="aktPs__kn is-on" type="submit">Дальше</button>
@@ -700,6 +710,7 @@
     risovat();
     try {
       const d = await chitat(`/__akt/palleta?kod=${encodeURIComponent(kod)}`);
+      if (d.куда_варианты && d.куда_варианты.length) kudaVarianty = d.куда_варианты;
       Object.assign(z, { паллета: d.паллета || kod, ячейка: d.ячейка || "", без_акта: d.без_акта || 0,
         штук: (d.строки || []).reduce((n, x) => n + x.штук, 0), zhdu: false });
     } catch (e) {
@@ -708,6 +719,23 @@
     if (navigator.vibrate) navigator.vibrate(60);
     risovat();
   }
+
+  // Вставка списка (29.09, «всю пачку вставить не смог»): поле скана — однострочное,
+  // переносы строк пропадали и имена слипались. Ловим вставку до поля: если в ней
+  // больше одной паллеты — включаем массовый пик и кладём все, по 4 параллельно.
+  const PALLETA = /(?:^CON\s?\d{5,12}$)|(?:[^\d\s]\s*-\s*0\d{9}$)|(?:^0\d{9}$)/i;
+  document.addEventListener("paste", (e) => {
+    if (e.target.id !== "scan") return;
+    const tekst = (e.clipboardData || window.clipboardData)?.getData("text") || "";
+    const kody = tekst.split(/[\r\n,;\t]+/).map((x) => x.trim()).filter((x) => PALLETA.test(x));
+    if (kody.length < 2) return;
+    e.preventDefault();
+    if (!massPik) { massPik = true; pal = null; aktK = null; yach = null; tovar = null; }
+    const naKlad = kody.map((k) => (/^CON/i.test(k) ? k : "CON " + k.slice(-10)));
+    let i = 0;
+    const potok = async () => { while (i < naKlad.length) { const k = naKlad[i++]; await vKorzinu(k); } };
+    Promise.all([potok(), potok(), potok(), potok()]).then(() => signal(`В списке ${korzina.length} паллет`));
+  });
 
   function signal(tekst) {
     const m = document.getElementById("message");
@@ -736,7 +764,7 @@
       const p = korzPer || {};
       const oshibok = (p.proverka || []).filter((x) => x.oshibka).length;
       blok = `<div class="aktPs__palleta palPer"><p class="aktPs__zag">Переместить все паллеты в одну ячейку</p>
-        ${!p.yach ? `<p class="aktPs__podskaz">Пикните ячейку, куда везёте (CEL …)</p>`
+        ${!p.yach ? `<p class="aktPs__podskaz">Пикните ячейку, куда везёте (CEL …), или выберите:</p>${variantyKuda("data-kz-per-kuda")}`
           : `<p class="aktPs__podskaz">→ <b>${esc(p.yach)}</b>${p.proverka ? ` · проверено ${p.proverka.length} из ${korzina.length}${oshibok ? ` · <b class="aktPs__oshibka">не примет: ${oshibok}</b>` : ""}` : " · проверяю…"}</p>
           ${(p.proverka || []).filter((x) => x.oshibka).map((x) => `<p class="aktPs__net">${esc(x.паллета)}: ${esc(x.oshibka)}</p>`).join("")}
           ${p.proverka && p.proverka.length === korzina.length ? `<div class="aktPs__vopros">
@@ -1203,6 +1231,10 @@
     if (pk) { palKrit = pk.dataset.pkrit; return risovat(); }
     const pd = e.target.closest("[data-pdef]");
     if (pd) { palDefekt = pd.dataset.pdef; palSvoy = ""; return risovat(); }
+    const pvk = e.target.closest("[data-per-kuda]");
+    if (pvk && pal && palPer && palPer.zhdem) { peremestitPalletu(pvk.dataset.perKuda, false); return; }
+    const kpk = e.target.closest("[data-kz-per-kuda]");
+    if (kpk && massPik && korzRezhim === "per" && !korzIdet) { korzProveritPer(kpk.dataset.kzPerKuda); return; }
     const kz = e.target.closest("[data-kz]");
     if (kz && massPik) {
       const r = kz.dataset.kz;
