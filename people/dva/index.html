@@ -12,12 +12,12 @@
   <link rel="stylesheet" href="../../style.css?v=20260911-3">
   <link rel="stylesheet" href="../people.css?v=20260911-1">
   <link rel="stylesheet" href="../../grafik.css?v=20260929-1">
-  <link rel="stylesheet" href="dva.css?v=20260929-1">
+  <link rel="stylesheet" href="dva.css?v=20260929-2">
   <link rel="stylesheet" href="../../reeded-bg.css?v=20260907-6">
   <link rel="stylesheet" href="../../site-header.css?v=20260921-1">
   <script src="../../reeded-bg.js?v=20260906-7" defer></script>
   <script src="../../grafik.js?v=20260929-1" defer></script>
-  <script src="dva.js?v=20260929-1" defer></script>
+  <script src="dva.js?v=20260929-2" defer></script>
   <script src="../../nav.js?v=20260921-1" defer></script>
 </head>
 <body data-mode="people">
@@ -49,11 +49,15 @@
     </nav>
 
     <section class="plPanel dvPanel">
-      <div class="dvTabs" id="dvVariant" role="tablist" aria-label="Способ оценки">
-        <button type="button" role="tab" data-variant="brig" aria-selected="true">
-          <b>1 · По бригадам</b><span>действий за смену и доля к медиане своей бригады</span></button>
-        <button type="button" role="tab" data-variant="vid" aria-selected="false">
-          <b>2 · По действиям</b><span>нормо-смены: разная работа приведена к одной мерке</span></button>
+      <div class="dvControls">
+        <div class="dvSeg" id="dvVid" role="group" aria-label="Вид">
+          <button type="button" data-vid="shkala"><b>Шкала</b><span>бригада — дорожка, человек — точка</span></button>
+          <button type="button" data-vid="kalendar"><b>Календарь</b><span>люди × дни, цвет — как прошла смена</span></button>
+        </div>
+        <div class="dvSeg dvSeg--mera" id="dvMera" role="group" aria-label="Мера">
+          <button type="button" data-mera="brig"><b>По бригадам</b><span>к медиане своей бригады</span></button>
+          <button type="button" data-mera="vid"><b>Нормо-смены</b><span>разная работа — одна мерка</span></button>
+        </div>
       </div>
       <div class="plTools">
         <div class="plSeg plSeg--months" id="dvMonths" role="group" aria-label="Месяц"></div>
