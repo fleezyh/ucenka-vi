@@ -29,13 +29,8 @@
   .topbar .wmsTumbler__imya { display: none; }
 }
 
-/* Площадка WMS плотнее (29.09, «более сбитую тему, много текста, но не информативно»). */
-body.vmsPlg .hero { gap: 10px; padding-bottom: 6px; }
-body.vmsPlg .lead { margin-top: 4px; font-size: 15px; }
-body.vmsPlg .searchCard { grid-column: 1 / -1; grid-row: 1; padding-top: 16px; padding-bottom: 16px; }
-body.vmsPlg .searchCard .message { font-size: 12.5px; margin-top: 6px; }
-body.vmsPlg .scannerNote { display: none; }
-.vmsVozm { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 12px 0 0; }
+/* Режим WMS поверх обычной пикалки (29.09 вечер): карточки «что пикнуть» резиновой сеткой — рядом справочник. */
+.vmsVozm { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 8px; margin: 12px 0 0; }
 .vmsVozm__k { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border: 1px solid var(--line, #263345); border-radius: 12px;
   background: rgba(255,255,255,.02); font: inherit; text-align: left; cursor: pointer; transition: border-color .15s, background .15s; }
 .vmsVozm__k:hover { border-color: rgba(170,135,255,.45); background: rgba(123,92,240,.06); }
@@ -83,3 +78,18 @@ body.vmsPlg .scannerNote { display: none; }
 @media (max-width: 640px) {
   .palKartaAkt__glav { grid-template-columns: 1fr 1fr; }
 }
+
+/* Переключатель «Пикалка | ТСД» — кнопки, не ссылки. */
+button.wmsSeg__k { border: 0; background: transparent; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+button.wmsSeg__k.is-on { background: linear-gradient(180deg, #3a2670, #2a1c55); color: #fff; }
+/* Панель ТСД внутри пикалки (tsd-rezhim.js). */
+.tsdPanel { margin: 10px 0 0; padding: 12px; border: 1px solid rgba(170,135,255,.28); border-radius: 14px; background: rgba(36,24,74,.18); }
+.tsdPanel[hidden] { display: none; }
+.tsdVkladki--panel { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin: 0 0 10px; }
+.tsdPanel .tsdKarta h2 { margin: 0 0 4px; font-size: 18px; }
+/* Массовый пик. */
+.vmsMass.is-on { border-color: rgba(170,135,255,.6); background: rgba(123,92,240,.22); color: #fff; }
+.korzX { margin-left: 8px; width: 22px; height: 22px; border: 0; border-radius: 50%; background: rgba(255,255,255,.08); color: var(--muted, #8f9cad); font-size: 14px; line-height: 1; cursor: pointer; }
+.korzX:hover { background: rgba(240,93,114,.25); color: #fff; }
+.korzLog { display: grid; gap: 3px; margin-top: 10px; font-size: 13px; color: var(--muted, #8f9cad); }
+.korzLog p { margin: 0; }

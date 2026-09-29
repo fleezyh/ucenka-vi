@@ -25,28 +25,16 @@
   if (!box) return;
   window.__aktPs = true;   // script.js: наклейки CEL/CON есть кому принять
 
-  /* Площадка WMS (27.09, Степан: «из ?akt — плейграунд-тест: не уценка и
-     предсорт, а одно поле, где объясняются возможности с WMS»). Режим
-     «Предсорт» включаем сами — решения стола живут в нём; вкладки, справочник
-     и поиск по названию прячем, под полем — что можно пикнуть и что будет. */
+  /* Режим WMS (27.09 площадка; 29.09 вечер Степан: «это не другая страница, а
+     режим — мощный»). Раньше площадка прятала вкладки, справочник и поиск по
+     названию и сама включала «Предсорт» — выглядело как отдельная страница.
+     Теперь пикалка остаётся целиком, режим только добавляет под полем, что
+     можно пикнуть, строку входа в WMS и действия. */
   function ploshchadka() {
-    document.body.classList.add("vmsPlg");
-    const tab = document.querySelector('.tab[data-mode="presort"]');
-    if (tab && tab.getAttribute("aria-selected") !== "true") tab.click();
-    const tekst = (id, t) => { const x = document.getElementById(id); if (x) x.textContent = t; };
-    tekst("eyebrow", "Пикалка · режим WMS");
-    tekst("pageTitle", "WMS");
-    document.title = "WMS · Уценка";
-    tekst("modeDescription", "Пикните товар, паллету, ячейку или акт.");
-    const shapka = document.querySelector(".searchHeading");
-    if (shapka) {
-      const ov = shapka.querySelector(".overline"); if (ov) ov.textContent = "WMS";
-      const h2 = shapka.querySelector("h2"); if (h2) h2.textContent = "Пикните что угодно";
-    }
-    const metka = document.querySelector('label[for="scan"]');
-    if (metka) metka.textContent = "Товар, паллета, ячейка или акт";
+    document.body.classList.add("vmsRezhimVkl");
+    document.title = "WMS · Пикалка";
     const scan = document.getElementById("scan");
-    const podpis = () => { if (scan && !scan.disabled) scan.placeholder = "CON …, CEL …, ACT … или штрихкод"; };
+    const podpis = () => { if (scan && !scan.disabled && !/CON/.test(scan.placeholder)) scan.placeholder = "штрихкод, CON …, CEL … или ACT …"; };
     [300, 1500, 4000, 9000].forEach((t) => setTimeout(podpis, t));
     const ryad = document.querySelector(".searchCard .searchRow");
     // 29.09 Степан: «много текста, но не информативно — конкретно какие действия
@@ -204,6 +192,7 @@
   // На другой склад заказом ДБ (29.09, задача Гамлета: форма вмс берёт только брак).
   // null | { idet } | { predv } | { gotovo } | { oshibka }
   let palDb = null;
+  const IMYA_MARSHRUTA = { ДАНИЛОВО: "в Данилово", "СЦ-ДМД": "на СЦ-ДМД", ДОМОДЕДОВО: "в ДМД (РЦ)" };
   // Выбор части паллеты (29.09, «надо добавить выбор части паллет»): ключи строк.
   let palVybor = null;
   // Свой дефект (29.09, встреча): «погнут» на весь ГСМ одним текстом во все акты.
@@ -357,15 +346,21 @@
       const d = p.predv;
       const oshibki = d.ошибки_вмс ? Object.entries(d.ошибки_вмс).map(([k, v]) => `${k}: ${[].concat(v).join(", ")}`).join("; ") : "";
       const kach = Object.entries(d.по_качеству || {}).map(([k, n]) => `${esc(k.toLowerCase())} ${n}`).join(" · ");
-      telo = `<p class="aktPs__podskaz">${esc(d.паллета)} → <b>${esc(d.куда)}</b> · через «${esc(d.ячейка_отгрузки)}»</p>
-        <p class="aktPs__chto">${d.строк} строк · ${d.штук} шт${kach ? ` · ${kach}` : ""}${d.уже_в_заказе ? ` · ${d.уже_в_заказе} строк уже в заказе — пропущены` : ""}</p>
+      const marshruty = (d.куда_можно || []).length > 1 ? `<div class="aktPs__krit">${d.куда_можно.map((k) =>
+        `<button type="button" class="aktPs__kn${k === d.куда ? " is-on" : ""}" data-db-kuda="${esc(k)}">${esc(IMYA_MARSHRUTA[k] || k)}</button>`).join("")}</div>` : "";
+      const vkl = d.создание_включено !== false;
+      telo = `<p class="aktPs__podskaz">${esc(d.паллета)} · ${esc(d.откуда)}${d.куда ? ` → <b>${esc(d.база_куда)}</b> · через «${esc(d.ячейка_отгрузки)}» · поток ${esc(d.поток)}` : " — куда везём?"}</p>
+        ${marshruty}
+        <p class="aktPs__chto">${d.паллет > 1 ? `${d.паллет} паллет · ` : ""}${d.строк} строк · ${d.штук} шт${kach ? ` · ${kach}` : ""}${d.уже_в_заказе ? ` · ${d.уже_в_заказе} строк уже в заказе — пропущены` : ""}</p>
         ${oshibki ? `<p class="aktPs__net"><b class="aktPs__oshibka">WMS не примет: ${esc(oshibki)}</b></p>` : ""}
-        <div class="aktPs__vopros">
-          <button type="button" class="aktPs__kn is-on" data-pkk="db-da"${oshibki || !boevoy || !vhod() ? " disabled" : ""}>${!boevoy ? "WMS выключена" : !vhod() ? "Войдите в WMS" : "Создать заказ ДБ"}</button>
+        ${d.куда ? `<div class="aktPs__vopros">
+          <button type="button" class="aktPs__kn is-on" data-pkk="db-da"${oshibki || !boevoy || !vhod() || !vkl ? " disabled" : ""}>${!vkl ? "Создание пока не включено" : !boevoy ? "WMS выключена" : !vhod() ? "Войдите в WMS" : "Создать заказ ДБ и отбор"}</button>
           <button type="button" class="aktPs__kn" data-pkk="db-net">Отмена</button>
-        </div>`;
+        </div>
+        <p class="aktPs__chto">${d.можно ? "WMS примет заказ и задание на отбор. " : ""}Дальше по регламенту: отбор «Создать перемещение с контейнером», задание на внутреннюю отгрузку, «Отгрузить», приёмка.</p>` : ""}`;
     } else if (p.gotovo) {
-      telo = `<div class="aktPs__gotovo"><b>Заказ ${esc(p.gotovo.номер)} создан и проведён</b>
+      telo = `<div class="aktPs__gotovo"><b>Заказ ${esc(p.gotovo.номер)} создан и проведён${p.gotovo.задание_id ? ` · отбор №${esc(p.gotovo.задание_id)}` : ""}</b>
+        ${p.gotovo.без_задания ? `<span class="aktPs__oshibka">${esc(p.gotovo.без_задания)}</span>` : ""}
         <span>${esc(p.gotovo.паллета)} → ${esc(p.gotovo.куда)} · ${p.gotovo.строк} строк · ${p.gotovo.штук} шт · дальше задание на отбор в ячейку отгрузки</span>
         ${p.gotovo.вмс ? `<a href="${esc(p.gotovo.вмс)}" target="_blank" rel="noopener">открыть в WMS</a>` : ""}</div>`;
     } else if (p.oshibka) {
@@ -375,13 +370,14 @@
     return `<div class="aktPs__palleta palPer"><p class="aktPs__zag">${vseVybrany() ? "Паллета" : "Выбранное"} на другой склад — заказ ДБ</p>${telo}</div>`;
   }
 
+  let dbKuda = "";
   async function zakazDb(sohranit) {
     palDb = { idet: sohranit ? "Создаю заказ ДБ в WMS…" : "Проверяю в WMS — до полуминуты…" };
     risovat();
     try {
       const o = await fetch("/__akt/palleta/zakaz_db", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ паллета: String(pal.паллета_id || pal.паллета), строки: vyborDlyaServera(), сохранить: sohranit }),
+        body: JSON.stringify({ паллета: String(pal.паллета_id || pal.паллета), строки: vyborDlyaServera(), куда: dbKuda, сохранить: sohranit }),
       });
       const d = await o.json().catch(() => ({}));
       if (d.нужен_вход) { vms = { подключено: false }; formaPolosy = true; oshibkaVhoda = "войдите в WMS, потом «Создать заказ ДБ» ещё раз"; palDb = null; risovat(); return; }
@@ -415,7 +411,8 @@
       telo = `<p class="aktPs__podskaz">${p.idet}</p>`;
     } else if (p.predv) {
       const d = p.predv;
-      const oshibki = d.ошибки_WMS ? Object.values(d.ошибки_WMS).flat().join("; ") : "";
+      const oshibkiVms = d.ошибки_вмс || d.ошибки_WMS;   // сервер отдаёт «ошибки_вмс» — по «ошибки_WMS» отказ вмс не показывался
+      const oshibki = oshibkiVms ? Object.values(oshibkiVms).flat().join("; ") : "";
       telo = `<p class="aktPs__podskaz">${esc(d.откуда.join(", "))} → <b>${esc(d.куда)}</b>${d.на_паллету ? ` · на паллету <b>${esc(d.на_паллету)}</b>` : ""}</p>
         <p class="aktPs__chto">${esc(d.склад)} · ${d.строк} строк · ${d.штук} шт${d.в_заказах ? ` · резерв ${d.в_заказах} заказа(ов) едет с товаром` : ""}</p>
         ${oshibki ? `<p class="aktPs__net"><b class="aktPs__oshibka">WMS не примет: ${esc(oshibki)}</b></p>` : ""}
@@ -510,6 +507,9 @@
   let stolyVse = null;     // столы кнопками — без наклейки
   let vyborStola = false;
   let vozvrat = null;      // открыли паллету/акт из карточки товара — можно вернуться
+  // Под-режим ТСД (29.09): каждый скан ячейки — ещё и в форму «брак в ячейке» (tsd-rezhim.js).
+  let podTsd = false;
+  document.addEventListener("wms:pod", (e) => { podTsd = e.detail === "tsd"; });
   function zagruzitTovar(t) {
     gdeT = { zhdu: true }; aktyT = { zhdu: true };
     const q = `imya=${encodeURIComponent(t.name || "")}&kod=${encodeURIComponent(t.kod || "")}`;
@@ -664,7 +664,9 @@
         : `<span class="vmsPolosa__tochka is-net"></span><span>Без входа в WMS — только смотреть</span>
            <button type="button" class="vmsPolosa__kn is-glav" data-polosa="voyti">Войти в WMS</button>`;
     u.innerHTML = `
-      <div class="vmsPolosa__ryad">${sost}${stol ? `<span class="vmsPolosa__stol">стол <b>${esc(stol.имя.replace(/^ФБ \(ДМД\) /, ""))}</b></span>` : ""}</div>
+      <div class="vmsPolosa__ryad">${sost}
+        <button type="button" class="vmsPolosa__kn vmsMass${massPik ? " is-on" : ""}" data-polosa="mass">Массовый пик${massPik ? ` · ${korzina.length}` : ""}</button>
+        ${stol ? `<span class="vmsPolosa__stol">стол <b>${esc(stol.имя.replace(/^ФБ \(ДМД\) /, ""))}</b></span>` : ""}</div>
       ${formaPolosy && !vms.подключено ? `<form class="aktPs__vhod" id="vmsPolosaForma" autocomplete="off">
         <input name="login" placeholder="Логин WMS" autocapitalize="off" spellcheck="false" required>
         <input name="parol" type="password" placeholder="Пароль WMS" required>
@@ -673,8 +675,184 @@
       </form>` : ""}`;
   }
 
+  /* ── Массовый пик (29.09, Степан: «сначала много пикаешь, потом работаешь») ──
+     Включён — пикнутая паллета не открывается, а встаёт в список; потом одно
+     действие на весь список: актировка без акта, перемещение в ячейку, заказ ДБ
+     (регламент: 5–7 контейнеров за раз). Паллеты обрабатываются по очереди. */
+  let massPik = false;
+  let korzina = [];          // [{kod, id, паллета, ячейка, штук, без_акта, zhdu, oshibka}]
+  let korzRezhim = "";       // "" | "akt" | "per" | "db"
+  let korzKrit = "", korzDefekt = "", korzSvoy = "";
+  let korzLog = [];          // строки хода работы
+  let korzIdet = false;
+  let korzPer = null;        // { yach, proverka: [...] }
+  let korzDb = null;         // ответ проверки заказа ДБ
+  let korzDbKuda = "";
+
+  async function vKorzinu(kod) {
+    const kid = Number((String(kod).match(/(\d{6,12})\s*$/) || [])[1]);
+    if (!kid) return;
+    if (korzina.some((x) => x.id === kid)) { signal(`${kod} уже в списке`); return; }
+    if (korzina.length >= 30) { signal("в списке уже 30 паллет — сначала сделайте действие"); return; }
+    const z = { kod, id: kid, паллета: kod, zhdu: true };
+    korzina.push(z);
+    korzDb = null; korzPer = null;
+    risovat();
+    try {
+      const d = await chitat(`/__akt/palleta?kod=${encodeURIComponent(kod)}`);
+      Object.assign(z, { паллета: d.паллета || kod, ячейка: d.ячейка || "", без_акта: d.без_акта || 0,
+        штук: (d.строки || []).reduce((n, x) => n + x.штук, 0), zhdu: false });
+    } catch (e) {
+      Object.assign(z, { oshibka: e.message || String(e), zhdu: false });
+    }
+    if (navigator.vibrate) navigator.vibrate(60);
+    risovat();
+  }
+
+  function signal(tekst) {
+    const m = document.getElementById("message");
+    if (m) { m.textContent = tekst; m.className = "message warn"; }
+  }
+
+  function risovatKorzinu() {
+    const sht = korzina.reduce((n, x) => n + (x.штук || 0), 0);
+    const bez = korzina.reduce((n, x) => n + (x.без_акта || 0), 0);
+    const spisok = korzina.map((x) => `<div class="palStroka${x.без_акта ? " is-bez" : ""}">
+        <span class="palStroka__tovar">${esc(x.паллета)}${x.ячейка ? ` <i class="palStroka__kach">${esc(x.ячейка)}</i>` : ""}</span>
+        <span class="palStroka__sht">${x.zhdu ? "…" : x.oshibka ? `<b class="aktPs__oshibka">${esc(x.oshibka)}</b>` : `${x.штук} шт`}</span>
+        <span class="palStroka__akt">${x.zhdu ? "" : x.без_акта ? `без акта ${x.без_акта}` : "все с актом"}
+          <button type="button" class="korzX" data-kz-ubrat="${x.id}" title="Убрать из списка"${korzIdet ? " disabled" : ""}>×</button></span>
+      </div>`).join("");
+    let blok = "";
+    if (korzRezhim === "akt") {
+      const def = korzDefekt;
+      const gotov = korzKrit && def && bez && boevoy && vhod() && !korzIdet;
+      blok = `<div class="aktPs__palleta palPer"><p class="aktPs__zag">Заактировать всё без акта — ${bez} шт на ${korzina.filter((x) => x.без_акта).length} паллетах</p>
+        <div class="aktPs__krit">${KRIT.map((x) => `<button type="button" class="aktPs__kn${x.k === korzKrit ? " is-on" : ""}" data-kz-krit="${x.k}">${x.имя}</button>`).join("")}</div>
+        <div class="aktPs__defekty">${DEFEKTY.map((d) => `<button type="button" class="aktPs__kn aktPs__kn--def${d.k === def && !korzSvoy ? " is-on" : ""}" data-kz-def="${esc(d.k)}">${esc(d.имя)}</button>`).join("")}</div>
+        <input class="aktPs__svoy" id="korzSvoy" maxlength="80" autocomplete="off" placeholder="или свой дефект — одним текстом во все акты" value="${esc(korzSvoy)}">
+        <button type="button" class="aktPs__akt" id="korzAktGo"${gotov ? "" : " disabled"}>${!vhod() ? "Войдите в WMS" : !korzKrit ? "Выберите крит или косм" : !def ? "Выберите дефект" : korzIdet ? "Идёт…" : `Заактировать ${bez} шт`}</button></div>`;
+    } else if (korzRezhim === "per") {
+      const p = korzPer || {};
+      const oshibok = (p.proverka || []).filter((x) => x.oshibka).length;
+      blok = `<div class="aktPs__palleta palPer"><p class="aktPs__zag">Переместить все паллеты в одну ячейку</p>
+        ${!p.yach ? `<p class="aktPs__podskaz">Пикните ячейку, куда везёте (CEL …)</p>`
+          : `<p class="aktPs__podskaz">→ <b>${esc(p.yach)}</b>${p.proverka ? ` · проверено ${p.proverka.length} из ${korzina.length}${oshibok ? ` · <b class="aktPs__oshibka">не примет: ${oshibok}</b>` : ""}` : " · проверяю…"}</p>
+          ${(p.proverka || []).filter((x) => x.oshibka).map((x) => `<p class="aktPs__net">${esc(x.паллета)}: ${esc(x.oshibka)}</p>`).join("")}
+          ${p.proverka && p.proverka.length === korzina.length ? `<div class="aktPs__vopros">
+            <button type="button" class="aktPs__kn is-on" id="korzPerGo"${korzIdet || !vhod() || oshibok === korzina.length ? " disabled" : ""}>${!vhod() ? "Войдите в WMS" : `Переместить ${korzina.length - oshibok} паллет`}</button>
+          </div>` : ""}`}</div>`;
+    } else if (korzRezhim === "db") {
+      const d = korzDb;
+      if (!d) blok = `<div class="aktPs__palleta palPer"><p class="aktPs__podskaz">Проверяю заказ ДБ…</p></div>`;
+      else if (d.oshibka) blok = `<div class="aktPs__palleta palPer"><p class="aktPs__net"><b class="aktPs__oshibka">${esc(d.oshibka)}</b></p></div>`;
+      else {
+        const oshibki = d.ошибки_вмс ? Object.entries(d.ошибки_вмс).map(([k, v]) => `${k}: ${[].concat(v).join(", ")}`).join("; ") : "";
+        const kach = Object.entries(d.по_качеству || {}).map(([k, n]) => `${esc(k.toLowerCase())} ${n}`).join(" · ");
+        blok = `<div class="aktPs__palleta palPer"><p class="aktPs__zag">На другой склад — один заказ ДБ</p>
+          <p class="aktPs__podskaz">${d.паллет} паллет · ${esc(d.откуда)}${d.куда ? ` → <b>${esc(d.база_куда)}</b> · через «${esc(d.ячейка_отгрузки)}»` : " — куда везём?"}</p>
+          ${(d.куда_можно || []).length > 1 ? `<div class="aktPs__krit">${d.куда_можно.map((k) => `<button type="button" class="aktPs__kn${k === d.куда ? " is-on" : ""}" data-kz-kuda="${esc(k)}">${esc(IMYA_MARSHRUTA[k] || k)}</button>`).join("")}</div>` : ""}
+          <p class="aktPs__chto">${d.строк} строк · ${d.штук} шт${kach ? ` · ${kach}` : ""}${d.уже_в_заказе ? ` · ${d.уже_в_заказе} строк уже в заказе — пропущены` : ""}</p>
+          ${oshibki ? `<p class="aktPs__net"><b class="aktPs__oshibka">WMS не примет: ${esc(oshibki)}</b></p>` : d.можно ? `<p class="aktPs__chto">WMS примет заказ и задание на отбор.</p>` : ""}
+          ${d.куда ? `<button type="button" class="aktPs__akt" disabled>${d.создание_включено === false ? "Создание заказа ДБ пока не включено" : "Создать заказ ДБ"}</button>` : ""}</div>`;
+      }
+    }
+    box.innerHTML = `<header class="aktPs__shapka"><div><p class="aktPs__nad">Массовый пик · ${korzina.length} паллет</p>
+        <p class="aktPs__rezhim">${sht} шт · без акта ${bez} · пикайте ещё или выберите действие</p></div></header>
+      ${korzina.length ? `<div class="palSpisok">${spisok}</div>` : '<p class="aktPs__chto">Список пуст — пикайте паллеты (CON …).</p>'}
+      ${korzina.length ? `<div class="palKartaAkt__glav">
+        <button type="button" class="aktPs__kn${korzRezhim === "akt" ? " is-on" : ""}" data-kz="akt"${bez && !korzIdet ? "" : " disabled"}>Заактировать без акта</button>
+        <button type="button" class="aktPs__kn${korzRezhim === "per" ? " is-on" : ""}" data-kz="per"${korzIdet ? " disabled" : ""}>Переместить в ячейку</button>
+        <button type="button" class="aktPs__kn${korzRezhim === "db" ? " is-on" : ""}" data-kz="db"${korzIdet || korzina.length > 10 ? " disabled" : ""}>На другой склад</button>
+        <button type="button" class="aktPs__kn" data-kz="ochistit"${korzIdet ? " disabled" : ""}>Очистить</button>
+      </div>` : ""}
+      ${blok}
+      ${korzLog.length ? `<div class="aktPs__nomera korzLog">${korzLog.slice(-14).map((x) => `<p>${x}</p>`).join("")}</div>` : ""}`;
+  }
+
+  async function korzAktirovat() {
+    korzIdet = true; korzLog = []; risovat();
+    const defekt = korzDefekt;
+    for (const x of korzina.filter((k) => k.без_акта)) {
+      try {
+        const o = await fetch("/__akt/palleta/start", { method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ паллета: String(x.id), дефект: defekt, крит: korzKrit }) });
+        const d = await o.json().catch(() => ({}));
+        if (d.нужен_вход) { vms = { подключено: false }; korzLog.push(`<b class="aktPs__oshibka">войдите в WMS</b>`); break; }
+        if (!o.ok) throw new Error(d.ошибка || `сервер ответил ${o.status}`);
+        let h = { идёт: true };
+        while (h.идёт) {
+          await new Promise((ok) => setTimeout(ok, 1200));
+          try { h = await chitat(`/__akt/palleta/hod?id=${d.id}`); } catch (e) { /* сеть моргнула */ }
+          if (h.ошибка) break;
+        }
+        korzLog.push(`${esc(x.паллета)}: актов ${(h.акты || []).length}${(h.ошибки || []).length ? ` · <b class="aktPs__oshibka">ошибок ${h.ошибки.length}</b>` : ""}`);
+        zaSmenu += (h.акты || []).length;
+        x.без_акта = Math.max(0, x.без_акта - (h.акты || []).length);
+      } catch (e) {
+        korzLog.push(`${esc(x.паллета)}: <b class="aktPs__oshibka">${esc(e.message || e)}</b>`);
+      }
+      risovat();
+    }
+    korzIdet = false; korzRezhim = ""; risovat();
+    if (navigator.vibrate) navigator.vibrate(150);
+  }
+
+  async function korzProveritPer(yachKod) {
+    korzPer = { yach: yachKod, proverka: [] }; risovat();
+    for (const x of korzina) {
+      try {
+        const o = await fetch("/__akt/palleta/peremestit", { method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ паллета: String(x.id), ячейка: yachKod, сохранить: false }) });
+        const d = await o.json().catch(() => ({}));
+        if (!o.ok) throw new Error(d.ошибка || `сервер ответил ${o.status}`);
+        const osh = d.ошибки_WMS || d.ошибки_вмс;
+        korzPer.proverka.push({ паллета: x.паллета, id: x.id, oshibka: osh ? Object.values(osh).flat().join("; ") : "", kuda: d.куда });
+        if (d.куда) korzPer.yach = d.куда;
+      } catch (e) {
+        korzPer.proverka.push({ паллета: x.паллета, id: x.id, oshibka: e.message || String(e) });
+      }
+      risovat();
+    }
+    korzPer.kod = yachKod;
+    risovat();
+  }
+
+  async function korzPeremestit() {
+    korzIdet = true; korzLog = []; risovat();
+    for (const x of (korzPer.proverka || []).filter((k) => !k.oshibka)) {
+      try {
+        const o = await fetch("/__akt/palleta/peremestit", { method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ паллета: String(x.id), ячейка: korzPer.kod, сохранить: true }) });
+        const d = await o.json().catch(() => ({}));
+        if (d.нужен_вход) { vms = { подключено: false }; korzLog.push(`<b class="aktPs__oshibka">войдите в WMS</b>`); break; }
+        if (!o.ok) throw new Error(d.ошибка || `сервер ответил ${o.status}`);
+        korzLog.push(`${esc(x.паллета)} → ${esc(d.куда)}: перемещение${d.перемещение ? ` №${esc(d.перемещение)}` : ""} черновиком`);
+      } catch (e) {
+        korzLog.push(`${esc(x.паллета)}: <b class="aktPs__oshibka">${esc(e.message || e)}</b>`);
+      }
+      risovat();
+    }
+    korzIdet = false; korzRezhim = ""; korzPer = null; risovat();
+  }
+
+  async function korzProveritDb() {
+    korzDb = null; risovat();
+    try {
+      const o = await fetch("/__akt/palleta/zakaz_db", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ паллеты: korzina.map((x) => `CON ${String(x.id).padStart(10, "0")}`), куда: korzDbKuda, сохранить: false }) });
+      const d = await o.json().catch(() => ({}));
+      if (!o.ok) throw new Error(d.ошибка || `сервер ответил ${o.status}`);
+      korzDb = d;
+    } catch (e) {
+      korzDb = { oshibka: e.message || String(e) };
+    }
+    risovat();
+  }
+
   function risovat() {
     risovatPolosu();
+    if (massPik) { box.hidden = false; vRezhimPalety(true); risovatKorzinu(); return; }
     if (aktK && !pal) { box.hidden = false; risovatAkt(); box.insertAdjacentHTML("afterbegin", knopkaNazad()); return; }
     if (yach && !pal) { box.hidden = false; risovatYacheyku(); return; }
     if (pal) { box.hidden = false; risovatPalletu(); box.insertAdjacentHTML("afterbegin", knopkaNazad()); return; }
@@ -747,6 +925,7 @@
     // После решения по товару — «куда положили» (перемещение);
     // просто так — актировка целой паллеты.
     if (zhdemPalletu) { peremestit(e.detail.kod); return; }
+    if (massPik) { vKorzinu(e.detail.kod); return; }
     if (pal && palPer && palPer.zhdemPal) { peremestitPalletu(palPer.yach, false, e.detail.kod); return; }
     otkrytPalletu(e.detail.kod);
   });
@@ -783,6 +962,8 @@
   }
   document.addEventListener("picker:stol", async (e) => {
     vyborStola = false;
+    if (podTsd) document.dispatchEvent(new CustomEvent("wms:yacheyka", { detail: { kod: e.detail.kod } }));
+    if (massPik && korzRezhim === "per" && !korzIdet) { korzProveritPer(e.detail.kod); return; }
     // Ждём ячейку для перемещения паллеты — наклейка ячейки идёт туда, а не в смену стола.
     if (pal && palPer && palPer.zhdem) { peremestitPalletu(e.detail.kod, false); return; }
     oshibkaStola = "";
@@ -821,6 +1002,14 @@
       box.querySelectorAll("[data-pdef]").forEach((b) => b.classList.toggle("is-on", !palSvoy && b.dataset.pdef === palDefekt));
       const kn = document.getElementById("palGo");
       if (kn) { kn.textContent = tekstPalGo(); kn.disabled = !(palKrit && palDefekt && bezAktaVybrano() > 0 && boevoy && vhod()); }
+    }
+    if (e.target.id === "korzSvoy") {
+      korzSvoy = e.target.value;
+      korzDefekt = korzSvoy.trim();
+      box.querySelectorAll("[data-kz-def]").forEach((b) => b.classList.toggle("is-on", !korzSvoy && b.dataset.kzDef === korzDefekt));
+      const kn = document.getElementById("korzAktGo");
+      const bez = korzina.reduce((n, x) => n + (x.без_акта || 0), 0);
+      if (kn) { kn.disabled = !(korzKrit && korzDefekt && bez && boevoy && vhod() && !korzIdet); kn.textContent = !korzKrit ? "Выберите крит или косм" : !korzDefekt ? "Выберите дефект" : `Заактировать ${bez} шт`; }
     }
     if (e.target.id === "aktSvoy") {
       svoyDefekt = e.target.value;
@@ -884,6 +1073,15 @@
     if (k.dataset.polosa === "voyti") {
       formaPolosy = !formaPolosy; oshibkaVhoda = ""; risovat();
       document.querySelector("#vmsPolosaForma input")?.focus();
+    }
+    if (k.dataset.polosa === "mass") {
+      if (korzIdet) return;
+      massPik = !massPik;
+      if (massPik) { pal = null; aktK = null; yach = null; tovar = null; }
+      else { korzina = []; korzRezhim = ""; korzLog = []; korzPer = null; korzDb = null; box.hidden = true; vRezhimPalety(false); }
+      risovat();
+      document.getElementById("scan")?.focus();
+      return;
     }
     if (k.dataset.polosa === "vyyti") {
       await fetch("/__wms/vyyti", { method: "POST" }).catch(() => {});
@@ -990,7 +1188,7 @@
       }
       if (pkk.dataset.pkk === "per-da" && palPer && palPer.yach) peremestitPalletu(palPer.yach, true, palPer.naPal || "");
       if (pkk.dataset.pkk === "per-net") { palPer = null; risovat(); vFokus(); }
-      if (pkk.dataset.pkk === "db") zakazDb(false);
+      if (pkk.dataset.pkk === "db") { dbKuda = ""; zakazDb(false); }
       if (pkk.dataset.pkk === "db-da" && palDb && palDb.predv) zakazDb(true);
       if (pkk.dataset.pkk === "db-net") { palDb = null; risovat(); vFokus(); }
       if (pkk.dataset.pkk === "kopir") {
@@ -1005,6 +1203,27 @@
     if (pk) { palKrit = pk.dataset.pkrit; return risovat(); }
     const pd = e.target.closest("[data-pdef]");
     if (pd) { palDefekt = pd.dataset.pdef; palSvoy = ""; return risovat(); }
+    const kz = e.target.closest("[data-kz]");
+    if (kz && massPik) {
+      const r = kz.dataset.kz;
+      if (r === "ochistit") { korzina = []; korzRezhim = ""; korzLog = []; korzPer = null; korzDb = null; return risovat(); }
+      korzRezhim = korzRezhim === r ? "" : r;
+      if (korzRezhim === "per") korzPer = null;
+      if (korzRezhim === "db") { korzDbKuda = ""; korzProveritDb(); }
+      return risovat();
+    }
+    const ku = e.target.closest("[data-kz-ubrat]");
+    if (ku && massPik) { korzina = korzina.filter((x) => String(x.id) !== ku.dataset.kzUbrat); korzDb = null; korzPer = null; return risovat(); }
+    const kk = e.target.closest("[data-kz-krit]");
+    if (kk) { korzKrit = kk.dataset.kzKrit; return risovat(); }
+    const kd = e.target.closest("[data-kz-def]");
+    if (kd) { korzDefekt = kd.dataset.kzDef; korzSvoy = ""; return risovat(); }
+    const kdk = e.target.closest("[data-kz-kuda]");
+    if (kdk) { korzDbKuda = kdk.dataset.kzKuda; korzProveritDb(); return; }
+    if (e.target.closest("#korzAktGo")) { korzAktirovat(); return; }
+    if (e.target.closest("#korzPerGo")) { korzPeremestit(); return; }
+    const dk = e.target.closest("[data-db-kuda]");
+    if (dk && pal) { dbKuda = dk.dataset.dbKuda; zakazDb(false); return; }
     const pv = e.target.closest("[data-pvsyo]");
     if (pv && pal) {
       const r = pv.dataset.pvsyo;
