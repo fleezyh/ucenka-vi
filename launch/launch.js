@@ -152,7 +152,16 @@
       let d;
       let mx;
       let my;
-      if (vid === "ветка" && koren) {
+      const vPriemku = koren && link.до === KOREN && link.вид === "ряд";
+      if (vPriemku) {
+        const xm = (a.r + koren.l) / 2;
+        const r = Math.min(8, Math.abs(koren.cy - a.cy) / 2);
+        const dir = koren.cy > a.cy ? 1 : -1;
+        d = Math.abs(koren.cy - a.cy) < 4
+          ? `M${a.r},${a.cy} L${koren.l - 3},${koren.cy}`
+          : `M${a.r},${a.cy} L${xm - r},${a.cy} Q${xm},${a.cy} ${xm},${a.cy + dir * r} L${xm},${koren.cy - dir * r} Q${xm},${koren.cy} ${xm + r},${koren.cy} L${koren.l - 3},${koren.cy}`;
+        mx = (a.r + xm) / 2; my = a.cy;
+      } else if (vid === "ветка" && koren) {
         // От буфера приёмки — по хребту вниз/вверх и вправо в ряд.
         const y0 = koren.cy;
         const r = 10;
@@ -164,14 +173,16 @@
       } else if (vid === "обход") {
         // По просвету над рядом цели: со входа вправо над узлами и вниз в
         // хранение или отгрузку. Второй обход идёт чуть выше, чтобы метки не слипались.
-        const yg = b.t - 15 - obhodov * 13;
+        const yl = b.b + 18 + obhodov * 14;
+        const xg = a.r + (koren ? (koren.l - a.r) * 0.72 : 20);
+        const xk = b.cx - 18 - obhodov * 26;
         obhodov += 1;
-        d = `M${a.r},${a.cy} C${a.r + 40},${a.cy} ${a.r + 30},${yg} ${a.r + 70},${yg} L${b.cx - 36},${yg} Q${b.cx},${yg} ${b.cx},${b.t - 3}`;
-        mx = b.cx - 150 - (obhodov - 1) * 40; my = yg;
+        d = `M${a.r},${a.cy + 10} L${xg - 8},${a.cy + 10} Q${xg},${a.cy + 10} ${xg},${a.cy + 18} L${xg},${yl - 8} Q${xg},${yl} ${xg + 8},${yl} L${xk - 10},${yl} Q${xk},${yl} ${xk},${yl - 10} L${xk},${b.b + 3}`;
+        mx = xk - 150; my = yl;
       } else if (vid === "возврат") {
-        const bot = Math.max(a.b, b.b) + 34;
-        d = `M${a.cx},${a.b} C${a.cx},${bot} ${b.cx},${bot} ${b.cx},${b.b + 3}`;
-        mx = (a.cx + b.cx) / 2; my = bot - 8;
+        const top = Math.min(a.t, b.t) - 30;
+        d = `M${a.cx},${a.t} C${a.cx},${top} ${b.cx},${top} ${b.cx},${b.t - 3}`;
+        mx = (a.cx + b.cx) / 2; my = top + 7;
       } else if (Math.abs(a.cy - b.cy) < 4) {
         d = `M${a.r},${a.cy} L${b.l - 3},${b.cy}`;
         mx = (a.r + b.l) / 2; my = a.cy;
@@ -195,11 +206,11 @@
             + `<animateMotion dur="${skorost.toFixed(2)}s" begin="${(-skorost * i / iskr).toFixed(2)}s" repeatCount="indefinite"><mpath href="#${id}"/></animateMotion></circle>`;
         }
       }
-      if (zhivoy || vid !== "ветка") {
+      if (zhivoy || (vid !== "ветка" && !vPriemku)) {
         metki += `<span class="fxBadge${zhivoy ? " is-live" : ""}${vid === "обход" ? " is-obhod" : ""}" style="left:${mx.toFixed(0)}px;top:${my.toFixed(0)}px;--c:${cvet}"
           title="${escape(link.от_имя)} → ${escape(link.до_имя)}: ${nice(flow)} шт за 30 дней, ${nice(link.штук_сутки)} за сутки">`
-          + `${vid === "обход" ? "в обход столов · " : vid === "возврат" ? "обратно · " : ""}${nice(flow)}`
-          + `${link.штук_сутки ? `<em>+${nice(link.штук_сутки)}</em>` : ""}</span>`;
+          + `${vid === "обход" ? "<i>в обход столов</i>" : vid === "возврат" ? "<i>обратно</i>" : ""}<b>${nice(flow)}</b>`
+          + `${link.штук_сутки ? `<em>+${nice(link.штук_сутки)} сут.</em>` : ""}</span>`;
       }
     }
     svg.innerHTML = defs + paths;

@@ -305,10 +305,10 @@
   display: grid;
   grid-template-columns: 150px 190px 190px repeat(5, minmax(170px, 1fr));
   grid-template-rows: auto repeat(var(--rows), minmax(138px, auto));
-  column-gap: 34px;
-  row-gap: 30px;
-  min-width: 1480px;
-  padding: 34px 6px 34px;
+  column-gap: 52px;
+  row-gap: 44px;
+  min-width: 1560px;
+  padding: 30px 6px 40px;
 }
 .fxHead { grid-row: 1; padding-bottom: 8px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
 .fxRow { grid-column: 1; display: flex; flex-direction: column; justify-content: center; gap: 4px; }
@@ -384,7 +384,10 @@
 }
 .fxBadge.is-live { border-color: color-mix(in srgb, var(--c) 60%, transparent); color: #fff; box-shadow: 0 0 14px -4px var(--c); }
 .fxBadge.is-obhod { background: rgba(60, 12, 20, 0.95); color: #ffb3bf; }
-.fxBadge em { margin-left: 6px; color: color-mix(in srgb, var(--c) 60%, #fff); font-style: normal; }
+.fxBadge { display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 3px 8px; border-radius: 10px; line-height: 1.1; }
+.fxBadge b { font-weight: 700; }
+.fxBadge i { font-size: 9.5px; font-style: normal; letter-spacing: 0.02em; opacity: 0.85; }
+.fxBadge em { color: color-mix(in srgb, var(--c) 60%, #fff); font-size: 9.5px; font-style: normal; }
 
 @keyframes fxBeg { to { stroke-dashoffset: -40; } }
 @keyframes fxPuls { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.6); opacity: 0.55; } }
