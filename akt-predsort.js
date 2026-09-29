@@ -34,10 +34,10 @@
     const tab = document.querySelector('.tab[data-mode="presort"]');
     if (tab && tab.getAttribute("aria-selected") !== "true") tab.click();
     const tekst = (id, t) => { const x = document.getElementById(id); if (x) x.textContent = t; };
-    tekst("eyebrow", "тест · возможности WMS");
+    tekst("eyebrow", "Пикалка · режим WMS");
     tekst("pageTitle", "WMS");
     document.title = "WMS · Уценка";
-    tekst("modeDescription", "Одно поле: пикните товар, паллету, ячейку или акт — покажу, что с этим можно сделать в WMS, и всё можно попробовать.");
+    tekst("modeDescription", "Пикните товар, паллету, ячейку или акт.");
     const shapka = document.querySelector(".searchHeading");
     if (shapka) {
       const ov = shapka.querySelector(".overline"); if (ov) ov.textContent = "WMS";
@@ -46,44 +46,26 @@
     const metka = document.querySelector('label[for="scan"]');
     if (metka) metka.textContent = "Товар, паллета, ячейка или акт";
     const scan = document.getElementById("scan");
-    const podpis = () => { if (scan && !scan.disabled) scan.placeholder = "Сканируйте что угодно…"; };
+    const podpis = () => { if (scan && !scan.disabled) scan.placeholder = "CON …, CEL …, ACT … или штрихкод"; };
     [300, 1500, 4000, 9000].forEach((t) => setTimeout(podpis, t));
     const ryad = document.querySelector(".searchCard .searchRow");
+    // 29.09 Степан: «много текста, но не информативно — конкретно какие действия
+    // с чем можно делать». Под полем — что пикнуть и что с этим сделать, без абзацев;
+    // «Попробовать» убрано.
     if (ryad && !document.getElementById("vmsVozm")) {
+      const k = (chto, kod, primer, deystviya) => `<button type="button" class="vmsVozm__k" data-primer="${primer}">
+          <span class="vmsVozm__shapka"><b>${chto}</b><small>${kod}</small></span>
+          <span class="vmsVozm__d">${deystviya.map((d) => `<i>${d}</i>`).join("")}</span></button>`;
       ryad.insertAdjacentHTML("afterend", `<div class="vmsVozm" id="vmsVozm">
-        <button type="button" class="vmsVozm__k" data-primer="штрихкод или код товара">
-          <b>Товар</b><small>штрихкод, код сайта</small>
-          <span>Где лежит по всему складу и последние акты на него. Выбрать стол → решение → акт (крит/косм, дефект) → «куда положили»: перемещение.</span></button>
-        <button type="button" class="vmsVozm__k" data-primer="CON 0163233250 или Уценка-0165326648">
-          <b>Паллета</b><small>CON …, «Уценка-…», номер</small>
-          <span>Где стоит и что на ней — прямо сейчас, лот и заказ. Заактировать всё без акта, переместить в ячейку, история, Excel.</span></button>
-        <button type="button" class="vmsVozm__k" data-primer="CEL 3923168">
-          <b>Ячейка</b><small>наклейка CEL …</small>
-          <span>Стол — его решения для актов. Любая другая — что в ней лежит, по паллетам; паллета открывается кликом.</span></button>
-        <button type="button" class="vmsVozm__k" data-primer="ACT 0005263917">
-          <b>Акт</b><small>наклейка ACT …</small>
-          <span>Что за товар, дефект, кто и когда заактировал — и где эта штука сейчас, в каком заказе.</span></button>
-      </div>`);
-      document.getElementById("vmsVozm").insertAdjacentHTML("afterend", `<div class="vmsPolosa" id="vmsPolosa"></div>
-        <div class="vmsProba"><span>Попробовать:</span>
-          <button type="button" data-probovat="4603731306678">товар: радиатор ROMMER</button>
-          <button type="button" data-probovat="CON 0163233250">паллета на буфере столов</button>
-          <button type="button" data-probovat="CEL 3923168">ячейка «буфер, группа 3»</button>
-          <button type="button" data-probovat="CEL 4089525">отгрузка уценки ДНЛ</button>
-          <button type="button" data-probovat="CEL 3099400">стол 3 предсорта</button>
-          <button type="button" data-probovat="ACT 0005263917">акт на радиатор</button>
-        </div>`);
-      document.querySelector(".vmsProba").addEventListener("click", (e) => {
-        const k = e.target.closest("[data-probovat]");
-        const go = document.getElementById("go");
-        if (!k || !scan || scan.disabled) return;
-        scan.value = k.dataset.probovat;
-        if (go) go.click();
-      });
+        ${k("Паллета", "CON …", "CON 0163233250", ["массовая актировка", "массовое перемещение", "состав, лот, заказ"])}
+        ${k("Товар", "штрихкод", "штрихкод или код товара", ["акт на штуку", "перемещение этого", "где лежит"])}
+        ${k("Ячейка", "CEL …", "CEL 3923168", ["стол → решения", "что лежит"])}
+        ${k("Акт", "ACT …", "ACT 0005263917", ["чей акт", "где штука сейчас"])}
+      </div><div class="vmsPolosa" id="vmsPolosa"></div>`);
       document.getElementById("vmsVozm").addEventListener("click", (e) => {
-        const k = e.target.closest("[data-primer]");
-        if (!k || !scan) return;
-        scan.placeholder = "например: " + k.dataset.primer;
+        const kn = e.target.closest("[data-primer]");
+        if (!kn || !scan) return;
+        scan.placeholder = "например: " + kn.dataset.primer;
         scan.focus();
       });
     }
@@ -141,10 +123,14 @@
     .then((d) => {
       boevoy = Boolean(d.включена);
       obshchiyMozhno = Boolean(d.общий_можно);
-      vms = d.WMS || { подключено: false };
+      vms = d.вмс || d.WMS || { подключено: false };   // сервер отдаёт «вмс»: с «WMS» плашка всегда была «не вошли»
       risovat();
     })
     .catch(() => {});
+
+  // 29.09 Степан: «с запретом действий до входа в ВМС» — без личного входа
+  // кнопки действий закрыты, а не отправляют и потом просят войти.
+  const vhod = () => vms.подключено || obshchiyMozhno;
 
   // «Рысаков Степан Максимович» → «Рысаков С. М.»: в плашке нужна фамилия.
   const korotko = (fio) => {
@@ -283,8 +269,8 @@
         <div class="aktPs__krit">${KRIT.map((x) => `<button type="button" class="aktPs__kn${x.k === palKrit ? " is-on" : ""}" data-pkrit="${x.k}">${x.имя}</button>`).join("")}</div>
         <p class="aktPs__zag">Дефект — один на все штуки</p>
         <div class="aktPs__defekty">${DEFEKTY.map((d) => `<button type="button" class="aktPs__kn aktPs__kn--def${d.k === palDefekt ? " is-on" : ""}" data-pdef="${esc(d.k)}">${esc(d.имя)}</button>`).join("")}</div>
-        <button type="button" class="aktPs__akt" id="palGo"${gotov && boevoy ? "" : " disabled"}>${
-          !boevoy ? "Актировка выключена в админке" : !palKrit ? "Выберите крит или косм" : !palDefekt ? "Выберите дефект" : `Заактировать ${pal.без_акта} шт`}</button>
+        <button type="button" class="aktPs__akt" id="palGo"${gotov && boevoy && vhod() ? "" : " disabled"}>${
+          !boevoy ? "Актировка выключена в админке" : !vhod() ? "Войдите в WMS" : !palKrit ? "Выберите крит или косм" : !palDefekt ? "Выберите дефект" : `Заактировать ${pal.без_акта} шт`}</button>
         <p class="aktPs__chto">Внутренний брак · качество брак · «мех. повреждения, ${esc(palDefekt || "…")}${palKrit ? ", " + palKrit : ""}» · исходная ячейка и паллета — где лежит</p>`;
     } else {
       niz = `<p class="aktPs__chto">На паллете нет штук без акта.</p>`;
@@ -347,7 +333,7 @@
         <p class="aktPs__chto">${esc(d.склад)} · ${d.строк} строк · ${d.штук} шт${d.в_заказах ? ` · резерв ${d.в_заказах} заказа(ов) едет с товаром` : ""}</p>
         ${oshibki ? `<p class="aktPs__net"><b class="aktPs__oshibka">WMS не примет: ${esc(oshibki)}</b></p>` : ""}
         <div class="aktPs__vopros">
-          <button type="button" class="aktPs__kn is-on" data-pkk="per-da"${oshibki || !boevoy ? " disabled" : ""}>${boevoy ? "Переместить" : "Актировка выключена"}</button>
+          <button type="button" class="aktPs__kn is-on" data-pkk="per-da"${oshibki || !boevoy || !vhod() ? " disabled" : ""}>${!boevoy ? "Актировка выключена" : !vhod() ? "Войдите в WMS" : "Переместить"}</button>
           <button type="button" class="aktPs__kn" data-pkk="per-net">Отмена</button>
         </div>`;
     } else if (p.gotovo) {
@@ -579,27 +565,22 @@
   function risovatPolosu() {
     const u = document.getElementById("vmsPolosa");
     if (!u) return;
-    const vmsChast = vms.подключено
-      ? `<span class="vmsPolosa__ok">WMS: <b>${esc(korotko(vms.имя))}</b> — акты и перемещения от вас</span>
-         <button type="button" class="vmsPolosa__kn" data-polosa="vyyti">выйти</button>`
-      : `<span class="vmsPolosa__net">WMS: не вошли${obshchiyMozhno ? " — пока работает общий логин (тест)" : " — без входа акты не создаются"}</span>
-         <button type="button" class="vmsPolosa__kn is-glav" data-polosa="voyti">Войти в WMS</button>`;
+    // Одна строка: вошёл ли, от чьего имени, что с актами; стол — только если выбран.
+    const sost = !boevoy
+      ? `<span class="vmsPolosa__tochka is-net"></span><span>WMS выключена в админке — только просмотр</span>`
+      : vms.подключено
+        ? `<span class="vmsPolosa__tochka is-ok"></span><span>WMS: <b>${esc(korotko(vms.имя))}</b> · акты проводятся сразу</span>
+           <button type="button" class="vmsPolosa__kn" data-polosa="vyyti">выйти</button>`
+        : `<span class="vmsPolosa__tochka is-net"></span><span>Без входа в WMS — только смотреть</span>
+           <button type="button" class="vmsPolosa__kn is-glav" data-polosa="voyti">Войти в WMS</button>`;
     u.innerHTML = `
-      <div class="vmsPolosa__ryad">${vmsChast}</div>
+      <div class="vmsPolosa__ryad">${sost}${stol ? `<span class="vmsPolosa__stol">стол <b>${esc(stol.имя.replace(/^ФБ \(ДМД\) /, ""))}</b></span>` : ""}</div>
       ${formaPolosy && !vms.подключено ? `<form class="aktPs__vhod" id="vmsPolosaForma" autocomplete="off">
         <input name="login" placeholder="Логин WMS" autocapitalize="off" spellcheck="false" required>
         <input name="parol" type="password" placeholder="Пароль WMS" required>
         <button class="aktPs__kn is-on" type="submit">Войти</button>
-        <p class="aktPs__chto">${oshibkaVhoda ? `<b class="aktPs__oshibka">${esc(oshibkaVhoda)}</b> · ` : ""}пароль не сохраняется: сайт входит в WMS один раз и держит сессию до конца смены</p>
-      </form>` : ""}
-      <div class="vmsPolosa__ryad">
-        <span>${stol ? `Стол: <b>${esc(stol.имя)}</b> — сменить: пикните наклейку другого` : "Стол не выбран — пикните наклейку стола (CEL …), чтобы появились решения для актов"}</span>
-      </div>
-      <div class="vmsPolosa__ryad">
-        <span class="${boevoy ? "vmsPolosa__ok" : "vmsPolosa__net"}">${boevoy
-          ? `Актировка включена — кнопки создают настоящие документы в WMS${obshchiyMozhno ? " (тест: можно и без входа)" : ""}`
-          : "Актировка выключена в админке — всё только показывается, в WMS ничего не создаётся"}</span>
-      </div>`;
+        <p class="aktPs__chto">${oshibkaVhoda ? `<b class="aktPs__oshibka">${esc(oshibkaVhoda)}</b> · ` : ""}пароль не сохраняется — сессия до конца смены</p>
+      </form>` : ""}`;
   }
 
   function risovat() {
@@ -637,7 +618,7 @@
 
     const n = RESHENIYA().length;
     const kolonok = n <= 5 ? n : 4;
-    const gotovKnopka = defekt && krit;
+    const gotovKnopka = defekt && krit && (!boevoy || vhod());
     box.innerHTML = `${shapka}
       <p class="aktPs__zag">Решение</p>
       <div class="aktPs__resheniya" style="grid-template-columns:repeat(${kolonok},minmax(0,1fr))">${RESHENIYA().map((x) => `<button type="button" class="aktPs__kn${String(x.id) === String(reshenie) ? " is-on" : ""}" data-resh="${x.id}" title="${esc(x.куда)}">${esc(x.имя)}</button>`).join("")}</div>
@@ -646,7 +627,7 @@
         <div class="aktPs__krit">${KRIT.map((x) => `<button type="button" class="aktPs__kn${x.k === krit ? " is-on" : ""}" data-krit="${x.k}">${x.имя}</button>`).join("")}</div>
         <p class="aktPs__zag">Дефект</p>
         <div class="aktPs__defekty">${DEFEKTY.map((d) => `<button type="button" class="aktPs__kn aktPs__kn--def${d.k === defekt ? " is-on" : ""}" data-def="${esc(d.k)}">${esc(d.имя)}</button>`).join("")}</div>
-        <button type="button" class="aktPs__akt" id="aktPsGo"${gotovKnopka ? "" : " disabled"}>${gotovKnopka ? "Заактировать" : !krit ? "Выберите крит или косм" : "Выберите дефект"}</button>
+        <button type="button" class="aktPs__akt" id="aktPsGo"${gotovKnopka ? "" : " disabled"}>${gotovKnopka ? "Заактировать" : !krit ? "Выберите крит или косм" : !defekt ? "Выберите дефект" : "Войдите в WMS"}</button>
         <p class="aktPs__chto">Внутренний брак · качество брак · «мех. повреждения, ${esc(defekt || "…")}${krit ? ", " + krit : ""}» · ${esc(stol.имя)} → ${esc(r.куда)} · комплектность полная</p>
         ${oshibkaAkta ? `<p class="aktPs__net"><b class="aktPs__oshibka">Акт не создан:</b> ${esc(oshibkaAkta)}</p>` : ""}`}`;
   }

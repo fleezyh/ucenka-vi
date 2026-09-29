@@ -1,0 +1,60 @@
+/* Режим WMS: тумблер «как ультракод» и переключатель Пикалка | ТСД (29.09.2026). */
+.wmsRezhim { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 8px; grid-column: -2 / -1; justify-self: end; }
+.wmsRezhim.is-on { justify-content: space-between; grid-column: 1 / -1; justify-self: stretch; width: 100%; }
+.topbar .wmsRezhim { margin: 0 0 0 auto; }
+.topbar .wmsRezhim.is-on { width: auto; gap: 14px; }
+
+.wmsTumbler { display: inline-flex; align-items: center; gap: 10px; color: var(--muted, #8f9cad); font-size: 13px; font-weight: 600; letter-spacing: .06em; text-decoration: none; -webkit-tap-highlight-color: transparent; }
+.wmsTumbler__dorozhka { position: relative; display: block; width: 64px; height: 32px; border-radius: 999px; overflow: hidden; background: #1f2633; box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); transition: background .3s, box-shadow .3s; }
+.wmsTumbler__iskry { position: absolute; inset: 0; opacity: 0; transition: opacity .35s; background-image: radial-gradient(circle, rgba(222,206,255,.95) 0 1px, transparent 1.6px), radial-gradient(circle, rgba(170,135,255,.7) 0 1px, transparent 1.6px), linear-gradient(90deg, #1c1433 0%, #3a2670 45%, #7b5cf0 80%, #c8b6ff 100%); background-size: 6px 6px, 9px 9px, 100% 100%; background-position: 0 0, 3px 4px, 0 0; animation: wmsIskry 2.4s linear infinite, wmsMercanie 1.8s ease-in-out infinite; }
+.wmsTumbler__knob { position: absolute; top: 4px; left: 4px; width: 24px; height: 24px; border-radius: 50%; background: #8f9cad; box-shadow: 0 1px 3px rgba(0,0,0,.5); transition: left .26s cubic-bezier(.5,1.6,.5,1), background .26s, box-shadow .26s; }
+.wmsTumbler:hover .wmsTumbler__dorozhka { box-shadow: inset 0 0 0 1px rgba(170,135,255,.45); }
+.wmsTumbler.is-on { color: #d9ccff; }
+.wmsTumbler.is-on .wmsTumbler__dorozhka { background: #24184a; box-shadow: inset 0 0 0 1px rgba(170,135,255,.35), 0 0 18px -4px rgba(140,100,255,.75); }
+.wmsTumbler.is-on .wmsTumbler__iskry { opacity: 1; }
+.wmsTumbler.is-on .wmsTumbler__knob { left: 36px; background: #fff; box-shadow: 0 0 10px rgba(255,255,255,.7), 0 1px 3px rgba(0,0,0,.4); }
+.wmsTumbler.is-perehod .wmsTumbler__dorozhka { box-shadow: inset 0 0 0 1px rgba(200,180,255,.7), 0 0 28px 2px rgba(140,100,255,.8); }
+@keyframes wmsIskry { from { background-position: 0 0, 3px 4px, 0 0; } to { background-position: 12px 0, -15px 4px, 0 0; } }
+@keyframes wmsMercanie { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.35); } }
+@media (prefers-reduced-motion: reduce) { .wmsTumbler__iskry { animation: none; } }
+
+.wmsSeg { display: inline-flex; padding: 3px; border: 1px solid var(--line, #263345); border-radius: 12px; background: rgba(8, 12, 18, .5); }
+.wmsSeg__k { min-width: 96px; padding: 7px 14px; border-radius: 9px; color: var(--muted, #8f9cad); font-size: 14px; font-weight: 600; text-align: center; text-decoration: none; transition: background .2s, color .2s; }
+.wmsSeg__k:hover { color: var(--text, #f2f6fb); }
+.wmsSeg__k.is-on { background: linear-gradient(180deg, #3a2670, #2a1c55); color: #fff; box-shadow: inset 0 0 0 1px rgba(170,135,255,.35); }
+
+@media (max-width: 640px) {
+  .wmsSeg__k { min-width: 0; padding: 7px 12px; }
+  .topbar .wmsRezhim.is-on { gap: 8px; }
+  .topbar .wmsTumbler__imya { display: none; }
+}
+
+/* Площадка WMS плотнее (29.09, «более сбитую тему, много текста, но не информативно»). */
+body.vmsPlg .hero { gap: 10px; padding-bottom: 6px; }
+body.vmsPlg .lead { margin-top: 4px; font-size: 15px; }
+body.vmsPlg .searchCard { padding-top: 16px; padding-bottom: 16px; }
+body.vmsPlg .searchCard .message { font-size: 12.5px; margin-top: 6px; }
+body.vmsPlg .scannerNote { display: none; }
+.vmsVozm { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 12px 0 0; }
+.vmsVozm__k { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border: 1px solid var(--line, #263345); border-radius: 12px;
+  background: rgba(255,255,255,.02); font: inherit; text-align: left; cursor: pointer; transition: border-color .15s, background .15s; }
+.vmsVozm__k:hover { border-color: rgba(170,135,255,.45); background: rgba(123,92,240,.06); }
+.vmsVozm__shapka { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.vmsVozm__shapka b { color: var(--text, #f2f6fb); font-size: 15px; font-weight: 600; }
+.vmsVozm__shapka small { color: #b9a2ff; font-size: 12px; font-weight: 600; font-family: ui-monospace, Consolas, monospace; }
+.vmsVozm__d { display: flex; flex-wrap: wrap; gap: 4px; }
+.vmsVozm__d i { padding: 3px 8px; border-radius: 999px; background: rgba(255,255,255,.05); color: #c9d2de; font-size: 12px; font-style: normal; font-weight: 600; white-space: nowrap; }
+.vmsVozm__d i:first-child { background: rgba(123,92,240,.18); color: #e2d8ff; }
+.vmsPolosa { margin: 8px 0 0; padding: 8px 12px; border-radius: 12px; font-size: 13px; }
+.vmsPolosa { display: flex; flex-direction: column; gap: 6px; }
+.vmsPolosa__ryad { gap: 10px; }
+.vmsPolosa__tochka { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.vmsPolosa__tochka.is-ok { background: #27c46b; box-shadow: 0 0 8px #27c46b; }
+.vmsPolosa__tochka.is-net { background: #f5ad32; box-shadow: 0 0 8px #f5ad32; }
+.vmsPolosa__stol { margin-left: auto; color: var(--muted, #8f9cad); }
+.vmsPolosa__kn { min-height: 30px; padding: 0 12px; }
+.vmsProba { display: none !important; }
+@media (max-width: 760px) {
+  .vmsVozm { grid-template-columns: 1fr 1fr; }
+  .vmsPolosa__stol { margin-left: 0; width: 100%; }
+}
