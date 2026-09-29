@@ -201,6 +201,9 @@
   // Перемещение целой паллеты (27.09, «а возможность перемещения?»):
   // null | { zhdem } | { idet } | { predv, yach } | { gotovo } | { oshibka }
   let palPer = null;
+  // На другой склад заказом ДБ (29.09, задача Гамлета: форма вмс берёт только брак).
+  // null | { idet } | { predv } | { gotovo } | { oshibka }
+  let palDb = null;
   // Выбор части паллеты (29.09, «надо добавить выбор части паллет»): ключи строк.
   let palVybor = null;
   // Свой дефект (29.09, встреча): «погнут» на весь ГСМ одним текстом во все акты.
@@ -235,7 +238,7 @@
   async function otkrytPalletu(kod) {
     wmsZakryt();
     pal = null; palKrit = ""; palDefekt = ""; palRabota = null; palOshibka = ""; palPer = null; yach = null;
-    aktK = null; istP = null; palVybor = null; palSvoy = "";
+    aktK = null; istP = null; palVybor = null; palSvoy = ""; palDb = null;
     tovar = null; gotovo = null; zhdemPalletu = null; perItog = null;
     vRezhimPalety(true);
     box.hidden = false;
@@ -310,6 +313,7 @@
       </header>${formaVms()}
       ${blokKarty()}
       ${blokPeremeshcheniya()}
+      ${blokDb()}
       ${blokIstorii()}
       ${spisok ? `${panelVybora}<div class="palSpisok">${spisok}</div>` : ""}
       ${niz}`;
@@ -331,6 +335,7 @@
       ${rashod ? `<p class="aktPs__net"><b class="aktPs__oshibka">Паллета стоит в «${esc(gde.ячейка)}», а товар на ней числится в «${esc(yachTovara.join("», «"))}».</b></p>` : ""}` : ""}
       <div class="palKartaAkt__glav">
         <button type="button" class="aktPs__kn" data-pkk="peremestit"${palPer ? " disabled" : ""}>${vseVybrany() ? "Переместить паллету" : "Переместить выбранное"}</button>
+        <button type="button" class="aktPs__kn" data-pkk="db"${palDb ? " disabled" : ""}>На другой склад</button>
         <button type="button" class="aktPs__kn" data-pkk="istoriya">История</button>
         <button type="button" class="aktPs__kn" data-pkk="uz">Универсальное задание</button>
       </div>
@@ -340,6 +345,54 @@
         ${k ? `<a href="${esc(k.вмс || k.WMS)}" target="_blank" rel="noopener">Открыть в WMS</a>` : ""}
       </div>
     </div>`;
+  }
+
+  function blokDb() {
+    if (!palDb) return "";
+    const p = palDb;
+    let telo = "";
+    if (p.idet) {
+      telo = `<p class="aktPs__podskaz">${p.idet}</p>`;
+    } else if (p.predv) {
+      const d = p.predv;
+      const oshibki = d.ошибки_вмс ? Object.entries(d.ошибки_вмс).map(([k, v]) => `${k}: ${[].concat(v).join(", ")}`).join("; ") : "";
+      const kach = Object.entries(d.по_качеству || {}).map(([k, n]) => `${esc(k.toLowerCase())} ${n}`).join(" · ");
+      telo = `<p class="aktPs__podskaz">${esc(d.паллета)} → <b>${esc(d.куда)}</b> · через «${esc(d.ячейка_отгрузки)}»</p>
+        <p class="aktPs__chto">${d.строк} строк · ${d.штук} шт${kach ? ` · ${kach}` : ""}${d.уже_в_заказе ? ` · ${d.уже_в_заказе} строк уже в заказе — пропущены` : ""}</p>
+        ${oshibki ? `<p class="aktPs__net"><b class="aktPs__oshibka">WMS не примет: ${esc(oshibki)}</b></p>` : ""}
+        <div class="aktPs__vopros">
+          <button type="button" class="aktPs__kn is-on" data-pkk="db-da"${oshibki || !boevoy || !vhod() ? " disabled" : ""}>${!boevoy ? "WMS выключена" : !vhod() ? "Войдите в WMS" : "Создать заказ ДБ"}</button>
+          <button type="button" class="aktPs__kn" data-pkk="db-net">Отмена</button>
+        </div>`;
+    } else if (p.gotovo) {
+      telo = `<div class="aktPs__gotovo"><b>Заказ ${esc(p.gotovo.номер)} создан и проведён</b>
+        <span>${esc(p.gotovo.паллета)} → ${esc(p.gotovo.куда)} · ${p.gotovo.строк} строк · ${p.gotovo.штук} шт · дальше задание на отбор в ячейку отгрузки</span>
+        ${p.gotovo.вмс ? `<a href="${esc(p.gotovo.вмс)}" target="_blank" rel="noopener">открыть в WMS</a>` : ""}</div>`;
+    } else if (p.oshibka) {
+      telo = `<p class="aktPs__net"><b class="aktPs__oshibka">${esc(p.oshibka)}</b></p>
+        <button type="button" class="aktPs__kn" data-pkk="db-net">Закрыть</button>`;
+    }
+    return `<div class="aktPs__palleta palPer"><p class="aktPs__zag">${vseVybrany() ? "Паллета" : "Выбранное"} на другой склад — заказ ДБ</p>${telo}</div>`;
+  }
+
+  async function zakazDb(sohranit) {
+    palDb = { idet: sohranit ? "Создаю заказ ДБ в WMS…" : "Проверяю в WMS — до полуминуты…" };
+    risovat();
+    try {
+      const o = await fetch("/__akt/palleta/zakaz_db", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ паллета: String(pal.паллета_id || pal.паллета), строки: vyborDlyaServera(), сохранить: sohranit }),
+      });
+      const d = await o.json().catch(() => ({}));
+      if (d.нужен_вход) { vms = { подключено: false }; formaPolosy = true; oshibkaVhoda = "войдите в WMS, потом «Создать заказ ДБ» ещё раз"; palDb = null; risovat(); return; }
+      if (!o.ok) throw new Error(d.ошибка || `сервер ответил ${o.status}`);
+      palDb = d.готово ? { gotovo: d } : { predv: d };
+      if (d.готово && navigator.vibrate) navigator.vibrate(150);
+    } catch (e) {
+      palDb = { oshibka: e.message || String(e) };
+    }
+    risovat();
+    vFokus();
   }
 
   function blokPeremeshcheniya() {
@@ -758,6 +811,7 @@
     if (!g || !pal) return;
     if (!palVybor) palVybor = new Set(pal.строки.map((x) => x.ключ));
     if (g.checked) palVybor.add(g.dataset.pvyb); else palVybor.delete(g.dataset.pvyb);
+    if (palDb && palDb.predv) palDb = null;   // проверка была по другому выбору
     risovat();
   });
   box.addEventListener("input", (e) => {
@@ -936,6 +990,9 @@
       }
       if (pkk.dataset.pkk === "per-da" && palPer && palPer.yach) peremestitPalletu(palPer.yach, true, palPer.naPal || "");
       if (pkk.dataset.pkk === "per-net") { palPer = null; risovat(); vFokus(); }
+      if (pkk.dataset.pkk === "db") zakazDb(false);
+      if (pkk.dataset.pkk === "db-da" && palDb && palDb.predv) zakazDb(true);
+      if (pkk.dataset.pkk === "db-net") { palDb = null; risovat(); vFokus(); }
       if (pkk.dataset.pkk === "kopir") {
         const imya = (palKarta && palKarta.паллета) || pal.паллета;
         navigator.clipboard.writeText(imya).then(() => { pkk.textContent = "Скопировано"; setTimeout(() => { pkk.textContent = "Копировать"; }, 1500); });
@@ -952,6 +1009,7 @@
     if (pv && pal) {
       const r = pv.dataset.pvsyo;
       palVybor = new Set(pal.строки.filter((x) => r === "vse" || (r === "bez" && x.без_акта)).map((x) => x.ключ));
+      if (palDb && palDb.predv) palDb = null;
       return risovat();
     }
     if (e.target.closest("#palGo")) { palStart(); return; }

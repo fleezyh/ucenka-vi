@@ -60,7 +60,7 @@ body.vmsPlg .scannerNote { display: none; }
 }
 
 /* Карточка паллеты (29.09, «тут криво»): три главных действия ровным рядом, мелочь — строкой ссылок. */
-.palKartaAkt__glav { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 10px; }
+.palKartaAkt__glav { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-top: 10px; }
 .palKartaAkt__glav .aktPs__kn { min-height: 42px; font-size: 13.5px; }
 .palKartaAkt__glav .aktPs__kn:disabled { opacity: .45; }
 .palKartaAkt__mel { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px 16px; margin-top: 8px; }
@@ -82,5 +82,4 @@ body.vmsPlg .scannerNote { display: none; }
 .aktPs__svoy:focus { outline: none; border-color: #7b5cf0; box-shadow: 0 0 0 3px rgba(123,92,240,.2); }
 @media (max-width: 640px) {
   .palKartaAkt__glav { grid-template-columns: 1fr 1fr; }
-  .palKartaAkt__glav .aktPs__kn:first-child { grid-column: 1 / -1; }
 }
