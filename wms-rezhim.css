@@ -32,7 +32,7 @@
 /* Площадка WMS плотнее (29.09, «более сбитую тему, много текста, но не информативно»). */
 body.vmsPlg .hero { gap: 10px; padding-bottom: 6px; }
 body.vmsPlg .lead { margin-top: 4px; font-size: 15px; }
-body.vmsPlg .searchCard { padding-top: 16px; padding-bottom: 16px; }
+body.vmsPlg .searchCard { grid-column: 1 / -1; grid-row: 1; padding-top: 16px; padding-bottom: 16px; }
 body.vmsPlg .searchCard .message { font-size: 12.5px; margin-top: 6px; }
 body.vmsPlg .scannerNote { display: none; }
 .vmsVozm { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 12px 0 0; }
