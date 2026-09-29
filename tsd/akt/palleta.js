@@ -63,6 +63,7 @@
       niz = `<div class="palHod"><p class="aktPs__podskaz">${rabota.идёт ? "Актирую…" : "Готово"} ${rabota.готово} из ${rabota.всего}</p>
         <div class="palHod__polosa"><i style="width:${proc}%"></i></div>
         <p class="aktPs__chto">актов создано: ${rabota.акты.length}${rabota.ошибки.length ? ` · ошибок: ${rabota.ошибки.length}` : ""}</p>
+        ${rabota.акты.length ? `<div class="aktPs__nomera" style="display:grid;gap:3px;margin-top:8px;font-size:13px;color:var(--muted)">${rabota.акты.slice(-12).map((a) => `<p style="margin:0"><b style="color:var(--text);font-feature-settings:'tnum' 1">ACT ${String(a.акт).padStart(10, "0")}</b> — ${esc(a.товар)}</p>`).join("")}${rabota.акты.length > 12 ? `<p style="margin:0">…и ещё ${rabota.акты.length - 12} — все номера в журнале актировки</p>` : ""}</div>` : ""}
         ${rabota.ошибки.slice(-3).map((o) => `<p class="aktPs__net"><b class="aktPs__oshibka">${esc(o.товар)}</b> ${esc(o.ошибка)}</p>`).join("")}
         ${rabota.идёт ? "" : `<p class="aktPs__chto">Пикните следующую паллету.</p>`}</div>`;
     } else if (bez) {
