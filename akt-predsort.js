@@ -139,6 +139,8 @@
   };
 
   function plashkaVms() {
+    // На площадке WMS вход уже виден строкой под полем — в карточке не дублируем (29.09).
+    if (document.getElementById("vmsPolosa")) return "";
     if (!boevoy) return `<span class="aktPs__chip is-demo">демо</span>`;
     if (vms.подключено) {
       return `<span class="aktPs__chip is-ok" title="Акты уходят от имени: ${esc(vms.имя)}"><i></i>WMS · ${esc(korotko(vms.имя))}
@@ -199,6 +201,15 @@
   // Перемещение целой паллеты (27.09, «а возможность перемещения?»):
   // null | { zhdem } | { idet } | { predv, yach } | { gotovo } | { oshibka }
   let palPer = null;
+  // Выбор части паллеты (29.09, «надо добавить выбор части паллет»): ключи строк.
+  let palVybor = null;
+  // Свой дефект (29.09, встреча): «погнут» на весь ГСМ одним текстом во все акты.
+  let palSvoy = "";
+  let svoyDefekt = "";
+  const vybrano = () => (pal ? pal.строки.filter((x) => !palVybor || palVybor.has(x.ключ)) : []);
+  const vseVybrany = () => !pal || !palVybor || pal.строки.every((x) => palVybor.has(x.ключ));
+  const vyborDlyaServera = () => (vseVybrany() ? null : vybrano().map((x) => x.ключ));
+  const bezAktaVybrano = () => vybrano().reduce((n, x) => n + (x.без_акта || 0), 0);
   const kartochka = document.getElementById("answer");
 
   function vRezhimPalety(vkl) {
@@ -224,7 +235,7 @@
   async function otkrytPalletu(kod) {
     wmsZakryt();
     pal = null; palKrit = ""; palDefekt = ""; palRabota = null; palOshibka = ""; palPer = null; yach = null;
-    aktK = null; istP = null;
+    aktK = null; istP = null; palVybor = null; palSvoy = "";
     tovar = null; gotovo = null; zhdemPalletu = null; perItog = null;
     vRezhimPalety(true);
     box.hidden = false;
@@ -238,6 +249,7 @@
       const d = await o.json().catch(() => ({}));
       if (!o.ok) throw new Error(d.ошибка || `сервер ответил ${o.status}`);
       pal = d;
+      palVybor = new Set((pal.строки || []).map((x) => x.ключ));
     } catch (e) {
       palOshibka = e.message || String(e);
       pal = { паллета: kod, ячейка: "", строки: [], без_акта: 0 };
@@ -245,13 +257,29 @@
     risovat();
   }
 
+  function tekstPalGo() {
+    const bez = bezAktaVybrano();
+    return !boevoy ? "Актировка выключена в админке" : !vhod() ? "Войдите в WMS" : !bez ? "Среди выбранного нет штук без акта"
+      : !palKrit ? "Выберите крит или косм" : !palDefekt ? "Выберите дефект" : `Заактировать ${bez} шт`;
+  }
+
   function risovatPalletu() {
     const vsego = pal.строки.reduce((n, x) => n + x.штук, 0);
-    const spisok = pal.строки.map((x) => `<div class="palStroka${x.без_акта ? " is-bez" : ""}">
-        <span class="palStroka__tovar">${esc(x.товар)}</span>
+    const vkl = (x) => !palVybor || palVybor.has(x.ключ);
+    const spisok = pal.строки.map((x) => `<label class="palStroka palStroka--vybor${x.без_акта ? " is-bez" : ""}${vkl(x) ? "" : " is-vykl"}">
+        <input type="checkbox" data-pvyb="${esc(x.ключ)}"${vkl(x) ? " checked" : ""}${palRabota && palRabota.идёт ? " disabled" : ""}>
+        <span class="palStroka__tovar">${esc(x.товар)}${x.качество && !/^брак$/i.test(x.качество) ? ` <i class="palStroka__kach">${esc(x.качество)}</i>` : ""}</span>
         <span class="palStroka__sht">${x.штук} шт</span>
         <span class="palStroka__akt">${x.акт ? `акт №${x.акт}` : x.уже_нами && !x.без_акта ? "заактировано нами" : "без акта"}</span>
-      </div>`).join("");
+      </label>`).join("");
+    const shtVybr = vybrano().reduce((n, x) => n + x.штук, 0);
+    const bezVybr = bezAktaVybrano();
+    const panelVybora = pal.строки.length > 1 ? `<div class="palVybor">
+        <span>выбрано <b>${shtVybr}</b> из ${vsego} шт${bezVybr ? ` · без акта ${bezVybr}` : ""}</span>
+        <button type="button" data-pvsyo="vse">все</button>
+        <button type="button" data-pvsyo="bez">только без акта</button>
+        <button type="button" data-pvsyo="nichego">снять</button>
+      </div>` : "";
     let niz;
     if (palOshibka) {
       niz = `<p class="aktPs__net"><b class="aktPs__oshibka">${esc(palOshibka)}</b></p>`;
@@ -264,13 +292,13 @@
         ${palRabota.ошибки.slice(-3).map((o) => `<p class="aktPs__net"><b class="aktPs__oshibka">${esc(o.товар)}</b> ${esc(o.ошибка)}</p>`).join("")}
         ${palRabota.идёт ? "" : `<p class="aktPs__chto">Пикните следующую паллету или товар.</p>`}</div>`;
     } else if (pal.без_акта) {
-      const gotov = palKrit && palDefekt;
+      const gotov = palKrit && palDefekt && bezVybr > 0;
       niz = `<p class="aktPs__zag">Крит или косм</p>
         <div class="aktPs__krit">${KRIT.map((x) => `<button type="button" class="aktPs__kn${x.k === palKrit ? " is-on" : ""}" data-pkrit="${x.k}">${x.имя}</button>`).join("")}</div>
-        <p class="aktPs__zag">Дефект — один на все штуки</p>
-        <div class="aktPs__defekty">${DEFEKTY.map((d) => `<button type="button" class="aktPs__kn aktPs__kn--def${d.k === palDefekt ? " is-on" : ""}" data-pdef="${esc(d.k)}">${esc(d.имя)}</button>`).join("")}</div>
-        <button type="button" class="aktPs__akt" id="palGo"${gotov && boevoy && vhod() ? "" : " disabled"}>${
-          !boevoy ? "Актировка выключена в админке" : !vhod() ? "Войдите в WMS" : !palKrit ? "Выберите крит или косм" : !palDefekt ? "Выберите дефект" : `Заактировать ${pal.без_акта} шт`}</button>
+        <p class="aktPs__zag">Дефект — один на все выбранные</p>
+        <div class="aktPs__defekty">${DEFEKTY.map((d) => `<button type="button" class="aktPs__kn aktPs__kn--def${d.k === palDefekt && !palSvoy ? " is-on" : ""}" data-pdef="${esc(d.k)}">${esc(d.имя)}</button>`).join("")}</div>
+        <input class="aktPs__svoy" id="palSvoy" maxlength="80" autocomplete="off" placeholder="или свой дефект — одним текстом во все акты" value="${esc(palSvoy)}">
+        <button type="button" class="aktPs__akt" id="palGo"${gotov && boevoy && vhod() ? "" : " disabled"}>${tekstPalGo()}</button>
         <p class="aktPs__chto">Внутренний брак · качество брак · «мех. повреждения, ${esc(palDefekt || "…")}${palKrit ? ", " + palKrit : ""}» · исходная ячейка и паллета — где лежит</p>`;
     } else {
       niz = `<p class="aktPs__chto">На паллете нет штук без акта.</p>`;
@@ -283,7 +311,7 @@
       ${blokKarty()}
       ${blokPeremeshcheniya()}
       ${blokIstorii()}
-      ${spisok ? `<div class="palSpisok">${spisok}</div>` : ""}
+      ${spisok ? `${panelVybora}<div class="palSpisok">${spisok}</div>` : ""}
       ${niz}`;
   }
 
@@ -301,15 +329,15 @@
         ${(k.в_заказах || []).length ? `<span>в заказе <b>${k.в_заказах.map(esc).join(", ")}</b></span>` : ""}
       </div>
       ${rashod ? `<p class="aktPs__net"><b class="aktPs__oshibka">Паллета стоит в «${esc(gde.ячейка)}», а товар на ней числится в «${esc(yachTovara.join("», «"))}».</b></p>` : ""}` : ""}
-      <div class="palKartaAkt__knopki">
-        <button type="button" class="aktPs__kn" data-pkk="excel">Состав в Excel</button>
-        <button type="button" class="aktPs__kn" data-pkk="kopir">Копировать</button>
-        ${k ? `<a class="aktPs__kn" href="${esc(k.WMS)}" target="_blank" rel="noopener">Открыть в WMS</a>` : ""}
-      </div>
-      <div class="palKartaAkt__dva">
-        ${palPer ? "" : `<button type="button" class="aktPs__kn" data-pkk="peremestit">Переместить паллету</button>`}
+      <div class="palKartaAkt__glav">
+        <button type="button" class="aktPs__kn" data-pkk="peremestit"${palPer ? " disabled" : ""}>${vseVybrany() ? "Переместить паллету" : "Переместить выбранное"}</button>
         <button type="button" class="aktPs__kn" data-pkk="istoriya">История</button>
         <button type="button" class="aktPs__kn" data-pkk="uz">Универсальное задание</button>
+      </div>
+      <div class="palKartaAkt__mel">
+        <button type="button" data-pkk="excel">Состав в Excel</button>
+        <button type="button" data-pkk="kopir">Копировать</button>
+        ${k ? `<a href="${esc(k.вмс || k.WMS)}" target="_blank" rel="noopener">Открыть в WMS</a>` : ""}
       </div>
     </div>`;
   }
@@ -324,12 +352,18 @@
           <input name="kod" placeholder="или номер ячейки" inputmode="numeric">
           <button class="aktPs__kn is-on" type="submit">Дальше</button>
         </form>`;
+    } else if (p.zhdemPal) {
+      telo = `<p class="aktPs__podskaz">Часть паллеты → <b>${esc(p.yach)}</b>. Пикните паллету, на которую перекладываете (CON …)</p>
+        <form class="aktPs__vhod aktPs__palForma" id="palNaPalForma" autocomplete="off">
+          <input name="kod" placeholder="или номер паллеты" inputmode="numeric">
+          <button class="aktPs__kn is-on" type="submit">Дальше</button>
+        </form>`;
     } else if (p.idet) {
       telo = `<p class="aktPs__podskaz">${p.idet}</p>`;
     } else if (p.predv) {
       const d = p.predv;
       const oshibki = d.ошибки_WMS ? Object.values(d.ошибки_WMS).flat().join("; ") : "";
-      telo = `<p class="aktPs__podskaz">${esc(d.откуда.join(", "))} → <b>${esc(d.куда)}</b></p>
+      telo = `<p class="aktPs__podskaz">${esc(d.откуда.join(", "))} → <b>${esc(d.куда)}</b>${d.на_паллету ? ` · на паллету <b>${esc(d.на_паллету)}</b>` : ""}</p>
         <p class="aktPs__chto">${esc(d.склад)} · ${d.строк} строк · ${d.штук} шт${d.в_заказах ? ` · резерв ${d.в_заказах} заказа(ов) едет с товаром` : ""}</p>
         ${oshibki ? `<p class="aktPs__net"><b class="aktPs__oshibka">WMS не примет: ${esc(oshibki)}</b></p>` : ""}
         <div class="aktPs__vopros">
@@ -343,21 +377,24 @@
       telo = `<p class="aktPs__net"><b class="aktPs__oshibka">${esc(p.oshibka)}</b></p>
         <button type="button" class="aktPs__kn" data-pkk="per-net">Закрыть</button>`;
     }
-    return `<div class="aktPs__palleta palPer"><p class="aktPs__zag">Переместить паллету</p>${telo}</div>`;
+    return `<div class="aktPs__palleta palPer"><p class="aktPs__zag">${vseVybrany() ? "Переместить паллету" : "Переместить выбранное"}</p>${telo}</div>`;
   }
 
-  async function peremestitPalletu(yach, sohranit) {
-    palPer = { idet: sohranit ? "Создаю перемещение в WMS…" : "Проверяю в WMS — до полуминуты…", yach };
+  async function peremestitPalletu(yach, sohranit, naPal = "") {
+    // Часть паллеты едет только на другую паллету — сначала спросим её.
+    if (!vseVybrany() && !naPal) { palPer = { zhdemPal: true, yach }; risovat(); vFokus(); return; }
+    palPer = { idet: sohranit ? "Создаю перемещение в WMS…" : "Проверяю в WMS — до полуминуты…", yach, naPal };
     risovat();
     try {
       const o = await fetch("/__akt/palleta/peremestit", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ паллета: String(pal.паллета_id || pal.паллета), ячейка: yach, сохранить: sohranit }),
+        body: JSON.stringify({ паллета: String(pal.паллета_id || pal.паллета), ячейка: yach, сохранить: sohranit,
+          строки: vyborDlyaServera(), на_паллету: naPal || "" }),
       });
       const d = await o.json().catch(() => ({}));
       if (d.нужен_вход) { vms = { подключено: false }; formaVhoda = true; oshibkaVhoda = "войдите в WMS, потом «Переместить» ещё раз"; palPer = { predv: palPer.predv || null, yach }; risovat(); return; }
       if (!o.ok) throw new Error(d.ошибка || `сервер ответил ${o.status}`);
-      palPer = d.готово ? { gotovo: d } : { predv: d, yach };
+      palPer = d.готово ? { gotovo: d } : { predv: d, yach, naPal };
       if (d.готово && navigator.vibrate) navigator.vibrate(150);
     } catch (e) {
       palPer = { oshibka: e.message || String(e) };
@@ -385,12 +422,12 @@
     try {
       const o = await fetch("/__akt/palleta/start", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ паллета: String(pal.паллета_id), дефект: palDefekt, крит: palKrit }),
+        body: JSON.stringify({ паллета: String(pal.паллета_id), дефект: palDefekt, крит: palKrit, строки: vyborDlyaServera() }),
       });
       const d = await o.json().catch(() => ({}));
       if (d.нужен_вход) { vms = { подключено: false }; formaVhoda = true; oshibkaVhoda = "войдите в WMS, потом снова «Заактировать»"; risovat(); return; }
       if (!o.ok) throw new Error(d.ошибка || `сервер ответил ${o.status}`);
-      palRabota = { id: d.id, всего: pal.без_акта, готово: 0, акты: [], ошибки: [], идёт: true };
+      palRabota = { id: d.id, всего: bezAktaVybrano(), готово: 0, акты: [], ошибки: [], идёт: true };
       risovat();
       while (palRabota && palRabota.идёт) {
         await new Promise((ok) => setTimeout(ok, 1200));
@@ -626,7 +663,8 @@
         <p class="aktPs__zag">Крит или косм</p>
         <div class="aktPs__krit">${KRIT.map((x) => `<button type="button" class="aktPs__kn${x.k === krit ? " is-on" : ""}" data-krit="${x.k}">${x.имя}</button>`).join("")}</div>
         <p class="aktPs__zag">Дефект</p>
-        <div class="aktPs__defekty">${DEFEKTY.map((d) => `<button type="button" class="aktPs__kn aktPs__kn--def${d.k === defekt ? " is-on" : ""}" data-def="${esc(d.k)}">${esc(d.имя)}</button>`).join("")}</div>
+        <div class="aktPs__defekty">${DEFEKTY.map((d) => `<button type="button" class="aktPs__kn aktPs__kn--def${d.k === defekt && !svoyDefekt ? " is-on" : ""}" data-def="${esc(d.k)}">${esc(d.имя)}</button>`).join("")}</div>
+        <input class="aktPs__svoy" id="aktSvoy" maxlength="80" autocomplete="off" placeholder="или свой дефект" value="${esc(svoyDefekt)}">
         <button type="button" class="aktPs__akt" id="aktPsGo"${gotovKnopka ? "" : " disabled"}>${gotovKnopka ? "Заактировать" : !krit ? "Выберите крит или косм" : !defekt ? "Выберите дефект" : "Войдите в WMS"}</button>
         <p class="aktPs__chto">Внутренний брак · качество брак · «мех. повреждения, ${esc(defekt || "…")}${krit ? ", " + krit : ""}» · ${esc(stol.имя)} → ${esc(r.куда)} · комплектность полная</p>
         ${oshibkaAkta ? `<p class="aktPs__net"><b class="aktPs__oshibka">Акт не создан:</b> ${esc(oshibkaAkta)}</p>` : ""}`}`;
@@ -656,6 +694,7 @@
     // После решения по товару — «куда положили» (перемещение);
     // просто так — актировка целой паллеты.
     if (zhdemPalletu) { peremestit(e.detail.kod); return; }
+    if (pal && palPer && palPer.zhdemPal) { peremestitPalletu(palPer.yach, false, e.detail.kod); return; }
     otkrytPalletu(e.detail.kod);
   });
 
@@ -714,7 +753,38 @@
   });
   document.addEventListener("picker:miss", () => { tovar = null; risovat(); });
 
+  box.addEventListener("change", (e) => {
+    const g = e.target.closest("[data-pvyb]");
+    if (!g || !pal) return;
+    if (!palVybor) palVybor = new Set(pal.строки.map((x) => x.ключ));
+    if (g.checked) palVybor.add(g.dataset.pvyb); else palVybor.delete(g.dataset.pvyb);
+    risovat();
+  });
+  box.addEventListener("input", (e) => {
+    if (e.target.id === "palSvoy") {
+      palSvoy = e.target.value;
+      palDefekt = palSvoy.trim();
+      box.querySelectorAll("[data-pdef]").forEach((b) => b.classList.toggle("is-on", !palSvoy && b.dataset.pdef === palDefekt));
+      const kn = document.getElementById("palGo");
+      if (kn) { kn.textContent = tekstPalGo(); kn.disabled = !(palKrit && palDefekt && bezAktaVybrano() > 0 && boevoy && vhod()); }
+    }
+    if (e.target.id === "aktSvoy") {
+      svoyDefekt = e.target.value;
+      defekt = svoyDefekt.trim();
+      box.querySelectorAll("[data-def]").forEach((b) => b.classList.toggle("is-on", !svoyDefekt && b.dataset.def === defekt));
+      const kn = document.getElementById("aktPsGo");
+      const gotov = defekt && krit && (!boevoy || vhod());
+      if (kn) { kn.disabled = !gotov; kn.textContent = gotov ? "Заактировать" : !krit ? "Выберите крит или косм" : !defekt ? "Выберите дефект" : "Войдите в WMS"; }
+    }
+  });
+
   box.addEventListener("submit", async (e) => {
+    if (e.target.id === "palNaPalForma") {
+      e.preventDefault();
+      const kod = e.target.kod.value.trim();
+      if (kod && palPer) peremestitPalletu(palPer.yach, false, kod);
+      return;
+    }
     if (e.target.id === "palPerForma") {
       e.preventDefault();
       const kod = e.target.kod.value.trim();
@@ -864,7 +934,7 @@
           .then((d) => { istP = d; }).catch((err) => { istP = { oshibka: err.message || String(err) }; })
           .finally(() => { if (pal) risovat(); });
       }
-      if (pkk.dataset.pkk === "per-da" && palPer && palPer.yach) peremestitPalletu(palPer.yach, true);
+      if (pkk.dataset.pkk === "per-da" && palPer && palPer.yach) peremestitPalletu(palPer.yach, true, palPer.naPal || "");
       if (pkk.dataset.pkk === "per-net") { palPer = null; risovat(); vFokus(); }
       if (pkk.dataset.pkk === "kopir") {
         const imya = (palKarta && palKarta.паллета) || pal.паллета;
@@ -877,12 +947,18 @@
     const pk = e.target.closest("[data-pkrit]");
     if (pk) { palKrit = pk.dataset.pkrit; return risovat(); }
     const pd = e.target.closest("[data-pdef]");
-    if (pd) { palDefekt = pd.dataset.pdef; return risovat(); }
+    if (pd) { palDefekt = pd.dataset.pdef; palSvoy = ""; return risovat(); }
+    const pv = e.target.closest("[data-pvsyo]");
+    if (pv && pal) {
+      const r = pv.dataset.pvsyo;
+      palVybor = new Set(pal.строки.filter((x) => r === "vse" || (r === "bez" && x.без_акта)).map((x) => x.ключ));
+      return risovat();
+    }
     if (e.target.closest("#palGo")) { palStart(); return; }
     const kr = e.target.closest("[data-krit]");
     if (kr) { krit = kr.dataset.krit; oshibkaAkta = ""; return risovat(); }
     const d = e.target.closest("[data-def]");
-    if (d) { defekt = d.dataset.def; oshibkaAkta = ""; return risovat(); }
+    if (d) { defekt = d.dataset.def; svoyDefekt = ""; oshibkaAkta = ""; return risovat(); }
     if (e.target.closest("#aktPsGo")) aktirovat();
   });
 })();

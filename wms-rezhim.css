@@ -58,3 +58,29 @@ body.vmsPlg .scannerNote { display: none; }
   .vmsVozm { grid-template-columns: 1fr 1fr; }
   .vmsPolosa__stol { margin-left: 0; width: 100%; }
 }
+
+/* Карточка паллеты (29.09, «тут криво»): три главных действия ровным рядом, мелочь — строкой ссылок. */
+.palKartaAkt__glav { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 10px; }
+.palKartaAkt__glav .aktPs__kn { min-height: 42px; font-size: 13.5px; }
+.palKartaAkt__glav .aktPs__kn:disabled { opacity: .45; }
+.palKartaAkt__mel { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px 16px; margin-top: 8px; }
+.palKartaAkt__mel button, .palKartaAkt__mel a { padding: 2px 0; border: 0; background: none; color: var(--muted, #8f9cad); font: inherit; font-size: 12.5px; font-weight: 600; text-decoration: none; cursor: pointer; }
+.palKartaAkt__mel button:hover, .palKartaAkt__mel a:hover { color: var(--text, #f2f6fb); }
+/* Выбор части паллеты. */
+.palVybor { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 14px; font-size: 13px; color: var(--muted, #8f9cad); }
+.palVybor b { color: var(--text, #f2f6fb); }
+.palVybor span { margin-right: auto; }
+.palVybor button { min-height: 28px; padding: 0 10px; border: 1px solid var(--line, #263345); border-radius: 999px; background: transparent; color: var(--text, #f2f6fb); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+.palVybor button:hover { border-color: rgba(170,135,255,.5); }
+.palVybor + .palSpisok { margin-top: 8px; }
+.palStroka--vybor { grid-template-columns: auto minmax(0, 1fr) auto auto; cursor: pointer; }
+.palStroka--vybor input { width: 18px; height: 18px; margin: 0; accent-color: #7b5cf0; cursor: pointer; }
+.palStroka.is-vykl { opacity: .45; border-color: var(--line, #263345); background: transparent; }
+.palStroka__kach { margin-left: 6px; padding: 1px 7px; border-radius: 999px; background: rgba(77,141,247,.16); color: #9cc0ff; font-size: 11.5px; font-style: normal; font-weight: 600; }
+/* Свой дефект — поле под кнопками дефектов. */
+.aktPs__svoy { width: 100%; min-height: 42px; margin-top: 8px; padding: 0 14px; border: 1px solid var(--line-strong, #35465c); border-radius: 12px; background: rgba(8,12,18,.6); color: var(--text, #f2f6fb); font: inherit; font-size: 14px; }
+.aktPs__svoy:focus { outline: none; border-color: #7b5cf0; box-shadow: 0 0 0 3px rgba(123,92,240,.2); }
+@media (max-width: 640px) {
+  .palKartaAkt__glav { grid-template-columns: 1fr 1fr; }
+  .palKartaAkt__glav .aktPs__kn:first-child { grid-column: 1 / -1; }
+}
