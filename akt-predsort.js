@@ -790,7 +790,11 @@
           ${(d.куда_можно || []).length > 1 ? `<div class="aktPs__krit">${d.куда_можно.map((k) => `<button type="button" class="aktPs__kn${k === d.куда ? " is-on" : ""}" data-kz-kuda="${esc(k)}">${esc(IMYA_MARSHRUTA[k] || k)}</button>`).join("")}</div>` : ""}
           <p class="aktPs__chto">${d.строк} строк · ${d.штук} шт${kach ? ` · ${kach}` : ""}${d.уже_в_заказе ? ` · ${d.уже_в_заказе} строк уже в заказе — пропущены` : ""}</p>
           ${oshibki ? `<p class="aktPs__net"><b class="aktPs__oshibka">WMS не примет: ${esc(oshibki)}</b></p>` : d.можно ? `<p class="aktPs__chto">WMS примет заказ и задание на отбор.</p>` : ""}
-          ${d.куда ? `<button type="button" class="aktPs__akt" disabled>${d.создание_включено === false ? "Создание заказа ДБ пока не включено" : "Создать заказ ДБ"}</button>` : ""}</div>`;
+          ${d.готово ? `<div class="aktPs__gotovo"><b>Заказ ${esc(d.номер)} создан и проведён${d.задание_id ? ` · отбор №${esc(d.задание_id)}` : ""}</b>
+            ${d.без_задания ? `<span class="aktPs__oshibka">${esc(d.без_задания)}</span>` : ""}
+            ${d.вмс ? `<a href="${esc(d.вмс)}" target="_blank" rel="noopener">открыть в WMS</a>` : ""}</div>`
+          : d.куда ? `<button type="button" class="aktPs__akt" id="korzDbGo"${oshibki || d.создание_включено === false || !boevoy || !vhod() || korzIdet ? " disabled" : ""}>${
+            d.создание_включено === false ? "Создание заказа ДБ пока не включено" : !vhod() ? "Войдите в WMS" : korzIdet ? "Создаю…" : `Создать заказ ДБ и отбор — ${d.паллет} паллет`}</button>` : ""}</div>`;
       }
     }
     box.innerHTML = `<header class="aktPs__shapka"><div><p class="aktPs__nad">Массовый пик · ${korzina.length} паллет</p>
@@ -872,17 +876,21 @@
     korzIdet = false; korzRezhim = ""; korzPer = null; risovat();
   }
 
-  async function korzProveritDb() {
-    korzDb = null; risovat();
+  async function korzProveritDb(sohranit = false) {
+    if (sohranit) { korzIdet = true; } else { korzDb = null; }
+    risovat();
     try {
       const o = await fetch("/__akt/palleta/zakaz_db", { method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ паллеты: korzina.map((x) => `CON ${String(x.id).padStart(10, "0")}`), куда: korzDbKuda, сохранить: false }) });
+        body: JSON.stringify({ паллеты: korzina.map((x) => `CON ${String(x.id).padStart(10, "0")}`), куда: korzDbKuda || (korzDb && korzDb.куда) || "", сохранить: sohranit }) });
       const d = await o.json().catch(() => ({}));
+      if (d.нужен_вход) { vms = { подключено: false }; formaPolosy = true; oshibkaVhoda = "войдите в WMS, потом «Создать заказ ДБ» ещё раз"; throw new Error("войдите в WMS"); }
       if (!o.ok) throw new Error(d.ошибка || `сервер ответил ${o.status}`);
       korzDb = d;
+      if (d.готово && navigator.vibrate) navigator.vibrate(150);
     } catch (e) {
       korzDb = { oshibka: e.message || String(e) };
     }
+    korzIdet = false;
     risovat();
   }
 
@@ -1269,6 +1277,7 @@
     if (kdk) { korzDbKuda = kdk.dataset.kzKuda; korzProveritDb(); return; }
     if (e.target.closest("#korzAktGo")) { korzAktirovat(); return; }
     if (e.target.closest("#korzPerGo")) { korzPeremestit(); return; }
+    if (e.target.closest("#korzDbGo") && korzDb && korzDb.можно) { korzProveritDb(true); return; }
     const dk = e.target.closest("[data-db-kuda]");
     if (dk && pal) { dbKuda = dk.dataset.dbKuda; zakazDb(false); return; }
     const pv = e.target.closest("[data-pvsyo]");
