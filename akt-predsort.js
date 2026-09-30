@@ -604,7 +604,7 @@
       ${a.где.length ? `<div class="yachPallety">${a.где.map((g) => `
         <button type="button" class="yachPalleta yachPalleta--stolb" data-pal-otkryt="${esc(g.паллета)}"${g.паллета ? "" : " disabled"}>
           <span class="yachPalleta__imya">${esc(g.паллета || "без паллеты")}</span>
-          <span>${esc(g.ячейка)}${g.зона ? ` <span class="yachPalleta__zak">· ${esc(g.зона)}</span>` : ""}</span>
+          <span>${esc(g.ячейка)}${g.зона ? ` <span class="yachPalleta__zak">· ${esc(g.зона)}</span>` : ""}${g.база ? ` <span class="yachPalleta__zak">· база ${esc(g.база)}</span>` : ""}</span>
           ${g.заказ ? `<span class="yachPalleta__zak">заказ ${esc(g.заказ)}</span>` : ""}
         </button>`).join("")}</div>` : '<p class="aktPs__chto">На складе этой штуки уже нет — продана, списана или уехала.</p>'}
       ${est ? blokAktPer(a) : ""}
@@ -640,7 +640,8 @@
     try {
       const otvet = await fetch("/__akt/akt_v_palletu", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ акт: aktK.наклейка || String(aktK.акт), паллета: kod, стол: stol ? stol.имя : "", подтвердил: podtverdil }),
+        body: JSON.stringify({ акт: aktK.наклейка || String(aktK.акт), паллета: kod, стол: stol ? stol.имя : "",
+          стол_id: stol ? stol.id : null, подтвердил: podtverdil }),
       });
       const d = await otvet.json().catch(() => ({}));
       if (d.предупреждение) { aktPer = { vopros: { kod, tekst: d.предупреждение } }; if (navigator.vibrate) navigator.vibrate([80, 60, 80]); return; }
