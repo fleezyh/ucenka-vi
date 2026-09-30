@@ -405,17 +405,30 @@
       const marshruty = (d.куда_можно || []).length > 1 ? `<div class="aktPs__krit">${d.куда_можно.map((k) =>
         `<button type="button" class="aktPs__kn${k === d.куда ? " is-on" : ""}" data-db-kuda="${esc(k)}">${esc(IMYA_MARSHRUTA[k] || k)}</button>`).join("")}</div>` : "";
       const vkl = d.создание_включено !== false;
+      // 30.09 ночь: форма брака берёт паллету, только если на ней один брак — остальное сначала
+      // уезжает на другую паллету в той же ячейке (пикнуть её).
+      const nb = d.не_брак || [];
+      const nbSpisok = nb.length ? `<div class="aktPs__net"><b>Не брак — ${nb.length} шт, форма брака их не возьмёт:</b>
+        ${nb.slice(0, 6).map((x) => `<span>${esc(x.товар)} · ${esc(String(x.качество || "").toLowerCase())}${x.акт ? ` · акт ${esc(x.акт)}` : ""}</span>`).join("")}${nb.length > 6 ? `<span>…и ещё ${nb.length - 6}</span>` : ""}
+        ${d.паллета_для_небрака ? `<span>→ переложу на <b>${esc(d.паллета_для_небрака)}</b>, потом заказ ДБ на брак</span>` : ""}</div>` : "";
+      const nbForma = d.стоп_небрак ? `<p class="aktPs__net"><b class="aktPs__oshibka">${esc(d.стоп_небрак)}</b></p>` : d.нужна_паллета_для_небрака ? `<p class="aktPs__podskaz">Пикните паллету для не-брака (CON …) — она должна стоять в этой же ячейке:</p>
+        <form class="aktPs__vhod aktPs__palForma" id="palNbForma" autocomplete="off">
+          <input name="kod" placeholder="номер паллеты" inputmode="numeric" autofocus>
+          <button class="aktPs__kn is-on" type="submit">Дальше</button>
+        </form>` : "";
       telo = `<p class="aktPs__podskaz">${esc(d.паллета)} · ${esc(d.откуда)}${d.куда ? ` → <b>${esc(d.база_куда)}</b> · через «${esc(d.ячейка_отгрузки)}» · поток ${esc(d.поток)}` : " — куда везём?"}</p>
         ${marshruty}
         <p class="aktPs__chto">${d.паллет > 1 ? `${d.паллет} паллет · ` : ""}${d.строк} строк · ${d.штук} шт${kach ? ` · ${kach}` : ""}${d.уже_в_заказе ? ` · ${d.уже_в_заказе} строк уже в заказе — пропущены` : ""}</p>
         ${oshibki ? `<p class="aktPs__net"><b class="aktPs__oshibka">WMS не примет: ${esc(oshibki)}</b></p>` : ""}
-        ${d.куда ? `<div class="aktPs__vopros">
-          <button type="button" class="aktPs__kn is-on" data-pkk="db-da"${oshibki || !boevoy || !vhod() || !vkl ? " disabled" : ""}>${!vkl ? "Создание пока не включено" : !boevoy ? "WMS выключена" : !vhod() ? "Войдите в WMS" : "Создать заказ ДБ и отбор"}</button>
+        ${nbSpisok}${nbForma}
+        ${d.куда && !d.нужна_паллета_для_небрака && !d.стоп_небрак ? `<div class="aktPs__vopros">
+          <button type="button" class="aktPs__kn is-on" data-pkk="db-da"${oshibki || !boevoy || !vhod() || !vkl ? " disabled" : ""}>${!vkl ? "Создание пока не включено" : !boevoy ? "WMS выключена" : !vhod() ? "Войдите в WMS" : nb.length ? "Переложить не-брак и создать заказ ДБ" : "Создать заказ ДБ и отбор"}</button>
           <button type="button" class="aktPs__kn" data-pkk="db-net">Отмена</button>
         </div>
-        <p class="aktPs__chto">${d.можно ? "WMS примет заказ и задание на отбор. " : ""}Дальше по регламенту: отбор «Создать перемещение с контейнером», задание на внутреннюю отгрузку, «Отгрузить», приёмка.</p>` : ""}`;
+        <p class="aktPs__chto">${d.можно ? "Форма брака WMS нашла все штуки. " : ""}Заказ и задание на отбор создаёт форма «Формирование внутренних перемещений брака». Дальше по регламенту: отбор «Создать перемещение с контейнером», задание на внутреннюю отгрузку, «Отгрузить», приёмка.</p>` : ""}`;
     } else if (p.gotovo) {
-      telo = `<div class="aktPs__gotovo"><b>Заказ ${esc(p.gotovo.номер)} создан и проведён${p.gotovo.задание_id ? ` · отбор №${esc(p.gotovo.задание_id)}` : ""}</b>
+      telo = `<div class="aktPs__gotovo"><b>Заказ ${esc(p.gotovo.номер)} и задание на отбор созданы${p.gotovo.задание_id ? ` · отбор №${esc(p.gotovo.задание_id)}` : ""}</b>
+        ${p.gotovo.паллета_для_небрака ? `<span>не брак (${(p.gotovo.не_брак || []).length} шт) переложен на ${esc(p.gotovo.паллета_для_небрака)} — переложите руками</span>` : ""}
         ${p.gotovo.без_задания ? `<span class="aktPs__oshibka">${esc(p.gotovo.без_задания)}</span>` : ""}
         <span>${esc(p.gotovo.паллета)} → ${esc(p.gotovo.куда)} · ${p.gotovo.строк} строк · ${p.gotovo.штук} шт · дальше задание на отбор в ячейку отгрузки</span>
         ${p.gotovo.вмс ? `<a href="${esc(p.gotovo.вмс)}" target="_blank" rel="noopener">открыть в WMS</a>` : ""}</div>`;
@@ -427,13 +440,14 @@
   }
 
   let dbKuda = "";
+  let dbNeBrak = "";
   async function zakazDb(sohranit) {
     palDb = { idet: sohranit ? "Создаю заказ ДБ в WMS…" : "Проверяю в WMS — до полуминуты…" };
     risovat();
     try {
       const o = await fetch("/__akt/palleta/zakaz_db", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ паллета: String(pal.паллета_id || pal.паллета), строки: vyborDlyaServera(), куда: dbKuda, сохранить: sohranit }),
+        body: JSON.stringify({ паллета: String(pal.паллета_id || pal.паллета), строки: vyborDlyaServera(), куда: dbKuda, паллета_небрак: dbNeBrak, сохранить: sohranit }),
       });
       const d = await o.json().catch(() => ({}));
       if (d.нужен_вход) { vms = { подключено: false }; formaPolosy = true; oshibkaVhoda = "войдите в WMS, потом «Создать заказ ДБ» ещё раз"; palDb = null; risovat(); return; }
@@ -1330,6 +1344,12 @@
   });
 
   naPaneli("submit", async (e) => {
+    if (e.target.id === "palNbForma") {
+      e.preventDefault();
+      const kod = e.target.kod.value.trim();
+      if (kod && palDb) { dbNeBrak = kod; zakazDb(false); }
+      return;
+    }
     if (e.target.id === "palNaPalForma") {
       e.preventDefault();
       const kod = e.target.kod.value.trim();
@@ -1492,7 +1512,7 @@
     if (pt && pal) {
       const t = pt.dataset.ptab;
       if (t === "per") { palDb = null; if (!palPer) palPer = { zhdem: true }; risovat(); vFokus(); return; }
-      if (t === "db") { palPer = null; if (!palDb) { dbKuda = ""; zakazDb(false); } else risovat(); return; }
+      if (t === "db") { palPer = null; if (!palDb) { dbKuda = ""; dbNeBrak = ""; zakazDb(false); } else risovat(); return; }
       palPer = null; palDb = null; risovat(); vFokus(); return;
     }
     const zapomnit = () => { if (tovar && !vozvrat) vozvrat = { tovar, gdeT, aktyT, reshenie }; };
@@ -1521,7 +1541,7 @@
       }
       if (pkk.dataset.pkk === "per-da" && palPer && palPer.yach) peremestitPalletu(palPer.yach, true, palPer.naPal || "");
       if (pkk.dataset.pkk === "per-net") { palPer = null; risovat(); vFokus(); }
-      if (pkk.dataset.pkk === "db") { dbKuda = ""; zakazDb(false); }
+      if (pkk.dataset.pkk === "db") { dbKuda = ""; dbNeBrak = ""; zakazDb(false); }
       if (pkk.dataset.pkk === "db-da" && palDb && palDb.predv) zakazDb(true);
       if (pkk.dataset.pkk === "db-net") { palDb = null; risovat(); vFokus(); }
       if (pkk.dataset.pkk === "kopir") {
