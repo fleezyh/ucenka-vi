@@ -19,8 +19,8 @@ body.aSkin .nameLabel, body.aSkin .searchRow--name, body.aSkin .nameNote, body.a
 body.aSkin .aStrip, body.aSkin .layout { width: min(1180px, 100%); margin-left: auto; margin-right: auto; }
 body.aSkin .layout { display: block !important; }
 body.aSkin .layout > .card { margin-bottom: 18px; }
-body.aSkin .searchCard:not(.costListCard) { padding: 0; border: 0; background: none; box-shadow: none; }
-body.aSkin .searchCard:not(.costListCard)::before, body.aSkin .searchCard:not(.costListCard)::after { display: none; }
+body.aSkin .searchCard:not(.costListCard):not(.palletsCard):not(.dorogieCard) { padding: 0; border: 0; background: none; box-shadow: none; }
+body.aSkin .searchCard:not(.costListCard):not(.palletsCard):not(.dorogieCard)::before, body.aSkin .searchCard:not(.costListCard):not(.palletsCard):not(.dorogieCard)::after { display: none; }
 
 /* ── кнопки A */
 .aBtn { height: 48px; padding: 0 18px; border-radius: var(--ar); display: inline-flex; align-items: center; justify-content: center; gap: 8px; white-space: nowrap;
@@ -267,3 +267,12 @@ body.aSkin.aTsd .searchCard > .message { display: none; }
   body.aSkin .aTile #primary strong { font-size: 30px; }
 }
 @media (max-width: 900px) { .aEff__caps { font-size: 10px; } .aEff__top { font-size: 12px; } }
+
+/* ── режимы (30.09, «пусто» на Себес списком / Паллеты): старая пикалка клала все карточки
+   в одну клетку сетки и прятала лишние visibility:hidden. В одной колонке невидимые карточки
+   занимали место — прячем по-настоящему. */
+body.aSkin .costListCard, body.aSkin .palletsCard, body.aSkin .dorogieCard { display: none; }
+body.aSkin[data-mode="costlist"] .layout > .searchCard:not(.costListCard):not(.palletsCard):not(.dorogieCard),
+body.aSkin[data-mode="pallets"] .layout > .searchCard:not(.palletsCard),
+body.aSkin[data-mode="dorogie"] .layout > .searchCard:not(.dorogieCard) { display: none; }
+body.aSkin[data-mode="costlist"] .costListCard, body.aSkin[data-mode="pallets"] .palletsCard, body.aSkin[data-mode="dorogie"] .dorogieCard { display: block; padding: 22px; }
