@@ -13,7 +13,6 @@
 (function () {
   "use strict";
 
-  if (!/^\/picker\/wms\/?$/.test(location.pathname)) return;
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const vremya = (s) => {
     const m = String(s || "").match(/^\d{4}-(\d{2})-(\d{2})[ T](\d{2}:\d{2})/);
@@ -39,7 +38,8 @@
   function host() {
     let h = document.getElementById("tsdPanel");
     if (!h) {
-      const posle = document.getElementById("vmsPolosa") || document.querySelector(".searchCard .searchRow");
+      // 30.09: после всей строки чипов (#vmsVozm), а не внутри неё — в ТСД её прячут.
+      const posle = document.getElementById("vmsVhod") || document.getElementById("vmsVozm") || document.querySelector(".searchCard .searchRow");
       if (!posle) return null;
       h = document.createElement("section");
       h.id = "tsdPanel";
@@ -180,6 +180,13 @@
     risovat();
   });
   document.addEventListener("wms:yacheyka", (e) => otkrytYacheyku(e.detail.kod));
+  // WMS выключили на месте (29.09 ночь) — панель ТСД гаснет вместе с режимом.
+  document.addEventListener("wms:vkl", (e) => {
+    if (e.detail) return;
+    vkl = false; yach = null; prichina = ""; itog = "";
+    document.body.classList.remove("tsdPodRezhim");
+    document.getElementById("tsdPanel")?.remove();
+  });
   document.addEventListener("click", async (e) => {
     const t = e.target;
     const vk = t.closest("[data-tvkl]");

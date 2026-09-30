@@ -20,10 +20,13 @@
     location.replace("/picker/wms" + (q.toString() ? "?" + q : ""));
     return;
   }
-  if (!naWms) return;
   const box = document.getElementById("aktPs");
   if (!box) return;
-  window.__aktPs = true;   // script.js: наклейки CEL/CON есть кому принять
+  // 29.09 ночь, Степан: «WMS это всё равно другая страница, а не анимация
+  // улучшенной пикалки». Теперь скрипт живёт и на /picker/, но спит, пока режим
+  // выключен; включает его переключатель событием «wms:vkl» — без перезагрузки.
+  // Адрес /picker/wms остаётся (ссылки, закладки): с него режим включён сразу.
+  let aktivno = false;
 
   /* Режим WMS (27.09 площадка; 29.09 вечер Степан: «это не другая страница, а
      режим — мощный»). Раньше площадка прятала вкладки, справочник и поиск по
@@ -34,22 +37,18 @@
     document.body.classList.add("vmsRezhimVkl");
     document.title = "WMS · Пикалка";
     const scan = document.getElementById("scan");
-    const podpis = () => { if (scan && !scan.disabled && !/CON/.test(scan.placeholder)) scan.placeholder = "штрихкод, CON …, CEL … или ACT …"; };
+    const podpis = () => { if (scan && !scan.disabled && !/CON|CEL/.test(scan.placeholder) && !document.body.classList.contains("aTsd")) scan.placeholder = "штрихкод, CON …, CEL … или ACT …"; };
     [300, 1500, 4000, 9000].forEach((t) => setTimeout(podpis, t));
     const ryad = document.querySelector(".searchCard .searchRow");
-    // 29.09 Степан: «много текста, но не информативно — конкретно какие действия
-    // с чем можно делать». Под полем — что пикнуть и что с этим сделать, без абзацев;
-    // «Попробовать» убрано.
+    // 30.09, дизайн A (Степан выбрал из трёх макетов): под строкой скана «прорастают»
+    // три чипа — что ещё можно пикнуть в WMS, — а справа вход и массовый пик.
+    // Чипы проявляет слайдер (pikalka-a.js, --k), здесь только разметка.
     if (ryad && !document.getElementById("vmsVozm")) {
-      const k = (chto, kod, primer, deystviya) => `<button type="button" class="vmsVozm__k" data-primer="${primer}">
-          <span class="vmsVozm__shapka"><b>${chto}</b><small>${kod}</small></span>
-          <span class="vmsVozm__d">${deystviya.map((d) => `<i>${d}</i>`).join("")}</span></button>`;
-      ryad.insertAdjacentHTML("afterend", `<div class="vmsVozm" id="vmsVozm">
-        ${k("Паллета", "CON …", "CON 0163233250", ["массовая актировка", "массовое перемещение", "состав, лот, заказ"])}
-        ${k("Товар", "штрихкод", "штрихкод или код товара", ["акт на штуку", "перемещение этого", "где лежит"])}
-        ${k("Ячейка", "CEL …", "CEL 3923168", ["стол → решения", "что лежит"])}
-        ${k("Акт", "ACT …", "ACT 0005263917", ["чей акт", "где штука сейчас"])}
-      </div><div class="vmsPolosa" id="vmsPolosa"></div>`);
+      const chip = (kod, chto, dalshe, primer) => `<button type="button" class="aChip" data-primer="${primer}"><code>${kod}</code>${chto}<span>— ${dalshe}</span></button>`;
+      ryad.insertAdjacentHTML("afterend", `<div class="aWrow" id="vmsVozm">
+          <div class="aChips">${chip("CON", "паллета", "состав, акт, куда", "CON 0163233250")}${chip("CEL", "ячейка", "что лежит", "CEL 3923168")}${chip("ACT", "акт", "чей, где штука", "ACT 0005263917")}</div>
+          <div class="aWho" id="vmsPolosa"></div>
+        </div><div class="aVhod" id="vmsVhod"></div>`);
       document.getElementById("vmsVozm").addEventListener("click", (e) => {
         const kn = e.target.closest("[data-primer]");
         if (!kn || !scan) return;
@@ -58,8 +57,15 @@
       });
     }
   }
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", ploshchadka);
-  else ploshchadka();
+  function ubratPloshchadku() {
+    document.body.classList.remove("vmsRezhimVkl");
+    document.title = "Уценка · Пикалка";
+    document.getElementById("vmsVozm")?.remove();
+    document.getElementById("vmsPolosa")?.remove();
+    document.getElementById("vmsVhod")?.remove();
+    const scan = document.getElementById("scan");
+    if (scan && /CON/.test(scan.placeholder)) scan.placeholder = "Сканируйте штрихкод…";
+  }
 
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
@@ -107,14 +113,16 @@
   let oshibkaVhoda = "";
   let oshibkaAkta = "";
 
-  fetch("/__akt/sostoyanie", { cache: "no-store" }).then((o) => o.ok ? o.json() : {})
-    .then((d) => {
-      boevoy = Boolean(d.включена);
-      obshchiyMozhno = Boolean(d.общий_можно);
-      vms = d.вмс || d.WMS || { подключено: false };   // сервер отдаёт «вмс»: с «WMS» плашка всегда была «не вошли»
-      risovat();
-    })
-    .catch(() => {});
+  function zagruzitSostoyanie() {
+    fetch("/__akt/sostoyanie", { cache: "no-store" }).then((o) => o.ok ? o.json() : {})
+      .then((d) => {
+        boevoy = Boolean(d.включена);
+        obshchiyMozhno = Boolean(d.общий_можно);
+        vms = d.вмс || d.WMS || { подключено: false };   // сервер отдаёт «вмс»: с «WMS» плашка всегда была «не вошли»
+        risovat();
+      })
+      .catch(() => {});
+  }
 
   // 29.09 Степан: «с запретом действий до входа в ВМС» — без личного входа
   // кнопки действий закрыты, а не отправляют и потом просят войти.
@@ -665,24 +673,24 @@
   function risovatPolosu() {
     const u = document.getElementById("vmsPolosa");
     if (!u) return;
-    // Одна строка: вошёл ли, от чьего имени, что с актами; стол — только если выбран.
-    const sost = !boevoy
-      ? `<span class="vmsPolosa__tochka is-net"></span><span>WMS выключена в админке — только просмотр</span>`
+    // 30.09 Степан: «непонятно почему я за столом» — стол здесь больше не висит,
+    // он виден только в карточке товара при актировке (со «сбросить»).
+    const kto = !boevoy
+      ? `<span class="aDot is-net"></span><span>WMS выключена в админке</span>`
       : vms.подключено
-        ? `<span class="vmsPolosa__tochka is-ok"></span><span>WMS: <b>${esc(korotko(vms.имя))}</b> · акты проводятся сразу</span>
-           <button type="button" class="vmsPolosa__kn" data-polosa="vyyti">выйти</button>`
-        : `<span class="vmsPolosa__tochka is-net"></span><span>Без входа в WMS — только смотреть</span>
-           <button type="button" class="vmsPolosa__kn is-glav" data-polosa="voyti">Войти в WMS</button>`;
-    u.innerHTML = `
-      <div class="vmsPolosa__ryad">${sost}
-        <button type="button" class="vmsPolosa__kn vmsMass${massPik ? " is-on" : ""}" data-polosa="mass">Массовый пик${massPik ? ` · ${korzina.length}` : ""}</button>
-        ${stol ? `<span class="vmsPolosa__stol">стол <b>${esc(stol.имя.replace(/^ФБ \(ДМД\) /, ""))}</b></span>` : ""}</div>
-      ${formaPolosy && !vms.подключено ? `<form class="aktPs__vhod" id="vmsPolosaForma" autocomplete="off">
+        ? `<span class="aDot"></span><span class="aWho__nm">WMS:</span><b>${esc(korotko(vms.имя))}</b>
+           <button type="button" class="aLnk" data-polosa="vyyti">выйти</button>`
+        : `<span class="aDot is-net"></span><span>без входа — только смотреть</span>
+           <button type="button" class="aBtn aBtn--sm aBtn--vio" data-polosa="voyti">Войти в WMS</button>`;
+    u.innerHTML = `${kto}
+      <button type="button" class="aBtn aBtn--sm vmsMass${massPik ? " is-on" : ""}" data-polosa="mass">Массовый пик${massPik ? ` · <b>${korzina.length}</b>` : ""}</button>`;
+    const f = document.getElementById("vmsVhod");
+    if (f) f.innerHTML = formaPolosy && !vms.подключено ? `<form class="aktPs__vhod" id="vmsPolosaForma" autocomplete="off">
         <input name="login" placeholder="Логин WMS" autocapitalize="off" spellcheck="false" required>
         <input name="parol" type="password" placeholder="Пароль WMS" required>
         <button class="aktPs__kn is-on" type="submit">Войти</button>
         <p class="aktPs__chto">${oshibkaVhoda ? `<b class="aktPs__oshibka">${esc(oshibkaVhoda)}</b> · ` : ""}пароль не сохраняется — сессия до конца смены</p>
-      </form>` : ""}`;
+      </form>` : "";
   }
 
   /* ── Массовый пик (29.09, Степан: «сначала много пикаешь, потом работаешь») ──
@@ -725,7 +733,7 @@
   // больше одной паллеты — включаем массовый пик и кладём все, по 4 параллельно.
   const PALLETA = /(?:^CON\s?\d{5,12}$)|(?:[^\d\s]\s*-\s*0\d{9}$)|(?:^0\d{9}$)/i;
   document.addEventListener("paste", (e) => {
-    if (e.target.id !== "scan") return;
+    if (e.target.id !== "scan" || !aktivno) return;
     const tekst = (e.clipboardData || window.clipboardData)?.getData("text") || "";
     const kody = tekst.split(/[\r\n,;\t]+/).map((x) => x.trim()).filter((x) => PALLETA.test(x));
     if (kody.length < 2) return;
@@ -879,6 +887,7 @@
   }
 
   function risovat() {
+    if (!aktivno) return;
     risovatPolosu();
     if (massPik) { box.hidden = false; vRezhimPalety(true); risovatKorzinu(); return; }
     if (aktK && !pal) { box.hidden = false; risovatAkt(); box.insertAdjacentHTML("afterbegin", knopkaNazad()); return; }
@@ -894,7 +903,7 @@
     const r = RESHENIYA().find((x) => String(x.id) === String(reshenie));
     const shapka = `<header class="aktPs__shapka">
         <div><p class="aktPs__nad">${stol ? esc(stol.имя.replace(/^ФБ \(ДМД\) /, "")) : "Стол не выбран"}</p>
-          <p class="aktPs__rezhim">${stol ? `сменить — пикните наклейку другого стола или <button type="button" class="vmsSmenit" data-smenit-stol="1">выберите</button>` : "стол не выбран"}${
+          <p class="aktPs__rezhim">${stol ? `сменить — пикните наклейку другого стола, <button type="button" class="vmsSmenit" data-smenit-stol="1">выберите</button> или <button type="button" class="vmsSmenit" data-stol-sbros="1">сбросить</button>` : "пикните наклейку стола (CEL …) — появятся его решения"}${
             boevoy ? "" : " · демо"}${zaSmenu ? ` · за смену ${zaSmenu}` : ""}</p></div>
         ${plashkaVms()}
       </header>${formaVms()}`;
@@ -935,6 +944,7 @@
   }
 
   document.addEventListener("picker:hit", (e) => {
+    if (!aktivno) return;
     wmsZakryt();
     tovar = e.detail; reshenie = ""; defekt = ""; krit = ""; gotovo = null; oshibkaAkta = "";
     aktK = null; gdeT = null; yach = null; vozvrat = null; vyborStola = false;
@@ -945,7 +955,7 @@
   });
   // С карточки паллеты «Заактировать» ведёт сюда с ?palleta=CON… — сразу её панель.
   const palIzAdresa = new URLSearchParams(location.search).get("palleta");
-  if (palIzAdresa) setTimeout(() => otkrytPalletu(palIzAdresa), 300);
+  if (palIzAdresa && naWms) setTimeout(() => otkrytPalletu(palIzAdresa), 300);
 
   document.addEventListener("picker:akt", (e) => { vozvrat = null; otkrytAkt(e.detail.kod); });
   document.addEventListener("picker:palleta", (e) => {
@@ -990,7 +1000,8 @@
   }
   document.addEventListener("picker:stol", async (e) => {
     vyborStola = false;
-    if (podTsd) document.dispatchEvent(new CustomEvent("wms:yacheyka", { detail: { kod: e.detail.kod } }));
+    // ТСД (30.09, экран под телефон): ячейка — только в «брак в ячейке», без её содержимого.
+    if (podTsd) { document.dispatchEvent(new CustomEvent("wms:yacheyka", { detail: { kod: e.detail.kod } })); return; }
     if (massPik && korzRezhim === "per" && !korzIdet) { korzProveritPer(e.detail.kod); return; }
     // Ждём ячейку для перемещения паллеты — наклейка ячейки идёт туда, а не в смену стола.
     if (pal && palPer && palPer.zhdem) { peremestitPalletu(e.detail.kod, false); return; }
@@ -1013,7 +1024,7 @@
     }
     if (tovar) risovat();
   });
-  document.addEventListener("picker:miss", () => { tovar = null; risovat(); });
+  document.addEventListener("picker:miss", () => { if (aktivno) { tovar = null; risovat(); } });
 
   box.addEventListener("change", (e) => {
     const g = e.target.closest("[data-pvyb]");
@@ -1190,6 +1201,10 @@
       return risovat();
     }
     if (e.target.closest("[data-smenit-stol]")) { vyborStola = true; return risovat(); }
+    if (e.target.closest("[data-stol-sbros]")) {
+      stol = null; reshenie = ""; localStorage.removeItem(KLYUCH_STOLA);
+      return risovat();
+    }
     const zapomnit = () => { if (tovar && !vozvrat) vozvrat = { tovar, gdeT, aktyT, reshenie }; };
     const ao = e.target.closest("[data-akt-otkryt]");
     if (ao) { zapomnit(); otkrytAkt(ao.dataset.aktOtkryt); return; }
@@ -1270,4 +1285,30 @@
     if (d) { defekt = d.dataset.def; svoyDefekt = ""; oshibkaAkta = ""; return risovat(); }
     if (e.target.closest("#aktPsGo")) aktirovat();
   });
+  // ── Включение и выключение режима (29.09 ночь) ─────────────────────────
+  function vklyuchit() {
+    if (aktivno) return;
+    aktivno = true;
+    window.__aktPs = true;   // script.js: наклейки CEL/CON/ACT есть кому принять
+    ploshchadka();
+    zagruzitSostoyanie();
+    risovat();
+  }
+  function vyklyuchit() {
+    if (!aktivno || korzIdet || (palRabota && palRabota.идёт)) return;
+    aktivno = false;
+    window.__aktPs = false;
+    massPik = false; korzina = []; korzRezhim = ""; korzLog = [];
+    pal = null; tovar = null; aktK = null; yach = null; palPer = null; palDb = null; istP = null;
+    zhdemPalletu = null; perItog = null; vozvrat = null;
+    wmsZakryt();
+    box.hidden = true; box.innerHTML = "";
+    vRezhimPalety(false);
+    ubratPloshchadku();
+  }
+  document.addEventListener("wms:vkl", (e) => (e.detail ? vklyuchit() : vyklyuchit()));
+  if (naWms) {
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", vklyuchit);
+    else vklyuchit();
+  }
 })();
