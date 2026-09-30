@@ -337,3 +337,6 @@ body.aTsd .aktOp dd { margin-bottom: 6px; }
 .aktDef { margin: 10px 0; display: grid; gap: 3px; }
 .aktDef span { font-size: 13px; color: var(--muted); }
 .aktDef b { font-size: 20px; font-weight: 600; color: var(--text); line-height: 1.3; overflow-wrap: anywhere; }
+
+.aktDef .aLnk { justify-self: start; margin-top: 2px; }
+.aktDef--red textarea { width: 100%; box-sizing: border-box; min-height: 74px; padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(185,162,255,.45); background: rgba(255,255,255,.04); color: var(--text); font: inherit; font-size: 16px; resize: vertical; }

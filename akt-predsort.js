@@ -583,7 +583,7 @@
   }
 
   async function otkrytAkt(kod) {
-    aktK = { zhdu: true }; aktPer = null; pal = null; yach = null; tovar = null; vRezhimPalety(true); risovat();
+    aktK = { zhdu: true }; aktPer = null; defRed = null; pal = null; yach = null; tovar = null; vRezhimPalety(true); risovat();
     try { aktK = await chitat(`/__vms/akt?kod=${encodeURIComponent(kod)}`); } catch (e) { aktK = { oshibka: e.message || String(e) }; }
     risovat();
   }
@@ -597,7 +597,7 @@
         <p class="aktPs__rezhim">${esc(a.вид)} · ${esc(a.когда)} · ${esc(a.автор)}${a.статус ? ` · ${esc(a.статус.toLowerCase())}` : ""}</p></div></header>
       <p class="aktPs__podskaz">${esc(a.товар)}</p>
       ${a.особый ? `<div class="aktOsob"><b>${esc(a.особый)}</b><span>товар клиента, не уценка — отдельно</span></div>` : ""}
-      ${a.живьём ? `<div class="aktDef"><span>заявленный дефект</span><b>${esc(a.дефект || "—")}</b></div>` : ""}
+      ${a.живьём ? blokDefekta(a) : ""}
       ${a.живьём ? `<div class="aktKat"><span class="aktKat__nad">категория уценки${a.цена ? ` <b class="aktKat__cena">${esc(Number(a.цена).toLocaleString("ru-RU"))} ₽${a.цена_откуда === "сайт" ? " · цена сайта" : ""}</b>` : ""}</span>
         <b class="aktKat__imya">${esc(a.категория || "не определилась")}</b>${a.спорно ? ' <span class="aTag aTag--spor">спорно</span>' : ""}
         <span class="aktKat__rub">${a.мисбокс ? "цена до 1 000 ₽ — мистери бокс · " : ""}рубрика «${esc(a.рубрика || "—")}»${a.рубрика_вмс ? ` · ${esc(a.рубрика_вмс)}` : ""}</span></div>` : ""}
@@ -615,6 +615,38 @@
       ${est ? blokAktPer(a) : ""}
       <div class="palKartaAkt__knopki"><a class="aktPs__kn" href="${esc(a.вмс || a.WMS)}" target="_blank" rel="noopener">Открыть акт в WMS</a></div>
       <p class="aktPs__chto">${a.живьём ? `живьём из WMS · ${esc(a.за_с)} с` : `Данные хранилища — WMS не ответила${a.почему_не_живьём ? ` (${esc(a.почему_не_живьём)})` : ""}.`}</p>`;
+  }
+
+  /* 30.09: «пока приехал, может поменяться дефект» — поменять заявленный дефект прямо в акте. */
+  let defRed = null;   // null | { tekst, idet, oshibka, gotovo }
+  function blokDefekta(a) {
+    if (defRed && !defRed.gotovo) {
+      return `<form class="aktDef aktDef--red" id="aktDefForma" autocomplete="off"><span>заявленный дефект — новый текст уйдёт в акт в WMS</span>
+        <textarea name="defekt" rows="3">${esc(defRed.tekst)}</textarea>
+        ${defRed.oshibka ? `<p class="aktPs__net"><b class="aktPs__oshibka">${esc(defRed.oshibka)}</b></p>` : ""}
+        <div class="aktPs__vopros"><button class="aktPs__kn is-on" type="submit"${defRed.idet ? " disabled" : ""}>${defRed.idet ? "Сохраняю…" : "Сохранить в WMS"}</button>
+          <button type="button" class="aktPs__kn" data-def-otmena${defRed.idet ? " disabled" : ""}>Отмена</button></div></form>`;
+    }
+    const mozhno = boevoy && vms.подключено;
+    return `<div class="aktDef"><span>заявленный дефект${defRed && defRed.gotovo ? " · изменён" : ""}</span><b>${esc(a.дефект || "—")}</b>
+      ${mozhno ? '<button type="button" class="aLnk" data-def-red>изменить дефект</button>' : ""}</div>`;
+  }
+  async function sohranitDefekt(tekst) {
+    defRed = { tekst, idet: true }; risovat();
+    try {
+      const otvet = await fetch("/__akt/defekt", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ акт: aktK.наклейка || String(aktK.акт), дефект: tekst }) });
+      const d = await otvet.json().catch(() => ({}));
+      if (d.нужен_вход) { vms = { подключено: false }; formaVhoda = true; oshibkaVhoda = "войдите в WMS и сохраните дефект ещё раз"; defRed = { tekst }; return; }
+      if (!otvet.ok || !d.готово) throw new Error(d.ошибка || `сервер ответил ${otvet.status}`);
+      aktK.дефект = d.стало;
+      (aktK.описание || []).forEach((x) => { if (x.что === "заявленный дефект") x.значение = d.стало; });
+      defRed = { gotovo: true };
+    } catch (oshibka) {
+      defRed = { tekst, oshibka: oshibka.message || String(oshibka) };
+    } finally {
+      risovat();
+    }
   }
 
   /* 30.09: скан акта → категория → пик паллеты — штука с актом едет в эту паллету (живьём). */
@@ -1151,6 +1183,12 @@
       if (kod) peremestitPalletu(kod, false);
       return;
     }
+    if (e.target.id === "aktDefForma") {
+      e.preventDefault();
+      const tekst = e.target.defekt.value.trim();
+      if (tekst && !(defRed && defRed.idet)) sohranitDefekt(tekst);
+      return;
+    }
     if (e.target.id === "aktPalForma") {
       e.preventDefault();
       const kod = (window.latinica || String)(e.target.kod.value.trim());
@@ -1318,6 +1356,8 @@
       }
       return;
     }
+    if (e.target.closest("[data-def-red]") && aktK) { defRed = { tekst: aktK.дефект || "" }; risovat(); document.querySelector("#aktDefForma textarea")?.focus(); return; }
+    if (e.target.closest("[data-def-otmena]")) { defRed = null; risovat(); vFokus(); return; }
     if (e.target.closest("[data-akt-da]") && aktPer && aktPer.vopros) { aktVPalletu(aktPer.vopros.kod, true); return; }
     if (e.target.closest("[data-akt-net]")) { aktPer = null; risovat(); vFokus(); return; }
     if (e.target.closest("[data-per-da]") && perVopros) { peremestit(perVopros.kod, true); return; }
