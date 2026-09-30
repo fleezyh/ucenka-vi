@@ -408,7 +408,7 @@
       // 30.09 ночь: форма брака берёт паллету, только если на ней один брак — остальное сначала
       // уезжает на другую паллету в той же ячейке (пикнуть её).
       const nb = d.не_брак || [];
-      const nbSpisok = nb.length ? `<div class="aktPs__net"><b>Не брак — ${nb.length} шт, форма брака их не возьмёт:</b>
+      const nbSpisok = nb.length ? `<div class="aktPs__net"><b>Не брак — ${nb.length} шт. Переведу в «Брак» инвентаризацией (пересорт по тому же акту), паллета уйдёт целиком:</b>
         ${nb.slice(0, 6).map((x) => `<span>${esc(x.товар)} · ${esc(String(x.качество || "").toLowerCase())}${x.акт ? ` · акт ${esc(x.акт)}` : ""}</span>`).join("")}${nb.length > 6 ? `<span>…и ещё ${nb.length - 6}</span>` : ""}
         ${d.паллета_для_небрака ? `<span>→ переложу на <b>${esc(d.паллета_для_небрака)}</b>, потом заказ ДБ на брак</span>` : ""}</div>` : "";
       const nbForma = d.стоп_небрак ? `<p class="aktPs__net"><b class="aktPs__oshibka">${esc(d.стоп_небрак)}</b></p>` : d.нужна_паллета_для_небрака ? `<p class="aktPs__podskaz">Пикните паллету для не-брака (CON …) — она должна стоять в этой же ячейке:</p>
@@ -422,13 +422,13 @@
         ${oshibki ? `<p class="aktPs__net"><b class="aktPs__oshibka">WMS не примет: ${esc(oshibki)}</b></p>` : ""}
         ${nbSpisok}${nbForma}
         ${d.куда && !d.нужна_паллета_для_небрака && !d.стоп_небрак ? `<div class="aktPs__vopros">
-          <button type="button" class="aktPs__kn is-on" data-pkk="db-da"${oshibki || !boevoy || !vhod() || !vkl ? " disabled" : ""}>${!vkl ? "Создание пока не включено" : !boevoy ? "WMS выключена" : !vhod() ? "Войдите в WMS" : nb.length ? "Переложить не-брак и создать заказ ДБ" : "Создать заказ ДБ и отбор"}</button>
+          <button type="button" class="aktPs__kn is-on" data-pkk="db-da"${oshibki || !boevoy || !vhod() || !vkl ? " disabled" : ""}>${!vkl ? "Создание пока не включено" : !boevoy ? "WMS выключена" : !vhod() ? "Войдите в WMS" : nb.length ? "Перевести в брак и создать заказ ДБ" : "Создать заказ ДБ и отбор"}</button>
           <button type="button" class="aktPs__kn" data-pkk="db-net">Отмена</button>
         </div>
         <p class="aktPs__chto">${d.можно ? "Форма брака WMS нашла все штуки. " : ""}Заказ и задание на отбор создаёт форма «Формирование внутренних перемещений брака». Дальше по регламенту: отбор «Создать перемещение с контейнером», задание на внутреннюю отгрузку, «Отгрузить», приёмка.</p>` : ""}`;
     } else if (p.gotovo) {
       telo = `<div class="aktPs__gotovo"><b>Заказ ${esc(p.gotovo.номер)} и задание на отбор созданы${p.gotovo.задание_id ? ` · отбор №${esc(p.gotovo.задание_id)}` : ""}</b>
-        ${p.gotovo.паллета_для_небрака ? `<span>не брак (${(p.gotovo.не_брак || []).length} шт) переложен на ${esc(p.gotovo.паллета_для_небрака)} — переложите руками</span>` : ""}
+        ${p.gotovo.смена_качества ? `<span>в «Брак» переведено ${(p.gotovo.не_брак || []).length} шт — инвентаризация ${esc(p.gotovo.смена_качества.map((x) => x.инвентаризация).join(", "))}</span>` : ""}
         ${p.gotovo.без_задания ? `<span class="aktPs__oshibka">${esc(p.gotovo.без_задания)}</span>` : ""}
         <span>${esc(p.gotovo.паллета)} → ${esc(p.gotovo.куда)} · ${p.gotovo.строк} строк · ${p.gotovo.штук} шт · дальше задание на отбор в ячейку отгрузки</span>
         ${p.gotovo.вмс ? `<a href="${esc(p.gotovo.вмс)}" target="_blank" rel="noopener">открыть в WMS</a>` : ""}</div>`;
@@ -442,7 +442,9 @@
   let dbKuda = "";
   let dbNeBrak = "";
   async function zakazDb(sohranit) {
-    palDb = { idet: sohranit ? "Создаю заказ ДБ в WMS…" : "Проверяю в WMS — до полуминуты…" };
+    palDb = { idet: sohranit ? (palDb && palDb.predv && (palDb.predv.не_брак || []).length
+      ? "Перевожу не-брак в брак (перемещение, инвентаризация, обратно) и создаю заказ ДБ — до минуты…" : "Создаю заказ ДБ в WMS…")
+      : "Проверяю в WMS — до полуминуты…" };
     risovat();
     try {
       const o = await fetch("/__akt/palleta/zakaz_db", {
