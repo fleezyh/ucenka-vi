@@ -44,7 +44,10 @@
   };
 
   /** rubrika — рубрика витрины или каталога, klaster — «1»…«4» или подпись кластера. */
-  window.PalletaProdazh = function (rubrika, klaster) {
+  window.PalletaProdazh = function (rubrika, klaster, cena) {
+    // 30.09 Степан: «все товары до 1000 это мистери бокс» — паллеты «МисБокс-…».
+    const c = Number(String(cena == null ? "" : cena).replace(/\s/g, "").replace(",", "."));
+    if (c > 0 && c < 1000) return { imya: "МисБокс", sporno: false, pochemu: "цена до 1 000 ₽ — мистери бокс" };
     let r = String(rubrika || "").trim();
     r = KATALOG[r] || r;
     const k = String(klaster || "").trim();
