@@ -145,6 +145,9 @@ body.cSkin .cActs #siteLink[hidden], body.cSkin .cActs #copyName[hidden] { displ
 .cT--hero, .cT--pal { container-type: inline-size; }
 .cT--hero { background: color-mix(in oklab, var(--cAcc) 10%, var(--cTile)); border-color: color-mix(in oklab, var(--cAcc) 42%, transparent); }
 body.cSkin .cT #primary { min-width: 0; padding: 0; margin: 0; background: none; border-radius: 0; box-shadow: none; text-align: left; color: var(--text); display: flex; flex-direction: column; height: 100%; }
+/* подпись «Себестоимость» сверху, как у кластера и паллеты; число внизу (30.09) */
+body.cSkin .cT--hero .cT__v { flex: 1; margin-top: 0; flex-direction: column; align-items: stretch; }
+body.cSkin .cT--hero #primary { flex: 1; }
 body.cSkin .cT #primary span { font-size: 15px; letter-spacing: 0; text-transform: none; color: var(--muted); opacity: 1; font-weight: 600; }
 body.cSkin .cT #primary strong { margin-top: auto; font-size: min(104px, 18.5cqi); font-weight: 600; line-height: 1; letter-spacing: -.025em; white-space: nowrap; }
 body.cSkin .cT #primary.none strong { color: #ffb3bf; font-size: clamp(40px, 3.6vw, 64px); }
