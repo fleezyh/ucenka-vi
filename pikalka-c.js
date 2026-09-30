@@ -288,6 +288,9 @@
     const pal = $("#aPal");
     if (pal) { pal.innerHTML = p ? `<b>${esc(p.imya)}</b>${p.sporno ? ' <span class="aTag aTag--spor">спорно</span>' : ""}${p.pochemu ? `<small>${esc(p.pochemu)}</small>` : ""}` : ""; pal.hidden = !p; }
     const presort = d.mode === "presort";
+    // кластер — категория, а не шкала: 1 расходники, 4 крупногабарит, 2 и 3 — по разделу каталога
+    const chtoKlaster = (n, rub) => n === "1" ? "расходные материалы" : n === "4" ? "крупногабарит (КГТ)"
+      : rub ? `по разделу «${String(rub).split("/")[0].trim()}»` : "по разделу каталога";
     const k = $("#aKlaster");
     const kl = $("#aKlasterL");
     if (k && kl) {
@@ -295,7 +298,7 @@
       kl.textContent = presort ? "Себестоимость" : "Кластер предсорта";
       const kn = String(d.cluster || "").match(/^\d/);
       k.innerHTML = presort ? esc(d.price || "—")
-        : d.cluster ? `<b class="cKl">${esc(String(d.cluster).split("·")[0].trim())}</b><small>из 4</small><span class="cShkala">${[1, 2, 3, 4].map((i) => `<i${kn && i <= Number(kn[0]) ? ' class="on"' : ""}></i>`).join("")}</span>` : "";
+        : d.cluster ? `<b class="cKl">${esc(String(d.cluster).split("·")[0].trim())}</b><small class="cKl__chto">${esc(chtoKlaster(kn && kn[0], d.rubric))}</small>` : "";
       k.hidden = !(presort || d.cluster);
     }
     B.classList.toggle("cPresort", presort);

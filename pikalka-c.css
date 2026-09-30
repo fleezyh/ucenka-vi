@@ -161,11 +161,14 @@ body.cSkin .cT #primary.category strong { font-size: clamp(110px, 10vw, 180px); 
 .cT--pal .aTag--test { margin-left: auto; }
 /* кластер предсорта — большой цифрой (Айдэр, 30.09) */
 .cT--kl #aKlaster { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; }
-.cT--kl { container-type: inline-size; background: color-mix(in oklab, var(--blue, #4d8df7) 9%, var(--cTile)); border-color: rgba(77,141,247,.4); }
+.cT--kl { container-type: inline-size; background: color-mix(in oklab, #ff4655 9%, var(--cTile)); border-color: rgba(255,70,85,.4); }
 .cT--kl .cT__v { margin-top: auto; }
-.cKl { font-size: min(150px, 42cqi); font-weight: 600; line-height: .85; color: #9cc0ff; letter-spacing: -.03em; }
-body.cWms .cKl { color: #9cc0ff; }
-.cT--kl #aKlaster small { font-size: 18px; }
+.cKl { font-size: min(170px, 46cqi); font-weight: 600; line-height: .85; color: #ff4655; letter-spacing: -.03em; text-shadow: 0 0 40px rgba(255,70,85,.35); }
+body.cWms .cKl { color: #ff4655; }
+/* кластер — цифра по центру плитки, красным (Шмаро, 30.09) */
+.cT--kl .cT__v { flex: 1; margin-top: 0; align-items: center; justify-content: center; }
+.cT--kl #aKlaster { flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; }
+.cT--kl #aKlaster small.cKl__chto { font-size: 17px; color: var(--muted); font-weight: 600; }
 .cShkala { flex-basis: 100%; display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-top: 6px; }
 .cShkala i { height: 9px; border-radius: 5px; background: rgba(255,255,255,.1); }
 body.cSkin.is-svetlo .cShkala i { background: #dde3ec; }
