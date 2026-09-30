@@ -39,7 +39,7 @@ body.cSkin .topbar { margin-bottom: 14px; }
 .cTitle h1 { margin: 0; font-size: clamp(30px, 2.4vw, 40px); font-weight: 600; line-height: 1; letter-spacing: -.01em; }
 .cCrumb { font-size: clamp(18px, 1.4vw, 22px); color: var(--muted); white-space: nowrap; }
 .cCrumb b { font-weight: 600; color: var(--cAcc2); }
-.cPult { display: flex; align-items: center; gap: 16px; min-width: 0; padding: 10px 12px 10px 10px; border-radius: 18px; background: var(--cPanel);
+.cPult { display: flex; flex-direction: row-reverse; align-items: center; gap: 16px; min-width: 0; padding: 10px 10px 10px 16px; border-radius: 18px; background: var(--cPanel);
   border: 1px solid color-mix(in oklab, var(--cVio) 0%, var(--cLine)); transition: border-color .3s, box-shadow .3s; }
 body.cWms .cPult { border-color: rgba(123,92,240,.55); box-shadow: 0 0 40px rgba(123,92,240,.18); }
 .cTumbler { flex: none; height: 48px; padding: 0 10px 0 16px; border-radius: 12px; display: inline-flex; align-items: center; gap: 12px; cursor: pointer;
@@ -201,6 +201,12 @@ body.cSkin .palStroka { min-height: 50px; padding: 8px 14px; font-size: 16px; bo
 body.cSkin .palStroka__kat { font-size: 15px; }
 body.cSkin .palVybor { font-size: 15px; }
 body.cSkin .palVybor button { min-height: 36px; padding: 0 12px; font-size: 14px; }
+/* выбор как в таблице (30.09 ночь): поиск, «первые N», Shift-диапазон */
+body.cSkin .palVybor--poisk { flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+body.cSkin .palVybor--poisk input { height: 36px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--cLine2); background: var(--cTile2); color: var(--text); font: inherit; font-size: 14px; }
+body.cSkin #palPoisk { flex: 1 1 260px; min-width: 200px; }
+body.cSkin #palPervye { width: 76px; }
+body.cSkin .palVybor__podsk { font-size: 13px; color: var(--muted); }
 body.cSkin .yachPalleta { padding: 12px 16px; font-size: 16px; }
 body.cSkin .yachPallety { max-height: none; }
 body.cSkin .aktDef b { font-size: 24px; }

@@ -224,6 +224,19 @@
   const IMYA_MARSHRUTA = { ДАНИЛОВО: "в Данилово", "СЦ-ДМД": "на СЦ-ДМД", ДОМОДЕДОВО: "в ДМД (РЦ)" };
   // Выбор части паллеты (29.09, «надо добавить выбор части паллет»): ключи строк.
   let palVybor = null;
+  // Выбор «как в таблице» (30.09 ночь): поиск по списку, Shift+клик — диапазон, «первые N».
+  let palPoisk = "";
+  let palPosledniy = null;   // ключ последней кликнутой галки — начало диапазона для Shift
+  const palNaydeno = () => {
+    const q = palPoisk.trim().toLowerCase();
+    if (!pal) return [];
+    if (!q) return pal.строки;
+    const slova = q.split(/\s+/);
+    return pal.строки.filter((x) => {
+      const t = `${x.товар} ${x.акт || ""} ${x.качество || ""} ${x.без_акта ? "без акта" : ""} ${x.рубрика || ""}`.toLowerCase();
+      return slova.every((w) => t.includes(w));
+    });
+  };
   // Свой дефект (29.09, встреча): «погнут» на весь ГСМ одним текстом во все акты.
   let palSvoy = "";
   let svoyDefekt = "";
@@ -256,7 +269,7 @@
   async function otkrytPalletu(kod) {
     wmsZakryt();
     pal = null; palKrit = ""; palDefekt = ""; palRabota = null; palOshibka = ""; palPer = null; yach = null;
-    aktK = null; istP = null; palVybor = null; palSvoy = ""; palDb = null;
+    aktK = null; istP = null; palVybor = null; palSvoy = ""; palDb = null; palPoisk = ""; palPosledniy = null;
     tovar = null; gotovo = null; zhdemPalletu = null; perItog = null;
     vRezhimPalety(true);
     box.hidden = false;
@@ -278,6 +291,19 @@
     risovat();
   }
 
+  async function obnovitSostav() {
+    if (!pal) return;
+    const kod = String(pal.паллета_id || pal.паллета);
+    try {
+      const o = await fetch(`/__akt/palleta?kod=${encodeURIComponent(kod)}&_=${Date.now()}`, { cache: "no-store" });
+      const d = await o.json().catch(() => ({}));
+      if (!o.ok || !pal) return;
+      pal = d;
+      palVybor = new Set((pal.строки || []).map((x) => x.ключ));
+      risovat();
+    } catch (e) { /* состав обновится при следующем пике */ }
+  }
+
   function tekstPalGo() {
     const bez = bezAktaVybrano();
     return !boevoy ? "Актировка выключена в админке" : !vhod() ? "Войдите в WMS" : !bez ? "Среди выбранного нет штук без акта"
@@ -294,7 +320,8 @@
   function risovatPalletu() {
     const vsego = pal.строки.reduce((n, x) => n + x.штук, 0);
     const vkl = (x) => !palVybor || palVybor.has(x.ключ);
-    const spisok = pal.строки.map((x) => `<label class="palStroka palStroka--vybor${x.без_акта ? " is-bez" : ""}${vkl(x) ? "" : " is-vykl"}">
+    const vidno = palNaydeno();
+    const spisok = vidno.map((x) => `<label class="palStroka palStroka--vybor${x.без_акта ? " is-bez" : ""}${vkl(x) ? "" : " is-vykl"}">
         <input type="checkbox" data-pvyb="${esc(x.ключ)}"${vkl(x) ? " checked" : ""}${palRabota && palRabota.идёт ? " disabled" : ""}>
         <span class="palStroka__tovar">${esc(x.товар)}${x.качество && !/^брак$/i.test(x.качество) ? ` <i class="palStroka__kach">${esc(x.качество)}</i>` : ""}</span>
         <span class="palStroka__kat">${katPal(x)}</span>
@@ -303,11 +330,22 @@
       </label>`).join("");
     const shtVybr = vybrano().reduce((n, x) => n + x.штук, 0);
     const bezVybr = bezAktaVybrano();
+    const q = palPoisk.trim();
     const panelVybora = pal.строки.length > 1 ? `<div class="palVybor">
         <span>выбрано <b>${shtVybr}</b> из ${vsego} шт${bezVybr ? ` · без акта ${bezVybr}` : ""}</span>
         <button type="button" data-pvsyo="vse">все</button>
         <button type="button" data-pvsyo="bez">только без акта</button>
         <button type="button" data-pvsyo="nichego">снять</button>
+      </div>
+      <div class="palVybor palVybor--poisk">
+        <input id="palPoisk" type="search" autocomplete="off" placeholder="поиск: название, акт, качество…" value="${esc(palPoisk)}">
+        ${q ? `<span>найдено <b>${vidno.length}</b> из ${pal.строки.length}</span>
+          <button type="button" data-pvnay="tolko">выбрать найденные</button>
+          <button type="button" data-pvnay="plus">+ найденные</button>
+          <button type="button" data-pvnay="minus">− найденные</button>` : ""}
+        <input id="palPervye" type="number" min="1" max="${pal.строки.length}" inputmode="numeric" placeholder="N">
+        <button type="button" data-pvnay="pervye">выбрать первые N</button>
+        <span class="palVybor__podsk">Shift+клик — выделить диапазон</span>
       </div>` : "";
     let niz;
     if (palOshibka) {
@@ -455,6 +493,7 @@
       if (d.нужен_вход) { vms = { подключено: false }; formaPolosy = true; oshibkaVhoda = "войдите в WMS, потом «Создать заказ ДБ» ещё раз"; palDb = null; risovat(); return; }
       if (!o.ok) throw new Error(d.ошибка || `сервер ответил ${o.status}`);
       palDb = d.готово ? { gotovo: d } : { predv: d };
+      if (d.готово) obnovitSostav();
       if (d.готово && navigator.vibrate) navigator.vibrate(150);
     } catch (e) {
       palDb = { oshibka: e.message || String(e) };
@@ -1310,6 +1349,19 @@
   });
   document.addEventListener("picker:miss", () => { if (aktivno) { tovar = null; risovat(); } });
 
+  naPaneli("click", (e) => {
+    const g = e.target.closest && e.target.closest("[data-pvyb]");
+    if (!g || !pal) return;
+    if (e.shiftKey && palPosledniy && palPosledniy !== g.dataset.pvyb) {
+      const vidno = palNaydeno().map((x) => x.ключ);
+      const a = vidno.indexOf(palPosledniy), b = vidno.indexOf(g.dataset.pvyb);
+      if (a >= 0 && b >= 0) {
+        if (!palVybor) palVybor = new Set(pal.строки.map((x) => x.ключ));
+        for (const k of vidno.slice(Math.min(a, b), Math.max(a, b) + 1)) { if (g.checked) palVybor.add(k); else palVybor.delete(k); }
+      }
+    }
+    palPosledniy = g.dataset.pvyb;
+  });
   naPaneli("change", (e) => {
     if (e.target.matches && e.target.matches("[data-nov-format]") && window.ShkPechat) { window.ShkPechat.zadatFormat(e.target.value); return; }
     const g = e.target.closest("[data-pvyb]");
@@ -1320,6 +1372,14 @@
     risovat();
   });
   naPaneli("input", (e) => {
+    if (e.target.id === "palPoisk") {
+      palPoisk = e.target.value;
+      const poz = e.target.selectionStart;
+      risovat();
+      const pole = document.getElementById("palPoisk");
+      if (pole) { pole.focus(); try { pole.setSelectionRange(poz, poz); } catch (x) { /* type=search */ } }
+      return;
+    }
     if (e.target.id === "palSvoy") {
       palSvoy = e.target.value;
       palDefekt = palSvoy.trim();
@@ -1588,6 +1648,22 @@
     if (e.target.closest("#korzDbGo") && korzDb && korzDb.можно) { korzProveritDb(true); return; }
     const dk = e.target.closest("[data-db-kuda]");
     if (dk && pal) { dbKuda = dk.dataset.dbKuda; zakazDb(false); return; }
+    const pn = e.target.closest("[data-pvnay]");
+    if (pn && pal) {
+      const r = pn.dataset.pvnay;
+      const vidno = palNaydeno().map((x) => x.ключ);
+      if (!palVybor) palVybor = new Set(pal.строки.map((x) => x.ключ));
+      if (r === "tolko") palVybor = new Set(vidno);
+      if (r === "plus") vidno.forEach((k) => palVybor.add(k));
+      if (r === "minus") vidno.forEach((k) => palVybor.delete(k));
+      if (r === "pervye") {
+        const n = Math.max(0, parseInt((document.getElementById("palPervye") || {}).value, 10) || 0);
+        if (!n) return;
+        palVybor = new Set(vidno.slice(0, n));
+      }
+      if (palDb && palDb.predv) palDb = null;
+      return risovat();
+    }
     const pv = e.target.closest("[data-pvsyo]");
     if (pv && pal) {
       const r = pv.dataset.pvsyo;
