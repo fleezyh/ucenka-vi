@@ -263,12 +263,20 @@
       : !palKrit ? "Выберите крит или косм" : !palDefekt ? "Выберите дефект" : `Заактировать ${bez} шт`;
   }
 
+  /* 30.09: категория уценки (паллета для продаж) по рубрике — прямо в составе, «по акту он не показывает нихера» */
+  function katPal(x) {
+    const p = window.PalletaProdazh && x.рубрика ? window.PalletaProdazh(x.рубрика) : null;
+    if (!p) return '<i class="palStroka__nokat">категория —</i>';
+    return `<b title="${esc(x.рубрика + (p.pochemu ? " · " + p.pochemu : ""))}">${esc(p.imya)}</b>${p.sporno ? ' <span class="aTag aTag--spor">спорно</span>' : ""}`;
+  }
+
   function risovatPalletu() {
     const vsego = pal.строки.reduce((n, x) => n + x.штук, 0);
     const vkl = (x) => !palVybor || palVybor.has(x.ключ);
     const spisok = pal.строки.map((x) => `<label class="palStroka palStroka--vybor${x.без_акта ? " is-bez" : ""}${vkl(x) ? "" : " is-vykl"}">
         <input type="checkbox" data-pvyb="${esc(x.ключ)}"${vkl(x) ? " checked" : ""}${palRabota && palRabota.идёт ? " disabled" : ""}>
         <span class="palStroka__tovar">${esc(x.товар)}${x.качество && !/^брак$/i.test(x.качество) ? ` <i class="palStroka__kach">${esc(x.качество)}</i>` : ""}</span>
+        <span class="palStroka__kat">${katPal(x)}</span>
         <span class="palStroka__sht">${x.штук} шт</span>
         <span class="palStroka__akt">${x.акт ? `акт №${x.акт}` : x.уже_нами && !x.без_акта ? "заактировано нами" : "без акта"}</span>
       </label>`).join("");
