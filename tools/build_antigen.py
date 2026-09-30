@@ -41,7 +41,7 @@ AUTOMATION = Path(r"E:\Work\Инструменты\Автоматизация\07
 # Сколько недель истории публикуем. 53 недели = ровно год, столько отдаёт
 # витрина забраковки; остальные контуры режем по этой же границе, чтобы ось
 # времени была общей.
-WEEKS_KEPT = 53
+WEEKS_KEPT = 105   # 01.10.2026: два года — история копится в архиве на сервере (task_antigen)
 
 
 # ---------------------------------------------------------------- утилиты
@@ -362,7 +362,8 @@ def build_client(rows: list[dict[str, Any]],
     целиком — сумма возвратов на сумму продаж.
     """
     facts = Facts(
-        dims=["month", "kat1", "kat2", "kat3", "brand", "supplier", "sku", "tovar"],
+        dims=["month", "kat1", "kat2", "kat3", "brand", "supplier", "sku", "tovar",
+              "vid", "reshenie"],
         measures=["brak", "vozvrat", "remont", "brak_rub", "prod", "prod_rub"],
     )
     # Продажи компании кладём отдельной строкой на месяц, а не мерой в фактах:
@@ -379,7 +380,8 @@ def build_client(rows: list[dict[str, Any]],
             {"month": month, "kat1": row.get("kat1"), "kat2": row.get("kat2"),
              "kat3": row.get("kat3"), "brand": row.get("brend"),
              "supplier": row.get("postavshchik"), "sku": row.get("sku"),
-             "tovar": row.get("tovar")},
+             "tovar": row.get("tovar"),
+             "vid": row.get("vid_obrashcheniya"), "reshenie": row.get("reshenie")},
             [number(row.get("brak_sht")), number(row.get("vozvrat_sht")),
              number(row.get("remont_sht")), number(row.get("brak_rub")),
              number(row.get("prodano_sht")), number(row.get("prodano_rub"))],
