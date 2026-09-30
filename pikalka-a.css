@@ -312,3 +312,9 @@ body.aSkin[data-mode="costlist"] .costListCard { margin-top: 18px; position: rel
 .palStroka__nokat { color: var(--dim, #6b7a90); font-style: normal; }
 body.aTsd .palStroka--vybor { grid-template-columns: auto minmax(0, 1fr) auto auto; }
 body.aTsd .palStroka__kat { grid-row: 2; grid-column: 2 / -1; white-space: normal; }
+
+/* 30.09: категория уценки в карточке акта */
+.aktKat { margin: 12px 0 10px; padding: 14px 16px; border-radius: 14px; background: rgba(123,92,240,.14); border: 1px solid rgba(185,162,255,.35); display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.aktKat__nad { width: 100%; font-size: 13px; color: var(--muted); }
+.aktKat__imya { font-size: 26px; font-weight: 600; color: var(--text); line-height: 1.15; }
+.aktKat__rub { width: 100%; font-size: 13px; color: var(--dim, #6b7a90); }

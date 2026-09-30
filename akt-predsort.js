@@ -583,28 +583,79 @@
   }
 
   async function otkrytAkt(kod) {
-    aktK = { zhdu: true }; pal = null; yach = null; tovar = null; vRezhimPalety(true); risovat();
+    aktK = { zhdu: true }; aktPer = null; pal = null; yach = null; tovar = null; vRezhimPalety(true); risovat();
     try { aktK = await chitat(`/__vms/akt?kod=${encodeURIComponent(kod)}`); } catch (e) { aktK = { oshibka: e.message || String(e) }; }
     risovat();
   }
 
   function risovatAkt() {
     const a = aktK;
-    if (a.zhdu) { box.innerHTML = '<p class="aktPs__chto">Смотрю акт…</p>'; return; }
+    if (a.zhdu) { box.innerHTML = '<p class="aktPs__chto">Смотрю акт в WMS…</p>'; return; }
     if (a.oshibka) { box.innerHTML = `<p class="aktPs__net"><b class="aktPs__oshibka">${esc(a.oshibka)}</b></p>`; return; }
+    const est = a.живьём && a.где && a.где.length;
     box.innerHTML = `<header class="aktPs__shapka"><div><p class="aktPs__nad">Акт №${esc(a.акт)}</p>
-        <p class="aktPs__rezhim">${esc(a.вид)} · ${esc(a.когда)} · ${esc(a.автор)}</p></div></header>
+        <p class="aktPs__rezhim">${esc(a.вид)} · ${esc(a.когда)} · ${esc(a.автор)}${a.статус ? ` · ${esc(a.статус.toLowerCase())}` : ""}</p></div></header>
       <p class="aktPs__podskaz">${esc(a.товар)}</p>
+      ${a.живьём ? `<div class="aktKat"><span class="aktKat__nad">категория уценки</span>
+        <b class="aktKat__imya">${esc(a.категория || "не определилась")}</b>${a.спорно ? ' <span class="aTag aTag--spor">спорно</span>' : ""}
+        <span class="aktKat__rub">рубрика «${esc(a.рубрика || "—")}»${a.рубрика_вмс ? ` · ${esc(a.рубрика_вмс)}` : ""}</span></div>` : ""}
       <p class="aktPs__chto">дефект: ${esc(a.дефект || "—")}${a.из_ячейки ? ` · заактирован в «${esc(a.из_ячейки)}»` : ""}</p>
       <p class="aktPs__zag">Где сейчас</p>
       ${a.где.length ? `<div class="yachPallety">${a.где.map((g) => `
         <button type="button" class="yachPalleta yachPalleta--stolb" data-pal-otkryt="${esc(g.паллета)}"${g.паллета ? "" : " disabled"}>
           <span class="yachPalleta__imya">${esc(g.паллета || "без паллеты")}</span>
-          <span>${esc(g.ячейка)} <span class="yachPalleta__zak">· ${esc(g.зона)}</span></span>
+          <span>${esc(g.ячейка)}${g.зона ? ` <span class="yachPalleta__zak">· ${esc(g.зона)}</span>` : ""}</span>
           ${g.заказ ? `<span class="yachPalleta__zak">заказ ${esc(g.заказ)}</span>` : ""}
         </button>`).join("")}</div>` : '<p class="aktPs__chto">На складе этой штуки уже нет — продана, списана или уехала.</p>'}
-      <div class="palKartaAkt__knopki"><a class="aktPs__kn" href="${esc(a.WMS)}" target="_blank" rel="noopener">Открыть акт в WMS</a></div>
-      <p class="aktPs__chto">Данные хранилища — свежий акт появляется через несколько часов.</p>`;
+      ${est ? blokAktPer(a) : ""}
+      <div class="palKartaAkt__knopki"><a class="aktPs__kn" href="${esc(a.вмс || a.WMS)}" target="_blank" rel="noopener">Открыть акт в WMS</a></div>
+      <p class="aktPs__chto">${a.живьём ? `живьём из WMS · ${esc(a.за_с)} с` : `Данные хранилища — WMS не ответила${a.почему_не_живьём ? ` (${esc(a.почему_не_живьём)})` : ""}.`}</p>`;
+  }
+
+  /* 30.09: скан акта → категория → пик паллеты — штука с актом едет в эту паллету (живьём). */
+  let aktPer = null;   // null | { idet } | { vopros: { kod, tekst } } | { itog: { ok, zag, tekst } }
+  function blokAktPer(a) {
+    if (aktPer && aktPer.itog) {
+      const r = aktPer.itog;
+      return `<div class="aktPs__gotovo${r.ok ? "" : " is-oshibka"}"><b>${esc(r.zag)}</b><span>${esc(r.tekst)}</span></div>
+        <p class="aktPs__chto">${r.ok ? "Пикните следующий акт." : "Пикните паллету ещё раз или переместите руками в WMS."}</p>`;
+    }
+    if (aktPer && aktPer.vopros) {
+      return `<div class="aktPs__palleta aktPs__palleta--vopros"><p class="aktPs__zag">Точно эта паллета?</p>
+        <p class="aktPs__podskaz">${esc(aktPer.vopros.tekst)}</p>
+        <div class="aktPs__vopros"><button type="button" class="aktPs__kn is-on" data-akt-da>Всё равно переместить</button>
+          <button type="button" class="aktPs__kn" data-akt-net>Пикну другую</button></div></div>`;
+    }
+    if (!boevoy) return '<p class="aktPs__chto">Перемещение в паллету — когда актировку включат в админке.</p>';
+    if (!vms.подключено) return '<p class="aktPs__podskaz">Войдите в WMS — тогда пик паллеты переложит штуку в неё.</p>';
+    const kat = a.категория && !/^нет своей/.test(a.категория) ? ` «${esc(a.категория)}»` : "";
+    return `<div class="aktPs__palleta"><p class="aktPs__zag">Куда положить${stol ? ` · стол ${esc(stol.имя)}` : ""}</p>
+      <p class="aktPs__podskaz">${aktPer && aktPer.idet ? "Перемещаю…" : `Пикните паллету${kat} (CON …) — штука с актом переедет в неё`}</p></div>`;
+  }
+
+  async function aktVPalletu(kod, podtverdil = false) {
+    if (!aktK || (aktPer && aktPer.idet)) return;
+    if (!vms.подключено) { formaVhoda = true; oshibkaVhoda = "войдите в WMS, потом пикните паллету ещё раз"; risovat(); return; }
+    aktPer = { idet: true }; risovat();
+    try {
+      const otvet = await fetch("/__akt/akt_v_palletu", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ акт: aktK.наклейка || String(aktK.акт), паллета: kod, стол: stol ? stol.имя : "", подтвердил: podtverdil }),
+      });
+      const d = await otvet.json().catch(() => ({}));
+      if (d.предупреждение) { aktPer = { vopros: { kod, tekst: d.предупреждение } }; if (navigator.vibrate) navigator.vibrate([80, 60, 80]); return; }
+      if (d.нужен_вход) { vms = { подключено: false }; formaVhoda = true; oshibkaVhoda = "войдите в WMS, потом пикните паллету ещё раз"; aktPer = null; return; }
+      if (!otvet.ok || !d.готово) throw new Error(d.ошибка || `сервер ответил ${otvet.status}`);
+      aktPer = { itog: { ok: true, zag: `${d.проведено ? "Перемещено" : "Перемещение черновиком"} → ${d.паллета}`,
+        tekst: `${d.откуда} → ${d.ячейка} · перемещение №${d.перемещение}${d.подходит === false ? " · паллета не своей категории" : ""}` } };
+      aktK.где = [{ паллета: d.паллета, ячейка: d.ячейка, зона: "", заказ: "" }];
+      if (navigator.vibrate) navigator.vibrate(120);
+    } catch (oshibka) {
+      aktPer = { itog: { ok: false, zag: "Не переместилось", tekst: oshibka.message || String(oshibka) } };
+    } finally {
+      if (aktPer && aktPer.idet) aktPer = null;
+      risovat(); vFokus();
+    }
   }
 
   function blokGde() {
@@ -984,6 +1035,7 @@
     // просто так — актировка целой паллеты.
     if (zhdemPalletu) { peremestit(e.detail.kod); return; }
     if (massPik) { vKorzinu(e.detail.kod); return; }
+    if (aktK && aktK.живьём && aktK.где && aktK.где.length && !(aktPer && aktPer.itog && aktPer.itog.ok)) { aktVPalletu(e.detail.kod); return; }
     if (pal && palPer && palPer.zhdemPal) { peremestitPalletu(palPer.yach, false, e.detail.kod); return; }
     otkrytPalletu(e.detail.kod);
   });
@@ -1260,6 +1312,8 @@
       }
       return;
     }
+    if (e.target.closest("[data-akt-da]") && aktPer && aktPer.vopros) { aktVPalletu(aktPer.vopros.kod, true); return; }
+    if (e.target.closest("[data-akt-net]")) { aktPer = null; risovat(); vFokus(); return; }
     if (e.target.closest("[data-per-da]") && perVopros) { peremestit(perVopros.kod, true); return; }
     if (e.target.closest("[data-per-net]")) { perVopros = null; risovat(); vFokus(); return; }
     const pk = e.target.closest("[data-pkrit]");
