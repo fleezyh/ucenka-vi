@@ -681,9 +681,9 @@
         ? `<span class="aDot"></span><span class="aWho__nm">WMS:</span><b>${esc(korotko(vms.имя))}</b>
            <button type="button" class="aLnk" data-polosa="vyyti">выйти</button>`
         : `<span class="aDot is-net"></span><span>без входа — только смотреть</span>
-           <button type="button" class="aBtn aBtn--sm aBtn--vio" data-polosa="voyti">Войти в WMS</button>`;
+           <button type="button" class="aBtn aBtn--sm aBtn--vio" data-polosa="voyti">войти в WMS</button>`;
     u.innerHTML = `${kto}
-      <button type="button" class="aBtn aBtn--sm vmsMass${massPik ? " is-on" : ""}" data-polosa="mass">Массовый пик${massPik ? ` · <b>${korzina.length}</b>` : ""}</button>`;
+      <button type="button" class="aBtn aBtn--sm vmsMass${massPik ? " is-on" : ""}" data-polosa="mass">массовый пик${massPik ? ` · <b>${korzina.length}</b>` : ""}</button>`;
     const f = document.getElementById("vmsVhod");
     if (f) f.innerHTML = formaPolosy && !vms.подключено ? `<form class="aktPs__vhod" id="vmsPolosaForma" autocomplete="off">
         <input name="login" placeholder="Логин WMS" autocapitalize="off" spellcheck="false" required>
@@ -732,18 +732,22 @@
   // переносы строк пропадали и имена слипались. Ловим вставку до поля: если в ней
   // больше одной паллеты — включаем массовый пик и кладём все, по 4 параллельно.
   const PALLETA = /(?:^CON\s?\d{5,12}$)|(?:[^\d\s]\s*-\s*0\d{9}$)|(?:^0\d{9}$)/i;
-  document.addEventListener("paste", (e) => {
-    if (e.target.id !== "scan" || !aktivno) return;
-    const tekst = (e.clipboardData || window.clipboardData)?.getData("text") || "";
-    const kody = tekst.split(/[\r\n,;\t]+/).map((x) => x.trim()).filter((x) => PALLETA.test(x));
-    if (kody.length < 2) return;
-    e.preventDefault();
+  function vstavitPallety(tekst) {
+    const kody = String(tekst || "").split(/[\r\n,;\t]+/).map((x) => x.trim()).filter((x) => PALLETA.test(x));
+    if (kody.length < 2) return false;
     if (!massPik) { massPik = true; pal = null; aktK = null; yach = null; tovar = null; }
     const naKlad = kody.map((k) => (/^CON/i.test(k) ? k : "CON " + k.slice(-10)));
     let i = 0;
     const potok = async () => { while (i < naKlad.length) { const k = naKlad[i++]; await vKorzinu(k); } };
     Promise.all([potok(), potok(), potok(), potok()]).then(() => signal(`В списке ${korzina.length} паллет`));
+    return true;
+  }
+  document.addEventListener("paste", (e) => {
+    if (e.target.id !== "scan" || !aktivno) return;
+    if (vstavitPallety((e.clipboardData || window.clipboardData)?.getData("text") || "")) e.preventDefault();
   });
+  // 30.09: вставку списка паллет разбирает pikalka-a.js — WMS мог быть выключен, он включает и отдаёт сюда.
+  document.addEventListener("wms:vstavka", (e) => { if (aktivno) vstavitPallety(e.detail); });
 
   function signal(tekst) {
     const m = document.getElementById("message");

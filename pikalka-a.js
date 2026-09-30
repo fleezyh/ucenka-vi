@@ -75,8 +75,11 @@
         <div><b>Штрихкод</b><span>себес, рубрика, паллета для продаж, габариты</span></div>
         <div><b>Название</b><span>в ту же строку — найдём по словарю</span></div>
         <div><b>Режим WMS</b><span>паллеты, ячейки, акты, перемещения — слайдер вправо</span></div>
+        <button type="button" data-a="excel"><b>Список</b><span>вставьте столбец в строку или загрузите Excel — себес списком</span></button>
       </section>`);
 
+    // Себес списком — без вкладки: закрыть список и вернуться к карточке.
+    $("#costListCard")?.insertAdjacentHTML("afterbegin", '<button type="button" class="aBtn aBtn--sm aSpisokX" data-a="spisok-zakryt">закрыть список</button>');
     // ТСД: своя шапка телефонного экрана.
     const shell = $("main.shell") || B;
     shell.insertAdjacentHTML("afterbegin", `<div class="aTsdTop" id="aTsdTop">
@@ -134,15 +137,35 @@
     if (box) answer.appendChild(box);
   }
 
-  /* ═════ одна строка: штрихкод или название ═════ */
+  /* ═════ одно поле на любой запрос (30.09, Степан: «надо убирать режимы, если поле
+     выдаёт по любому запросу информацию») ═════
+     штрихкод → карточка (себес, кластер, рубрика, паллета для продаж);
+     буквы → поиск по названию; CON/CEL/ACT → WMS (script.js и akt-predsort.js);
+     вставка столбца штрихкодов или названий → «себес списком»;
+     вставка списка паллет → массовый пик (WMS включается сам).
+     Вкладки остались в разметке спрятанными — ими переключаем режим script.js. */
   const KOD = /^(?:(?:CON|CEL|ACT|АКТ)\s?\d{5,12}|0\d{9}|\d+)$/i;
   const PALLETA_IMYA = /[^\d\s]\s*-\s*0\d{9}$/;
+  const PALLETA = /(?:^CON\s?\d{5,12}$)|(?:[^\d\s]\s*-\s*0\d{9}$)|(?:^0\d{9}$)/i;
   function poNazvaniyu(v) {
     return /[A-Za-zА-Яа-яЁё]/.test(v) && v.length >= 3 && !KOD.test(v) && !PALLETA_IMYA.test(v);
   }
-  function vNazvanie(e) {
+  function rezhim(m) {
+    if ((B.dataset.mode || "ucenka") === m) return;
+    $(`.tab[data-mode="${m}"]`)?.click();
+  }
+  function vPole(e) {
     const scan = $("#scan");
     const v = (scan?.value || "").trim();
+    if (!v) return;
+    // Из «себес списком» одиночный запрос возвращает к карточке товара.
+    if (!["ucenka", "presort"].includes(B.dataset.mode || "ucenka")) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      rezhim("ucenka");
+      setTimeout(() => { scan.value = v; $("#go")?.click(); }, 60);
+      return;
+    }
     if (!poNazvaniyu(v)) return;
     const ns = $("#nameSearch");
     const go = $("#goName");
@@ -154,8 +177,38 @@
     go.click();
     scan.value = "";
   }
-  document.addEventListener("keydown", (e) => { if (e.target.id === "scan" && e.key === "Enter") vNazvanie(e); }, true);
-  document.addEventListener("click", (e) => { if (e.target.closest("#go")) vNazvanie(e); }, true);
+  document.addEventListener("keydown", (e) => { if (e.target.id === "scan" && e.key === "Enter") vPole(e); }, true);
+  document.addEventListener("click", (e) => { if (e.target.closest("#go")) vPole(e); }, true);
+  document.addEventListener("paste", (e) => {
+    if (e.target.id !== "scan") return;
+    const tekst = (e.clipboardData || window.clipboardData)?.getData("text") || "";
+    const stroki = tekst.split(/[\r\n]+/).map((x) => x.trim()).filter(Boolean);
+    const kuski = tekst.split(/[\r\n,;\t]+/).map((x) => x.trim()).filter(Boolean);
+    if (kuski.length >= 2 && kuski.every((x) => PALLETA.test(x))) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      const otdat = () => document.dispatchEvent(new CustomEvent("wms:vstavka", { detail: tekst }));
+      if (vklWms) otdat(); else { dovesti(1); setTimeout(otdat, 250); }
+      return;
+    }
+    if (stroki.length >= 2) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      spisok(tekst);
+    }
+  }, true);
+  function spisok(tekst) {
+    rezhim("costlist");
+    setTimeout(() => {
+      const inp = $("#costListInput");
+      if (tekst != null && inp) { inp.value = tekst; inp.dispatchEvent(new Event("input", { bubbles: true })); $("#costListGo")?.click(); }
+      $("#costListCard")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 80);
+  }
+  document.addEventListener("click", (e) => {
+    if (e.target.closest("[data-a=excel]")) { spisok(null); setTimeout(() => $("#costListFile")?.click(), 120); }
+    if (e.target.closest("[data-a=spisok-zakryt]")) rezhim("ucenka");
+  });
 
   /* ═════ база: чип и всплывашка ═════ */
   function obnovitBazu() {

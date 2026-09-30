@@ -276,3 +276,30 @@ body.aSkin[data-mode="costlist"] .layout > .searchCard:not(.costListCard):not(.p
 body.aSkin[data-mode="pallets"] .layout > .searchCard:not(.palletsCard),
 body.aSkin[data-mode="dorogie"] .layout > .searchCard:not(.dorogieCard) { display: none; }
 body.aSkin[data-mode="costlist"] .costListCard, body.aSkin[data-mode="pallets"] .palletsCard, body.aSkin[data-mode="dorogie"] .dorogieCard { display: block; padding: 22px; }
+
+/* ── без режимов (30.09, «надо убирать режимы, если поле выдаёт по любому запросу»):
+   вкладки спрятаны, слайдер на всю полосу; «себес списком» — поле сверху, список под ним. */
+body.aSkin .aStrip__l { display: none; }
+body.aSkin .aStrip__r { width: 100%; }
+body.aSkin .aEff { flex: 1; width: auto; min-width: 0; }
+body.aSkin[data-mode="costlist"] .layout > .searchCard:not(.costListCard):not(.palletsCard):not(.dorogieCard) { display: block !important; }
+body.aSkin[data-mode="costlist"] #answer, body.aSkin[data-mode="costlist"] #aRecent, body.aSkin[data-mode="costlist"] #aHint,
+body.aSkin[data-mode="costlist"] #nameResults { display: none !important; }
+body.aSkin[data-mode="costlist"] .costListCard { margin-top: 18px; position: relative; }
+.aSpisokX { position: absolute; top: 18px; right: 18px; z-index: 2; }
+.aHint { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.aHint button { padding: 16px; border-radius: var(--ar); background: rgba(123,92,240,.08); border: 1px solid rgba(185,162,255,.22); color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+.aHint button:hover { background: rgba(123,92,240,.16); }
+
+/* ── симметрия строки WMS: три чипа поровну, вход — во всю ширину (слева кто, справа массовый пик) */
+.aWrow { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 10px; }
+.aChips { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.aChip { justify-content: center; min-width: 0; }
+.aWho { margin-left: 0; justify-content: flex-end; }
+.aWho .vmsMass { margin-left: auto; }
+@media (max-width: 900px) {
+  .aHint { grid-template-columns: 1fr; }
+  .aWrow { grid-template-columns: 1fr; gap: 2px; }
+  .aWho { justify-content: flex-start; padding-bottom: 6px; }
+  .aSpisokX { position: static; margin-bottom: 10px; }
+}
