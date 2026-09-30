@@ -938,8 +938,26 @@
     try { localStorage.setItem(PICK_QUEUE_KEY, JSON.stringify(left)); } catch { /* не влезло */ }
   }
 
+  // 30.09 Степан: «пикать всегда по-английски, защита нужна, а то вводятся русские буквы».
+  // Сканер печатает как клавиатура: при русской раскладке «ACT 0005314983» приходит как
+  // «ФСЕ 0005314983». Меняем раскладку, только если после этого получается наклейка
+  // (ACT/CON/CEL + цифры) — русские названия товаров не трогаем.
+  const RU = "ёйцукенгшщзхъфывапролджэячсмитьбю";
+  const EN = "`qwertyuiop[]asdfghjkl;'zxcvbnm,.";
+  function latinica(kod) {
+    const s = String(kod || "");
+    if (!/[а-яё]/i.test(s)) return s;
+    const lat = [...s].map((ch) => {
+      const i = RU.indexOf(ch.toLowerCase());
+      if (i < 0) return ch;
+      return ch === ch.toLowerCase() ? EN[i] : EN[i].toUpperCase();
+    }).join("");
+    return /^(ACT|CON|CEL)\s?\d{5,12}$/i.test(lat) ? lat.toUpperCase() : s;
+  }
+  window.latinica = latinica;
+
   async function searchBarcode() {
-    const code = scan.value.trim().replace(/^"|"$/g, "");
+    const code = latinica(scan.value.trim().replace(/^"|"$/g, ""));
     // Наклейка стола (CEL + id ячейки, 26.09): это не товар, а смена стола —
     // актировка (akt-predsort.js) показывает решения этого стола.
     // В ВМС наклейка печатается с пробелом: «CEL 3099400».

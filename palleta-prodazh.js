@@ -44,7 +44,12 @@
   };
 
   /** rubrika — рубрика витрины или каталога, klaster — «1»…«4» или подпись кластера. */
-  window.PalletaProdazh = function (rubrika, klaster, cena) {
+  window.PalletaProdazh = function (rubrika, klaster, cena, imya) {
+    // 30.09: «все аккумуляторы, даже если это расходный материал, идут в аккумуляторы».
+    const t = String(imya || "").trim().toLowerCase();
+    if (/^(аккумулятор|акб(?![а-яё])|батарея аккумулятор)/.test(t) && !/зарядн/.test(t)) {
+      return { imya: "АКБ(ОБЩ)", sporno: false, pochemu: "аккумулятор — всегда в АКБ" };
+    }
     // 30.09 Степан: «все товары до 1000 это мистери бокс» — паллеты «МисБокс-…».
     const c = Number(String(cena == null ? "" : cena).replace(/\s/g, "").replace(",", "."));
     if (c > 0 && c < 1000) return { imya: "МисБокс", sporno: false, pochemu: "цена до 1 000 ₽ — мистери бокс" };

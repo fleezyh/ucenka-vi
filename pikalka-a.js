@@ -237,8 +237,8 @@
   let poslednie = [];
   try { poslednie = JSON.parse(localStorage.getItem(KLYUCH) || "[]"); } catch (e) { poslednie = []; }
 
-  function palletaDlya(rubric, cluster, cena) {
-    return window.PalletaProdazh ? window.PalletaProdazh(rubric, cluster, cena) : null;
+  function palletaDlya(rubric, cluster, cena, imya) {
+    return window.PalletaProdazh ? window.PalletaProdazh(rubric, cluster, cena, imya) : null;
   }
   function htmlPalletы(p) {
     if (!p) return "—";
@@ -247,7 +247,7 @@
 
   document.addEventListener("picker:hit", (e) => {
     const d = e.detail || {};
-    const p = palletaDlya(d.rubric, d.cluster, d.rrc);
+    const p = palletaDlya(d.rubric, d.cluster, d.rrc, d.name);
     const pal = $("#aPal");
     if (pal) { pal.innerHTML = htmlPalletы(p); pal.hidden = !p; }
     const presort = d.mode === "presort";

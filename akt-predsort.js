@@ -265,7 +265,7 @@
 
   /* 30.09: категория уценки (паллета для продаж) по рубрике — прямо в составе, «по акту он не показывает нихера» */
   function katPal(x) {
-    const p = window.PalletaProdazh && (x.рубрика || x.цена) ? window.PalletaProdazh(x.рубрика, "", x.цена) : null;
+    const p = window.PalletaProdazh && (x.рубрика || x.цена) ? window.PalletaProdazh(x.рубрика, "", x.цена, x.товар) : null;
     if (!p) return '<i class="palStroka__nokat">категория —</i>';
     return `<b title="${esc(x.рубрика + (p.pochemu ? " · " + p.pochemu : ""))}">${esc(p.imya)}</b>${p.sporno ? ' <span class="aTag aTag--spor">спорно</span>' : ""}`;
   }
@@ -596,10 +596,12 @@
     box.innerHTML = `<header class="aktPs__shapka"><div><p class="aktPs__nad">Акт №${esc(a.акт)}</p>
         <p class="aktPs__rezhim">${esc(a.вид)} · ${esc(a.когда)} · ${esc(a.автор)}${a.статус ? ` · ${esc(a.статус.toLowerCase())}` : ""}</p></div></header>
       <p class="aktPs__podskaz">${esc(a.товар)}</p>
+      ${a.особый ? `<div class="aktOsob"><b>${esc(a.особый)}</b><span>товар клиента, не уценка — отдельно</span></div>` : ""}
+      ${a.живьём ? `<div class="aktDef"><span>заявленный дефект</span><b>${esc(a.дефект || "—")}</b></div>` : ""}
       ${a.живьём ? `<div class="aktKat"><span class="aktKat__nad">категория уценки${a.цена ? ` <b class="aktKat__cena">${esc(Number(a.цена).toLocaleString("ru-RU"))} ₽${a.цена_откуда === "сайт" ? " · цена сайта" : ""}</b>` : ""}</span>
         <b class="aktKat__imya">${esc(a.категория || "не определилась")}</b>${a.спорно ? ' <span class="aTag aTag--spor">спорно</span>' : ""}
         <span class="aktKat__rub">${a.мисбокс ? "цена до 1 000 ₽ — мистери бокс · " : ""}рубрика «${esc(a.рубрика || "—")}»${a.рубрика_вмс ? ` · ${esc(a.рубрика_вмс)}` : ""}</span></div>` : ""}
-      ${a.описание && a.описание.length ? `<dl class="aktOp">${a.описание.map((x) => `<dt>${esc(x.что)}</dt><dd>${esc(x.значение)}</dd>`).join("")}</dl>`
+      ${a.описание && a.описание.length ? `<dl class="aktOp">${a.описание.filter((x) => x.что !== "заявленный дефект").map((x) => `<dt>${esc(x.что)}</dt><dd>${esc(x.значение)}</dd>`).join("")}</dl>`
         : `<p class="aktPs__chto">дефект: ${esc(a.дефект || "—")}</p>`}
       ${a.комментарии && a.комментарии.length ? `<p class="aktPs__zag">Комментарии</p><div class="aktKom">${a.комментарии.map((k) => `<p><span>${esc(k.когда)} · ${esc(k.кто)}</span>${esc(k.текст)}</p>`).join("")}</div>` : ""}
       ${a.из_ячейки ? `<p class="aktPs__chto">заактирован в «${esc(a.из_ячейки)}»</p>` : ""}
@@ -1151,7 +1153,7 @@
     }
     if (e.target.id === "aktPalForma") {
       e.preventDefault();
-      const kod = e.target.kod.value.trim();
+      const kod = (window.latinica || String)(e.target.kod.value.trim());
       if (kod) peremestit(kod);
       return;
     }
