@@ -904,38 +904,47 @@
   let stolDo = null;
   let stolVid = "смена";
 
+  // Строка: {день, стол, площадка, кто, штук}. Новый формат — [день, стол, площадка, сотрудник, штук]
+  // (смена = сотрудник за столом в этот день); старый — [день, стол, площадка, штук, смен, человек].
   function stolyStroki(data) {
-    if (data.поСтоламДням) return data.поСтоламДням;
-    // «Все контуры» собирается на странице — столы берём из каждого контура
-    return Object.entries(payload.контуры || {}).filter(([key]) => key !== "vse")
+    const syrye = data.поСтоламДням || Object.entries(payload.контуры || {}).filter(([key]) => key !== "vse")
       .flatMap(([, item]) => item.поСтоламДням || []);
+    return syrye.map((r) => typeof r[3] === "string"
+      ? { день: r[0], стол: r[1], площадка: r[2], кто: r[3], штук: r[4], смен: 1 }
+      : { день: r[0], стол: r[1], площадка: r[2], кто: "", штук: r[3], смен: r[4] });
   }
+  const familiya = (kto) => (kto || "").split(/\s+/)[0];
 
   function renderStoly(data) {
     const rows = stolyStroki(data);
     if (!rows.length) return null;
-    const vseDni = [...new Set(rows.map((r) => r[0]))].sort();
+    const vseDni = [...new Set(rows.map((r) => r.день))].sort();
     const posl = vseDni[vseDni.length - 1];
     if (!stolDo || stolDo > posl || stolDo < vseDni[0]) stolDo = posl;
     if (!stolOt || stolOt > posl || stolOt < vseDni[0]) stolOt = stolDo;
     const [ot, po] = stolOt <= stolDo ? [stolOt, stolDo] : [stolDo, stolOt];
-    const v = rows.filter((r) => r[0] >= ot && r[0] <= po);
-    const dni = [...new Set(v.map((r) => r[0]))].sort();
+    const v = rows.filter((r) => r.день >= ot && r.день <= po);
+    const dni = [...new Set(v.map((r) => r.день))].sort();
 
     const stoly = {};
     const poDnyam = {};
-    for (const [den, stol, pl, sht, smen, lyud] of v) {
-      const x = stoly[stol] || (stoly[stol] = { стол: stol, площадка: pl, дни: {}, штук: 0, смен: 0 });
-      const c = x.дни[den] || (x.дни[den] = { штук: 0, смен: 0, человек: 0 });
-      c.штук += sht; c.смен += smen; c.человек += lyud;
-      x.штук += sht; x.смен += smen;
-      const d = poDnyam[den] || (poDnyam[den] = { штук: 0, смен: 0 });
-      d.штук += sht; d.смен += smen;
+    for (const r of v) {
+      const x = stoly[r.стол] || (stoly[r.стол] = { стол: r.стол, площадка: r.площадка, дни: {}, штук: 0, смен: 0, кто: {} });
+      const c = x.дни[r.день] || (x.дни[r.день] = { штук: 0, смен: 0, кто: [] });
+      c.штук += r.штук; c.смен += r.смен;
+      if (r.кто) c.кто.push([r.кто, r.штук]);
+      x.штук += r.штук; x.смен += r.смен;
+      if (r.кто) x.кто[r.кто] = (x.кто[r.кто] || 0) + r.штук;
+      const d = poDnyam[r.день] || (poDnyam[r.день] = { штук: 0, смен: 0 });
+      d.штук += r.штук; d.смен += r.смен;
     }
     const spisok = Object.values(stoly).sort((a, b) =>
       a.площадка.localeCompare(b.площадка) || a.стол.localeCompare(b.стол, "ru", { numeric: true }));
     const znach = (c) => !c || !c.смен && !c.штук ? "" : stolVid === "смена" ? one(c.смен ? c.штук / c.смен : 0) : count(c.штук);
-    const podskaz = (c) => c ? `${count(c.штук)} шт · ${c.смен} ${shiftWord(c.смен)}` : "";
+    const podskaz = (c) => !c ? "" : `${count(c.штук)} шт · ${c.смен} ${shiftWord(c.смен)}`
+      + (c.кто && c.кто.length ? " — " + c.кто.map(([k, n]) => `${k}: ${count(n)}`).join(", ") : "");
+    const yacheyka = (c) => !c ? "<td></td>" : `<td title="${podskaz(c)}">${znach(c)}`
+      + (c.кто && c.кто.length ? `<small>${c.кто.map(([k]) => familiya(k)).join(", ")}</small>` : "") + "</td>";
 
     const wrap = document.createElement("div");
     wrap.className = "stoly";
@@ -969,7 +978,7 @@
     const golova = `<tr><th class="stoly__stol">Стол</th>${dni.map((d) => `<th>${dayLabel(d)}</th>`).join("")}`
       + `<th class="stoly__vsego">${dni.length > 1 ? "за период" : "итого"}</th></tr>`;
     const telo = spisok.map((x) => `<tr><td class="stoly__stol">${x.стол}<small>${x.площадка}</small></td>`
-      + dni.map((d) => `<td title="${podskaz(x.дни[d])}">${znach(x.дни[d])}</td>`).join("")
+      + dni.map((d) => yacheyka(x.дни[d])).join("")
       + `<td class="stoly__vsego" title="${podskaz(x)}">${znach(x)}</td></tr>`).join("");
     const vsego = { штук: spisok.reduce((a, x) => a + x.штук, 0), смен: spisok.reduce((a, x) => a + x.смен, 0) };
     const niz = `<tr><td class="stoly__stol">Все столы</td>${dni.map((d) => `<td title="${podskaz(poDnyam[d])}">${znach(poDnyam[d])}</td>`).join("")}`
@@ -984,9 +993,10 @@
     box2.className = "perfActions";
     const rows = stolyStroki(data);
     const [ot, po] = (stolOt || "") <= (stolDo || "") ? [stolOt, stolDo] : [stolDo, stolOt];
-    const v = rows.filter((r) => r[0] >= ot && r[0] <= po);
-    box2.appendChild(excelButton([["день", "стол", "площадка", "штук", "смен", "человек", "штук за смену"],
-      ...v.map((r) => [r[0], r[1], r[2], r[3], r[4], r[5], r[4] ? Number((r[3] / r[4]).toFixed(1)) : 0])],
+    const v = rows.filter((r) => r.день >= ot && r.день <= po)
+      .sort((a, b) => a.день.localeCompare(b.день) || a.стол.localeCompare(b.стол, "ru", { numeric: true }) || b.штук - a.штук);
+    box2.appendChild(excelButton([["день", "стол", "площадка", "сотрудник", "штук", "смен", "штук за смену"],
+      ...v.map((r) => [r.день, r.стол, r.площадка, r.кто, r.штук, r.смен, r.смен ? Number((r.штук / r.смен).toFixed(1)) : 0])],
       `${data.название} по столам ${ot === po ? ot : ot + "—" + po}`));
     const steps = document.createElement("div");
     steps.className = "stepSwitch";
