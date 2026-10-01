@@ -1408,19 +1408,19 @@
   naPaneli("submit", async (e) => {
     if (e.target.id === "palNbForma") {
       e.preventDefault();
-      const kod = e.target.kod.value.trim();
+      const kod = (window.latinica || String)(e.target.kod.value.trim());   // 01.10: сканер в русской раскладке (СЩТ → CON)
       if (kod && palDb) { dbNeBrak = kod; zakazDb(false); }
       return;
     }
     if (e.target.id === "palNaPalForma") {
       e.preventDefault();
-      const kod = e.target.kod.value.trim();
+      const kod = (window.latinica || String)(e.target.kod.value.trim());   // 01.10: сканер в русской раскладке (СЩТ → CON)
       if (kod && palPer) peremestitPalletu(palPer.yach, false, kod);
       return;
     }
     if (e.target.id === "palPerForma") {
       e.preventDefault();
-      const kod = e.target.kod.value.trim();
+      const kod = (window.latinica || String)(e.target.kod.value.trim());   // 01.10: сканер в русской раскладке (СЩТ → CON)
       if (kod) peremestitPalletu(kod, false);
       return;
     }
