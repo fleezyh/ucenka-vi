@@ -1158,6 +1158,7 @@ body[data-mode="dorogie"] .searchCard { grid-column: 1; grid-row: 1; }
   color: #fff; font: inherit; font-size: 20px; font-weight: 600; padding: 16px; cursor: pointer; }
 .aktPs__akt:disabled { background: rgba(216, 38, 61, .28); color: rgba(255, 255, 255, .6); cursor: default; }
 .aktPs__chto, .aktPs__net { margin: 10px 0 0; font-size: 13px; color: var(--muted); }
+.aktPs__net > span { display: block; margin-top: 4px; }
 .aktPs__oshibka { color: #f05d72; font-weight: 600; }
 .aktPs__gotovo { margin-top: 14px; padding: 14px 16px; border-radius: 14px; background: rgba(39, 196, 107, .14);
   border: 1px solid rgba(39, 196, 107, .6); }
