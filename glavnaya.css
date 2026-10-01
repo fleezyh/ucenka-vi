@@ -214,15 +214,3 @@ button.pvPomosh { font: 600 15px "VI Sans", system-ui, sans-serif; cursor: point
 /* 28.09: блок — по центру экрана, а не прижат к верху. */
 .pv .pvShell { min-height: calc(100vh - 110px); justify-content: center; padding-top: 0; }
 .pv .pvGg { flex: 0 0 auto; }
-
-/* 01.10: админка с GPT и Claude на главной (только владелец) */
-.pvAdminAi { margin: 18px 0 22px; border: 1px solid rgba(185, 162, 255, .35); border-radius: 26px; background: rgba(10, 14, 22, .72); backdrop-filter: blur(14px); box-shadow: 0 30px 80px rgba(0, 0, 0, .35); overflow: hidden; }
-.pvAdminAi[hidden] { display: none; }
-.pvAdminAi__shapka { display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-bottom: 1px solid rgba(255, 255, 255, .08); background: linear-gradient(110deg, rgba(123, 92, 240, .16), transparent 60%); }
-.pvAdminAi__znak { color: #f05d72; font-size: 18px; }
-.pvAdminAi__shapka b { font-size: 18px; font-weight: 600; }
-.pvAdminAi__shapka small { font-size: 14px; font-weight: 600; color: rgba(242, 246, 251, .55); }
-.pvAdminAi__otkryt { margin-left: auto; padding: 8px 14px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, .16); color: rgba(242, 246, 251, .85); font-size: 13px; font-weight: 600; text-decoration: none; }
-.pvAdminAi__otkryt:hover { border-color: rgba(255, 255, 255, .4); color: #fff; }
-.pvAdminAi__ramka { display: block; width: 100%; height: min(820px, calc(100vh - 160px)); min-height: 560px; border: 0; background: transparent; }
-@media (max-width: 760px) { .pvAdminAi__shapka small { display: none; } .pvAdminAi__ramka { height: 80vh; } }
