@@ -194,6 +194,9 @@ body.cSkin #aktPs .aktPs__shapka { min-height: 56px; }
 body.cSkin #aktPs .aktPs__nad { font-size: clamp(24px, 1.9vw, 32px); font-weight: 600; }
 body.cSkin #aktPs .aktPs__rezhim { margin-top: 6px; font-size: 16px; }
 body.cSkin #aktPs .aktPs__zag, body.cSkin #aktDey .aktPs__zag { margin: 22px 0 10px; font-size: 13.5px; letter-spacing: .06em; }
+/* в карточке заголовок прижат к верху — 22px сверху давали дыру (01.10) */
+body.cSkin #aktPs .aktPs__palleta > .aktPs__zag:first-child, body.cSkin #aktDey .aktPs__palleta > .aktPs__zag:first-child,
+body.cSkin #aktPs .aktPs__gotovo > .aktPs__zag:first-child, body.cSkin #aktDey .aktPs__gotovo > .aktPs__zag:first-child { margin-top: 0; }
 body.cSkin #aktPs .aktPs__podskaz { font-size: 18px; }
 body.cSkin #aktPs .aktTovar { margin-top: 8px; font-size: clamp(22px, 1.7vw, 28px); line-height: 1.25; }
 body.cSkin .palKartaAkt__fakty span { padding: 7px 12px; font-size: 15px; border-radius: 10px; }
