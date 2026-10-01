@@ -33,6 +33,7 @@
     stack: '<path d="M12 3.5 3.5 8 12 12.5 20.5 8z"/><path d="m3.5 12 8.5 4.5 8.5-4.5"/><path d="m3.5 16 8.5 4.5 8.5-4.5"/>',
     phone: '<rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18h2"/>',
     bar: '<path d="M4 6v12M7 6v12M10.5 6v12M13 6v12M16.5 6v12M20 6v12"/>',
+    ekran: '<rect x="2.5" y="4" width="19" height="13" rx="2"/><path d="M8 21h8M12 17v4"/><path d="m7 12 3-3 2.5 2.5L17 7"/>',
   };
   const ikonka = (k) => `<svg class="cI" viewBox="0 0 24 24" aria-hidden="true">${IKONKI[k]}</svg>`;
 
@@ -65,6 +66,7 @@
              вставкой в то же поле. В рейке только то, что правда отдельное. -->
         <nav class="cRail__gr" aria-label="Пикалка">
           <button type="button" class="cRi is-on" id="cGlav" title="Карточка товара">${ikonka("tag")}Пикалка</button>
+          <button type="button" class="cRi" id="cEkran" title="Бэклог живьём — на весь экран">${ikonka("ekran")}Экран</button>
         </nav>
         <nav class="cRail__gr cRail__wms" aria-label="WMS">
           <span class="cRail__lbl">WMS</span>
@@ -411,6 +413,25 @@
     // Массовый пик из рейки при выключенном WMS — сначала включить.
   });
   document.addEventListener("click", (e) => { if (e.target.closest("#cMass") && !vklWms) vklyuchitWms(true); }, true);
+
+  // 01.10 Степан: «этот режим надо добавить в пикалку» — экран «Бэклог тает» (/__ekran) на всё окно
+  // поверх пикалки; закрыть — крестик или Esc. Для телевизора на складе — F11 в этом режиме.
+  function ekran(da) {
+    let ov = document.getElementById("cEkranOv");
+    if (!da) { if (ov) ov.remove(); $("#cEkran")?.classList.remove("is-on"); return; }
+    if (ov) return;
+    ov = document.createElement("div");
+    ov.id = "cEkranOv";
+    ov.className = "cEkranOv";
+    ov.innerHTML = '<iframe src="/__ekran" title="Бэклог живьём"></iframe><button type="button" class="cEkranOv__x" title="Закрыть (Esc)">×</button>';
+    document.body.appendChild(ov);
+    $("#cEkran")?.classList.add("is-on");
+  }
+  document.addEventListener("click", (e) => {
+    if (e.target.closest("#cEkran")) ekran(!document.getElementById("cEkranOv"));
+    else if (e.target.closest(".cEkranOv__x")) ekran(false);
+  });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && document.getElementById("cEkranOv")) ekran(false); });
   document.addEventListener("keydown", (e) => { if (e.altKey && (e.code === "KeyW")) { e.preventDefault(); vklyuchitWms(!vklWms); } });
 
   /* ═════ новая паллета: категория → создать в WMS → печать ШК (30.09 вечер) ═════
