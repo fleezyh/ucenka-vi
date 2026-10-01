@@ -456,6 +456,10 @@ body.cSkin .cCenter { visibility: visible !important; opacity: 1 !important; poi
 .cT--def { grid-column: span 4; }
 .cT--def .aktDef { margin: 0; }
 .cT--def .aktDef b { font-size: 26px; }
+/* 01.10 «прыгают блоки»: дефект и вид обращения — значение сразу под подписью, одинаково до и после живых данных */
+.cT--def .aktDef { gap: 10px; }
+.cT--def .aktDef > span { font-size: 15px; line-height: normal; }
+.cT--vid .cT__v { margin-top: 0; }
 .cT--vid { grid-column: span 2; }
 .cT--pole { grid-column: span 2; min-height: 96px; }
 .cT--pole .cT__v, .cT--vid .cT__v { font-size: 20px; }

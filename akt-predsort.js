@@ -790,7 +790,7 @@
         <div class="cT cT--big cT--gde"><div class="cT__l">Где сейчас</div><div class="cT__v">${g
           ? `<b class="cBig cBig--s">${esc(g.паллета || "без паллеты")}</b><small>${esc(g.ячейка)}${g.база ? ` · ${esc(g.база)}` : ""}${g.заказ ? ` · заказ ${esc(g.заказ)}` : ""}</small>`
           : '<span class="aNet" style="display:inline">на складе уже нет — продана, списана или уехала</span>'}</div></div>
-        <div class="cT cT--def">${a.живьём ? blokDefekta(a) : `<div class="cT__l">заявленный дефект</div><div class="cT__v">${esc(a.дефект || "—")}</div>`}</div>
+        <div class="cT cT--def">${a.живьём ? blokDefekta(a) : `<div class="aktDef"><span>заявленный дефект</span><b>${esc(a.дефект || "—")}</b></div>`}</div>
         <div class="cT cT--vid"><div class="cT__l">Вид обращения</div><div class="cT__v">${esc(a.вид || "—")}</div></div>
         ${polya.length ? `<div class="cT cT--opis"><div class="cT__l">Описание акта</div>
           <dl class="cOpis">${polya.map((x) => `<div><dt>${esc(x.что)}</dt><dd>${esc(x.значение)}</dd></div>`).join("")}</dl></div>` : ""}
