@@ -897,6 +897,111 @@
     card.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
 
+  // --- По столам и дням (01.10) ---------------------------------------------
+  // Свой период, независимый от «месяц/квартал»: смотрят конкретный день или пару дней
+  // («производ на всех столах с 28 по 30 сентября, по дням и по столам»).
+  let stolOt = null;
+  let stolDo = null;
+  let stolVid = "смена";
+
+  function stolyStroki(data) {
+    if (data.поСтоламДням) return data.поСтоламДням;
+    // «Все контуры» собирается на странице — столы берём из каждого контура
+    return Object.entries(payload.контуры || {}).filter(([key]) => key !== "vse")
+      .flatMap(([, item]) => item.поСтоламДням || []);
+  }
+
+  function renderStoly(data) {
+    const rows = stolyStroki(data);
+    if (!rows.length) return null;
+    const vseDni = [...new Set(rows.map((r) => r[0]))].sort();
+    const posl = vseDni[vseDni.length - 1];
+    if (!stolDo || stolDo > posl || stolDo < vseDni[0]) stolDo = posl;
+    if (!stolOt || stolOt > posl || stolOt < vseDni[0]) stolOt = stolDo;
+    const [ot, po] = stolOt <= stolDo ? [stolOt, stolDo] : [stolDo, stolOt];
+    const v = rows.filter((r) => r[0] >= ot && r[0] <= po);
+    const dni = [...new Set(v.map((r) => r[0]))].sort();
+
+    const stoly = {};
+    const poDnyam = {};
+    for (const [den, stol, pl, sht, smen, lyud] of v) {
+      const x = stoly[stol] || (stoly[stol] = { стол: stol, площадка: pl, дни: {}, штук: 0, смен: 0 });
+      const c = x.дни[den] || (x.дни[den] = { штук: 0, смен: 0, человек: 0 });
+      c.штук += sht; c.смен += smen; c.человек += lyud;
+      x.штук += sht; x.смен += smen;
+      const d = poDnyam[den] || (poDnyam[den] = { штук: 0, смен: 0 });
+      d.штук += sht; d.смен += smen;
+    }
+    const spisok = Object.values(stoly).sort((a, b) =>
+      a.площадка.localeCompare(b.площадка) || a.стол.localeCompare(b.стол, "ru", { numeric: true }));
+    const znach = (c) => !c || !c.смен && !c.штук ? "" : stolVid === "смена" ? one(c.смен ? c.штук / c.смен : 0) : count(c.штук);
+    const podskaz = (c) => c ? `${count(c.штук)} шт · ${c.смен} ${shiftWord(c.смен)}` : "";
+
+    const wrap = document.createElement("div");
+    wrap.className = "stoly";
+    const ctrl = document.createElement("div");
+    ctrl.className = "stoly__ctrl";
+    ctrl.innerHTML = `<label>с <input type="date" class="perfSelect" id="stolOt" min="${vseDni[0]}" max="${posl}" value="${ot}"></label>`
+      + `<label>по <input type="date" class="perfSelect" id="stolDo" min="${vseDni[0]}" max="${posl}" value="${po}"></label>`
+      + `<button type="button" class="action action--secondary" data-stol-den="${posl}">последний день</button>`
+      + `<span class="stoly__itog">${dni.length} ${dayWord(dni.length)} · ${spisok.length} столов · `
+      + `${count(spisok.reduce((a, x) => a + x.штук, 0))} шт</span>`;
+    ctrl.addEventListener("change", (e) => {
+      if (e.target.id === "stolOt" && e.target.value) stolOt = e.target.value;
+      if (e.target.id === "stolDo" && e.target.value) stolDo = e.target.value;
+      render();
+    });
+    ctrl.addEventListener("click", (e) => {
+      const b = e.target.closest("[data-stol-den]");
+      if (b) { stolOt = stolDo = b.dataset.stolDen; render(); }
+    });
+    wrap.appendChild(ctrl);
+
+    if (!dni.length) {
+      const p = document.createElement("p");
+      p.className = "perfLead";
+      p.textContent = "в эти дни на столах никто не работал";
+      wrap.appendChild(p);
+      return wrap;
+    }
+    const tab = document.createElement("div");
+    tab.className = "stoly__scroll";
+    const golova = `<tr><th class="stoly__stol">Стол</th>${dni.map((d) => `<th>${dayLabel(d)}</th>`).join("")}`
+      + `<th class="stoly__vsego">${dni.length > 1 ? "за период" : "итого"}</th></tr>`;
+    const telo = spisok.map((x) => `<tr><td class="stoly__stol">${x.стол}<small>${x.площадка}</small></td>`
+      + dni.map((d) => `<td title="${podskaz(x.дни[d])}">${znach(x.дни[d])}</td>`).join("")
+      + `<td class="stoly__vsego" title="${podskaz(x)}">${znach(x)}</td></tr>`).join("");
+    const vsego = { штук: spisok.reduce((a, x) => a + x.штук, 0), смен: spisok.reduce((a, x) => a + x.смен, 0) };
+    const niz = `<tr><td class="stoly__stol">Все столы</td>${dni.map((d) => `<td title="${podskaz(poDnyam[d])}">${znach(poDnyam[d])}</td>`).join("")}`
+      + `<td class="stoly__vsego" title="${podskaz(vsego)}">${znach(vsego)}</td></tr>`;
+    tab.innerHTML = `<table><thead>${golova}</thead><tbody>${telo}</tbody><tfoot>${niz}</tfoot></table>`;
+    wrap.appendChild(tab);
+    return wrap;
+  }
+
+  function stolyKnopki(data) {
+    const box2 = document.createElement("div");
+    box2.className = "perfActions";
+    const rows = stolyStroki(data);
+    const [ot, po] = (stolOt || "") <= (stolDo || "") ? [stolOt, stolDo] : [stolDo, stolOt];
+    const v = rows.filter((r) => r[0] >= ot && r[0] <= po);
+    box2.appendChild(excelButton([["день", "стол", "площадка", "штук", "смен", "человек", "штук за смену"],
+      ...v.map((r) => [r[0], r[1], r[2], r[3], r[4], r[5], r[4] ? Number((r[3] / r[4]).toFixed(1)) : 0])],
+      `${data.название} по столам ${ot === po ? ot : ot + "—" + po}`));
+    const steps = document.createElement("div");
+    steps.className = "stepSwitch";
+    for (const [key, label] of [["смена", "За смену"], ["штук", "Штук"]]) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "stepSwitch__item" + (stolVid === key ? " is-on" : "");
+      b.textContent = label;
+      b.addEventListener("click", () => { stolVid = key; render(); });
+      steps.appendChild(b);
+    }
+    box2.appendChild(steps);
+    return box2;
+  }
+
   // --- Сборка -----------------------------------------------------------------
 
   function render() {
@@ -1036,6 +1141,14 @@
       poDnyam ? renderDaily(view.дни)
               : renderLine(bars, { label: (row) => row.подпись || row.ключ }),
       barTools));
+
+    const stolyBlok = renderStoly(data);
+    if (stolyBlok) {
+      parts.push(block("По столам и дням",
+                       `${stolVid === "смена" ? "штук за смену" : "штук"} на каждом столе по дням · свои даты, `
+                       + "не зависят от периода сверху · наведи на число — штук и смен",
+                       stolyBlok, stolyKnopki(data)));
+    }
 
     if (view.часы.length) {
       const hours = [...view.часы].sort((a, b) => b.на_час - a.на_час);

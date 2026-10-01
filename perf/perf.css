@@ -597,3 +597,20 @@ body .heroPerf { display: flex; flex-wrap: wrap; justify-content: space-between;
 .heroPerf .perfTools { margin-left: auto; }
 .heroPerf .perfTools .tabs { flex-wrap: wrap; justify-content: flex-end; }
 @media (max-width: 760px) { .heroPerf h1 { white-space: normal; } .heroPerf .perfTools { margin-left: 0; width: 100%; } }
+
+/* 01.10 «По столам и дням» */
+.stoly__ctrl { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-bottom: 14px; color: var(--muted); font-size: 14px; }
+.stoly__ctrl label { display: inline-flex; align-items: center; gap: 8px; }
+.stoly__ctrl input[type=date] { color-scheme: dark; }
+.stoly__itog { margin-left: auto; }
+.stoly__scroll { overflow: auto; max-height: 640px; border: 1px solid rgba(255,255,255,.08); border-radius: 14px; }
+.stoly table { border-collapse: collapse; width: 100%; font-size: 14px; font-variant-numeric: tabular-nums; }
+.stoly th, .stoly td { padding: 8px 12px; text-align: right; white-space: nowrap; border-bottom: 1px solid rgba(255,255,255,.06); }
+.stoly thead th { position: sticky; top: 0; z-index: 2; background: #141c28; color: var(--muted); font-weight: 600; }
+.stoly tfoot td { position: sticky; bottom: 0; background: #141c28; font-weight: 600; }
+.stoly .stoly__stol { text-align: left; position: sticky; left: 0; z-index: 1; background: #101722; }
+.stoly thead .stoly__stol { z-index: 3; background: #141c28; }
+.stoly .stoly__stol small { display: block; color: var(--muted); font-size: 11px; }
+.stoly .stoly__vsego { font-weight: 600; color: var(--text); }
+.stoly tbody tr:hover td { background: rgba(255,255,255,.04); }
+
