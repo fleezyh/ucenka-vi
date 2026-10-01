@@ -603,7 +603,7 @@ body .heroPerf { display: flex; flex-wrap: wrap; justify-content: space-between;
 .stoly__ctrl label { display: inline-flex; align-items: center; gap: 8px; }
 .stoly__ctrl input[type=date] { color-scheme: dark; }
 .stoly__itog { margin-left: auto; }
-.stoly__scroll { overflow: auto; max-height: 640px; border: 1px solid rgba(255,255,255,.08); border-radius: 14px; }
+.stoly__scroll { overflow: auto; max-height: 640px; border: 1px solid rgba(255,255,255,.08); border-radius: 14px; background: #101722; }
 .stoly table { border-collapse: collapse; width: 100%; font-size: 14px; font-variant-numeric: tabular-nums; }
 .stoly th, .stoly td { padding: 8px 12px; text-align: right; white-space: nowrap; border-bottom: 1px solid rgba(255,255,255,.06); }
 .stoly thead th { position: sticky; top: 0; z-index: 2; background: #141c28; color: var(--muted); font-weight: 600; }
