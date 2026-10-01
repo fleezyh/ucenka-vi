@@ -459,11 +459,30 @@
         <p class="aktPs__chto">${d.паллет > 1 ? `${d.паллет} паллет · ` : ""}${d.строк} строк · ${d.штук} шт${kach ? ` · ${kach}` : ""}${d.уже_в_заказе ? ` · ${d.уже_в_заказе} строк уже в заказе — пропущены` : ""}</p>
         ${oshibki ? `<p class="aktPs__net"><b class="aktPs__oshibka">WMS не примет: ${esc(oshibki)}</b></p>` : ""}
         ${nbSpisok}${nbForma}
+        ${d.куда === "ДОМОДЕДОВО" && d.откуда === "СЦ - ДОМОДЕДОВО" && vseVybrany() && !d.нужна_паллета_для_небрака && !d.стоп_небрак ? `<div class="aktPs__vopros">
+          <button type="button" class="aktPs__kn is-on" data-pkk="scdmd"${oshibki || !boevoy || !vhod() || !vkl ? " disabled" : ""}>${!vkl ? "Создание пока не включено" : !boevoy ? "WMS выключена" : !vhod() ? "Войдите в WMS" : "Перенести на ДМД — весь круг"}</button>
+        </div>
+        <p class="aktPs__chto">Сайт сам сделает то, что Гамлет делает руками: заказ ДБ → отбор с контейнером → задание и внутренняя отгрузка → задание и внутреннее поступление. Паллета встанет в «Брак из СЦ (ДМД)». До пары минут. Встанет на каком-то шаге — покажу где, дальше руками в WMS.</p>` : ""}
         ${d.куда && !d.нужна_паллета_для_небрака && !d.стоп_небрак ? `<div class="aktPs__vopros">
-          <button type="button" class="aktPs__kn is-on" data-pkk="db-da"${oshibki || !boevoy || !vhod() || !vkl ? " disabled" : ""}>${!vkl ? "Создание пока не включено" : !boevoy ? "WMS выключена" : !vhod() ? "Войдите в WMS" : nb.length ? "Перевести в брак и создать заказ ДБ" : "Создать заказ ДБ и отбор"}</button>
+          <button type="button" class="aktPs__kn${d.откуда === "СЦ - ДОМОДЕДОВО" ? "" : " is-on"}" data-pkk="db-da"${oshibki || !boevoy || !vhod() || !vkl ? " disabled" : ""}>${!vkl ? "Создание пока не включено" : !boevoy ? "WMS выключена" : !vhod() ? "Войдите в WMS" : nb.length ? "Перевести в брак и создать заказ ДБ" : d.откуда === "СЦ - ДОМОДЕДОВО" ? "Только заказ ДБ (дальше руками)" : "Создать заказ ДБ и отбор"}</button>
           <button type="button" class="aktPs__kn" data-pkk="db-net">Отмена</button>
         </div>
         <p class="aktPs__chto">${d.можно ? "Форма брака WMS нашла все штуки. " : ""}Заказ и задание на отбор создаёт форма «Формирование внутренних перемещений брака». Дальше по регламенту: отбор «Создать перемещение с контейнером», задание на внутреннюю отгрузку, «Отгрузить», приёмка.</p>` : ""}`;
+    } else if (p.scdmd) {
+      const x = p.scdmd, dk = x.документы || {};
+      const VMS = "https://wms.vseinstrumenti.ru/Document/";
+      const ssylki = [["заказ", dk.заказ_id ? `${VMS}DocShipmentOrder/update?id=${dk.заказ_id}` : "", dk.заказ],
+        ["отбор", dk.отбор ? `${VMS}docMovement/update?id=${dk.отбор}` : "", dk.отбор],
+        ["задание на отгрузку", dk.задание_отгрузки ? `${VMS}DocInternalShipmentTask/update?id=${dk.задание_отгрузки}` : "", dk.задание_отгрузки],
+        ["отгрузка", dk.отгрузка ? `${VMS}DocInternalShipment/update?id=${dk.отгрузка}` : "", dk.отгрузка],
+        ["задание на поступление", dk.задание_поступления ? `${VMS}DocInternalPurchaseTask/update?id=${dk.задание_поступления}` : "", dk.задание_поступления],
+        ["поступление", dk.поступление ? `${VMS}DocInternalPurchase/update?id=${dk.поступление}` : "", dk.поступление]]
+        .filter((r) => r[2]).map((r) => `<span>${r[0]}: ${r[1] ? `<a href="${esc(r[1])}" target="_blank" rel="noopener">${esc(r[2])}</a>` : esc(r[2])}</span>`).join("");
+      telo = x.готово
+        ? `<div class="aktPs__gotovo"><b>Перенесено на ДМД${dk.встал ? ` · стоит в «${esc(dk.встал)}»` : ""}</b>${ssylki}</div>`
+        : `<p class="aktPs__net"><b class="aktPs__oshibka">Встало на шаге «${esc(x.shag)}»: ${esc(x.ошибка || "")}</b></p>
+           ${ssylki ? `<div class="aktPs__net"><b>Уже сделано — дальше руками в WMS с этого шага:</b>${ssylki}</div>` : ""}
+           <button type="button" class="aktPs__kn" data-pkk="db-net">Закрыть</button>`;
     } else if (p.gotovo) {
       telo = `<div class="aktPs__gotovo"><b>Заказ ${esc(p.gotovo.номер)} и задание на отбор созданы${p.gotovo.задание_id ? ` · отбор №${esc(p.gotovo.задание_id)}` : ""}</b>
         ${p.gotovo.смена_качества ? `<span>в «Брак» переведено ${(p.gotovo.не_брак || []).length} шт — инвентаризация ${esc(p.gotovo.смена_качества.map((x) => x.инвентаризация).join(", "))}</span>` : ""}
@@ -479,6 +498,24 @@
 
   let dbKuda = "";
   let dbNeBrak = "";
+  async function scDmd() {
+    palDb = { idet: "Переношу на ДМД: заказ ДБ → отбор → отгрузка → поступление — до пары минут, не закрывайте…" };
+    risovat();
+    try {
+      const o = await fetch("/__akt/palleta/sc_dmd", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ паллета: String(pal.паллета_id || pal.паллета), сохранить: true }),
+      });
+      const d = await o.json().catch(() => ({}));
+      if (d.нужен_вход) { vms = { подключено: false }; formaPolosy = true; oshibkaVhoda = "войдите в WMS и нажмите ещё раз"; palDb = null; risovat(); return; }
+      if (!o.ok) throw new Error(d.ошибка || `сервер ответил ${o.status}`);
+      palDb = { scdmd: d };
+      if (d.готово) { obnovitSostav(); if (navigator.vibrate) navigator.vibrate(150); }
+    } catch (e) {
+      palDb = { oshibka: e.message || String(e) };
+    }
+    risovat();
+  }
   async function zakazDb(sohranit) {
     palDb = { idet: sohranit ? (palDb && palDb.predv && (palDb.predv.не_брак || []).length
       ? "Перевожу не-брак в брак (перемещение, инвентаризация, обратно) и создаю заказ ДБ — до минуты…" : "Создаю заказ ДБ в WMS…")
@@ -1630,6 +1667,7 @@
       if (pkk.dataset.pkk === "per-net") { palPer = null; risovat(); vFokus(); }
       if (pkk.dataset.pkk === "db") { dbKuda = ""; dbNeBrak = ""; zakazDb(false); }
       if (pkk.dataset.pkk === "db-da" && palDb && palDb.predv) zakazDb(true);
+      if (pkk.dataset.pkk === "scdmd" && palDb && palDb.predv) scDmd();
       if (pkk.dataset.pkk === "db-net") { palDb = null; risovat(); vFokus(); }
       if (pkk.dataset.pkk === "kopir") {
         const imya = (palKarta && palKarta.паллета) || pal.паллета;
