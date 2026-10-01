@@ -18,6 +18,12 @@
   // Замки по правам.
   fetch("/__me", { credentials: "same-origin" }).then((o) => (o.ok ? o.json() : null)).then((u) => {
     const prava = (u && u["права"]) || [];
+    // 01.10: админка с GPT и Claude — только владелец пульта и не в «примерке» чужой роли.
+    if (u && String(u.login || "").toLowerCase() === "rysakovsm" && !u["примерка"]) {
+      const blok = document.getElementById("pvAdminAi");
+      const ramka = document.getElementById("pvAdminAiRamka");
+      if (blok && ramka) { blok.hidden = false; ramka.src = "/pomoshnik/?embed=1"; }
+    }
     const mozhno = (p) => !p || prava.includes("*") || prava.includes(p);
     document.querySelectorAll("[data-pravo]").forEach((el) => {
       if (mozhno(el.dataset.pravo)) return;

@@ -18,9 +18,9 @@
     <link rel="stylesheet" href="home.css?v=20260911-2">
   <link rel="stylesheet" href="reeded-bg.css?v=20260907-6">
   <link rel="stylesheet" href="site-header.css?v=20260927-2">
-  <link rel="stylesheet" href="glavnaya.css?v=20260930-1">
+  <link rel="stylesheet" href="glavnaya.css?v=20261001-1">
   <script src="reeded-bg.js?v=20260906-7" defer></script>
-  <script src="glavnaya.js?v=20260928-1" defer></script>
+  <script src="glavnaya.js?v=20261001-1" defer></script>
   <script src="nav.js?v=20260921-1" defer></script>
 </head>
 <!-- Главная с 28.09 — вариант D3 (Степан: «ахуенно»). Четыре контура (состав — вкладки самих
@@ -43,6 +43,18 @@
       <div class="pvF__shapka">
         <button class="pvPomosh" id="homeAssistantOpen" type="button" aria-haspopup="dialog" aria-controls="homeAssistantModal"><span class="pvPomosh__znak">✦</span><span>Спросить или найти в данных</span><i>→</i></button>
       </div>
+      <!-- 01.10: админка с двумя нейросетями — живой пульт GPT + Claude (/pomoshnik/), только владелец.
+           Блок скрыт; glavnaya.js показывает и грузит пульт, если /__me вернул владельца. Сервер
+           всё равно пускает в /pomoshnik/ только его. -->
+      <section class="pvAdminAi" id="pvAdminAi" hidden>
+        <div class="pvAdminAi__shapka">
+          <span class="pvAdminAi__znak">✦</span>
+          <b>Админка · GPT и Claude</b>
+          <small>пишешь задачу — делают сразу: сайт, SQL, данные</small>
+          <a class="pvAdminAi__otkryt" href="/pomoshnik/" target="_blank" rel="noopener">во весь экран ↗</a>
+        </div>
+        <iframe class="pvAdminAi__ramka" id="pvAdminAiRamka" title="Пульт GPT и Claude" loading="lazy"></iframe>
+      </section>
       <div class="pvF__kontury">
         <div class="pvG" style="--c:#4d8df7" data-tilt>
           <div class="pvS pvS--heat"><i style="--d:0.0s"></i><i style="--d:1.4s"></i><i style="--d:0.5s"></i><i style="--d:1.9s"></i><i style="--d:1.0s"></i><i style="--d:0.1s"></i><i style="--d:1.5s"></i><i style="--d:0.6s"></i><i style="--d:2.0s"></i><i style="--d:1.1s"></i><i style="--d:0.2s"></i><i style="--d:1.6s"></i><i style="--d:0.7s"></i><i style="--d:2.1s"></i><i style="--d:1.2s"></i><i style="--d:0.3s"></i><i style="--d:1.7s"></i><i style="--d:0.8s"></i><i style="--d:2.2s"></i><i style="--d:1.3s"></i><i style="--d:0.4s"></i><i style="--d:1.8s"></i><i style="--d:0.9s"></i><i style="--d:0.0s"></i></div>
