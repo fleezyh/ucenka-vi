@@ -988,7 +988,7 @@
         <input name="login" placeholder="Логин WMS" autocapitalize="off" spellcheck="false" required>
         <input name="parol" type="password" placeholder="Пароль WMS" required>
         <button class="aktPs__kn is-on" type="submit">Войти</button>
-        <p class="aktPs__chto">${oshibkaVhoda ? `<b class="aktPs__oshibka">${esc(oshibkaVhoda)}</b> · ` : ""}пароль не сохраняется — сессия до конца смены</p>
+        <p class="aktPs__chto">${oshibkaVhoda ? `<b class="aktPs__oshibka">${esc(oshibkaVhoda)}</b> · ` : ""}пароль не сохраняется — вход держится, пока его не закроет WMS</p>
       </form>` : "";
   }
 
