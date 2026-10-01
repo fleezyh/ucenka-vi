@@ -771,7 +771,9 @@
     if (!kgtMark) return;
     const cluster = String(field(row, "Кластер") || "").trim();
     // Без кластера сравнивать не с чем: справочник про габариты молчит.
-    const estKlaster = mode === "presort" && cluster !== "";
+    // 01.10 (Нэлли: «кнопка "это не КГТ" где есть?»): в новой пикалке (cSkin) режимов нет — всё в одном,
+    // поэтому кнопка есть всегда, когда у товара есть кластер; в старой — по-прежнему только в предсорте.
+    const estKlaster = cluster !== "" && (mode === "presort" || document.body.classList.contains("cSkin"));
     const bolshoy = cluster === "4";
     kgtMark.hidden = !estKlaster;
     kgtMark.disabled = false;
