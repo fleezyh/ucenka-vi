@@ -434,7 +434,8 @@
       ${novOshibka ? `<p class="aktPs__net"><b class="aktPs__oshibka">${esc(novOshibka)}</b></p>` : ""}
       ${novIdet ? `<p class="aktPs__podskaz">Создаю «${esc(novIdet)}» в WMS…</p>` : ""}
       <div class="cModal__kat">${KATEGORII.map((k) => `<button type="button" class="cBtn cModal__k" data-nov-sozdat="${esc(k)}"${novIdet ? " disabled" : ""}>${esc(k)}</button>`).join("")}</div>
-      ${sp ? `<label class="cNov__fmt">формат этикетки <select data-nov-fmt>${sp.formaty.map((x) => `<option${x === sp.format() ? " selected" : ""}>${x}</option>`).join("")}</select> мм</label>` : ""}
+      ${sp ? `<label class="cNov__fmt">формат этикетки <select data-nov-fmt>${sp.formaty.map((x) => `<option${x === sp.format() ? " selected" : ""}>${x}</option>`).join("")}</select> мм</label>
+        <label class="cNov__fmt"><input type="checkbox" data-nov-pov${sp.povorot && sp.povorot(sp.format()) ? " checked" : ""}> печатает боком — повернуть</label>` : ""}
       ${novSozdano.length ? `<div class="cModal__spisok"><p class="aktPs__zag">Создано сейчас</p>${novSozdano.map((g, i) => `<div class="cModal__str">
         ${sp ? `<span class="cNov__shk">${sp.svg(g.штрихкод)}</span>` : ""}<b>${esc(g.имя)}</b><span>${esc(g.штрихкод)}</span>
         <button type="button" class="cBtn cBtn--sm" data-nov-pech="${i}">печать ШК</button></div>`).join("")}</div>` : ""}
@@ -467,7 +468,16 @@
     const pe = e.target.closest("[data-nov-pech]");
     if (pe && window.ShkPechat) { const g = novSozdano[+pe.dataset.novPech]; if (g) window.ShkPechat.pechat({ shk: g.штрихкод, imya: g.имя, kategoriya: g.категория }); }
   });
-  document.addEventListener("change", (e) => { if (e.target.matches && e.target.matches("[data-nov-fmt]") && window.ShkPechat) window.ShkPechat.zadatFormat(e.target.value); });
+  document.addEventListener("change", (e) => {
+    if (e.target.matches && e.target.matches("[data-nov-fmt]") && window.ShkPechat) {
+      window.ShkPechat.zadatFormat(e.target.value);
+      const pov = document.querySelector("[data-nov-pov]");
+      if (pov && window.ShkPechat.povorot) pov.checked = window.ShkPechat.povorot(e.target.value);
+    }
+    if (e.target.matches && e.target.matches("[data-nov-pov]") && window.ShkPechat && window.ShkPechat.zadatPovorot) {
+      window.ShkPechat.zadatPovorot(window.ShkPechat.format(), e.target.checked);
+    }
+  });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") { const m = $("#cNovModal"); if (m && !m.hidden) m.hidden = true; } });
 
   /* ═════ ТСД — телефонный экран той же страницы ═════ */

@@ -806,11 +806,13 @@
     if (novP && novP.gotovo) {
       const g = novP.gotovo;
       const f = window.ShkPechat ? window.ShkPechat.format() : "";
-      return `<div class="cNov"><b>Паллета ${esc(g.имя)} создана</b>
+      return `<div class="cNov"><b>Паллета ${esc(g.имя)} создана${g.ячейка ? ` и стоит в «${esc(g.ячейка)}»` : ""}</b>
+        ${g.ячейка_ошибка ? `<p class="aktPs__net"><b class="aktPs__oshibka">${esc(g.ячейка_ошибка)}</b></p>` : ""}
         ${window.ShkPechat ? `<div class="cNov__shk">${window.ShkPechat.svg(g.штрихкод)}</div>` : ""}<span class="cNov__kod">${esc(g.штрихкод)}</span>
         <div class="aktPs__vopros"><button type="button" class="aktPs__kn is-on" data-nov-v="${esc(g.штрихкод)}">Переложить в неё</button>
           <button type="button" class="aktPs__kn" data-nov-pechat="1">Печать ШК</button></div>
-        ${window.ShkPechat ? `<label class="cNov__fmt">этикетка <select data-nov-format>${window.ShkPechat.formaty.map((x) => `<option${x === f ? " selected" : ""}>${x}</option>`).join("")}</select> мм</label>` : ""}</div>`;
+        ${window.ShkPechat ? `<label class="cNov__fmt">этикетка <select data-nov-format>${window.ShkPechat.formaty.map((x) => `<option${x === f ? " selected" : ""}>${x}</option>`).join("")}</select> мм</label>
+          <label class="cNov__fmt"><input type="checkbox" data-nov-pov${window.ShkPechat.povorot && window.ShkPechat.povorot(f) ? " checked" : ""}> печатает боком — повернуть</label>` : ""}</div>`;
     }
     const varianty = k.split("/").map((x) => x.trim()).filter(Boolean);
     return `${novP && novP.oshibka ? `<p class="aktPs__net"><b class="aktPs__oshibka">${esc(novP.oshibka)}</b></p>` : ""}
@@ -1006,6 +1008,18 @@
   let korzDb = null;         // ответ проверки заказа ДБ
   let korzDbKuda = "";
 
+  let korzAdr = false;   // массовый пик: адреса таблицей
+  let korzKop = "";      // «скопировано …»
+  function korzKopirovat(chto) {
+    const g = korzina.filter((x) => !x.zhdu && !x.oshibka);
+    const tekst = chto === "pal" ? g.map((x) => x.паллета).join("\n")
+      : chto === "adr" ? g.map((x) => x.ячейка || "").join("\n")
+      : ["паллета\tадрес\tшт"].concat(g.map((x) => `${x.паллета}\t${x.ячейка || ""}\t${x.штук}`)).join("\n");
+    const gotovo = () => { korzKop = `скопировано: ${g.length} строк`; risovat(); setTimeout(() => { korzKop = ""; risovat(); }, 2500); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(tekst).then(gotovo, () => { korzKop = "не скопировалось — выделите таблицу мышкой"; risovat(); });
+    else { korzKop = "не скопировалось — выделите таблицу мышкой"; risovat(); }
+  }
+
   async function vKorzinu(kod) {
     const kid = Number((String(kod).match(/(\d{6,12})\s*$/) || [])[1]);
     if (!kid) return;
@@ -1107,9 +1121,17 @@
         <button type="button" class="aktPs__kn" data-kz="ochistit"${korzIdet ? " disabled" : ""}>Очистить</button>
       </div>` : "";
     const log = korzLog.length ? `<div class="aktPs__nomera korzLog">${korzLog.slice(-14).map((x) => `<p>${x}</p>`).join("")}</div>` : "";
+    // 01.10 (Белитов: «адреса таблицей, чтобы копировать столбиком — облегчило бы поиск паллет на продажу»)
+    const gotovye = korzina.filter((x) => !x.zhdu && !x.oshibka);
+    const tablica = korzAdr && gotovye.length ? `<table class="korzTab"><thead><tr>
+        <th>паллета <button type="button" class="aLnk" data-kz-kop="pal">копировать</button></th>
+        <th>адрес <button type="button" class="aLnk" data-kz-kop="adr">копировать</button></th>
+        <th>шт</th></tr></thead><tbody>${gotovye.map((x) => `<tr><td>${esc(x.паллета)}</td><td>${esc(x.ячейка || "—")}</td><td>${x.штук}</td></tr>`).join("")}</tbody></table>` : "";
     const glav = `<header class="aktPs__shapka"><div><p class="aktPs__nad">Массовый пик · ${korzina.length} паллет</p>
         <p class="aktPs__rezhim">${sht} шт · без акта ${bez} · пикайте ещё или выберите действие</p></div></header>
-      ${korzina.length ? `<div class="palSpisok">${spisok}</div>` : '<p class="aktPs__chto">Список пуст — пикайте паллеты (CON …) или вставьте список.</p>'}`;
+      ${korzina.length ? `<div class="korzAdrKn"><button type="button" class="aktPs__kn${korzAdr ? " is-on" : ""}" data-kz-adr>адреса таблицей</button>
+        <button type="button" class="aktPs__kn" data-kz-kop="vse">копировать всё (в Excel)</button>${korzKop ? `<span class="aktPs__chto">${esc(korzKop)}</span>` : ""}</div>` : ""}
+      ${tablica || (korzina.length ? `<div class="palSpisok">${spisok}</div>` : '<p class="aktPs__chto">Список пуст — пикайте паллеты (CON …) или вставьте список.</p>')}`;
     if (!deyEl()) { box.innerHTML = glav + knopkiKorz + blok + log; return; }
     vyvesti(glav, `${shapkaDey("Массовый пик", `${korzina.length} паллет`, `<span class="cDey__pod">${sht} шт · без акта ${bez}</span>`)}
       ${plashkaVms()}${formaVms()}
@@ -1363,7 +1385,10 @@
     palPosledniy = g.dataset.pvyb;
   });
   naPaneli("change", (e) => {
-    if (e.target.matches && e.target.matches("[data-nov-format]") && window.ShkPechat) { window.ShkPechat.zadatFormat(e.target.value); return; }
+    if (e.target.matches && e.target.matches("[data-nov-format]") && window.ShkPechat) { window.ShkPechat.zadatFormat(e.target.value); risovat(); return; }
+    if (e.target.matches && e.target.matches("[data-nov-pov]") && window.ShkPechat && window.ShkPechat.zadatPovorot) {
+      window.ShkPechat.zadatPovorot(window.ShkPechat.format(), e.target.checked); return;
+    }
     const g = e.target.closest("[data-pvyb]");
     if (!g || !pal) return;
     if (!palVybor) palVybor = new Set(pal.строки.map((x) => x.ключ));
@@ -1612,6 +1637,9 @@
       }
       return;
     }
+    if (e.target.closest("[data-kz-adr]")) { korzAdr = !korzAdr; risovat(); return; }
+    const kop = e.target.closest("[data-kz-kop]");
+    if (kop) { korzKopirovat(kop.dataset.kzKop); return; }
     if (e.target.closest("[data-def-red]") && aktK) { defRed = { tekst: aktK.дефект || "" }; risovat(); document.querySelector("#aktDefForma textarea")?.focus(); return; }
     if (e.target.closest("[data-def-otmena]")) { defRed = null; risovat(); vFokus(); return; }
     if (e.target.closest("[data-akt-da]") && aktPer && aktPer.vopros) { aktVPalletu(aktPer.vopros.kod, true); return; }

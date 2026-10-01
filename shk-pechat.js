@@ -57,25 +57,35 @@
 
   const FORMATY = { "60x30": [60, 30], "70x50": [70, 50], "100x100": [100, 100] };
   const KLYUCH = "shk-format";
+  // 01.10 (Белитов: «60*30 боком печатает»): драйвер термопринтера держит ленту книжной —
+  // широкая этикетка уходит повёрнутой. Поворот запоминается на компьютере для каждого формата.
+  const KL_POV = "shk-povorot";
+  const povorot = (f) => { try { return (JSON.parse(localStorage.getItem(KL_POV) || "{}"))[f] === true; } catch (e) { return false; } };
+  const zadatPovorot = (f, da) => { try { const o = JSON.parse(localStorage.getItem(KL_POV) || "{}"); o[f] = !!da; localStorage.setItem(KL_POV, JSON.stringify(o)); } catch (e) { /* не страшно */ } };
   const format = () => { try { const f = localStorage.getItem(KLYUCH); return FORMATY[f] ? f : "70x50"; } catch (e) { return "70x50"; } };
   const zadatFormat = (f) => { if (FORMATY[f]) try { localStorage.setItem(KLYUCH, f); } catch (e) { /* не сохранилось — не страшно */ } };
 
-  function etiketka({ shk, imya, kategoriya }, f) {
+  function etiketka({ shk, imya, kategoriya }, f, pov = povorot(f)) {
     const [w, h] = FORMATY[f];
     const krupno = h >= 50;
+    const kv = h >= 100;
+    // Повёрнутая этикетка: страница — как лента в драйвере (h×w), сама этикетка развёрнута на 90°.
+    const [pw, ph] = pov ? [h, w] : [w, h];
+    const razmer = (x) => `${Math.round(x * 10) / 10}mm`;
     return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(imya || shk)}</title><style>
-      @page { size: ${w}mm ${h}mm; margin: 0 }
-      html, body { margin: 0; padding: 0 }
-      body { font-family: Arial, Helvetica, sans-serif; color: #000 }
-      .l { width: ${w}mm; height: ${h}mm; box-sizing: border-box; padding: ${krupno ? 3 : 1.5}mm ${krupno ? 4 : 2.5}mm;
-           display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; page-break-after: always }
-      .k { font-weight: 700; font-size: ${h >= 100 ? 11 : krupno ? 6 : 3.6}mm; line-height: 1.05; white-space: nowrap; overflow: hidden }
-      .b { flex: 1; margin: ${krupno ? 2 : 1}mm 0 }
+      @page { size: ${pw}mm ${ph}mm; margin: 0 }
+      html, body { margin: 0; padding: 0; width: ${pw}mm; height: ${ph}mm; overflow: hidden }
+      body { font-family: Arial, Helvetica, sans-serif; color: #000; -webkit-print-color-adjust: exact; print-color-adjust: exact; position: relative }
+      .l { width: ${w}mm; height: ${h}mm; box-sizing: border-box; padding: ${kv ? 5 : krupno ? 3 : 1.5}mm ${kv ? 5 : krupno ? 4 : 2.5}mm;
+           display: flex; flex-direction: column; justify-content: space-between; overflow: hidden;
+           ${pov ? `position: absolute; left: 0; top: 0; transform-origin: 0 0; transform: translate(${pw}mm, 0) rotate(90deg);` : ""} }
+      .k { font-weight: 700; font-size: ${kv ? 13 : krupno ? 6.5 : 4}mm; line-height: 1.05; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+      .b { flex: 1; min-height: 0; margin: ${kv ? 4 : krupno ? 2 : 1}mm 0 }
       .b svg { width: 100%; height: 100%; display: block }
-      .t { display: flex; justify-content: space-between; align-items: baseline; gap: 2mm; font-size: ${krupno ? 3 : 2.2}mm; line-height: 1.1; white-space: nowrap }
+      .t { display: flex; justify-content: space-between; align-items: baseline; gap: 2mm; font-size: ${kv ? 5 : krupno ? 3 : 2.2}mm; line-height: 1.1; white-space: nowrap }
       .t span { overflow: hidden; text-overflow: ellipsis; min-width: 0 }
-      .t b { font-family: "Courier New", monospace; font-size: ${krupno ? 3.8 : 2.8}mm }
-    </style></head><body><div class="l">
+      .t b { font-family: "Courier New", monospace; font-size: ${kv ? 7 : krupno ? 3.8 : 2.8}mm }
+    </style></head><body><div class="l" data-razmer="${razmer(w)}x${razmer(h)}">
       <div class="k">${esc(kategoriya || imya)}</div>
       <div class="b">${svg(shk, 40)}</div>
       <div class="t"><b>${esc(shk)}</b><span>${esc(imya)}</span></div>
@@ -95,5 +105,5 @@
     setTimeout(() => { fr.contentWindow.focus(); fr.contentWindow.print(); }, 150);
   }
 
-  window.ShkPechat = { svg, pechat, etiketka, formaty: Object.keys(FORMATY), format, zadatFormat };
+  window.ShkPechat = { svg, pechat, etiketka, formaty: Object.keys(FORMATY), format, zadatFormat, povorot, zadatPovorot };
 })();
