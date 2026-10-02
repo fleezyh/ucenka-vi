@@ -747,6 +747,22 @@
     </div>`;
   }
 
+  /* 02.10 Гамлет: «бывают товары которые не приняты, ещё в перемещении — в вмс в остатках не числятся,
+     и сотрудник этого не видит, когда пикает» — идёт к паллете и получает ошибку. Говорим сразу при пике акта. */
+  function nelzyaPerelozhit(a) {
+    if (!a.живьём) return "";
+    if (!a.где || !a.где.length) {
+      return `<div class="aktPs__gotovo is-oshibka"><b>В WMS эта штука сейчас не числится — переложить нельзя</b>
+        <span>ещё не принята, едет в перемещении — или уже продана, списана. Отложите её: когда примут, пикните акт снова.</span></div>`;
+    }
+    const zavis = a.где.find((g) => /завис|в пути/i.test(`${g.ячейка} ${g.зона || ""}`));
+    if (zavis) {
+      return `<div class="aktPs__gotovo is-oshibka"><b>По WMS штука ещё в «${esc(zavis.ячейка)}» — не принята на место</b>
+        <span>переложить можно только на паллету базы ${esc(zavis.база || "где она числится")}; на другую базу — сначала её должны принять там.</span></div>`;
+    }
+    return "";
+  }
+
   function risovatAkt() {
     const a = aktK;
     if (a.zhdu) { vyvesti('<p class="aktPs__chto">Смотрю акт в WMS…</p>', shapkaDey("Акт", "смотрю в WMS…")); return; }
@@ -774,13 +790,14 @@
           <span class="yachPalleta__imya">${esc(g.паллета || "без паллеты")}</span>
           <span>${esc(g.ячейка)}${g.зона ? ` <span class="yachPalleta__zak">· ${esc(g.зона)}</span>` : ""}${g.база ? ` <span class="yachPalleta__zak">· база ${esc(g.база)}</span>` : ""}</span>
           ${g.заказ ? `<span class="yachPalleta__zak">заказ ${esc(g.заказ)}</span>` : ""}
-        </button>`).join("")}</div>` : '<p class="aktPs__chto">На складе этой штуки уже нет — продана, списана или уехала.</p>'}
-      ${panel ? "" : (est ? blokAktPer(a) : "") + vWms + otkuda}`;
+        </button>`).join("")}</div>` : '<p class="aktPs__chto">По WMS штука нигде не числится — не принята, в перемещении, продана или списана.</p>'}
+      ${panel ? "" : nelzyaPerelozhit(a) + (est ? blokAktPer(a) : "") + vWms + otkuda}`;
     if (!panel) { box.innerHTML = glav; return; }
     vyvesti(glavAkta(a), `${shapkaDey("Акт", "№" + a.акт, a.особый ? `<span class="cDey__osob">${esc(a.особый)}</span>` : "")}
       ${plashkaVms()}${formaVms()}
       ${shagiAkta(a)}
       ${kat}
+      ${nelzyaPerelozhit(a)}
       ${est ? blokAktPer(a, true) : ""}
       <div class="cDey__niz">${vWms}</div>
       ${otkuda}`);
