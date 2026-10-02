@@ -1299,22 +1299,22 @@
     const n = RESHENIYA().length;
     const kolonok = n <= 5 ? n : 4;
     const gotovKnopka = defekt && krit && (!boevoy || vhod());
+    // надпись готовой кнопки: с решением — «Заактировать», без решения или решение без акта — по-своему
+    const nadpisAkta = r ? (r.акт ? "Заактировать" : "Всё равно заактировать") : "Заактировать без решения";
     const aktBlok = (zag) => `
         <p class="aktPs__zag">${zag}</p>
         <div class="aktPs__krit">${KRIT.map((x) => `<button type="button" class="aktPs__kn${x.k === krit ? " is-on" : ""}" data-krit="${x.k}">${x.имя}</button>`).join("")}</div>
         <p class="aktPs__zag">Дефект</p>
         <div class="aktPs__defekty">${DEFEKTY.map((d) => `<button type="button" class="aktPs__kn aktPs__kn--def${d.k === defekt && !svoyDefekt ? " is-on" : ""}" data-def="${esc(d.k)}">${esc(d.имя)}</button>`).join("")}</div>
-        <input class="aktPs__svoy" id="aktSvoy" maxlength="80" autocomplete="off" placeholder="или свой дефект" value="${esc(svoyDefekt)}">
-        <button type="button" class="aktPs__akt" id="aktPsGo"${gotovKnopka ? "" : " disabled"}>${gotovKnopka ? "Заактировать" : !krit ? "Выберите крит или косм" : !defekt ? "Выберите дефект" : "Войдите в WMS"}</button>
+        <input class="aktPs__svoy" id="aktSvoy" maxlength="80" autocomplete="off" placeholder="или свой дефект — напишите" value="${esc(svoyDefekt)}">
+        <button type="button" class="aktPs__akt" id="aktPsGo" data-gotov="${esc(nadpisAkta)}"${gotovKnopka ? "" : " disabled"}>${gotovKnopka ? esc(nadpisAkta) : !krit ? "Выберите крит или косм" : !defekt ? "Выберите дефект" : "Войдите в WMS"}</button>
         <p class="aktPs__chto">Внутренний брак · качество брак · «мех. повреждения, ${esc(defekt || "…")}${krit ? ", " + krit : ""}» · ${esc(stol.имя)}${r ? ` → ${esc(r.куда)}` : ""} · комплектность полная</p>
         ${oshibkaAkta ? `<p class="aktPs__net"><b class="aktPs__oshibka">Акт не создан:</b> ${esc(oshibkaAkta)}</p>` : ""}`;
-    const knopkaVsyo = (t) => `<button type="button" class="aktPs__kn aktVsyo" data-akt-vsyo="1">${t}</button>`;
     vyvestiTovar(`${shapka}
       <p class="aktPs__zag">Решение</p>
       <div class="aktPs__resheniya" style="grid-template-columns:repeat(${kolonok},minmax(0,1fr))">${RESHENIYA().map((x) => `<button type="button" class="aktPs__kn${String(x.id) === String(reshenie) ? " is-on" : ""}" data-resh="${x.id}" title="${esc(x.куда)}">${esc(x.имя)}</button>`).join("")}</div>
-      ${!r ? (aktVsyo ? aktBlok("Акт без решения · крит или косм") : knopkaVsyo("Заактировать без решения"))
-        : !r.акт ? `<p class="aktPs__net">«${esc(r.имя)}» — обычно без акта.</p>${aktVsyo ? aktBlok("Акт всё равно · крит или косм") : knopkaVsyo("Всё равно заактировать")}${blokPalety()}`
-        : aktBlok("Крит или косм")}`);
+      ${r && !r.акт ? `<p class="aktPs__net">«${esc(r.имя)}» — обычно без акта: сразу на паллету ниже, а нужен акт — выберите дефект.</p>${blokPalety()}` : ""}
+      ${aktBlok(r ? "Крит или косм" : "Крит или косм · решение можно не выбирать")}`);
   }
   function vyvestiTovar(deystviya) {
     if (!deyEl()) { box.innerHTML = deystviya + blokGde() + blokAktyTovara(); return; }
@@ -1465,7 +1465,7 @@
       vPanelyah("[data-def]").forEach((b) => b.classList.toggle("is-on", !svoyDefekt && b.dataset.def === defekt));
       const kn = document.getElementById("aktPsGo");
       const gotov = defekt && krit && (!boevoy || vhod());
-      if (kn) { kn.disabled = !gotov; kn.textContent = gotov ? "Заактировать" : !krit ? "Выберите крит или косм" : !defekt ? "Выберите дефект" : "Войдите в WMS"; }
+      if (kn) { kn.disabled = !gotov; kn.textContent = gotov ? (kn.dataset.gotov || "Заактировать") : !krit ? "Выберите крит или косм" : !defekt ? "Выберите дефект" : "Войдите в WMS"; }
     }
   });
 
@@ -1607,7 +1607,7 @@
     }
     const r = e.target.closest("[data-resh]");
     if (r) {
-      reshenie = r.dataset.resh; defekt = ""; krit = ""; oshibkaAkta = ""; perItog = null; aktVsyo = false;
+      reshenie = r.dataset.resh; oshibkaAkta = ""; perItog = null; aktVsyo = false;
       const ish = RESHENIYA().find((x) => String(x.id) === String(reshenie));
       zhdemPalletu = ish && !ish.акт ? { ishod: ish, akt: null } : null;
       return risovat();
