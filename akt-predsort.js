@@ -1187,6 +1187,73 @@
       <div class="aktPs__vopros"><button type="button" class="aktPs__kn" data-ka-ochistit>Очистить акты</button></div></div>`;
   }
 
+  /* 02.10 (Белитов: «приём контейнеров в пикалку для массового приёма в ДНЛ»): режим «Принять» у
+     списка паллет — сайт по каждой узнаёт плановую ячейку приёма (как ТСД «Принять контейнер»),
+     потом пик ячейки — принимает все, что запланированы в неё. */
+  const PRIYOM_MARSHRUTY = ["ДМД→ДНЛ", "СЦ-ДМД→ДМД", "ДМД→СЦ-ДМД"];
+  let priyom = null;     // { marshrut, plany: {id: {план, ошибка}}, idet, itogi }
+  async function priyomProverit() {
+    const m = priyom.marshrut;
+    priyom.plany = {}; risovat();
+    let i = 0;
+    const spisok = korzina.filter((x) => !x.zhdu);
+    const potok = async () => {
+      while (i < spisok.length) {
+        const x = spisok[i++];
+        try {
+          const d = await chitat(`/__wms/priyom/proverit?kod=${encodeURIComponent(`CON ${String(x.id).padStart(10, "0")}`)}&marshrut=${encodeURIComponent(m)}`);
+          if (priyom && priyom.marshrut === m) priyom.plany[x.id] = d;
+        } catch (e) {
+          if (priyom && priyom.marshrut === m) priyom.plany[x.id] = { ошибка: e.message || String(e) };
+        }
+        risovat();
+      }
+    };
+    await Promise.all([potok(), potok(), potok()]);
+  }
+  async function priyomYacheyka(kodYach) {
+    if (!priyom || priyom.idet) return;
+    if (!vms.подключено) { formaVhoda = true; oshibkaVhoda = "войдите в WMS, потом пикните ячейку ещё раз"; risovat(); return; }
+    const zhdut = korzina.filter((x) => priyom.plany[x.id] && !priyom.plany[x.id].ошибка && !priyom.plany[x.id].готово);
+    if (!zhdut.length) { signal("в списке нет паллет, которые ждут приёма"); return; }
+    priyom.idet = true; risovat();
+    try {
+      const o = await fetch("/__wms/priyom", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ паллеты: zhdut.map((x) => `CON ${String(x.id).padStart(10, "0")}`), ячейка: kodYach, маршрут: priyom.marshrut, сохранить: true }) });
+      const d = await o.json().catch(() => ({}));
+      if (d.нужен_вход) { vms = { подключено: false }; formaVhoda = true; oshibkaVhoda = "войдите в WMS, потом пикните ячейку ещё раз"; }
+      else if (!o.ok) throw new Error(d.ошибка || `сервер ответил ${o.status}`);
+      for (const r of d.итоги || []) {
+        const x = korzina.find((k) => k.id === r.id);
+        if (!x) continue;
+        if (r.готово) priyom.plany[x.id] = { ...priyom.plany[x.id], готово: true, ячейка: r.ячейка };
+        else if (/не соответствует запланированной/i.test(r.ошибка || "")) priyom.plany[x.id] = { ...priyom.plany[x.id], другая: true };
+        else priyom.plany[x.id] = { ...priyom.plany[x.id], ошибка: r.ошибка };
+      }
+      priyom.itog = `принято ${d.принято || 0} из ${zhdut.length}`;
+      if (navigator.vibrate) navigator.vibrate(120);
+    } catch (e) {
+      priyom.itog = e.message || String(e);
+    }
+    priyom.idet = false; risovat();
+  }
+  function blokPriyoma() {
+    if (!priyom) return "";
+    const p = priyom;
+    const gotovo = korzina.filter((x) => p.plany[x.id] && p.plany[x.id].готово).length;
+    const gruppy = {};
+    for (const x of korzina) {
+      const q = p.plany[x.id];
+      const kl = !q ? "…проверяю" : q.готово ? "✓ принято" : q.ошибка ? "не ждёт приёма" : (q.план || "ячейка не названа");
+      (gruppy[kl] = gruppy[kl] || []).push({ x, q });
+    }
+    return `<div class="aktPs__palleta palPer"><p class="aktPs__zag">Принять паллеты · ${esc(p.marshrut)}${gotovo ? ` · принято ${gotovo}` : ""}</p>
+      <div class="aktPs__krit">${PRIYOM_MARSHRUTY.map((m) => `<button type="button" class="aktPs__kn${m === p.marshrut ? " is-on" : ""}" data-pr-marshrut="${esc(m)}"${p.idet ? " disabled" : ""}>${esc(m)}</button>`).join("")}</div>
+      ${Object.entries(gruppy).map(([kl, ryad]) => `<p class="aktPs__chto"><b>${esc(kl)}</b> — ${ryad.length}: ${ryad.map(({ x, q }) => `${esc(x.паллета)}${q && q.ошибка ? ` (${esc(q.ошибка)})` : q && q.другая ? " (другая ячейка)" : ""}`).join(", ")}</p>`).join("")}
+      <p class="aktPs__podskaz">${p.idet ? "Принимаю — паллета за паллетой…" : "Поставьте паллеты в ячейку приёма и пикните её (CEL …) — примутся все, что запланированы в неё."}</p>
+      ${p.itog ? `<p class="aktPs__chto">${esc(p.itog)}</p>` : ""}</div>`;
+  }
+
   let korzAdr = false;   // массовый пик: адреса таблицей
   let korzKop = "";      // «скопировано …»
   function korzKopirovat(chto) {
@@ -1307,6 +1374,7 @@
         <button type="button" class="aktPs__kn${korzRezhim === "akt" ? " is-on" : ""}" data-kz="akt"${bez && !korzIdet ? "" : " disabled"}>Заактировать без акта</button>
         <button type="button" class="aktPs__kn${korzRezhim === "per" ? " is-on" : ""}" data-kz="per"${korzIdet ? " disabled" : ""}>Переместить в ячейку</button>
         <button type="button" class="aktPs__kn${korzRezhim === "db" ? " is-on" : ""}" data-kz="db"${korzIdet || korzina.length > 10 ? " disabled" : ""}>На другой склад</button>
+        <button type="button" class="aktPs__kn${korzRezhim === "priyom" ? " is-on" : ""}" data-kz="priyom"${korzIdet ? " disabled" : ""}>Принять</button>
         <button type="button" class="aktPs__kn" data-kz="ochistit"${korzIdet ? " disabled" : ""}>Очистить</button>
       </div>` : "";
     const log = korzLog.length ? `<div class="aktPs__nomera korzLog">${korzLog.slice(-14).map((x) => `<p>${x}</p>`).join("")}</div>` : "";
@@ -1322,7 +1390,7 @@
         <button type="button" class="aktPs__kn" data-kz-kop="vse">копировать всё (в Excel)</button>${korzKop ? `<span class="aktPs__chto">${esc(korzKop)}</span>` : ""}</div>` : ""}
       ${tablica || (korzina.length ? `<div class="palSpisok">${spisok}</div>` : korzAkty.length ? "" : '<p class="aktPs__chto">Список пуст — пикайте паллеты (CON …), акты (ACT …) или вставьте список.</p>')}
       ${blokAktySpisok()}`;
-    const akty = blokAktyKuda();
+    const akty = blokAktyKuda() + (korzRezhim === "priyom" ? blokPriyoma() : "");
     if (!deyEl()) { box.innerHTML = glav + knopkiKorz + blok + akty + log; return; }
     vyvesti(glav, `${shapkaDey("Массовый пик", `${korzina.length} паллет${korzAkty.length ? ` · ${korzAkty.length} актов` : ""}`, `<span class="cDey__pod">${sht} шт · без акта ${bez}</span>`)}
       ${plashkaVms()}${formaVms()}
@@ -1543,6 +1611,7 @@
     vyborStola = false;
     // ТСД (30.09, экран под телефон): ячейка — только в «брак в ячейке», без её содержимого.
     if (podTsd) { document.dispatchEvent(new CustomEvent("wms:yacheyka", { detail: { kod: e.detail.kod } })); return; }
+    if (massPik && korzRezhim === "priyom" && priyom) { priyomYacheyka(e.detail.kod); return; }
     if (massPik && korzAkty.length && !korzina.length) {
       // ячейка: сама цель или место для паллеты, которая ещё нигде не стоит
       const p = aktyKuda && aktyKuda.oshibka && /нигде не стоит/.test(aktyKuda.oshibka) ? aktyKuda.palleta : "";
@@ -1895,8 +1964,11 @@
       korzRezhim = korzRezhim === r ? "" : r;
       if (korzRezhim === "per") korzPer = null;
       if (korzRezhim === "db") { korzDbKuda = ""; korzProveritDb(); }
+      if (korzRezhim === "priyom") { priyom = { marshrut: (priyom && priyom.marshrut) || "ДМД→ДНЛ", plany: {} }; priyomProverit(); } else priyom = null;
       return risovat();
     }
+    const prm = e.target.closest("[data-pr-marshrut]");
+    if (prm && priyom && !priyom.idet) { priyom = { marshrut: prm.dataset.prMarshrut, plany: {} }; priyomProverit(); return risovat(); }
     const kar = e.target.closest("[data-ka-ryadom]");
     if (kar) { aktyRyadom(Number(kar.dataset.kaRyadom)); return; }
     const kau = e.target.closest("[data-ka-ubrat]");
