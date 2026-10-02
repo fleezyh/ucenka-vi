@@ -340,3 +340,6 @@ body.aTsd .aktOp dd { margin-bottom: 6px; }
 
 .aktDef .aLnk { justify-self: start; margin-top: 2px; }
 .aktDef--red textarea { width: 100%; box-sizing: border-box; min-height: 74px; padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(185,162,255,.45); background: rgba(255,255,255,.04); color: var(--text); font: inherit; font-size: 16px; resize: vertical; }
+
+/* 02.10: список актов массового пика — четыре колонки: акт и товар, категория, действие, убрать */
+.korzAkty .palStroka { grid-template-columns: minmax(0, 1fr) auto auto auto; }

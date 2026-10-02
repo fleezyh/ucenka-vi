@@ -456,6 +456,7 @@
         </form>` : "";
       telo = `<p class="aktPs__podskaz">${esc(d.паллета)} · ${esc(d.откуда)}${d.куда ? ` → <b>${esc(d.база_куда)}</b> · через «${esc(d.ячейка_отгрузки)}» · поток ${esc(d.поток)}` : " — куда везём?"}</p>
         ${marshruty}
+        ${d.разорвана ? `<p class="aktPs__podskaz">Паллета разорвана: ${d.разорвана.уже_на_месте} шт уже на ${esc(d.разорвана.где)} — их не трогаю, везу остаток ${d.разорвана.остаток} шт с ${esc(d.разорвана.откуда)}.</p>` : ""}
         <p class="aktPs__chto">${d.паллет > 1 ? `${d.паллет} паллет · ` : ""}${d.строк} строк · ${d.штук} шт${kach ? ` · ${kach}` : ""}${d.уже_в_заказе ? ` · ${d.уже_в_заказе} строк уже в заказе — пропущены` : ""}</p>
         ${oshibki ? `<p class="aktPs__net"><b class="aktPs__oshibka">WMS не примет: ${esc(oshibki)}</b></p>` : ""}
         ${nbSpisok}${nbForma}
@@ -1090,6 +1091,7 @@
       const d = await chitat(`/__vms/akt?kod=${encodeURIComponent(`ACT ${String(akt).padStart(10, "0")}`)}`);
       const g = (d.где || [])[0] || {};
       Object.assign(z, { товар: d.товар || "", ячейка: g.ячейка || "", паллета: g.паллета || "", zhdu: false,
+        категория: d.категория || "", спорно: !!d.спорно, product_id: d.product_id,
         oshibka: (d.где || []).length ? "" : "на складе этой штуки нет" });
     } catch (e) {
       Object.assign(z, { zhdu: false, oshibka: e.message || String(e) });
@@ -1099,12 +1101,14 @@
   }
   async function aktyRyadom(akt) {
     signal("ищу такие же акты рядом…");
+    const obrazec = korzAkty.find((k) => k.akt === akt) || {};
     try {
       const d = await chitat(`/__akt/akty_ryadom?kod=${encodeURIComponent(`ACT ${String(akt).padStart(10, "0")}`)}`);
       let novyh = 0;
       for (const x of d.акты || []) {
         if (korzAkty.some((k) => k.akt === x.акт)) continue;
-        korzAkty.push({ kod: x.наклейка, akt: x.акт, товар: x.товар, ячейка: x.ячейка, паллета: x.паллета, zhdu: false });
+        korzAkty.push({ kod: x.наклейка, akt: x.акт, товар: x.товар, ячейка: x.ячейка, паллета: x.паллета, zhdu: false,
+          категория: obrazec.категория || "", спорно: !!obrazec.спорно });
         novyh++;
       }
       aktyKuda = null;
@@ -1152,11 +1156,15 @@
       if (pervyy) gruppy.add(kl);
       return `<div class="palStroka${x.oshibka ? " is-bez" : ""}">
         <span class="palStroka__tovar">ACT ${x.akt} · ${esc(x.товар || "…")}${x.паллета || x.ячейка ? ` <i class="palStroka__kach">${esc(x.паллета || x.ячейка)}</i>` : ""}</span>
+        <span class="palStroka__kat">${x.категория ? `<b>${esc(x.категория)}</b>${x.спорно ? ' <span class="aTag aTag--spor">спорно</span>' : ""}` : x.zhdu ? "" : '<i class="palStroka__nokat">категория —</i>'}</span>
         <span class="palStroka__sht">${x.zhdu ? "…" : x.oshibka ? `<b class="aktPs__oshibka">${esc(x.oshibka)}</b>` : pervyy ? `<button type="button" class="aLnk" data-ka-ryadom="${x.akt}">+ такие же отсюда</button>` : ""}</span>
         <span class="palStroka__akt"><button type="button" class="korzX" data-ka-ubrat="${x.akt}" title="Убрать из списка">×</button></span>
       </div>`;
     }).join("");
-    return `<p class="aktPs__zag">Акты · ${korzAkty.length}</p><div class="palSpisok">${stroki}</div>`;
+    const poKat = {};
+    korzAkty.forEach((x) => { if (x.категория) poKat[x.категория] = (poKat[x.категория] || 0) + 1; });
+    const svod = Object.entries(poKat).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${esc(k)} — ${n}`).join(" · ");
+    return `<p class="aktPs__zag">Акты · ${korzAkty.length}</p>${svod ? `<p class="aktPs__chto">${svod}</p>` : ""}<div class="palSpisok korzAkty">${stroki}</div>`;
   }
   function blokAktyKuda() {
     if (!korzAkty.length) return "";
