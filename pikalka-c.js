@@ -232,7 +232,9 @@
     const tekst = (e.clipboardData || window.clipboardData)?.getData("text") || "";
     const stroki = tekst.split(/[\r\n]+/).map((x) => x.trim()).filter(Boolean);
     const kuski = tekst.split(/[\r\n,;\t]+/).map((x) => x.trim()).filter(Boolean);
-    if (kuski.length >= 2 && kuski.every((x) => PALLETA.test(x))) {
+    // 02.10: столбик наклеек актов — тоже в массовый пик (список актов, одно перемещение).
+    const lat = (x) => (window.latinica || String)(x);
+    if (kuski.length >= 2 && (kuski.every((x) => PALLETA.test(x)) || kuski.every((x) => /^(ACT|АКТ)\s?\d{5,12}$/i.test(lat(x))))) {
       e.preventDefault(); e.stopImmediatePropagation();
       const otdat = () => document.dispatchEvent(new CustomEvent("wms:vstavka", { detail: tekst }));
       if (vklWms) otdat(); else { vklyuchitWms(true); setTimeout(otdat, 60); }
