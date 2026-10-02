@@ -673,14 +673,39 @@
     chitat("/__akt/stoly").then((d) => { stolyVse = d; }).catch((err) => { stolyVse = { oshibka: err.message || String(err) }; })
       .finally(() => { if (tovar) risovat(); });
   }
+  // 02.10: столы группами (предсорт, уценка, отгрузка, СЦ-ДМД), по номерам; над ними поле — пикнуть
+  // наклейку стола (CEL …) или набрать «А1», «12»: список сужается, Enter выбирает.
+  const imyaStola = (x) => String(x.имя || "").replace(/^ФБ \(ДМД\) /, "");
+  function gruppaStola(x) {
+    const n = String(x.имя || "");
+    if (x.тип === "предсорт" || /предсорт/i.test(n)) return "Предсорт";
+    if (x.тип === "отгрузка") return "Отгрузка";
+    if (/^СЦ-ДМД/i.test(n)) return "Уценка СЦ-ДМД";
+    return "Уценка ДМД";
+  }
   function blokStolov() {
     zagruzitStoly();
     const spisok = Array.isArray(stolyVse) ? stolyVse : [];
+    const gruppy = {};
+    for (const x of spisok) (gruppy[gruppaStola(x)] = gruppy[gruppaStola(x)] || []).push(x);
+    const knopka = (x) => `<button type="button" class="aktPs__kn${stol && String(stol.id) === String(x.id) ? " is-on" : ""}" data-vybrat-stol="${esc(x.id)}" data-stol-imya="${esc(imyaStola(x).toLowerCase())}">${esc(imyaStola(x))}<small>${(x.исходы || []).length} реш.</small></button>`;
+    const bloki = ["Предсорт", "Уценка ДМД", "Отгрузка", "Уценка СЦ-ДМД"].filter((g) => gruppy[g]).map((g) =>
+      `<div class="vmsStoly__gr" data-stol-gr><p class="aktPs__nad">${g}</p><div class="aktPs__resheniya vmsStoly">${gruppy[g]
+        .sort((a, b) => imyaStola(a).localeCompare(imyaStola(b), "ru", { numeric: true })).map(knopka).join("")}</div></div>`).join("");
     return `<p class="aktPs__zag">Заактировать — выберите стол</p>
-      <p class="aktPs__chto">Решения (утиль, ДВК, категории уценки) у каждого стола свои. На складе стол выбирают наклейкой CEL, здесь — кнопкой.</p>
+      <form class="aktPs__vhod" id="stolForma" autocomplete="off">
+        <input name="kod" id="stolPoisk" placeholder="пикните наклейку стола или наберите: А1, 12…" inputmode="text">
+        <button class="aktPs__kn is-on" type="submit">Выбрать</button>
+      </form>
       ${stolyVse && stolyVse.zhdu ? '<p class="aktPs__chto">Загружаю столы…</p>' : ""}
       ${stolyVse && stolyVse.oshibka ? `<p class="aktPs__net"><b class="aktPs__oshibka">${esc(stolyVse.oshibka)}</b></p>` : ""}
-      <div class="aktPs__resheniya vmsStoly">${spisok.map((x) => `<button type="button" class="aktPs__kn${stol && String(stol.id) === String(x.id) ? " is-on" : ""}" data-vybrat-stol="${esc(x.id)}">${esc(String(x.имя || "").replace(/^ФБ \(ДМД\) /, ""))}<small>${(x.исходы || []).length} реш.</small></button>`).join("")}</div>`;
+      ${oshibkaStola ? `<p class="aktPs__net"><b class="aktPs__oshibka">${esc(oshibkaStola)}</b></p>` : ""}
+      ${bloki}`;
+  }
+  function postavitStol(d) {
+    stol = d; vyborStola = false; reshenie = ""; defekt = ""; krit = ""; gotovo = null; oshibkaStola = "";
+    localStorage.setItem(KLYUCH_STOLA, JSON.stringify({ день: segodnya(), стол: d }));
+    risovat();
   }
   function blokAktyTovara() {
     if (!tovar || !aktyT) return "";
@@ -1469,7 +1494,42 @@
     }
   });
 
+  naPaneli("input", (e) => {
+    if (e.target.id !== "stolPoisk") return;
+    const q = e.target.value.trim().toLowerCase();
+    // display, а не hidden: у кнопок свой display, атрибут hidden им не указ
+    vPanelyah("[data-stol-imya]").forEach((b) => { b.style.display = q && !b.dataset.stolImya.includes(q) ? "none" : ""; });
+    vPanelyah("[data-stol-gr]").forEach((g) => {
+      g.style.display = [...g.querySelectorAll("[data-stol-imya]")].some((b) => b.style.display !== "none") ? "" : "none";
+    });
+  });
+
   naPaneli("submit", async (e) => {
+    if (e.target.id === "stolForma") {
+      e.preventDefault();
+      // раскладку переводим только для наклейки (СУД → CEL); «А1» по-русски так и ищем
+      const vvod = e.target.kod.value.trim();
+      const spisok = Array.isArray(stolyVse) ? stolyVse : [];
+      const kod = (window.latinica || String)(vvod).match(/^(?:CEL)?\s*0*(\d{5,10})$/i);
+      if (kod) {
+        const est = spisok.find((x) => String(x.id) === kod[1]);
+        if (est) { postavitStol(est); return; }
+        try {
+          const otvet = await fetch(`/__akt/stol?kod=${encodeURIComponent(kod[1])}`, { cache: "no-store" });
+          const d = await otvet.json().catch(() => ({}));
+          if (!otvet.ok) throw new Error(otvet.status === 404 ? "это не стол — такой наклейки нет среди столов" : d.ошибка || "стол не найден");
+          postavitStol(d);
+        } catch (oshibka) { oshibkaStola = oshibka.message || String(oshibka); risovat(); }
+        return;
+      }
+      const q = vvod.toLowerCase();
+      const vidno = spisok.filter((x) => imyaStola(x).toLowerCase().includes(q));
+      const tochno = vidno.filter((x) => new RegExp(`(^|\\s)${q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(\\s|$)`).test(imyaStola(x).toLowerCase()));
+      const vybor = vidno.length === 1 ? vidno[0] : tochno.length === 1 ? tochno[0] : null;
+      if (vybor) postavitStol(vybor);
+      else { oshibkaStola = vidno.length ? `под «${vvod}» ${vidno.length} столов — уточните` : `стола «${vvod}» нет`; risovat(); }
+      return;
+    }
     if (e.target.id === "palNbForma") {
       e.preventDefault();
       const kod = (window.latinica || String)(e.target.kod.value.trim());   // 01.10: сканер в русской раскладке (СЩТ → CON)
@@ -1623,10 +1683,7 @@
     const vs = e.target.closest("[data-vybrat-stol]");
     if (vs && Array.isArray(stolyVse)) {
       const d = stolyVse.find((x) => String(x.id) === vs.dataset.vybratStol);
-      if (d) {
-        stol = d; vyborStola = false; reshenie = ""; defekt = ""; krit = ""; gotovo = null; oshibkaStola = "";
-        localStorage.setItem(KLYUCH_STOLA, JSON.stringify({ день: segodnya(), стол: d }));
-      }
+      if (d) postavitStol(d);
       return risovat();
     }
     if (e.target.closest("[data-smenit-stol]")) { vyborStola = true; return risovat(); }
