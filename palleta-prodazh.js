@@ -56,7 +56,23 @@
   };
 
   /** rubrika — рубрика витрины или каталога, klaster — «1»…«4» или подпись кластера. */
-  window.PalletaProdazh = function (rubrika, klaster, cena, imya) {
+  window.PalletaProdazh = function (rubrika, klaster, cena, imya, krit) {
+    // 02.10: «маркетплейс — товар дороже 10к и с минимальными повреждениями». Косм — туда; крит — по рубрике;
+    // не знаем — оба варианта.
+    const c0 = Number(String(cena == null ? "" : cena).replace(/\s/g, "").replace(",", "."));
+    const p0 = poRubrike(rubrika, klaster, cena, imya);
+    if (c0 >= 10000 && !(p0 && /^(АКБ|МисБокс)/.test(p0.imya))) {
+      const kk = String(krit || "").toLowerCase();
+      if (/косм/.test(kk)) return { imya: "Маркетплейс", sporno: false, pochemu: "дороже 10 000 ₽, повреждения минимальные" };
+      if (!/крит/.test(kk)) {
+        const ost = p0 && !/^нет своей/.test(p0.imya) ? p0.imya : "";
+        return { imya: ost ? `Маркетплейс / ${ost}` : "Маркетплейс", sporno: true,
+          pochemu: `дороже 10 000 ₽: повреждения минимальные — Маркетплейс${ost ? `, иначе — ${ost}` : ""}` };
+      }
+    }
+    return p0;
+  };
+  function poRubrike(rubrika, klaster, cena, imya) {
     // 30.09: «все аккумуляторы, даже если это расходный материал, идут в аккумуляторы».
     const t = String(imya || "").trim();
     const r0 = KATALOG[String(rubrika || "").trim()] || String(rubrika || "").trim();
@@ -74,5 +90,5 @@
     if (TOCHNO[r]) return { imya: TOCHNO[r], sporno: false, pochemu: "" };
     if (SPORNO[r]) return { imya: SPORNO[r].imya, sporno: false, pochemu: SPORNO[r].pochemu };
     return r ? { imya: "нет своей паллеты", sporno: true, pochemu: `для рубрики «${r}» паллеты в ДМД не нашлось` } : null;
-  };
+  }
 })();

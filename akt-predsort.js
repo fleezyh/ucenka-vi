@@ -194,7 +194,7 @@
         </div>
       </div>`;
     }
-    const katT = tovar && window.PalletaProdazh ? (window.PalletaProdazh(tovar.rubric, tovar.cluster, tovar.rrc, tovar.name) || {}).imya : "";
+    const katT = tovar && window.PalletaProdazh ? (window.PalletaProdazh(tovar.rubric, tovar.cluster, tovar.rrc, tovar.name, krit) || {}).imya : "";
     return `<div class="aktPs__palleta">
       <p class="aktPs__zag">Куда положили</p>
       <p class="aktPs__podskaz">${perIdet ? "Создаю перемещение…" : `Пикните наклейку паллеты в «${esc(zhdemPalletu.ishod.куда)}» (CON …)`}</p>
