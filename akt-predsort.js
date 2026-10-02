@@ -732,7 +732,7 @@
   }
 
   async function otkrytAkt(kod) {
-    aktK = { zhdu: true }; aktPer = null; defRed = null; novP = null; pal = null; yach = null; tovar = null; vRezhimPalety(true); risovat();
+    aktK = { zhdu: true }; aktPer = null; vtisZ = null; defRed = null; novP = null; pal = null; yach = null; tovar = null; vRezhimPalety(true); risovat();
     try { aktK = await chitat(`/__vms/akt?kod=${encodeURIComponent(kod)}`); } catch (e) { aktK = { oshibka: e.message || String(e) }; }
     risovat();
   }
@@ -900,11 +900,52 @@
   }
 
   /* 30.09: скан акта → категория → пик паллеты — штука с актом едет в эту паллету (живьём). */
-  let aktPer = null;   // null | { idet } | { vopros: { kod, tekst } } | { itog: { ok, zag, tekst } }
+  let aktPer = null;   // null | { idet } | { vopros: { kod, tekst } } | { itog: { ok, zag, tekst, zakaz } }
+  /* 02.10: штуку с СЦ держит чужой заказ — удалить его во ВТИС, как Гамлет руками; резерв в ВМС
+     снимает робот wtis. Номер сервер берёт из резерва самой штуки. */
+  let vtisZ = null;    // null | { zhdu } | { idet } | { oshibka } | ответ /__akt/vtis_zakaz
+  function blokVtis(r) {
+    if (r.ok || !r.zakaz) return "";
+    if (!vtisZ) return `<button type="button" class="aktPs__kn" data-vtis="pokazat">Удалить заказ ${esc(r.zakaz)} во ВТИС…</button>`;
+    if (vtisZ.zhdu) return '<p class="aktPs__chto">Открываю заказ во ВТИС…</p>';
+    if (vtisZ.idet) return '<p class="aktPs__chto">Удаляю заказ во ВТИС и жду, пока ВМС снимет резерв — до полуминуты…</p>';
+    if (vtisZ.oshibka) return `<p class="aktPs__net"><b class="aktPs__oshibka">${esc(vtisZ.oshibka)}</b></p>`;
+    const z = vtisZ.заказ;
+    if (vtisZ.готово) {
+      return `<div class="aktPs__gotovo"><b>Заказ ${esc(z.номер)} удалён во ВТИС</b><span>${vtisZ.резерв_снят
+        ? "резерв в ВМС снят — пикните паллету снова" : "ВМС ещё не сняла резерв — подождите минуту и пикните паллету снова"}</span></div>`;
+    }
+    return `<div class="aktPs__palleta aktPs__palleta--vopros"><p class="aktPs__zag">Удалить заказ ${esc(z.номер)} во ВТИС?</p>
+      <p class="aktPs__podskaz">от ${esc(z.дата)} · ${esc(z.статус)}${z.создал ? ` · создал ${esc(z.создал)}` : ""}</p>
+      ${z.примечание ? `<p class="aktPs__podskaz">«${esc(z.примечание)}»</p>` : ""}
+      <p class="aktPs__podskaz">Заказ держит ${esc(z.товар)} (акт ${esc(String(z.акт))}). Удаление не отменить.</p>
+      <div class="aktPs__vopros"><button type="button" class="aktPs__kn is-on" data-vtis="da">Удалить заказ</button>
+        <button type="button" class="aktPs__kn" data-vtis="net">Не надо</button></div></div>`;
+  }
+  async function vtisZakaz(chto) {
+    if (chto === "net") { vtisZ = null; risovat(); vFokus(); return; }
+    if (!aktK || (vtisZ && (vtisZ.zhdu || vtisZ.idet))) return;
+    const sohr = chto === "da";
+    vtisZ = sohr ? { idet: true } : { zhdu: true }; risovat();
+    try {
+      const o = await fetch("/__akt/vtis_zakaz", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ акт: aktK.наклейка || String(aktK.акт), сохранить: sohr }),
+      });
+      const d = await o.json().catch(() => ({}));
+      if (!o.ok) throw new Error(d.ошибка || `сервер ответил ${o.status}`);
+      vtisZ = d;
+      if (d.готово && d.резерв_снят) aktK.где = (aktK.где || []).map((x) => ({ ...x, заказ: "" }));
+    } catch (e) {
+      vtisZ = { oshibka: e.message || String(e) };
+    }
+    risovat(); vFokus();
+  }
   function blokAktPer(a, krupno = false) {
     if (aktPer && aktPer.itog) {
       const r = aktPer.itog;
       return `<div class="aktPs__gotovo${r.ok ? "" : " is-oshibka"}"><b>${esc(r.zag)}</b><span>${esc(r.tekst)}</span></div>
+        ${blokVtis(r)}
         <p class="aktPs__chto">${r.ok ? "Пикните следующий акт." : "Пикните паллету ещё раз или переместите руками в WMS."}</p>`;
     }
     if (aktPer && aktPer.vopros) {
@@ -933,7 +974,7 @@
   async function aktVPalletu(kod, podtverdil = false) {
     if (!aktK || (aktPer && aktPer.idet)) return;
     if (!vms.подключено) { formaVhoda = true; oshibkaVhoda = "войдите в WMS, потом пикните паллету ещё раз"; risovat(); return; }
-    aktPer = { idet: true }; risovat();
+    aktPer = { idet: true }; vtisZ = null; risovat();
     try {
       const otvet = await fetch("/__akt/akt_v_palletu", {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -944,7 +985,11 @@
       if (d.предупреждение) { aktPer = { vopros: { kod, tekst: d.предупреждение } }; if (navigator.vibrate) navigator.vibrate([80, 60, 80]); return; }
       if (d.нужен_вход) { vms = { подключено: false }; formaVhoda = true; oshibkaVhoda = "войдите в WMS, потом пикните паллету ещё раз"; aktPer = null; return; }
       if (d.нужен_стол) { vyborStola = true; }   // 02.10: без стола перекладка не идёт — сразу выбор стола
-      if (!otvet.ok || !d.готово) throw new Error(d.ошибка || `сервер ответил ${otvet.status}`);
+      if (!otvet.ok || !d.готово) {
+        const e = new Error(d.ошибка || `сервер ответил ${otvet.status}`);
+        e.zakaz = d.заказ_втис || "";   // 02.10: чужой заказ — кнопка «удалить во ВТИС»
+        throw e;
+      }
       // 01.10: штука с СЦ — по учёту в транзите, на паллету доедет сама (wms_sc_dmd)
       aktPer = d.через_сц ? { itog: { ok: true, zag: `Принято → ${d.паллета} · через СЦ`, tekst: `${d.через_сц} · перемещение №${d.перемещение}` } }
         : { itog: { ok: true, zag: `${d.проведено ? "Перемещено" : "Перемещение черновиком"} → ${d.паллета}`,
@@ -952,7 +997,7 @@
       aktK.где = [{ паллета: d.паллета, ячейка: d.ячейка, зона: "", заказ: "" }];
       if (navigator.vibrate) navigator.vibrate(120);
     } catch (oshibka) {
-      aktPer = { itog: { ok: false, zag: "Не переместилось", tekst: oshibka.message || String(oshibka) } };
+      aktPer = { itog: { ok: false, zag: "Не переместилось", tekst: oshibka.message || String(oshibka), zakaz: oshibka.zakaz || "" } };
     } finally {
       if (aktPer && aktPer.idet) aktPer = null;
       risovat(); vFokus();
@@ -1955,6 +2000,8 @@
     if (e.target.closest("[data-def-otmena]")) { defRed = null; risovat(); vFokus(); return; }
     if (e.target.closest("[data-akt-da]") && aktPer && aktPer.vopros) { aktVPalletu(aktPer.vopros.kod, true); return; }
     if (e.target.closest("[data-akt-net]")) { aktPer = null; risovat(); vFokus(); return; }
+    const vt = e.target.closest("[data-vtis]");
+    if (vt) { vtisZakaz(vt.dataset.vtis); return; }
     if (e.target.closest("[data-per-da]") && perVopros) { peremestit(perVopros.kod, true); return; }
     if (e.target.closest("[data-per-net]")) { perVopros = null; risovat(); vFokus(); return; }
     const pk = e.target.closest("[data-pkrit]");
