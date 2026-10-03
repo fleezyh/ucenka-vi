@@ -1193,6 +1193,16 @@
     risovat();
   }
   async function aktyCel(chast, sohranit = false) {
+    if (aktyKuda?.idet) return;
+    if (!stol || !stol.id) {
+      aktyKuda = { ...(aktyKuda || {}), ...chast, idet: false, oshibka: "Сначала выберите свой стол (CEL …)." };
+      risovat(); return;
+    }
+    if (sohranit && String(aktyKuda?.proverka?.стол?.id) !== String(stol.id)) {
+      aktyKuda = { ...(aktyKuda || {}), idet: false, proverka: null,
+        oshibka: "Стол изменился после проверки — пикните место назначения ещё раз." };
+      risovat(); return;
+    }
     const gotovye = korzAkty.filter((x) => !x.zhdu && !x.oshibka);
     if (!gotovye.length) { signal("в списке нет актов, которые можно переместить"); return; }
     if (sohranit && !vms.подключено) { formaVhoda = true; oshibkaVhoda = "войдите в WMS, потом «Переместить» ещё раз"; risovat(); return; }
@@ -1201,16 +1211,22 @@
     risovat();
     try {
       const o = await fetch("/__akt/akty_v_palletu", { method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ акты: gotovye.map((x) => x.kod), паллета: aktyKuda.palleta || "", ячейка: aktyKuda.yacheyka || "", сохранить: sohranit }) });
+        body: JSON.stringify({ акты: gotovye.map((x) => x.kod), паллета: aktyKuda.palleta || "", ячейка: aktyKuda.yacheyka || "", сохранить: sohranit, стол_id: stol.id }) });
       const d = await o.json().catch(() => ({}));
       if (d.нужен_вход) { vms = { подключено: false }; formaVhoda = true; oshibkaVhoda = "войдите в WMS, потом «Переместить» ещё раз"; aktyKuda.idet = false; risovat(); return; }
       if (!o.ok) throw new Error(d.ошибка || `сервер ответил ${o.status}`);
       if (sohranit) {
         aktyKuda.itog = d;
-        const uehali = new Set((d.строки || []).map((x) => x.акт));
-        const s_oshibkoy = new Set();
-        (d.ошибки || []).forEach((e) => (d.строки || []).filter((x) => (x.паллета || "без паллеты") === e.откуда).forEach((x) => s_oshibkoy.add(x.акт)));
-        korzAkty = korzAkty.filter((x) => !uehali.has(x.akt) || s_oshibkoy.has(x.akt));
+        if (Array.isArray(d.перемещенные_акты)) {
+          const uehali = new Set(d.перемещенные_акты);
+          korzAkty = korzAkty.filter((x) => !uehali.has(x.akt));
+        } else {
+          // Совместимость с прежним сервером при раздельной выкладке файлов.
+          const uehali = new Set((d.строки || []).map((x) => x.акт));
+          const s_oshibkoy = new Set();
+          (d.ошибки || []).forEach((e) => (d.строки || []).filter((x) => (x.паллета || "без паллеты") === e.откуда).forEach((x) => s_oshibkoy.add(x.акт)));
+          korzAkty = korzAkty.filter((x) => !uehali.has(x.akt) || s_oshibkoy.has(x.akt));
+        }
         if (navigator.vibrate) navigator.vibrate(120);
       } else {
         aktyKuda.proverka = d;
@@ -1249,7 +1265,7 @@
       const d = k.itog;
       telo = `<div class="aktPs__gotovo${(d.ошибки || []).length ? " is-oshibka" : ""}"><b>${d.проведено ? "Перемещено" : "Перемещение черновиком"}: ${d.перемещено || 0} шт → ${esc(d.куда.паллета || d.куда.ячейка)}</b>
         <span>${(d.документы || []).map((x) => `${esc(x.откуда)} — ${x.штук} шт`).join(" · ")}</span>
-        ${(d.ошибки || []).map((x) => `<span class="aktPs__oshibka">${esc(x.откуда)}: ${esc(x.ошибка)}</span>`).join("")}</div>
+        ${(d.ошибки || []).map((x) => `<span class="aktPs__oshibka">${esc(x.откуда)}: ${esc(x.этап || "перемещение")}${x.на_стол ? ` · на стол №${esc(x.на_стол)}` : ""} · ${esc(x.ошибка)}</span>`).join("")}</div>
         ${(d.проблемы || []).length ? `<p class="aktPs__chto">не перемещены: ${d.проблемы.map((x) => `ACT ${x.акт} — ${esc(x.почему)}`).join("; ")}</p>` : ""}`;
     } else if (k.idet) {
       telo = `<p class="aktPs__podskaz">${k.proverka ? "Перемещаю…" : "Проверяю в WMS…"}</p>`;
@@ -1259,11 +1275,11 @@
     } else if (k.proverka) {
       const d = k.proverka;
       telo = `<p class="aktPs__podskaz">→ ${d.куда.паллета ? `<b>${esc(d.куда.паллета)}</b> в ` : ""}<b>${esc(d.куда.ячейка)}</b> · ${esc(d.куда.база)}</p>
-        <p class="aktPs__chto">готово ${d.готово_к_перемещению} из ${n}${(d.проблемы || []).length ? ` · не пойдут: ${d.проблемы.length}` : ""}</p>
+        <p class="aktPs__chto">${d.стол ? `Через стол «${esc(d.стол.имя)}» · ` : ""}готово ${d.готово_к_перемещению} из ${n}${(d.проблемы || []).length ? ` · не пойдут: ${d.проблемы.length}` : ""}</p>
         ${(d.проблемы || []).slice(0, 8).map((x) => `<p class="aktPs__net">ACT ${x.акт}: ${esc(x.почему)}</p>`).join("")}
         ${d.готово_к_перемещению ? `<button type="button" class="aktPs__akt" id="aktyGo"${!boevoy || !vms.подключено ? " disabled" : ""}>${!boevoy ? "Актировка выключена в админке" : !vms.подключено ? "Войдите в WMS" : `Переместить ${d.готово_к_перемещению} шт`}</button>` : ""}`;
     } else {
-      telo = `<p class="aktPs__podskaz">Пикните паллету (CON …) или ячейку (CEL …) — ${n} шт переедут туда одним перемещением, у каждой штуки свой акт.</p>`;
+      telo = `<p class="aktPs__podskaz">Пикните паллету (CON …) или ячейку (CEL …) — ${n} шт пройдут через выбранный стол, затем переедут туда; у каждой штуки свой акт.</p>`;
     }
     return `<div class="aktPs__palleta palPer"><p class="aktPs__zag">Переместить акты — ${n} шт</p>${telo}
       <div class="aktPs__vopros"><button type="button" class="aktPs__kn" data-ka-ochistit>Очистить акты</button></div></div>`;
@@ -1698,6 +1714,18 @@
     if (podTsd) { document.dispatchEvent(new CustomEvent("wms:yacheyka", { detail: { kod: e.detail.kod } })); return; }
     if (massPik && korzRezhim === "priyom" && priyom) { priyomYacheyka(e.detail.kod); return; }
     if (massPik && korzAkty.length && !korzina.length) {
+      if (!stol || !stol.id) {
+        try {
+          const o = await fetch(`/__akt/stol?kod=${encodeURIComponent(e.detail.kod)}`, { cache: "no-store" });
+          const d = await o.json().catch(() => ({}));
+          if (!o.ok || !d.id) throw new Error("Сначала пикните наклейку своего стола (CEL …).");
+          stol = d;
+          localStorage.setItem(KLYUCH_STOLA, JSON.stringify({ день: segodnya(), стол: d }));
+          aktyKuda = null;
+          signal(`Стол: ${d.имя}. Теперь пикните место назначения.`);
+        } catch (err) { signal(err.message || String(err)); }
+        risovat(); return;
+      }
       // ячейка: сама цель или место для паллеты, которая ещё нигде не стоит
       const p = aktyKuda && aktyKuda.oshibka && /нигде не стоит/.test(aktyKuda.oshibka) ? aktyKuda.palleta : "";
       aktyCel({ palleta: p || "", yacheyka: e.detail.kod }); return;
