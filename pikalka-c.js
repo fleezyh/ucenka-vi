@@ -50,7 +50,7 @@
 
     const verh = document.createElement("div");
     verh.className = "cTop";
-    verh.innerHTML = `<div class="cTitle"><h1>Пикалка</h1><span class="cCrumb">/ <b id="cCrumb">Уценка</b></span></div>
+    verh.innerHTML = `<div class="cTitle"><h1>Пикалка</h1><span class="cCrumb"><span id="cCrumbSep">/</span> <b id="cCrumb">Уценка</b></span></div>
       <div class="cPult">
         <button type="button" class="cTumbler" id="cTumbler" role="switch" aria-checked="false" title="Alt+W">
           <span class="cTumbler__t">WMS</span><span class="cTumbler__trek"><i></i></span></button>
@@ -172,7 +172,7 @@
   /* ═════ WMS + WTIS в заголовке: горят, когда на связи, вспыхивают на каждом запросе ═════ */
   var svyaz = { wms: null, wtis: null };   // var: заголовок может рисоваться раньше этой строки
   function sysHtml() { const sv = svyaz || {}; return `<span class="sysG sysG--wms${sv.wms ? " is-on" : sv.wms === false ? " is-off" : ""}" id="sysWms" title="${sv.wms === false ? "WMS не отвечает сайту" : "WMS на связи"}">WMS</span>`
-    + `<span class="sysPl sysPl--x">×</span><span class="sysG sysG--wtis${sv.wtis ? " is-on" : sv.wtis === false ? " is-off" : ""}" id="sysWtis" title="${sv.wtis === false ? "WTIS не отвечает сайту" : "WTIS на связи"}">WTIS</span>`; }
+    + `<span class="sysPl">+</span><span class="sysG sysG--wtis${sv.wtis ? " is-on" : sv.wtis === false ? " is-off" : ""}" id="sysWtis" title="${sv.wtis === false ? "WTIS не отвечает сайту" : "WTIS на связи"}">WTIS</span>`; }
   function vspyshka(id, oshibka) {
     const el = document.getElementById(id);
     if (!el) return;
@@ -212,6 +212,9 @@
       const pre = m === "costlist" ? "себес списком" : m === "pallets" ? "где паллеты" : "";
       kr.innerHTML = [pre ? `<span>${pre}</span>` : "", vklWms ? sysHtml() : ""].filter(Boolean).join('<span class="sysPl">+</span>');
       kr.parentNode.hidden = !pre && !vklWms;
+      // 03.10: «ПИКАЛКА × WMS + WTIS»
+      const sep = $("#cCrumbSep");
+      if (sep) sep.textContent = vklWms && !pre ? "×" : "/";
     }
     risovatLentu();
     obnovitPusto();
