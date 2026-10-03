@@ -357,6 +357,7 @@
         <p class="aktPs__chto">актов создано: ${palRabota.акты.length}${palRabota.ошибки.length ? ` · ошибок: ${palRabota.ошибки.length}` : ""}</p>
         ${palRabota.акты.length ? `<div class="aktPs__nomera" style="display:grid;gap:3px;margin-top:8px;font-size:13px;color:var(--muted)">${palRabota.акты.slice(-12).map((a) => `<p style="margin:0"><b style="color:var(--text);font-feature-settings:'tnum' 1">ACT ${String(a.акт).padStart(10, "0")}</b> — ${esc(a.товар)}</p>`).join("")}${palRabota.акты.length > 12 ? `<p style="margin:0">…и ещё ${palRabota.акты.length - 12} — все номера в журнале актировки</p>` : ""}</div>` : ""}
         ${palRabota.ошибки.slice(-3).map((o) => `<p class="aktPs__net"><b class="aktPs__oshibka">${esc(o.товар)}</b> ${esc(o.ошибка)}</p>`).join("")}
+        ${!palRabota.идёт && palRabota.акты.length ? knopkiPechati(palRabota.акты.map((a) => a.акт)) : ""}
         ${palRabota.идёт ? "" : `<p class="aktPs__chto">Пикните следующую паллету или товар.</p>`}</div>`;
     } else if (pal.без_акта) {
       const gotov = palKrit && palDefekt && bezVybr > 0;
@@ -1132,6 +1133,16 @@
   let korzRezhim = "";       // "" | "akt" | "per" | "db"
   let korzKrit = "", korzDefekt = "", korzSvoy = "";
   let korzLog = [];          // строки хода работы
+  let korzPechat = [];       // 03.10: номера созданных актов — для печати одной кнопкой
+  /* 03.10 Струков: «опцию печати актов брака в пикалке, после того как массово заактировали» — формы ВМС
+     (наклейка 70×70 или акт A4) одной страницей, печать открывается сама. */
+  function knopkiPechati(ids) {
+    if (!ids.length) return "";
+    const q = encodeURIComponent(ids.join(","));
+    return `<div class="aktPs__vopros" style="margin-top:10px">
+      <a class="aktPs__kn is-on" target="_blank" rel="noopener" href="/__akt/pechat?forma=nakleyka&akty=${q}">Печать наклеек 70×70 · ${ids.length}</a>
+      <a class="aktPs__kn" target="_blank" rel="noopener" href="/__akt/pechat?forma=akt&akty=${q}">Акты A4</a></div>`;
+  }
   let korzIdet = false;
   let korzPer = null;        // { yach, proverka: [...] }
   let korzDb = null;         // ответ проверки заказа ДБ
@@ -1449,7 +1460,8 @@
         <button type="button" class="aktPs__kn${korzRezhim === "priyom" ? " is-on" : ""}" data-kz="priyom"${korzIdet ? " disabled" : ""}>Принять</button>
         <button type="button" class="aktPs__kn" data-kz="ochistit"${korzIdet ? " disabled" : ""}>Очистить</button>
       </div>` : "";
-    const log = korzLog.length ? `<div class="aktPs__nomera korzLog">${korzLog.slice(-14).map((x) => `<p>${x}</p>`).join("")}</div>` : "";
+    const log = (korzLog.length ? `<div class="aktPs__nomera korzLog">${korzLog.slice(-14).map((x) => `<p>${x}</p>`).join("")}</div>` : "")
+      + (!korzIdet && korzPechat.length ? knopkiPechati(korzPechat) : "");
     // 01.10 (Белитов: «адреса таблицей, чтобы копировать столбиком — облегчило бы поиск паллет на продажу»)
     const gotovye = korzina.filter((x) => !x.zhdu && !x.oshibka);
     const tablica = korzAdr && gotovye.length ? `<table class="korzTab"><thead><tr>
@@ -1471,7 +1483,7 @@
   }
 
   async function korzAktirovat() {
-    korzIdet = true; korzLog = []; risovat();
+    korzIdet = true; korzLog = []; korzPechat = []; risovat();
     const defekt = korzDefekt;
     for (const x of korzina.filter((k) => k.без_акта)) {
       try {
@@ -1488,6 +1500,7 @@
         }
         korzLog.push(`${esc(x.паллета)}: актов ${(h.акты || []).length}${(h.ошибки || []).length ? ` · <b class="aktPs__oshibka">ошибок ${h.ошибки.length}</b>` : ""}`);
         zaSmenu += (h.акты || []).length;
+        (h.акты || []).forEach((a) => korzPechat.push(a.акт));
         x.без_акта = Math.max(0, x.без_акта - (h.акты || []).length);
       } catch (e) {
         korzLog.push(`${esc(x.паллета)}: <b class="aktPs__oshibka">${esc(e.message || e)}</b>`);
