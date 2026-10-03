@@ -41,6 +41,9 @@ body.cSkin .topbar { margin-bottom: 14px; }
 .cCrumb b { font-weight: 600; color: var(--cAcc2); }
 /* 03.10 «WMS + WTIS прям светятся»: на связи — горят и дышат, на запросе — вспышка, ошибка — красным */
 .sysPl { margin: 0 .3em; color: var(--muted); font-weight: 500; }
+/* 03.10: «× между ними и такого же размера как пикалка» — WMS и WTIS размером заголовка, без прыжков */
+.cCrumb:has(.sysG) { font-size: clamp(30px, 2.4vw, 40px); line-height: 1; }
+.sysPl--x { margin: 0 .22em; font-weight: 400; }
 .sysG { display: inline-block; font-weight: 600; letter-spacing: .04em; color: var(--muted); transition: color .3s, text-shadow .3s; }
 .sysG--wms.is-on { color: #a6ffcc; text-shadow: 0 0 2px #fff, 0 0 9px rgba(61,220,140,.95), 0 0 22px rgba(61,220,140,.7), 0 0 46px rgba(61,220,140,.45); animation: sysDyh 3.4s ease-in-out infinite; }
 .sysG--wtis.is-on { color: #c9d2ff; text-shadow: 0 0 2px #fff, 0 0 9px rgba(124,140,255,.95), 0 0 22px rgba(124,140,255,.7), 0 0 46px rgba(124,140,255,.45); animation: sysDyh 3.4s ease-in-out 1.7s infinite; }
@@ -48,7 +51,7 @@ body.cSkin .topbar { margin-bottom: 14px; }
 .sysG.is-flash { animation: sysVsp 1s ease-out; }
 .sysG.is-err { animation: sysOsh 1s ease-out; }
 @keyframes sysDyh { 0%, 100% { filter: brightness(.95); } 50% { filter: brightness(1.45); } }
-@keyframes sysVsp { 0% { color: #fff; text-shadow: 0 0 6px #fff, 0 0 20px #fff, 0 0 40px currentColor, 0 0 80px currentColor; transform: scale(1.12); } 100% { } }
+@keyframes sysVsp { 0% { color: #fff; text-shadow: 0 0 6px #fff, 0 0 20px #fff, 0 0 40px currentColor, 0 0 80px currentColor; } 100% { } }
 @keyframes sysOsh { 0%, 60% { color: #ff6f82; text-shadow: 0 0 6px rgba(240,93,114,.9), 0 0 24px rgba(240,93,114,.6); } 100% { } }
 @media (prefers-reduced-motion: reduce) { .sysG { animation: none !important; } }
 .cPult { display: flex; flex-direction: row-reverse; align-items: center; gap: 16px; min-width: 0; padding: 10px 10px 10px 16px; border-radius: 18px; background: var(--cPanel);
