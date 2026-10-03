@@ -169,6 +169,38 @@
     if ((B.dataset.mode || "ucenka") === m) return;
     $(`.tab[data-mode="${m}"]`)?.click();
   }
+  /* ═════ WMS + WTIS в заголовке: горят, когда на связи, вспыхивают на каждом запросе ═════ */
+  var svyaz = { wms: null, wtis: null };   // var: заголовок может рисоваться раньше этой строки
+  function sysHtml() { const sv = svyaz || {}; return `<span class="sysG sysG--wms${sv.wms ? " is-on" : sv.wms === false ? " is-off" : ""}" id="sysWms" title="${sv.wms === false ? "WMS не отвечает сайту" : "WMS на связи"}">WMS</span>`
+    + `<span class="sysPl">+</span><span class="sysG sysG--wtis${sv.wtis ? " is-on" : sv.wtis === false ? " is-off" : ""}" id="sysWtis" title="${sv.wtis === false ? "WTIS не отвечает сайту" : "WTIS на связи"}">WTIS</span>`; }
+  function vspyshka(id, oshibka) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.remove("is-flash", "is-err"); void el.offsetWidth;
+    el.classList.add(oshibka ? "is-err" : "is-flash");
+    clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove("is-flash", "is-err"), 1100);
+  }
+  async function proveritSvyaz() {
+    try {
+      const r = await fetch("/__akt/svyaz", { credentials: "same-origin", cache: "no-store" });
+      if (r.ok) Object.assign(svyaz, await r.json());
+    } catch (e) { /* без сети — оставляем как было */ }
+    obnovitRezhim();
+  }
+  // Каждый запрос пикалки в ВМС/ВТИС — вспышка нужного слова (ответ с ошибкой — красная)
+  const fetchBez = window.fetch.bind(window);
+  window.fetch = async (u, ...ost) => {
+    const url = String(u && u.url || u || "");
+    const id = /vtis/.test(url) ? "sysWtis" : /^\/__(akt|vms|yacheyka|wms)\//.test(url) && !/svyaz|\/hod/.test(url) ? "sysWms" : "";
+    try {
+      const r = await fetchBez(u, ...ost);
+      if (id) vspyshka(id, !r.ok);
+      return r;
+    } catch (e) { if (id) vspyshka(id, true); throw e; }
+  };
+  setTimeout(proveritSvyaz, 800);
+  setInterval(() => { if (vklWms) proveritSvyaz(); }, 300000);
+
   function obnovitRezhim() {
     const m = B.dataset.mode || "ucenka";
     // Предсорт остался в script.js вкладкой — здесь его нет: кластер и так на карточке.
@@ -176,9 +208,10 @@
     $("#cGlav")?.classList.toggle("is-on", m === "ucenka");
     const kr = $("#cCrumb");
     if (kr) {
-      const t = [m === "costlist" ? "себес списком" : m === "pallets" ? "где паллеты" : "", vklWms ? "WMS" : ""].filter(Boolean).join(" + ");
-      kr.textContent = t;
-      kr.parentNode.hidden = !t;
+      // 03.10 «Пикалка × WMS + WTIS — чтобы светились»: в WMS-режиме крошка — две живые системы
+      const pre = m === "costlist" ? "себес списком" : m === "pallets" ? "где паллеты" : "";
+      kr.innerHTML = [pre ? `<span>${pre}</span>` : "", vklWms ? sysHtml() : ""].filter(Boolean).join('<span class="sysPl">+</span>');
+      kr.parentNode.hidden = !pre && !vklWms;
     }
     risovatLentu();
     obnovitPusto();
