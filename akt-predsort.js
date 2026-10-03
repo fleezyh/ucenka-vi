@@ -926,7 +926,7 @@
     if (r.ok || !r.zakaz) return "";
     if (!vtisZ) return `<button type="button" class="aktPs__kn" data-vtis="pokazat">Снять резерв заказа ${esc(r.zakaz)} во ВТИС…</button>`;
     if (vtisZ.zhdu) return '<p class="aktPs__chto">Открываю заказ во ВТИС…</p>';
-    if (vtisZ.idet) return '<p class="aktPs__chto">Снимаю резерв во ВТИС и жду, пока ВМС его снимет — до 45 секунд…</p>';
+    if (vtisZ.idet) return '<p class="aktPs__chto">Снимаю резерв во ВТИС — несколько секунд…</p>';
     if (vtisZ.oshibka) return `<p class="aktPs__net"><b class="aktPs__oshibka">${esc(vtisZ.oshibka)}</b></p>`;
     const z = vtisZ.заказ;
     if (vtisZ.готово) {
