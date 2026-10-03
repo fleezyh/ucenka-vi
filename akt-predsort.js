@@ -458,6 +458,7 @@
         ${marshruty}
         ${d.разорвана ? `<p class="aktPs__podskaz">Паллета разорвана: ${d.разорвана.уже_на_месте} шт уже на ${esc(d.разорвана.где)} — их не трогаю, везу остаток ${d.разорвана.остаток} шт с ${esc(d.разорвана.откуда)}.</p>` : ""}
         <p class="aktPs__chto">${d.паллет > 1 ? `${d.паллет} паллет · ` : ""}${d.строк} строк · ${d.штук} шт${kach ? ` · ${kach}` : ""}${d.уже_в_заказе ? ` · ${d.уже_в_заказе} строк уже в заказе — пропущены` : ""}</p>
+        ${(d.снимутся_с_заказов || []).length ? `<p class="aktPs__podskaz">${d.снимутся_штук || d.снимутся_с_заказов.length} шт в старых заказах — сайт снимет с них резерв во ВТИС и повезёт: ${esc(d.снимутся_с_заказов.join(", "))}</p>` : ""}
         ${oshibki ? `<p class="aktPs__net"><b class="aktPs__oshibka">WMS не примет: ${esc(oshibki)}</b></p>` : ""}
         ${nbSpisok}${nbForma}
         ${d.куда === "ДОМОДЕДОВО" && d.откуда === "СЦ - ДОМОДЕДОВО" && vseVybrany() && !d.нужна_паллета_для_небрака && !d.стоп_небрак ? `<div class="aktPs__vopros">
@@ -923,20 +924,20 @@
   let vtisZ = null;    // null | { zhdu } | { idet } | { oshibka } | ответ /__akt/vtis_zakaz
   function blokVtis(r) {
     if (r.ok || !r.zakaz) return "";
-    if (!vtisZ) return `<button type="button" class="aktPs__kn" data-vtis="pokazat">Удалить заказ ${esc(r.zakaz)} во ВТИС…</button>`;
+    if (!vtisZ) return `<button type="button" class="aktPs__kn" data-vtis="pokazat">Снять резерв заказа ${esc(r.zakaz)} во ВТИС…</button>`;
     if (vtisZ.zhdu) return '<p class="aktPs__chto">Открываю заказ во ВТИС…</p>';
-    if (vtisZ.idet) return '<p class="aktPs__chto">Удаляю заказ во ВТИС и жду, пока ВМС снимет резерв — до полуминуты…</p>';
+    if (vtisZ.idet) return '<p class="aktPs__chto">Снимаю резерв во ВТИС и жду, пока ВМС его снимет — до 45 секунд…</p>';
     if (vtisZ.oshibka) return `<p class="aktPs__net"><b class="aktPs__oshibka">${esc(vtisZ.oshibka)}</b></p>`;
     const z = vtisZ.заказ;
     if (vtisZ.готово) {
-      return `<div class="aktPs__gotovo"><b>Заказ ${esc(z.номер)} удалён во ВТИС</b><span>${vtisZ.резерв_снят
+      return `<div class="aktPs__gotovo"><b>Резерв заказа ${esc(z.номер)} снят во ВТИС</b><span>${vtisZ.резерв_снят
         ? "резерв в ВМС снят — пикните паллету снова" : "ВМС ещё не сняла резерв — подождите минуту и пикните паллету снова"}</span></div>`;
     }
-    return `<div class="aktPs__palleta aktPs__palleta--vopros"><p class="aktPs__zag">Удалить заказ ${esc(z.номер)} во ВТИС?</p>
+    return `<div class="aktPs__palleta aktPs__palleta--vopros"><p class="aktPs__zag">Снять резерв заказа ${esc(z.номер)} с этой штуки?</p>
       <p class="aktPs__podskaz">от ${esc(z.дата)} · ${esc(z.статус)}${z.создал ? ` · создал ${esc(z.создал)}` : ""}</p>
       ${z.примечание ? `<p class="aktPs__podskaz">«${esc(z.примечание)}»</p>` : ""}
-      <p class="aktPs__podskaz">Заказ держит ${esc(z.товар)} (акт ${esc(String(z.акт))}). Удаление не отменить.</p>
-      <div class="aktPs__vopros"><button type="button" class="aktPs__kn is-on" data-vtis="da">Удалить заказ</button>
+      <p class="aktPs__podskaz">Заказ держит ${esc(z.товар)} (акт ${esc(String(z.акт))}). Заказ останется, из него уйдёт только резерв этой штуки.</p>
+      <div class="aktPs__vopros"><button type="button" class="aktPs__kn is-on" data-vtis="da">Снять резерв</button>
         <button type="button" class="aktPs__kn" data-vtis="net">Не надо</button></div></div>`;
   }
   async function vtisZakaz(chto) {
@@ -1432,6 +1433,7 @@
           <p class="aktPs__podskaz">${d.паллет} паллет · ${esc(d.откуда)}${d.куда ? ` → <b>${esc(d.база_куда)}</b> · через «${esc(d.ячейка_отгрузки)}»` : " — куда везём?"}</p>
           ${(d.куда_можно || []).length > 1 ? `<div class="aktPs__krit">${d.куда_можно.map((k) => `<button type="button" class="aktPs__kn${k === d.куда ? " is-on" : ""}" data-kz-kuda="${esc(k)}">${esc(IMYA_MARSHRUTA[k] || k)}</button>`).join("")}</div>` : ""}
           <p class="aktPs__chto">${d.строк} строк · ${d.штук} шт${kach ? ` · ${kach}` : ""}${d.уже_в_заказе ? ` · ${d.уже_в_заказе} строк уже в заказе — пропущены` : ""}</p>
+        ${(d.снимутся_с_заказов || []).length ? `<p class="aktPs__podskaz">${d.снимутся_штук || d.снимутся_с_заказов.length} шт в старых заказах — сайт снимет с них резерв во ВТИС и повезёт: ${esc(d.снимутся_с_заказов.join(", "))}</p>` : ""}
           ${oshibki ? `<p class="aktPs__net"><b class="aktPs__oshibka">WMS не примет: ${esc(oshibki)}</b></p>` : d.можно ? `<p class="aktPs__chto">WMS примет заказ и задание на отбор.</p>` : ""}
           ${d.готово ? `<div class="aktPs__gotovo"><b>Заказ ${esc(d.номер)} создан и проведён${d.задание_id ? ` · отбор №${esc(d.задание_id)}` : ""}</b>
             ${d.без_задания ? `<span class="aktPs__oshibka">${esc(d.без_задания)}</span>` : ""}
