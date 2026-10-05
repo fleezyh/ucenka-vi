@@ -34,7 +34,13 @@
   };
 
   let dannye = { рейсы: [], склады: [], я: "" };
-  const filtr = { vid: "", gorod: "", q: "" };
+  const filtr = { vid: "", gorod: "", q: "", mes: "" };
+  // 29.09 (Чударов): «фильтр… чтобы вот кто встреча за сентябрь, чтобы сразу только сентябрь, сколько было»
+  const mesyac = (r) => String(r.дата || "").slice(0, 7);
+  const imyaMes = (m) => {
+    const d = new Date(`${m}-01T00:00:00`);
+    return isNaN(d) ? m : d.toLocaleDateString("ru-RU", { month: "long", year: "numeric" }).replace(" г.", "");
+  };
   let otkryt = null;       // id машины в окне
   let svet = { spisok: [], n: 0 };
   let zagruzka = null;     // { reys, etap } — куда льём выбранные файлы
@@ -106,6 +112,7 @@
     return dannye.рейсы.filter((r) => {
       if (filtr.vid && r.вид !== filtr.vid) return false;
       if (filtr.gorod && region(r) !== filtr.gorod) return false;
+      if (filtr.mes && mesyac(r) !== filtr.mes) return false;
       if (q) {
         const stroka = `${r.откуда} ${r.куда} ${gorod(r.откуда)} ${gorod(r.куда)} ${r.госномер} ${r.комментарий} ${(r.tms || {}).прицеп || ""}`.toLowerCase();
         if (!stroka.includes(q)) return false;
@@ -116,11 +123,25 @@
 
   function risovatGoroda() {
     const schet = {};
-    dannye.рейсы.filter((r) => !filtr.vid || r.вид === filtr.vid).forEach((r) => { schet[region(r)] = (schet[region(r)] || 0) + 1; });
+    dannye.рейсы.filter((r) => (!filtr.vid || r.вид === filtr.vid) && (!filtr.mes || mesyac(r) === filtr.mes))
+      .forEach((r) => { schet[region(r)] = (schet[region(r)] || 0) + 1; });
     const spisok = Object.keys(schet).sort((a, b) => schet[b] - schet[a] || a.localeCompare(b, "ru"));
     el("msGoroda").innerHTML = spisok.length < 2 ? "" : [
       `<button type="button" class="msChip${filtr.gorod ? "" : " is-on"}" data-gorod="">Все города</button>`,
       ...spisok.map((g) => `<button type="button" class="msChip${g === filtr.gorod ? " is-on" : ""}" data-gorod="${esc(g)}">${esc(g)} <b>${schet[g]}</b></button>`),
+    ].join("");
+  }
+
+  function risovatMesyacy() {
+    const box = el("msMesyacy");
+    if (!box) return;
+    const schet = {};
+    dannye.рейсы.filter((r) => (!filtr.vid || r.вид === filtr.vid) && (!filtr.gorod || region(r) === filtr.gorod))
+      .forEach((r) => { const m = mesyac(r); if (m) schet[m] = (schet[m] || 0) + 1; });
+    const spisok = Object.keys(schet).sort().reverse();
+    box.innerHTML = spisok.length < 2 ? "" : [
+      `<button type="button" class="msChip${filtr.mes ? "" : " is-on"}" data-mes="">Все месяцы</button>`,
+      ...spisok.map((m) => `<button type="button" class="msChip${m === filtr.mes ? " is-on" : ""}" data-mes="${esc(m)}">${esc(imyaMes(m))} <b>${schet[m]}</b></button>`),
     ].join("");
   }
 
@@ -146,6 +167,7 @@
   }
 
   function risovat() {
+    risovatMesyacy();
     risovatGoroda();
     const spisok = vidimye();
     const vseFoto = spisok.reduce((n, r) => n + r.фото.length, 0);
@@ -472,6 +494,8 @@
     }
     const g = t.closest("[data-gorod]");
     if (g) { filtr.gorod = g.dataset.gorod; risovat(); return; }
+    const mk = t.closest("#msMesyacy [data-mes]");
+    if (mk) { filtr.mes = mk.dataset.mes; risovat(); return; }
     const k = t.closest(".msKart[data-reys]");
     if (k) { otkrytMashinu(k.dataset.reys); return; }
     if (t.closest("#msNovaya")) {
