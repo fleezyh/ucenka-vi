@@ -615,3 +615,22 @@ body .heroPerf { display: flex; flex-wrap: wrap; justify-content: space-between;
 .stoly tbody tr:hover td { background: rgba(255,255,255,.04); }
 .stoly td small { display: block; color: var(--muted); font-size: 11px; font-weight: 400; max-width: 160px; margin-left: auto; overflow: hidden; text-overflow: ellipsis; }
 .stoly td.stoly__stol small { margin-left: 0; max-width: none; }
+/* Простои (05.10.2026) */
+.prost__list { display: grid; gap: 4px; margin: 12px 0 18px; }
+.prost__row { display: grid; grid-template-columns: minmax(220px, 34%) 1fr 64px 120px; gap: 12px; align-items: center; padding: 6px 10px; border: 1px solid transparent; border-radius: 8px; background: rgba(255,255,255,.02); color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.prost__row:hover, .prost__row.is-on { border-color: rgba(240,93,114,.45); background: rgba(240,93,114,.06); }
+.prost__who { font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.prost__who i { color: var(--muted); font-style: normal; font-size: 12px; }
+.prost__bar { height: 10px; border-radius: 5px; background: rgba(255,255,255,.05); overflow: hidden; }
+.prost__bar i { display: block; height: 100%; border-radius: 5px; background: #f05d72; opacity: .8; }
+.prost__val { font-variant-numeric: tabular-nums; text-align: right; font-size: 13.5px; }
+.prost__sub { color: var(--muted); font-size: 12px; }
+.prost__zag { margin: 6px 0 8px; }
+.prost__dni { flex-wrap: wrap; margin-bottom: 10px; }
+.prost__lenta { position: relative; display: grid; gap: 6px; }
+.prost__shkala { position: relative; height: 16px; margin-left: calc(min(260px, 30%) + 12px); margin-right: 76px; color: var(--muted); font-size: 11px; }
+.prost__shkala span { position: absolute; transform: translateX(-50%); }
+.prost__line { display: grid; grid-template-columns: min(260px, 30%) 1fr 64px; gap: 12px; align-items: center; }
+.prost__track { position: relative; height: 14px; border-radius: 4px; background: rgba(255,255,255,.03); }
+.prost__rabota { position: absolute; top: 0; bottom: 0; border-radius: 4px; background: rgba(143,156,173,.28); }
+.prost__pauza { position: absolute; top: 0; bottom: 0; border-radius: 3px; background: #f05d72; cursor: help; }

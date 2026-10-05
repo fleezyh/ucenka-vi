@@ -904,6 +904,94 @@
   let stolDo = null;
   let stolVid = "смена";
 
+  // --- Простои -----------------------------------------------------------------
+  let prostoyNedelya = null;
+  let prostoyDen = null;
+  let prostoyChelovek = null;
+
+  const escapeHtml = (text) => String(text ?? "").replace(/[&<>"]/g, (ch) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
+  const chasy = (min) => (min / 60).toLocaleString("ru-RU", { maximumFractionDigits: 1 });
+  const minOt = (hhmm) => { const [h, m] = String(hhmm || "0:0").split(":").map(Number); return h * 60 + m; };
+
+  function renderProstoi(data) {
+    const pr = data.простои;
+    if (!pr || !pr.по_неделям || !pr.по_неделям.length) return null;
+    const box = document.createElement("div");
+    box.className = "prost";
+    const nedeli = pr.по_неделям.slice(-8);
+    if (!prostoyNedelya || !nedeli.some((w) => w.неделя === prostoyNedelya)) prostoyNedelya = nedeli[nedeli.length - 1].неделя;
+    const w = nedeli.find((x) => x.неделя === prostoyNedelya);
+
+    const chips = document.createElement("div");
+    chips.className = "stepSwitch";
+    nedeli.forEach((x) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "stepSwitch__item" + (x.неделя === prostoyNedelya ? " is-on" : "");
+      b.textContent = x.неделя.replace(/^\d{4}-/, "");
+      b.addEventListener("click", () => { prostoyNedelya = x.неделя; render(); });
+      chips.appendChild(b);
+    });
+    box.appendChild(chips);
+
+    const maks = Math.max(1, ...w.люди.map((x) => x.минут));
+    const spisok = document.createElement("div");
+    spisok.className = "prost__list";
+    w.люди.forEach((x) => {
+      const row = document.createElement("button");
+      row.type = "button";
+      row.className = "prost__row" + (x.сотрудник === prostoyChelovek ? " is-on" : "");
+      row.innerHTML = `<span class="prost__who">${escapeHtml(x.сотрудник)}`
+        + `${x.столы.length ? ` <i>(${escapeHtml(x.столы.join(", "))})</i>` : ""}</span>`
+        + `<span class="prost__bar"><i style="width:${(100 * x.минут / maks).toFixed(1)}%"></i></span>`
+        + `<b class="prost__val">${chasy(x.минут)} ч</b>`
+        + `<span class="prost__sub">${x.пауз} пауз · ${x.дней} дн.</span>`;
+      row.addEventListener("click", () => {
+        prostoyChelovek = prostoyChelovek === x.сотрудник ? null : x.сотрудник;
+        render();
+      });
+      spisok.appendChild(row);
+    });
+    box.appendChild(spisok);
+
+    // Лента пауз по дням: рабочий промежуток (первый — последний документ) и паузы на нём
+    const dni = (pr.по_дням || []).filter((d) => !prostoyChelovek || d.люди.some((x) => x.сотрудник === prostoyChelovek));
+    if (dni.length) {
+      if (!prostoyDen || !dni.some((d) => d.день === prostoyDen)) prostoyDen = dni[dni.length - 1].день;
+      const dchips = document.createElement("div");
+      dchips.className = "stepSwitch prost__dni";
+      dni.forEach((d) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "stepSwitch__item" + (d.день === prostoyDen ? " is-on" : "");
+        b.textContent = dayLabel(d.день);
+        b.addEventListener("click", () => { prostoyDen = d.день; render(); });
+        dchips.appendChild(b);
+      });
+      const den = dni.find((d) => d.день === prostoyDen);
+      const lyudi = den.люди.filter((x) => !prostoyChelovek || x.сотрудник === prostoyChelovek);
+      const ot = Math.min(8 * 60, ...lyudi.map((x) => minOt(x.начало)));
+      const doo = Math.max(21 * 60, ...lyudi.map((x) => minOt(x.конец)));
+      const pos = (m) => (100 * (m - ot) / (doo - ot)).toFixed(2) + "%";
+      const shkala = [];
+      for (let h = Math.ceil(ot / 60); h * 60 <= doo; h += 1) shkala.push(`<span style="left:${pos(h * 60)}">${h}</span>`);
+      const lenta = document.createElement("div");
+      lenta.className = "prost__lenta";
+      lenta.innerHTML = `<div class="prost__shkala">${shkala.join("")}</div>` + lyudi.map((x) => {
+        const pauzy = x.паузы.map((p) => `<i class="prost__pauza" style="left:${pos(minOt(p[0]))};width:calc(${pos(minOt(p[1]))} - ${pos(minOt(p[0]))})" title="${p[0]}–${p[1]} · ${p[2]} мин"></i>`).join("");
+        return `<div class="prost__line"><span class="prost__who">${escapeHtml(x.сотрудник)}</span>`
+          + `<span class="prost__track"><i class="prost__rabota" style="left:${pos(minOt(x.начало))};width:calc(${pos(minOt(x.конец))} - ${pos(minOt(x.начало))})" title="первый документ ${x.начало}, последний ${x.конец}"></i>${pauzy}</span>`
+          + `<b class="prost__val">${chasy(x.минут)} ч</b></div>`;
+      }).join("");
+      const zag = document.createElement("p");
+      zag.className = "perfLead prost__zag";
+      zag.textContent = `Паузы по дням${prostoyChelovek ? " · " + prostoyChelovek : ""} — серым рабочий промежуток от первого до последнего документа, красным паузы (наведи — время)`;
+      box.append(zag, dchips, lenta);
+    }
+    return box;
+  }
+
   // Строка: {день, стол, площадка, кто, штук}. Новый формат — [день, стол, площадка, сотрудник, штук]
   // (смена = сотрудник за столом в этот день); старый — [день, стол, площадка, штук, смен, человек].
   function stolyStroki(data) {
@@ -1151,6 +1239,15 @@
       poDnyam ? renderDaily(view.дни)
               : renderLine(bars, { label: (row) => row.подпись || row.ключ }),
       barTools));
+
+    // 05.10 Карташев: «можешь добавить простои?» — паузы > 30 мин по сотруднику и столу
+    const prostoiBlok = renderProstoi(data);
+    if (prostoiBlok) {
+      parts.push(block("Простои",
+                       `паузы дольше ${data.простои.порог_минут} мин между документами человека в ВМС в пределах дня · `
+                       + "свои даты, не зависят от периода сверху · клик по человеку — его паузы по дням",
+                       prostoiBlok));
+    }
 
     const stolyBlok = renderStoly(data);
     if (stolyBlok) {
