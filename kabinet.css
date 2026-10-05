@@ -3,3 +3,56 @@
 .kabVkladki__a { padding: 9px 16px; border-radius: 10px; color: var(--muted, #8f9cad); font-size: 14px; font-weight: 600; text-decoration: none; }
 .kabVkladki__a:hover { color: var(--text, #f2f6fb); }
 .kabVkladki__a.is-on { background: rgba(255, 255, 255, .1); color: var(--text, #f2f6fb); }
+
+/* 05.10 кабинет = страница зарплаты: админу «Кабинет · Админка» двумя блоками на всю ширину */
+.kabDva { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 4px 0 18px; }
+.kabDva__a { display: flex; align-items: center; justify-content: center; min-height: 56px; padding: 12px 16px; border: 1px solid var(--line, #263345); border-radius: 16px; background: #121a25; color: var(--muted, #8f9cad); font-size: 16px; font-weight: 600; text-decoration: none; }
+.kabDva__a:hover { color: var(--text, #f2f6fb); border-color: var(--line-strong, #3a4a60); }
+.kabDva__a.is-on { background: rgba(255, 255, 255, .1); border-color: rgba(255, 255, 255, .22); color: var(--text, #f2f6fb); }
+
+/* предложение «пароль как в WMS» — тонкая полоса над деньгами */
+.kabPredl { display: flex; align-items: center; gap: 10px; margin: 0 0 14px; padding: 10px 12px 10px 18px; border: 1px solid rgba(123, 92, 240, .55); border-radius: 14px; background: #151427; }
+.kabPredl p { flex: 1; margin: 0; color: var(--muted, #8f9cad); font-size: 14px; line-height: 1.4; }
+.kabPredl p b { color: #b9a2ff; font-weight: 600; }
+.kabPredl__da, .kabPredl__net { flex: none; height: 38px; padding: 0 14px; border-radius: 10px; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.kabPredl__da { border: 0; background: #7b5cf0; color: #fff; }
+.kabPredl__net { border: 1px solid var(--line, #263345); background: transparent; color: var(--muted, #8f9cad); }
+
+/* профиль под деньгами — теми же карточками zpCheck */
+.kabProfil { margin-top: 30px; }
+.kabZag { margin: 0 0 4px; font-size: 26px; }
+.kabProfil .zpCheck + .zpCheck, .kabProfil .kabSkany + .zpCheck { margin-top: 14px; }
+.kabTxt { font-size: 15px !important; letter-spacing: 0 !important; white-space: normal !important; text-align: right; }
+.kabTxt:empty { display: none; }
+.kabPod { margin: 12px 0 0; color: var(--muted, #8f9cad); font-size: 13px; line-height: 1.45; }
+.kabSkany { margin-top: 14px; padding: 0 22px; }
+.kabSkany summary { padding: 16px 0; cursor: pointer; color: var(--muted, #8f9cad); font-size: 14px; font-weight: 600; }
+.kabScroll { max-height: 340px; overflow: auto; padding-bottom: 14px; }
+.kabScroll table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.kabScroll th, .kabScroll td { padding: 8px 6px; border-top: 1px solid rgba(255, 255, 255, .06); text-align: left; }
+.kabScroll th { color: var(--muted, #8f9cad); font-weight: 600; }
+.kabScroll .n { text-align: right; white-space: nowrap; }
+.kabMono { font-variant-numeric: tabular-nums; }
+.kabNet { color: var(--amber, #f5ad32); }
+.kabForma { display: grid; gap: 10px; margin-top: 12px; }
+.kabForma label { display: grid; gap: 5px; color: var(--muted, #8f9cad); font-size: 13px; }
+.kabForma input { height: 44px; padding: 0 12px; border: 1px solid var(--line, #263345); border-radius: 12px; background: #0b1119; color: var(--text, #f2f6fb); font: inherit; font-size: 15px; }
+.kabForma input[readonly] { color: var(--muted, #8f9cad); }
+.kabForma button { height: 46px; border: 0; border-radius: 12px; background: #7b5cf0; color: #fff; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
+.kabForma button:disabled { opacity: .6; cursor: wait; }
+.kabMsg { min-height: 18px; margin: 0; color: var(--green, #3ddc8c); font-size: 13px; }
+.kabMsg:empty { display: none; }
+.kabMsg--bad { color: #ff6b6b; }
+.kabSvoy { margin: 14px 0 4px; }
+.kabSvoy summary { cursor: pointer; color: var(--muted, #8f9cad); font-size: 13px; }
+.kabVyhod { display: inline-flex; align-items: center; justify-content: center; height: 46px; margin-top: 14px; padding: 0 18px; border: 1px solid rgba(255, 107, 107, .45); border-radius: 12px; color: #ff8a8a; font-size: 15px; font-weight: 600; text-decoration: none; }
+.kabVyhod:hover { background: rgba(255, 107, 107, .1); }
+
+@media (max-width: 760px) {
+  body.kabinet .hero .lead { display: none; }   /* на телефоне сразу к деньгам */
+  .kabPredl { flex-wrap: wrap; padding: 12px 14px; }
+  .kabPredl p { flex-basis: 100%; }
+  .kabPredl__da, .kabPredl__net { flex: 1; }
+  .kabDva__a { min-height: 50px; font-size: 15px; }
+  .kabSkany { padding: 0 16px; }
+}
