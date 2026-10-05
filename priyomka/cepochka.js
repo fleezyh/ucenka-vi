@@ -27,7 +27,7 @@
 
   // sv — data/svezhest.json (28.09): когда DWH застыл, двор красится серым,
   // иначе «дольше всех 7 часов» растёт на бумаге и звено горит без причины.
-  function sobrat(dvor, priyomka, sv) {
+  function sobrat(dvor, priyomka, sv, zhivo) {
     const dmd = (dvor?.склады || []).find((s) => s.склад === "ДМД");
     const porogiDvor = dvor?.пороги_мин || { тревога: 120, пробка: 240 };
     const vozrast = priyomka?.возраст?.итого || {};
@@ -58,7 +58,11 @@
       }));
     }
 
-    const vsegoVhod = Object.values(vozrast).reduce((s, v) => s + (Number(v) || 0), 0);
+    // 05.10: сколько лежит в буферах — живьём из ВМС (zhivo), возраст по-прежнему из DWH
+    const vsegoDwh = Object.values(vozrast).reduce((s, v) => s + (Number(v) || 0), 0);
+    const vsegoVhod = zhivo?.зоны
+      ? (priyomka?.возраст?.зоны || []).reduce((s, z) => s + (zhivo.зоны[z.зона] ? zhivo.зоны[z.зона].штук : (z.штук || 0)), 0)
+      : vsegoDwh;
     const starshe48 = Number(vozrast["3. больше 48 ч"]) || 0;
     const izvestno = vsegoVhod - (Number(vozrast["4. движения не найдено"]) || 0);
     const d48 = dolya(starshe48, izvestno);
@@ -103,13 +107,14 @@
 
   function zagruzit() {
     const vzyat = (url) => fetch(url, { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
-    Promise.all([vzyat("../data/dvor.json"), vzyat("../data/priyomka.json"), vzyat("../data/svezhest.json")]).then(([dvor, priyomka, sv]) => {
-      const zvenya = sobrat(dvor, priyomka, sv);
+    Promise.all([vzyat("../data/dvor.json"), vzyat("../data/priyomka.json"), vzyat("../data/svezhest.json"),
+                 vzyat("../data/priyomka_zhivo.json")]).then(([dvor, priyomka, sv, zhivo]) => {
+      const zvenya = sobrat(dvor, priyomka, sv, zhivo);
       if (!zvenya.length) { box.hidden = true; return; }
       box.hidden = false;
       box.querySelector(".cepRyad").innerHTML = zvenya.map(html).join('<span class="cepStrelka" aria-hidden="true">→</span>');
       box.querySelector(".cepStamp").textContent =
-        `двор: ${dvor?.обновлено || "—"} · зоны и висяки: ${priyomka?.обновлено || "—"}`;
+        `двор: ${dvor?.обновлено || "—"} · буферы из ВМС: ${zhivo?.обновлено || "—"} · возраст и висяки: ${priyomka?.обновлено || "—"}`;
     });
   }
 

@@ -58,6 +58,7 @@
 
   let dvor = null;
   let priyomka = null;
+  let zhivo = null;   // 05.10: зоны входа живьём из ВМС раз в 5 минут (data/priyomka_zhivo.json)
   let versiya = "";
   let scena = null;
   const chastitsy = [];
@@ -94,10 +95,13 @@
       if (!b) continue;
       const k = z.корзины || {};
       const p = priem.get(b) || { shtuk: 0, staroe: 0, izvestno: 0, svezh: 0 };
-      p.shtuk += z.штук || 0;
-      p.staroe += k["3. больше 48 ч"] || 0;
-      p.izvestno += (z.штук || 0) - (k["4. движения не найдено"] || 0);
-      p.svezh += k["1. до 24 ч"] || 0;
+      // штуки — живьём из ВМС; возраст — из DWH, но просроченных не больше, чем лежит сейчас
+      const zh = zhivo?.зоны?.[z.зона];
+      const shtuk = zh ? zh.штук : (z.штук || 0);
+      p.shtuk += shtuk;
+      p.staroe += Math.min(k["3. больше 48 ч"] || 0, shtuk);
+      p.izvestno += Math.min((z.штук || 0) - (k["4. движения не найдено"] || 0), shtuk);
+      p.svezh += Math.min(k["1. до 24 ч"] || 0, shtuk);
       priem.set(b, p);
     }
     const maxPriem = Math.max(1, ...[...priem.values()].map((p) => p.shtuk));
@@ -385,7 +389,7 @@
 
   /* ── статус, тревоги, кривая ─────────────────────────────────────── */
   function narisovatStatus() {
-    const modeli = window.PrCepochka ? window.PrCepochka.sobrat(dvor, priyomka) : [];
+    const modeli = window.PrCepochka ? window.PrCepochka.sobrat(dvor, priyomka, null, zhivo) : [];
     const krasnye = modeli.filter((m) => m.cvet === "krasnyy").map((m) => m.imya.toLowerCase());
     const zhyoltye = modeli.filter((m) => m.cvet === "zhyoltyy").map((m) => m.imya.toLowerCase());
     const status = $("ekStatus");
@@ -483,15 +487,16 @@
       ? `движение — темп ${String(p.chas).padStart(2, "0")}:00${p.den ? ` ${p.den.slice(8, 10)}.${p.den.slice(5, 7)}` : ""}: приехало ${num(p.shtuk.приехало)}, на ворота ${num(p.shtuk.на_ворота)}, уехало ${num(p.shtuk.разгружено)}`
       : "за последний час машин не было — двор стоит";
     $("ekSvezhest").innerHTML = `<span>${esc(temp)}</span><span>двор: ${esc(dvor?.обновлено || "—")}</span>`
-      + `<span>зоны: ${esc(priyomka?.обновлено || "—")}</span><span>источник: WMS · ucenka-vi.ru/priyomka/ekran/</span>`;
+      + `<span>зоны: ${esc(zhivo?.обновлено ? zhivo.обновлено.slice(11) + " · ВМС живьём" : priyomka?.обновлено || "—")}</span><span>источник: WMS · ucenka-vi.ru/priyomka/ekran/</span>`;
   }
 
   async function zagruzit() {
     const vzyat = (imya) => fetch(DATA + imya, { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
-    const [d, p] = await Promise.all([vzyat("dvor.json"), vzyat("priyomka.json")]);
+    const [d, p, zh] = await Promise.all([vzyat("dvor.json"), vzyat("priyomka.json"), vzyat("priyomka_zhivo.json")]);
     if (d) dvor = d;
     if (p) priyomka = p;
-    const novaya = `${dvor?.обновлено}|${priyomka?.обновлено}|${new Date().getHours()}`;
+    if (zh) zhivo = zh;
+    const novaya = `${dvor?.обновлено}|${priyomka?.обновлено}|${zhivo?.обновлено}|${new Date().getHours()}`;
     // Карту пересобираем, только когда пришли новые данные или сменился час:
     // иначе каждую минуту обрывалось бы движение.
     if (novaya !== versiya) { versiya = novaya; postroitKartu(); }
