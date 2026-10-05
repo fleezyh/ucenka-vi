@@ -142,10 +142,10 @@
     dannye.рейсы.filter((r) => (filtr.cel !== "cel" || celevoy(r)) && (!filtr.vid || r.вид === filtr.vid) && (!filtr.mes || mesyac(r) === filtr.mes))
       .forEach((r) => { schet[region(r)] = (schet[region(r)] || 0) + 1; });
     const spisok = Object.keys(schet).sort((a, b) => schet[b] - schet[a] || a.localeCompare(b, "ru"));
-    el("msGoroda").innerHTML = spisok.length < 2 ? "" : [
-      `<button type="button" class="msChip${filtr.gorod ? "" : " is-on"}" data-gorod="">Все города</button>`,
-      ...spisok.map((g) => `<button type="button" class="msChip${g === filtr.gorod ? " is-on" : ""}" data-gorod="${esc(g)}">${esc(g)} <b>${schet[g]}</b></button>`),
-    ].join("");
+    const vsego = Object.values(schet).reduce((a, b) => a + b, 0);
+    el("msGoroda").innerHTML = spisok.length < 2 && !filtr.gorod ? "" : `<label class="msSel"><span>Город</span>
+      <select data-sel="gorod"><option value="">Все города · ${chislo(vsego)}</option>
+      ${spisok.map((g) => `<option value="${esc(g)}"${g === filtr.gorod ? " selected" : ""}>${esc(g)} · ${chislo(schet[g])}</option>`).join("")}</select></label>`;
   }
 
   function risovatMesyacy() {
@@ -155,10 +155,10 @@
     dannye.рейсы.filter((r) => (filtr.cel !== "cel" || celevoy(r)) && (!filtr.vid || r.вид === filtr.vid) && (!filtr.gorod || region(r) === filtr.gorod))
       .forEach((r) => { const m = mesyac(r); if (m) schet[m] = (schet[m] || 0) + 1; });
     const spisok = Object.keys(schet).sort().reverse();
-    box.innerHTML = spisok.length < 2 ? "" : [
-      `<button type="button" class="msChip${filtr.mes ? "" : " is-on"}" data-mes="">Все месяцы</button>`,
-      ...spisok.map((m) => `<button type="button" class="msChip${m === filtr.mes ? " is-on" : ""}" data-mes="${esc(m)}">${esc(imyaMes(m))} <b>${schet[m]}</b></button>`),
-    ].join("");
+    const vsego = Object.values(schet).reduce((a, b) => a + b, 0);
+    box.innerHTML = spisok.length < 2 && !filtr.mes ? "" : `<label class="msSel"><span>Месяц</span>
+      <select data-sel="mes"><option value="">Все месяцы · ${chislo(vsego)}</option>
+      ${spisok.map((m) => `<option value="${esc(m)}"${m === filtr.mes ? " selected" : ""}>${esc(imyaMes(m))} · ${chislo(schet[m])}</option>`).join("")}</select></label>`;
   }
 
   function oblozhka(r) {
@@ -616,6 +616,14 @@
   });
 
   document.addEventListener("submit", (e) => { if (e.target.id === "msForma") sohranitFormu(e); });
+  document.addEventListener("change", (e) => {
+    const sel = e.target.closest && e.target.closest("select[data-sel]");
+    if (!sel) return;
+    if (sel.dataset.sel === "mes") filtr.mes = sel.value;
+    if (sel.dataset.sel === "gorod") filtr.gorod = sel.value;
+    pokazano = PORCIYA;
+    risovat();
+  });
   document.addEventListener("input", (e) => {
     if (e.target.id === "msPoisk") { filtr.q = e.target.value; risovat(); return; }
     if (e.target.closest("#msForma") && ["gorod", "data", "nomer", "pricep"].includes(e.target.name)) {

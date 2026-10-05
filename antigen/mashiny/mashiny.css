@@ -285,3 +285,14 @@ body.is-svetlo .msZagruzka { background: #e7ecf3; }
 /* 05.10: порции карточек */
 .msEshche { grid-column: 1 / -1; justify-self: center; margin: 8px 0 24px; }
 .msChipRazd { display: inline-block; width: 1px; height: 22px; margin: 0 6px; background: rgba(255,255,255,.14); vertical-align: middle; }
+
+/* 05.10: месяцы и города — выпадающими списками в одну строку с «Целевые» и «Без фото» */
+.msGorodaRyad { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+.msGorodaRyad .msGoroda { width: auto; flex: 0 0 auto; }
+.msGorodaRyad .msSvodka { flex: 1 0 100%; }
+.msSel { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+.msSel select { height: 34px; padding: 0 30px 0 12px; border-radius: 10px; border: 1px solid var(--line-strong, rgba(255,255,255,.18));
+  background: rgba(255,255,255,.04); color: var(--text); font: inherit; font-size: 14px; color-scheme: dark; cursor: pointer; }
+.msSel select option { background: #1d1f27; color: #f2f3f7; }
+body.is-svetlo .msSel select { color-scheme: light; background: #fff; }
+body.is-svetlo .msSel select option { background: #fff; color: #111; }
