@@ -936,28 +936,44 @@
     return wrap;
   }
 
-  function renderProstoi(data) {
+  function renderProstoi(data, period) {
     const pr = data.простои;
     if (!pr || !pr.по_неделям || !pr.по_неделям.length) return null;
     const box = document.createElement("div");
     box.className = "prost";
-    const nedeli = pr.по_неделям.slice(-8);
-    if (!prostoyNedelya || !nedeli.some((w) => w.неделя === prostoyNedelya)) prostoyNedelya = nedeli[nedeli.length - 1].неделя;
-    const w = nedeli.find((x) => x.неделя === prostoyNedelya);
+    // недели периода сверху: неделю относим к месяцу её понедельника, как во всей странице
+    const mesyacy = new Set(period.months);
+    const mesyacNedeli = (key) => { const d = mondayOfWeek(key); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; };
+    const nedeli = pr.по_неделям.filter((w) => mesyacy.has(mesyacNedeli(w.неделя)));
+    if (!nedeli.length) {
+      box.innerHTML = `<p class="perfLead">За ${escapeHtml(period.label)} простоев не посчитано — данные с 1 января.</p>`;
+      return box;
+    }
+    if (prostoyNedelya && !nedeli.some((w) => w.неделя === prostoyNedelya)) prostoyNedelya = null;
+    // весь период — сумма по людям за все его недели
+    const vybrannye = prostoyNedelya ? nedeli.filter((x) => x.неделя === prostoyNedelya) : nedeli;
+    const lyudiMap = new Map();
+    vybrannye.forEach((x) => x.люди.forEach((c) => {
+      const z = lyudiMap.get(c.сотрудник) || { сотрудник: c.сотрудник, минут: 0, пауз: 0, дней: 0, столы: new Set() };
+      z.минут += c.минут; z.пауз += c.пауз; z.дней += c.дней; c.столы.forEach((s) => z.столы.add(s));
+      lyudiMap.set(c.сотрудник, z);
+    }));
+    const w = { люди: [...lyudiMap.values()].map((z) => ({ ...z, столы: [...z.столы] }))
+      .sort((a, b) => b.минут / Math.max(b.дней, 1) - a.минут / Math.max(a.дней, 1)) };
 
     const chips = document.createElement("div");
-    chips.className = "stepSwitch";
-    nedeli.forEach((x) => {
+    chips.className = "stepSwitch prost__dni";
+    [{ неделя: null }, ...nedeli].forEach((x) => {
       const b = document.createElement("button");
       b.type = "button";
       b.className = "stepSwitch__item" + (x.неделя === prostoyNedelya ? " is-on" : "");
-      b.textContent = x.неделя.replace(/^\d{4}-/, "");
+      b.textContent = x.неделя ? x.неделя.replace(/^\d{4}-/, "") : "весь период";
       b.addEventListener("click", () => { prostoyNedelya = x.неделя; render(); });
       chips.appendChild(b);
     });
     box.appendChild(chips);
 
-    const maks = Math.max(1, ...w.люди.map((x) => x.минут));
+    const maks = Math.max(1, ...w.люди.map((x) => x.минут / Math.max(x.дней, 1)));
     const spisok = document.createElement("div");
     spisok.className = "prost__list";
     w.люди.forEach((x) => {
@@ -966,9 +982,9 @@
       row.className = "prost__row" + (x.сотрудник === prostoyChelovek ? " is-on" : "");
       row.innerHTML = `<span class="prost__who">${escapeHtml(x.сотрудник)}`
         + `${x.столы.length ? ` <i>(${escapeHtml(x.столы.join(", "))})</i>` : ""}</span>`
-        + `<span class="prost__bar"><i style="width:${(100 * x.минут / maks).toFixed(1)}%"></i></span>`
-        + `<b class="prost__val">${chasy(x.минут)} ч</b>`
-        + `<span class="prost__sub">${x.пауз} пауз · ${x.дней} дн.</span>`;
+        + `<span class="prost__bar"><i style="width:${(100 * x.минут / Math.max(x.дней, 1) / maks).toFixed(1)}%"></i></span>`
+        + `<b class="prost__val">${chasy(x.минут / Math.max(x.дней, 1))} ч</b>`
+        + `<span class="prost__sub">за смену · всего ${chasy(x.минут)} ч, ${x.пауз} пауз, ${x.дней} дн.</span>`;
       row.addEventListener("click", () => {
         prostoyChelovek = prostoyChelovek === x.сотрудник ? null : x.сотрудник;
         render();
@@ -978,7 +994,8 @@
     box.appendChild(spisok);
 
     // Лента пауз по дням: рабочий промежуток (первый — последний документ) и паузы на нём
-    const dni = (pr.по_дням || []).filter((d) => !prostoyChelovek || d.люди.some((x) => x.сотрудник === prostoyChelovek));
+    const dni = (pr.по_дням || []).filter((d) => mesyacy.has(d.день.slice(0, 7))
+      && (!prostoyChelovek || d.люди.some((x) => x.сотрудник === prostoyChelovek)));
     if (dni.length) {
       if (!prostoyDen || !dni.some((d) => d.день === prostoyDen)) prostoyDen = dni[dni.length - 1].день;
       const dchips = document.createElement("div");
@@ -1271,11 +1288,11 @@
     }
 
     // 05.10 Карташев: «можешь добавить простои?» — паузы > 30 мин по сотруднику и столу
-    const prostoiBlok = renderProstoi(data);
+    const prostoiBlok = renderProstoi(data, period.current);
     if (prostoiBlok) {
       parts.push(block("Простои",
-                       `паузы дольше ${data.простои.порог_минут} мин между документами человека в ВМС в пределах дня · `
-                       + "свои даты, не зависят от периода сверху · клик по человеку — его паузы по дням",
+                       `${period.current.label} · паузы дольше ${data.простои.порог_минут} мин между документами человека в ВМС `
+                       + "в пределах дня · ч в среднем за смену — чтобы сравнивать людей с разным числом смен · клик по человеку — его паузы по дням",
                        prostoiBlok));
     }
 

@@ -617,7 +617,7 @@ body .heroPerf { display: flex; flex-wrap: wrap; justify-content: space-between;
 .stoly td.stoly__stol small { margin-left: 0; max-width: none; }
 /* Простои (05.10.2026) */
 .prost__list { display: grid; gap: 4px; margin: 12px 0 18px; }
-.prost__row { display: grid; grid-template-columns: minmax(220px, 34%) 1fr 64px 120px; gap: 12px; align-items: center; padding: 6px 10px; border: 1px solid transparent; border-radius: 8px; background: rgba(255,255,255,.02); color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.prost__row { display: grid; grid-template-columns: minmax(220px, 32%) 1fr 64px 240px; gap: 12px; align-items: center; padding: 6px 10px; border: 1px solid transparent; border-radius: 8px; background: rgba(255,255,255,.02); color: inherit; font: inherit; text-align: left; cursor: pointer; }
 .prost__row:hover, .prost__row.is-on { border-color: rgba(240,93,114,.45); background: rgba(240,93,114,.06); }
 .prost__who { font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .prost__who i { color: var(--muted); font-style: normal; font-size: 12px; }

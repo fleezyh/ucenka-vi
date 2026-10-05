@@ -36,16 +36,34 @@
   let idx = null;                 // общий файл
   const rubriki = new Map();      // r1 → колонки
   let stavki = null;              // текущие ставки
-  const sost = { r1: "", r2: "", tip: "", q: "", vid: "seli", pokazano: 50, vseGrupp: false };
+  const sost = { r1: "", r2: "", tip: "", q: "", vid: "minus", pokazano: 50, vseGrupp: false };
+
+  // 05.10 Степан: «куда бить, зачем, что самое невыгодное — ВООБЩЕ ничего непонятно». Страница отвечает
+  // сначала на это: сколько теряем, на чём и что с этим делать; разбор по рубрикам и позициям — ниже.
+  const PRICHINY = {
+    цена: { imya: "Цена не выше себестоимости", chto: "поднять цену или вывести из ассортимента", klass: "is-cena",
+            pochemu: "маржи нет — продаём в ноль или в минус, а склад и брак добавляют сверху" },
+    хранение: { imya: "Лежит долго — съело хранение", chto: "сократить закупку, распродать запас", klass: "is-hran",
+                pochemu: "запас на месяцы вперёд: хранение за год больше, чем принесла маржа" },
+    брак: { imya: "Брак съедает маржу", chto: "разбор с поставщиком и упаковкой — где бьётся", klass: "is-brak",
+            pochemu: "много актов брака на проданную штуку: теряем себес и платим за обработку" },
+    работа: { imya: "Мелочь дорого обрабатывать", chto: "продавать упаковкой, поднять минимальную партию", klass: "is-rab",
+              pochemu: "работа склада на заказ дороже маржи с него" },
+  };
+  // главная причина минуса позиции: нет маржи — цена; иначе что съело больше всего
+  const prichina = (r) => (r.marzha <= 0 ? "цена"
+    : [["хранение", r.hran], ["брак", r.brak], ["работа", r.rabota]].sort((a, b) => b[1] - a[1])[0][0]);
 
   // виды списка позиций — вместо сортировки и галочек
   const VIDY = [
-    ["seli", "Маржу съели", "маржа есть, а склад и брак её съели"],
-    ["minus", "В минусе", "за год в минусе — вместе с продажей ниже себестоимости"],
-    ["brak", "Много брака", "больше всего брака на проданную штуку"],
-    ["hran", "Дорого хранить", "больше всего хранения за год"],
-    ["vse", "Все", "все позиции, худшие сверху"],
+    ["minus", "Все потери", "в минусе за год — самые большие потери сверху"],
+    ["cena", "Цена ≤ себеса", PRICHINY.цена.pochemu],
+    ["hran", "Съело хранение", PRICHINY.хранение.pochemu],
+    ["brak", "Съел брак", PRICHINY.брак.pochemu],
+    ["rab", "Съела работа", PRICHINY.работа.pochemu],
+    ["vse", "Все позиции", "все позиции, худшие сверху"],
   ];
+  const VID_PRICHINA = { cena: "цена", hran: "хранение", brak: "брак", rab: "работа" };
 
   // ------------------------------------------------------------ загрузка
 
@@ -157,29 +175,30 @@
   function poVidu(sp) {
     const v = sost.vid;
     let out = sp;
-    if (v === "seli") out = sp.filter(({ r }) => r.marzha > 0 && r.itog < 0);
-    else if (v === "minus") out = sp.filter(({ r }) => r.itog < 0);
-    else if (v === "brak") out = sp.filter(({ r }) => r.ak > 0);
-    const kl = {
-      seli: (x) => x.r.itog, minus: (x) => x.r.itog, vse: (x) => x.r.itog,
-      brak: (x) => -(x.r.sht ? x.r.brak / x.r.sht : x.r.brak),
-      hran: (x) => -x.r.hran,
-    }[v];
-    return out.slice().sort((a, b) => kl(a) - kl(b));
+    if (v === "minus") out = sp.filter(({ r }) => r.itog < 0);
+    else if (VID_PRICHINA[v]) out = sp.filter(({ r }) => r.itog < 0 && prichina(r) === VID_PRICHINA[v]);
+    return out.slice().sort((a, b) => a.r.itog - b.r.itog);
   }
 
+  const pustyePoteri = () => ({ позиций: 0, рублей: 0,
+    по_причине: Object.fromEntries(Object.keys(PRICHINY).map((p) => [p, { позиций: 0, рублей: 0 }])) });
   function summa(sp) {
-    const s = { vyr: 0, marzha: 0, rabota: 0, hran: 0, brak: 0, itog: 0, minus: 0, n: 0 };
+    const s = { vyr: 0, marzha: 0, rabota: 0, hran: 0, brak: 0, itog: 0, minus: 0, n: 0, poteri: pustyePoteri() };
     for (const { r } of sp) {
       s.vyr += r.vyr; s.marzha += r.marzha; s.rabota += r.rabota; s.hran += r.hran; s.brak += r.brak; s.itog += r.itog;
       s.minus += r.itog < 0 ? 1 : 0; s.n += 1;
+      if (r.itog < 0) {
+        const p = s.poteri.по_причине[prichina(r)];
+        s.poteri.позиций += 1; s.poteri.рублей -= r.itog; p.позиций += 1; p.рублей -= r.itog;
+      }
     }
     return s;
   }
   function izSvoda(f) {
     const s = f.свод, m = idx.meta;
     const kh = stavkaM3() / m.ставка_м3_сут, ko = obrabotka() / m.ставки.обработка;
-    const o = { vyr: s.выручка, marzha: s.маржа, rabota: s.работа, hran: s.хранение * kh, brak: s.брак_себес + s.обработка * ko, minus: s.в_минусе, n: f.строк };
+    const o = { vyr: s.выручка, marzha: s.маржа, rabota: s.работа, hran: s.хранение * kh, brak: s.брак_себес + s.обработка * ko, minus: s.в_минусе, n: f.строк,
+                poteri: f.потери || pustyePoteri() };
     o.itog = o.marzha - o.rabota - o.hran - o.brak;
     return o;
   }
@@ -222,17 +241,41 @@
       <p class="ekGlav__pod">${s.n ? `${chislo(s.n)} ${sklon(s.n, "позиция", "позиции", "позиций")} · в минусе ${chislo(s.minus)}` : ""}${primech ? ` · ${primech}` : ""}</p>`;
   }
 
+  // полоса потерь по причинам: из чего сложился минус группы
+  function polosaPoter(p, maks) {
+    const w = (v) => `${(v / Math.max(maks, 1) * 100).toFixed(2)}%`;
+    return `<div class="ekPolosa ekPolosa--poteri">${Object.entries(PRICHINY).map(([k, x]) =>
+      `<i class="${x.klass}" style="width:${w(p.по_причине[k].рублей)}" title="${esc(x.imya)}: ${dengi(p.по_причине[k].рублей)} ₽ · ${chislo(p.по_причине[k].позиций)} поз."></i>`).join("")}</div>`;
+  }
+
   function gruppy(spisok, zag, pod, klyuch) {
     if (!spisok.length) { $("ekGruppy").innerHTML = ""; return; }
-    spisok.sort((a, b) => (dolyaOst(a.s) ?? -1e9) - (dolyaOst(b.s) ?? -1e9));
-    const vid = sost.vseGrupp ? spisok : spisok.slice(0, 10);
+    spisok.sort((a, b) => (b.s.poteri?.рублей || 0) - (a.s.poteri?.рублей || 0));
+    const vid = sost.vseGrupp ? spisok : spisok.slice(0, 12);
+    const maks = Math.max(...spisok.map((x) => x.s.poteri?.рублей || 0), 1);
     $("ekGruppy").innerHTML = `<h2>${zag} <small>${pod}</small></h2>
-      <div class="ekGr__shapka"><span></span><span>куда уходит маржа</span><span>остаётся от маржи</span></div>
-      ${vid.map(({ id, imya, s }) => { const d = dolyaOst(s); return `<button type="button" class="ekGr" data-${klyuch}="${id}">
-        <span class="ekGr__imya"><b>${esc(imya)}</b><small>${chislo(s.n)} поз. · в минусе ${chislo(s.minus)}</small></span>
-        ${polosa(s)}
-        <span class="ekGr__ost ${s.itog < 0 ? "is-minus" : ""}"><b>${d != null ? chislo(d) + "%" : "—"}</b><small>${dengi(s.itog)} ₽</small></span></button>`; }).join("")}
+      <div class="ekGr__shapka"><span></span><span>из чего потери: <i class="ekLeg is-cena"></i>цена <i class="ekLeg is-hran"></i>хранение <i class="ekLeg is-brak"></i>брак <i class="ekLeg is-rab"></i>работа</span><span>теряем за год</span></div>
+      ${vid.map(({ id, imya, s }) => { const p = s.poteri || pustyePoteri(); const d = dolyaOst(s); return `<button type="button" class="ekGr" data-${klyuch}="${id}">
+        <span class="ekGr__imya"><b>${esc(imya)}</b><small>${chislo(p.позиций)} из ${chislo(s.n)} поз. в минусе · остаётся ${d != null ? chislo(d) + "% маржи" : "—"}</small></span>
+        ${polosaPoter(p, maks)}
+        <span class="ekGr__ost is-minus"><b>${p.рублей ? "−" + dengi(p.рублей) : "0"}</b><small>₽ за год</small></span></button>`; }).join("")}
       ${spisok.length > vid.length ? `<button type="button" class="ekBtn ekEshche" data-vsegrupp>Показать все ${chislo(spisok.length)}</button>` : ""}`;
+  }
+
+  // «Куда бить»: сколько теряем, на чём и что делать — первым экраном
+  function kudaBit(p, n, kto, primech) {
+    const vsego = p.рублей || 0;
+    const prich = Object.entries(PRICHINY).map(([k, x]) => ({ k, ...x, ...p.по_причине[k] })).sort((a, b) => b.рублей - a.рублей);
+    const glavn = prich[0];
+    $("ekBit").innerHTML = `<p class="ekGlav__kto">${kto}</p>
+      <h2 class="ekBit__fraza">Теряем <b class="is-minus">${dengi(vsego)} ₽</b> в год на <b>${chislo(p.позиций)}</b> ${sklon(p.позиций, "позиции", "позициях", "позициях")}${n ? ` из ${chislo(n)}` : ""}</h2>
+      <p class="ekBit__pod">Это позиции, которые после склада и брака приносят минус. ${vsego ? `Больше всего — «${esc(glavn.imya.toLowerCase())}»: ${chislo(glavn.рублей / vsego * 100)}% потерь.` : ""} Нажмите на причину — ниже откроется список позиций.</p>
+      <div class="ekRychagi">${prich.map((x) => `<button type="button" class="ekRychag ${x.klass}" data-vid="${Object.keys(VID_PRICHINA).find((v) => VID_PRICHINA[v] === x.k)}" data-k-poz>
+        <span class="ekRychag__imya"><i></i>${esc(x.imya)}</span>
+        <b>−${dengi(x.рублей)} ₽</b>
+        <small>${chislo(x.позиций)} поз. · ${vsego ? chislo(x.рублей / vsego * 100) : 0}% потерь</small>
+        <span class="ekRychag__chto">что делать: ${esc(x.chto)}</span></button>`).join("")}</div>
+      ${primech ? `<p class="ekGlav__pod">${primech}</p>` : ""}`;
   }
 
   function pozicii(sp, primech) {
@@ -246,7 +289,7 @@
       </div>
       ${sp.length ? `<div class="ekPoz__shapka"><span>товар</span><span>продано</span><span>куда уходит маржа штуки</span><span>остаётся со штуки</span></div>` : `<p class="ekPusto">Ничего не нашлось.</p>`}
       ${vid.map(({ k, i, r }) => { const na = (v) => (r.sht ? v / r.sht : null); return `<button type="button" class="ekPoz" data-k="${k === idx.топKol ? "top" : k.r1[i]}" data-i="${i}">
-        <span class="ekPoz__imya"><b>${esc(k.imya[i])}</b><small>${k.art[i] || ""} · ${esc(idx.slov.r2[k.r2[i]] || idx.slov.r1[k.r1[i]] || "")} · ${esc(r.tip)}</small></span>
+        <span class="ekPoz__imya"><b>${esc(k.imya[i])}</b><small>${r.itog < 0 ? `<em class="ekPrich ${PRICHINY[prichina(r)].klass}">${esc(prichina(r))}</em> ` : ""}${k.art[i] || ""} · ${esc(idx.slov.r2[k.r2[i]] || idx.slov.r1[k.r1[i]] || "")} · ${esc(r.tip)}</small></span>
         <span class="ekPoz__sht"><b>${chislo(r.sht)}</b><small>шт за год</small></span>
         <span class="ekPoz__pol">${polosa(r)}<small>маржа ${rub(na(r.marzha))} ₽ · склад ${rub(na(r.rabota))} · хранение ${rub(na(r.hran))} · брак ${rub(na(r.brak))}${r.dney != null && r.dney > 180 ? ` · <em class="ekZapas">запас ${r.dney >= 730 ? chislo(r.dney / 365, 1) + " года" : chislo(r.dney) + " дн."}</em>` : ""}</small></span>
         <span class="ekPoz__itog ${r.itog < 0 ? "is-minus" : "is-plus"}"><b>${r.sht ? rub(r.itog / r.sht) + " ₽" : "не продавался"}</b><small>${dengi(r.itog)} ₽ за год</small></span></button>`; }).join("")}
@@ -260,13 +303,15 @@
       // обзор без загрузки всех рубрик: сводка из index и топ-300 «маржу съели»
       const sv = idx.рубрики.filter((f) => f.свод).map((f) => ({ id: f.r1, imya: f.имя, s: izSvoda(f) }));
       const s = sv.reduce((a, { s: x }) => { for (const p in a) a[p] += x[p]; return a; }, { vyr: 0, marzha: 0, rabota: 0, hran: 0, brak: 0, itog: 0, minus: 0, n: 0 });
-      glavnaya(s, "Все рубрики · Домодедово · " + esc(idx.meta.период), tarifyIzmeneny() ? "тарифы и «место» здесь по умолчанию — выберите рубрику для точного расчёта" : "");
-      gruppy(sv, "По рубрикам", "худшие сверху · щёлкните — откроются категории и позиции", "r1");
-      if (sost.vid === "seli") {
+      kudaBit(idx.потери || pustyePoteri(), s.n, "Все рубрики · Домодедово · " + esc(idx.meta.период),
+              "потери посчитаны по ставкам по умолчанию — со своими ставками выберите рубрику");
+      glavnaya(s, "Куда уходит маржа · все рубрики", tarifyIzmeneny() ? "тарифы и «место» здесь по умолчанию — выберите рубрику для точного расчёта" : "");
+      gruppy(sv, "Где теряем", "рубрики по потерям за год · щёлкните — категории и позиции", "r1");
+      if (sost.vid !== "vse") {
         const top = idx.топKol;
         let sp = top.id.map((_, i) => ({ k: top, i, r: raschet(top, i) }));
         if (sost.tip !== "") sp = sp.filter(({ k, i }) => k.tip[i] === Number(sost.tip));
-        pozicii(poVidu(sp), "топ-300 по всем рубрикам");
+        pozicii(poVidu(sp), "худшие по всем рубрикам");
       } else {
         zagruzitVse().then(risovat).catch(oshibka);
         $("ekPozicii").innerHTML = `<p class="ekPusto">Загружаю все рубрики…</p>`;
@@ -275,6 +320,9 @@
     }
     const sp = vybor();
     const s = summa(sp);
+    kudaBit(s.poteri, s.n, q ? `Поиск «${esc(sost.q.trim())}»`
+      : sost.r1 !== "" ? esc(imyaR1(Number(sost.r1))) + (sost.r2 !== "" ? " · " + esc(idx.slov.r2[Number(sost.r2)] || "без категории") : "")
+        : "Все рубрики · Домодедово · " + esc(idx.meta.период));
     if (q) {
       glavnaya(s, `Поиск «${esc(sost.q.trim())}»${sost.r1 !== "" ? " в рубрике " + esc(imyaR1(Number(sost.r1))) : ""}`);
       const po = new Map();
@@ -287,14 +335,14 @@
       if (sost.r2 === "") {
         const po = new Map();
         sp.forEach((x) => { const id = x.k.r2[x.i]; if (!po.has(id)) po.set(id, []); po.get(id).push(x); });
-        gruppy([...po].map(([id, a]) => ({ id, imya: idx.slov.r2[id] || "без категории", s: summa(a) })), "Категории", "худшие сверху · щёлкните — позиции категории", "r2");
+        gruppy([...po].map(([id, a]) => ({ id, imya: idx.slov.r2[id] || "без категории", s: summa(a) })), "Где теряем", "категории по потерям · щёлкните — позиции категории", "r2");
       } else $("ekGruppy").innerHTML = "";
     } else {
       // все рубрики загружены — сводка точная по текущим ставкам
       glavnaya(s, "Все рубрики · Домодедово · " + esc(idx.meta.период));
       const po = new Map();
       sp.forEach((x) => { const id = x.k.r1[x.i]; if (!po.has(id)) po.set(id, []); po.get(id).push(x); });
-      gruppy([...po].map(([id, a]) => ({ id, imya: imyaR1(id), s: summa(a) })), "По рубрикам", "худшие сверху · щёлкните — откроются категории и позиции", "r1");
+      gruppy([...po].map(([id, a]) => ({ id, imya: imyaR1(id), s: summa(a) })), "Где теряем", "рубрики по потерям за год · щёлкните — категории и позиции", "r1");
     }
     pozicii(poVidu(sp));
   }
@@ -394,7 +442,7 @@
   let taymer = 0;
   async function poisk(q) {
     sost.q = q; sost.pokazano = 50; sost.vseGrupp = false;
-    if (q.trim() && sost.vid === "seli") sost.vid = "vse";   // ищут конкретный товар — показываем его, каким бы он ни был
+    if (q.trim() && sost.vid !== "vse") sost.vid = "vse";   // ищут конкретный товар — показываем его, каким бы он ни был
     if (q.trim() && sost.r1 === "") await zagruzitVse();
     risovat();
   }
@@ -430,7 +478,11 @@
     if (t.closest("[data-eshche]")) { sost.pokazano += 50; risovat(); return; }
     if (t.closest("[data-vsegrupp]")) { sost.vseGrupp = true; risovat(); return; }
     const vd = t.closest("[data-vid]");
-    if (vd) { sost.vid = vd.dataset.vid; sost.pokazano = 50; risovat(); return; }
+    if (vd) {
+      sost.vid = vd.dataset.vid; sost.pokazano = 50; risovat();
+      if (vd.hasAttribute("data-k-poz")) $("ekPozicii").scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
     const g1 = t.closest(".ekGr[data-r1]");
     if (g1) { vybratRubriku(g1.dataset.r1).then(() => $("ekGlav").scrollIntoView({ behavior: "smooth", block: "start" })).catch(oshibka); return; }
     const g2 = t.closest(".ekGr[data-r2]");
