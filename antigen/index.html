@@ -2,20 +2,22 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8">
+  <script src="/tema.js?v=20260924-2"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0a1018">
   <title>Уценка · Антигенерация</title>
   <link rel="icon" type="image/svg+xml" href="../assets/brand/vi-mark.svg">
   <link rel="preload" href="../assets/fonts/VI_Sans_Regular.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="../style.css?v=20260911-3">
-  <link rel="stylesheet" href="antigen.css?v=20260915-1">
+  <link rel="stylesheet" href="antigen.css?v=20260927-2">
   <link rel="stylesheet" href="../reeded-bg.css?v=20260907-6">
-  <link rel="stylesheet" href="../site-header.css?v=20260914-2">
+  <link rel="stylesheet" href="../site-header.css?v=20260921-1">
   <link rel="stylesheet" href="../section-assistant.css?v=20260910-2">
   <link rel="stylesheet" href="../news-feed.css?v=20260911-1">
   <script src="../reeded-bg.js?v=20260906-7" defer></script>
-  <script src="antigen.js?v=20260915-1" defer></script>
-  <script src="../nav.js?v=20260914-1" defer></script>
+  <script src="antigen.js?v=20261005-bez-karty" defer></script>
+  <script src="zapiski-carousel.js?v=20260916-3" defer></script>
+  <script src="../nav.js?v=20260921-1" defer></script>
   <script src="../news-feed.js?v=20260911-1" defer></script>
 </head>
 <body data-mode="antigen">
@@ -51,7 +53,6 @@
         <a class="is-on" href="./" aria-current="page">Брак</a>
         <a href="mashiny/">Отправка ОЛ с регионов</a>
         <a href="ekonomika/">Экономика позиций</a>
-        <a id="roadmap-link" href="#roadmap" aria-expanded="false">Дорожная карта</a>
       </nav>
       <div class="agHeroSide">
         <div class="agStamp" id="agStamp">данные загружаются…</div>
@@ -61,6 +62,27 @@
 
     <section class="agGoals" id="agGoals" hidden></section>
 
+    <!-- Записки по каждой работе: список и чтение прямо здесь.
+         Скачивание оставлено внутри самой записки, но это не главный путь. -->
+    <section class="agZapiski" id="agZapiski" aria-label="Пояснительные записки">
+      <div class="agZapiski__head">
+        <b>Пояснительные записки</b>
+        <i>по каждой аналитике проекта: зачем считали, как считали, что получилось</i>
+        <span class="agZapiski__controls">
+          <button type="button" id="agZapiskiPrev" aria-label="Предыдущие записки">‹</button>
+          <button type="button" id="agZapiskiNext" aria-label="Следующие записки">›</button>
+        </span>
+      </div>
+      <div class="agZapiski__grid" id="agZapiskiGrid"></div>
+    </section>
+
+    <!-- Лист записки поверх страницы. -->
+    <div class="agList" id="agList" hidden>
+      <div class="agList__fon" id="agListFon"></div>
+      <article class="agList__doc" id="agListDoc" role="dialog" aria-modal="true"
+               aria-label="Пояснительная записка" tabindex="-1"></article>
+    </div>
+
     <nav class="agContours" id="agContours" aria-label="Контуры"></nav>
 
     <section class="agSearch" id="agSearch" hidden>
@@ -68,22 +90,6 @@
       <input class="agSearch__input" id="agSearchInput" type="search" autocomplete="off"
              placeholder="слово из названия, артикул или бренд — например «газонокосилка»">
       <span class="agSearch__note" id="agSearchNote"></span>
-    </section>
-
-    <section class="agPanel agRoadmapPanel" id="roadmap" hidden>
-      <div class="agPanel__head">
-        <div>
-          <div class="agKicker">план изменений</div>
-          <h2>Дорожная карта</h2>
-          <p class="agHint">рабочий план по блокам: владелец, статус, срок, недельная шкала, факт и следующий шаг</p>
-        </div>
-        <div class="agRoadmapActions">
-          <a class="agBtn" href="/__admin#roadmap">Редактировать</a>
-          <button class="agBtn agBtn--ghost" id="roadmap-close" type="button">Закрыть</button>
-        </div>
-      </div>
-      <div class="agRoadmapSummary" id="agRoadmapSummary"></div>
-      <div class="agRoadmap" id="agRoadmap"><div class="agEmpty">Загружаю дорожную карту…</div></div>
     </section>
 
     <section class="agPanel agPanel--time">
@@ -98,6 +104,9 @@
           <div class="agSeg" id="agMeasure" role="group" aria-label="Мера"></div>
         </div>
       </div>
+      <!-- Рабочие группы товаров: что склад взял в работу. Выбор группы
+           сужает весь экран до неё и показывает эффект до и после. -->
+      <div class="agGruppy" id="agGruppy" hidden></div>
       <div class="agChart" id="agChart"></div>
       <div class="agFacts" id="agFacts"></div>
     </section>
@@ -198,6 +207,27 @@
             <p>Шаг — месяц: возврат приходит через недели после продажи, и на неделе
                доля скачет. Поэтому минимальное окно — три месяца.</p>
           </div>
+          <div>
+            <h4>вид обращения</h4>
+            <p>Подписан ровно так, как называется в отчёте сервиса: согласованный
+               возврат, гарантийный ремонт, платный ремонт, диагностика, акт АСЦ.
+               У каждой пятой строки вид не проставлен — так и написано, в «прочее»
+               не сводим.</p>
+          </div>
+          <div>
+            <h4>решение по обращению</h4>
+            <p>Заключение сервисного центра или нашей оценки: исправен, гарантийный
+               ремонт, платный ремонт, брак поставщика, неремонтопригоден. Именно оно
+               отделяет брак производителя от прочего: «исправен» и «платный ремонт» —
+               не повод снимать позицию с витрины.</p>
+          </div>
+          <div>
+            <h4>почему решений мало</h4>
+            <p>Решение заполнено у 2,5% обращений: в акте поле пустое поголовно, и
+               заключение появляется только у того, что доехало до сервисного центра.
+               Пока это так, довод «у поставщика много брака» держится на виде
+               обращения, а не на экспертизе.</p>
+          </div>
         </div>
       </details>
 
@@ -222,6 +252,10 @@
         </figcaption>
         <div id="agClientMap"></div>
       </figure>
+
+      <!-- Раскладка обращений: вид и решение по нему. Чипы кликабельные —
+           это фильтр, а не подпись. -->
+      <div class="agSplits" id="agClientSplit"></div>
 
       <div class="agCrumbs" id="agClientCrumbs"></div>
       <div class="agDims" id="agClientDims" role="tablist" aria-label="Разрез клиентского брака"></div>

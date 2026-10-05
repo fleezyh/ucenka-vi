@@ -133,6 +133,7 @@
     // сразу: динамику, карту и разбор.
     exclude: [],
     search: '',        // слово из названия товара, артикула или бренда
+    gruppa: null,      // рабочая группа товаров, взятая в работу
     drillDim: null,
     heatDim: null,
     share: null,       // какая доля раскрыта в разбор
@@ -148,6 +149,12 @@
       minSales: 50,
       search: '',
       path: [],        // провал: [{dim, value}]
+      // Вид обращения и решение по нему — не ступени провала, а отдельные
+      // фильтры: по просьбе со встречи 15.09 их надо видеть раскладкой
+      // («всего актов столько, из них согласованный возврат столько»), а не
+      // прятать внутрь цепочки категорий.
+      vid: null,       // подпись вида обращения ровно как в отчёте сервиса
+      reshenie: null,  // заключение сервисного центра или оценки
     },
   };
 
@@ -397,8 +404,44 @@
       data.labels[dim] && data.labels[dim][row[data.dimAt[dim]]] === label)) return false;
     if (searchSet && data.dimAt.tovar !== undefined
       && !searchSet.has(row[data.dimAt.tovar])) return false;
+    if (gruppaSet && data.dimAt.tovar !== undefined
+      && !gruppaSet.has(row[data.dimAt.tovar])) return false;
     return state.filters.every(({ dim, label }) =>
       data.labels[dim] && data.labels[dim][row[data.dimAt[dim]]] === label);
+  }
+
+  /* Рабочие группы товаров — «с чем мы сейчас работаем».
+   *
+   * На встрече 15.09 договорились: смотреть эффект мероприятия по общему числу
+   * бесполезно — одно снизили, другое выросло, и в сумме ничего не видно.
+   * Нужен именованный набор номенклатуры (мешки, длинномеры, вёдра с
+   * крышками), который берут в работу целиком, и дата, с которой мероприятие
+   * действует. Тогда «подействовала таблетка или нет» — это сравнение до и
+   * после даты внутри самой группы, а не догадка по общему графику.
+   *
+   * Наборы описаны словами в названии товара, а не списком SKU: ассортимент
+   * меняется, и вчерашнее ведро на 1 л сменяется завтрашним на 20 л. Правило
+   * по слову ловит и новый артикул, список — нет.
+   */
+  let gruppy = [];
+  let gruppaSet = null;
+  let gruppaKey = '';
+
+  function buildGruppaSet(data) {
+    const gruppa = gruppy.find((g) => g.имя === state.gruppa);
+    const key = `${state.contour}|${state.gruppa || ''}`;
+    if (key === gruppaKey) return;
+    gruppaKey = key;
+    if (!gruppa || data.dimAt.tovar === undefined) { gruppaSet = null; return; }
+
+    const slova = (gruppa.слова || []).map((s) => String(s).toLocaleLowerCase('ru-RU'));
+    const krome = (gruppa.кроме || []).map((s) => String(s).toLocaleLowerCase('ru-RU'));
+    gruppaSet = new Set();
+    (data.labels.tovar || []).forEach((name, at) => {
+      const hay = name.toLocaleLowerCase('ru-RU');
+      if (krome.some((word) => hay.includes(word))) return;
+      if (slova.some((word) => hay.includes(word))) gruppaSet.add(at);
+    });
   }
 
   /* Поиск по товару.
@@ -429,6 +472,219 @@
       }
       if (words.every((word) => hay.includes(word))) searchSet.add(at);
     });
+  }
+
+
+  /* Пояснительные записки.
+   *
+   * Читают их прямо здесь: клик открывает лист поверх страницы, как обычный
+   * документ. Файл Word остаётся ссылкой внутри листа — для тех, кому нужно
+   * отправить почтой, но заставлять всех скачивать ради чтения незачем.
+   */
+  let zapiski = [];
+
+  async function loadZapiski() {
+    try {
+      const answer = await fetch(DATA_DIR + 'zapiski.json', { cache: 'no-cache' });
+      if (!answer.ok) return;
+      zapiski = (await answer.json()).записки || [];
+    } catch { zapiski = []; }
+    renderZapiski();
+  }
+
+  function renderZapiski() {
+    const grid = el('agZapiskiGrid');
+    const box = el('agZapiski');
+    if (!grid) return;
+    if (!zapiski.length) { box.hidden = true; return; }
+    box.hidden = false;
+    grid.innerHTML = '';
+    grid.addEventListener('ag:zapiski-open', (event) => openZapiska(event.detail.slug), { once: false });
+    const shortLabels = {
+      'prochie-defekty': 'Прочие дефекты',
+      'assortiment-na-operezhenie': 'Опережение',
+      'top-3-napravleniya': 'Топ-3 направления',
+      'klientskiy-brak': 'Клиентский брак',
+      'effekt-meropriyatiy': 'Эффект мероприятий',
+      'propusknaya-sposobnost': 'Фильтр брака',
+      'perepakovka': 'Переупаковка'
+    };
+    zapiski.forEach((z) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'agPz';
+      button.textContent = shortLabels[z.slug] || z.imya;
+      button.setAttribute('aria-label', z.imya);
+      button.title = z.imya;
+      button.dataset.slug = z.slug;
+      grid.appendChild(button);
+    });
+  }
+
+  function zapiskaHtml(z) {
+    const kusok = (razdel) => {
+      let out = `<h3>${escape(razdel.h)}</h3>`;
+      (razdel.p || []).forEach((text) => { out += `<p>${escape(text)}</p>`; });
+      if (razdel.list) {
+        out += '<ul>' + razdel.list.map((i) => `<li>${escape(i)}</li>`).join('') + '</ul>';
+      }
+      if (razdel.table) {
+        out += '<table><thead><tr>'
+          + razdel.table.head.map((h) => `<th>${escape(h)}</th>`).join('')
+          + '</tr></thead><tbody>'
+          + razdel.table.rows.map((r) => '<tr>'
+              + r.map((c) => `<td>${escape(c)}</td>`).join('') + '</tr>').join('')
+          + '</tbody></table>';
+        if (razdel.table.note) out += `<p class="agList__note">${escape(razdel.table.note)}</p>`;
+      }
+      return out;
+    };
+    return '<div class="agList__top">'
+      + `<span class="agList__teg">${escape(z.teg)}</span>`
+      + '<div class="agList__act">'
+      + `<a class="agBtn agBtn--ghost" href="docs/${escape(z.slug)}.docx" download>Скачать Word</a>`
+      + '<button type="button" class="agBtn agBtn--ghost" data-zakryt>Закрыть</button>'
+      + '</div></div>'
+      + `<h2>${escape(z.imya)}</h2>`
+      + '<p class="agList__podpis">Пояснительная записка · рабочая группа '
+      + '«Сокращение генерации брака» · сентябрь 2026 · Рысаков С. М.</p>'
+      + z.razdely.map(kusok).join('');
+  }
+
+  function openZapiska(slug) {
+    const z = zapiski.find((item) => item.slug === slug);
+    if (!z) return;
+    const box = el('agList');
+    const doc = el('agListDoc');
+    doc.innerHTML = zapiskaHtml(z);
+    box.hidden = false;
+    document.body.classList.add('agList--open');
+    doc.scrollTop = 0;
+    doc.focus();
+    doc.querySelector('[data-zakryt]').addEventListener('click', closeZapiska);
+  }
+
+  function closeZapiska() {
+    el('agList').hidden = true;
+    document.body.classList.remove('agList--open');
+  }
+
+  /** Чипы рабочих групп и, если группа выбрана, эффект до и после. */
+  function renderGruppy(data) {
+    const box = el('agGruppy');
+    if (!box) return;
+    if (!gruppy.length) { box.innerHTML = ''; box.hidden = true; return; }
+    box.hidden = false;
+    box.innerHTML = '';
+
+    const line = document.createElement('div');
+    line.className = 'agGruppyLine';
+    const podpis = document.createElement('span');
+    podpis.className = 'agGruppyHead';
+    podpis.textContent = 'в работе:';
+    line.appendChild(podpis);
+
+    gruppy.forEach((gruppa) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'agCrumb agGruppaChip';
+      if (gruppa.имя === state.gruppa) button.classList.add('agGruppaChip--on');
+      button.innerHTML = `<span>${escape(gruppa.имя)}</span>`
+        + (gruppa.с ? `<i>с ${escape(datePodpis(gruppa.с))}</i>` : '');
+      button.title = gruppa.что || gruppa.имя;
+      button.addEventListener('click', () => {
+        state.gruppa = gruppa.имя === state.gruppa ? null : gruppa.имя;
+        state.point = null;
+        render();
+      });
+      line.appendChild(button);
+    });
+    box.appendChild(line);
+
+    const gruppa = gruppy.find((g) => g.имя === state.gruppa);
+    if (gruppa) box.appendChild(effektBlok(data, gruppa));
+  }
+
+  function datePodpis(iso) {
+    const day = String(iso).slice(0, 10);
+    const month = Number(day.slice(5, 7)) - 1;
+    return `${Number(day.slice(8, 10))} ${MONTHS_SHORT[month] || ''}`;
+  }
+
+  /** Эффект мероприятия: одинаковые окна до и после даты, внутри группы.
+   *
+   * Сравнение ведём в полных месяцах: мероприятие начинает действовать не в
+   * день приказа, а когда до склада дойдёт, и половинки месяцев только шумят.
+   * Рядом показываем, как за те же месяцы менялся контур целиком: если группа
+   * упала на 30%, а склад на 28% — это не мероприятие, это общий тренд.
+   */
+  function effektBlok(data, gruppa) {
+    const measure = measureOf(contourDef());
+    const at = data.measureAt[measure.key];
+    const nachalo = String(gruppa.с || '').slice(0, 7);
+
+    const svoi = new Map();
+    const ves = new Map();
+    data.rows.forEach((row) => {
+      const month = data.monthOfRow(row);
+      if (!month) return;
+      const value = row[at];
+      ves.set(month, (ves.get(month) || 0) + value);
+      if (matches(data, row)) svoi.set(month, (svoi.get(month) || 0) + value);
+    });
+
+    const box = document.createElement('div');
+    box.className = 'agEffekt';
+    const mesyacy = [...ves.keys()].sort();
+    const posle = mesyacy.filter((m) => nachalo && m >= nachalo && m < nowMonth());
+    const shag = Math.max(posle.length, 0);
+
+    if (!nachalo) {
+      box.innerHTML = '<div class="agEffektNote">У группы не проставлена дата взятия в работу — '
+        + 'сравнивать до и после не с чем. Дата ставится в админке, рядом с мероприятиями.</div>';
+      return box;
+    }
+    if (!shag) {
+      box.innerHTML = '<div class="agEffektNote">Мероприятие взято в работу в этом месяце. '
+        + 'Первое сравнение появится, когда закроется месяц целиком: по половине месяца '
+        + 'эффект не считаем.</div>';
+      return box;
+    }
+
+    const doNachala = mesyacy.filter((m) => m < nachalo).slice(-shag);
+    const summa = (map, list) => list.reduce((sum, m) => sum + (map.get(m) || 0), 0);
+    const byloSvoi = summa(svoi, doNachala);
+    const staloSvoi = summa(svoi, posle);
+    const byloVes = summa(ves, doNachala);
+    const staloVes = summa(ves, posle);
+    const izm = byloSvoi ? (staloSvoi / byloSvoi - 1) * 100 : null;
+    const fon = byloVes ? (staloVes / byloVes - 1) * 100 : null;
+    const chistyy = izm !== null && fon !== null ? izm - fon : null;
+
+    const znak = (v) => (v === null ? '—' : `${v > 0 ? '+' : ''}${v.toFixed(0)}%`);
+    const cvet = (v) => (v === null ? '' : v < 0 ? ' agEffektVal--good' : ' agEffektVal--bad');
+    const okno = `${shag} ${shag === 1 ? 'месяц' : shag < 5 ? 'месяца' : 'месяцев'}`;
+
+    box.innerHTML = `<div class="agEffektHead">Эффект мероприятия · ${escape(gruppa.имя)} · `
+      + `${okno} до и после</div>`
+      + '<div class="agEffektRow">'
+      + `<div class="agEffektCell"><b>${fmt(byloSvoi, measure.kind)}</b><i>до</i></div>`
+      + `<div class="agEffektCell"><b>${fmt(staloSvoi, measure.kind)}</b><i>после</i></div>`
+      + `<div class="agEffektCell"><b class="agEffektVal${cvet(izm)}">${znak(izm)}</b>`
+      + '<i>изменение в группе</i></div>'
+      + `<div class="agEffektCell"><b>${znak(fon)}</b><i>контур целиком</i></div>`
+      + `<div class="agEffektCell"><b class="agEffektVal${cvet(chistyy)}">${znak(chistyy)}</b>`
+      + '<i>чистый эффект</i></div>'
+      + '</div>'
+      + `<div class="agEffektNote">Чистый эффект — разница между группой и общим фоном. `
+      + `Если он около нуля, группа поехала вместе со складом и мероприятие тут ни при чём.`
+      + (gruppa.что ? ` ${escape(gruppa.что)}` : '') + '</div>';
+    return box;
+  }
+
+  function nowMonth() {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   }
 
   function total(data, rows, measure) {
@@ -1536,8 +1792,13 @@
     return data.months.slice(-state.client.window);
   }
 
-  /** Строки окна с учётом провала и поиска. */
-  function clientRows(data) {
+  /** Строки окна с учётом провала и поиска.
+   *
+   * `ignore` пропускает один из фильтров вида/решения — это нужно самим
+   * раскладкам: цифры в чипах должны показывать, из чего состоит выбор, а не
+   * схлопываться в одну строку после клика по чипу.
+   */
+  function clientRows(data, ignore) {
     const months = new Set(clientMonths(data));
     const words = state.client.search.trim().toLowerCase();
     const path = state.client.path;
@@ -1546,6 +1807,10 @@
       for (const step of path) {
         if (data.labels[step.dim][row[data.dimAt[step.dim]]] !== step.value) return false;
       }
+      if (ignore !== 'vid' && state.client.vid && data.dimAt.vid !== undefined
+          && data.labels.vid[row[data.dimAt.vid]] !== state.client.vid) return false;
+      if (ignore !== 'reshenie' && state.client.reshenie && data.dimAt.reshenie !== undefined
+          && data.labels.reshenie[row[data.dimAt.reshenie]] !== state.client.reshenie) return false;
       if (!words) return true;
       const haystack = `${data.labels.tovar[row[data.dimAt.tovar]]} `
         + `${data.labels.brand[row[data.dimAt.brand]]} `
@@ -2083,7 +2348,77 @@
       });
       dims.appendChild(button);
     });
+    clientSplit(data);
     renderClient(data);
+  }
+
+  /** Раскладка обращений: всего актов столько, из них такой-то вид столько.
+   *
+   * Просьба Тани со встречи 15.09 — подписать виды ровно так, как они
+   * называются в отчёте сервиса, и рядом дать решение по обращению: платный
+   * ремонт и «исправен» это не брак производителя, и снимать по ним позицию
+   * с витрины нельзя. Решение проставляют редко, поэтому долю заполненности
+   * пишем прямо в заголовке — это часть ответа, а не дефект страницы.
+   */
+  function clientSplit(data) {
+    const box = el('agClientSplit');
+    if (!box) return;
+    if (data.dimAt.vid === undefined) { box.innerHTML = ''; return; }
+    box.innerHTML = '';
+
+    const ryad = (dim, zagolovok, vybrano, vybrat) => {
+      const rows = clientRows(data, dim);
+      const svod = new Map();
+      let vsego = 0;
+      for (const row of rows) {
+        const name = data.labels[dim][row[data.dimAt[dim]]];
+        const value = row[data.measureAt.brak];
+        svod.set(name, (svod.get(name) || 0) + value);
+        vsego += value;
+      }
+      const poryadok = [...svod.entries()].sort((a, b) => b[1] - a[1]);
+
+      const wrap = document.createElement('div');
+      wrap.className = 'agSplit';
+      const head = document.createElement('div');
+      head.className = 'agSplitHead';
+      head.textContent = `${zagolovok} · всего ${fmtInt(vsego)} актов`;
+      wrap.appendChild(head);
+
+      const line = document.createElement('div');
+      line.className = 'agSplitLine';
+      const chip = (name, value) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'agCrumb agSplitChip';
+        if (name === vybrano) button.classList.add('agSplitChip--on');
+        const dolya = vsego ? (value / vsego) * 100 : 0;
+        button.innerHTML = `<span>${escape(name)}</span>`
+          + `<b>${fmtInt(value)}</b><i>${dolya.toFixed(dolya < 1 ? 2 : 0)}%</i>`;
+        button.addEventListener('click', () => {
+          vybrat(name === vybrano ? null : name);
+          drawClient(data);
+        });
+        return button;
+      };
+      if (vybrano) {
+        const sbros = document.createElement('button');
+        sbros.type = 'button';
+        sbros.className = 'agCrumb agSplitChip agSplitChip--reset';
+        sbros.textContent = 'снять фильтр';
+        sbros.addEventListener('click', () => { vybrat(null); drawClient(data); });
+        line.appendChild(sbros);
+      }
+      poryadok.forEach(([name, value]) => line.appendChild(chip(name, value)));
+      wrap.appendChild(line);
+      box.appendChild(wrap);
+    };
+
+    ryad('vid', 'Вид обращения', state.client.vid, (v) => { state.client.vid = v; });
+    if (data.dimAt.reshenie !== undefined) {
+      ryad('reshenie', 'Решение по обращению', state.client.reshenie,
+           (v) => { state.client.reshenie = v; });
+    }
   }
 
   function setupClient(data) {
@@ -2124,6 +2459,28 @@
     const book = window.XLSX.utils.book_new();
     const dim = CLIENT_DIMS.find((d) => d.key === state.client.dim);
     window.XLSX.utils.book_append_sheet(book, sheet, 'Клиентский брак');
+
+    // Вторым листом — раскладка обращений: на встрече её просили именно
+    // числами («всего актов столько, из них согласованный возврат столько»),
+    // а не как фильтр на экране.
+    if (data.dimAt.vid !== undefined) {
+      const svod = (dimKey) => {
+        const map = new Map();
+        for (const row of clientRows(data, dimKey)) {
+          const name = data.labels[dimKey][row[data.dimAt[dimKey]]];
+          map.set(name, (map.get(name) || 0) + row[data.measureAt.brak]);
+        }
+        const total = [...map.values()].reduce((sum, v) => sum + v, 0) || 1;
+        return [...map.entries()]
+          .sort((a, b) => b[1] - a[1])
+          .map(([name, value]) => [name, value, Number((value / total * 100).toFixed(2))]);
+      };
+      const listok = [['Вид обращения', 'Актов', 'Доля, %'], ...svod('vid'), [],
+                      ['Решение по обращению', 'Актов', 'Доля, %']];
+      if (data.dimAt.reshenie !== undefined) listok.push(...svod('reshenie'));
+      window.XLSX.utils.book_append_sheet(
+        book, window.XLSX.utils.aoa_to_sheet(listok), 'Виды и решения');
+    }
     window.XLSX.writeFile(book, `Клиентский брак — ${dim ? dim.label : state.client.dim}.xlsx`);
   }
 
@@ -2175,6 +2532,8 @@
 
     const data = await loadContour(state.contour);
     buildSearchSet(data);
+    buildGruppaSet(data);
+    renderGruppy(data);
     renderSearch(data);
     const points = pointsOf(data, periodMonths(data));
     if (state.point && !points.some((p) => p.key === state.point)) state.point = null;
@@ -2312,10 +2671,8 @@
   };
 
   async function start() {
-    setupRoadmapToggle();
     setupSearch();
     placeHeroSide();
-    renderRoadmap();
     try {
       index = await fetch(DATA_DIR + 'index.json', { cache: 'no-cache' }).then((r) => r.json());
     } catch (error) {
@@ -2328,6 +2685,17 @@
       const answer = await fetch(DATA_DIR + 'events.json', { cache: 'no-cache' });
       if (answer.ok) events = (await answer.json()).мероприятия || [];
     } catch { events = []; }
+    // Рабочие группы товаров — тем же порядком: их состав правят руками, когда
+    // склад берёт в работу новую тему, а не при пересборке данных.
+    try {
+      const answer = await fetch(DATA_DIR + 'gruppy.json', { cache: 'no-cache' });
+      if (answer.ok) gruppy = (await answer.json()).группы || [];
+    } catch { gruppy = []; }
+    loadZapiski();
+    el('agListFon').addEventListener('click', closeZapiska);
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && !el('agList').hidden) closeZapiska();
+    });
 
     const contour = contourDef();
     state.drillDim = contour.dims[0].key;
