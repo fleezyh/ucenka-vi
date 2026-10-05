@@ -903,6 +903,8 @@
   let stolOt = null;
   let stolDo = null;
   let stolVid = "смена";
+  // 05.10 («где деление на смены»): смена — фильтр всей страницы ниже карточек: таблица людей, ядро, простои
+  let smenaFiltr = "";
 
   // --- Простои -----------------------------------------------------------------
   let prostoyNedelya = null;
@@ -958,7 +960,9 @@
       z.минут += c.минут; z.пауз += c.пауз; z.дней += c.дней; c.столы.forEach((s) => z.столы.add(s));
       lyudiMap.set(c.сотрудник, z);
     }));
-    const w = { люди: [...lyudiMap.values()].map((z) => ({ ...z, столы: [...z.столы] }))
+    const smenaCheloveka = new Map((data.сотрудники || []).map((x) => [x.сотрудник, x.смена]));
+    const w = { люди: [...lyudiMap.values()].filter((z) => !smenaFiltr || smenaCheloveka.get(z.сотрудник) === smenaFiltr)
+      .map((z) => ({ ...z, столы: [...z.столы] }))
       .sort((a, b) => b.минут / Math.max(b.дней, 1) - a.минут / Math.max(a.дней, 1)) };
 
     const chips = document.createElement("div");
@@ -1226,6 +1230,25 @@
         `<span class="perfCard__note">выходили на стол</span></article>`;
     parts.push(top);
 
+    // 05.10 Карташев: «статистику посменно — у нас 1-я смена, 2-я». Смена — бригада человека в HR.
+    const smenyBlok = renderSmeny(data);
+    if (smenyBlok) {
+      const smenaKn = document.createElement("div");
+      smenaKn.className = "stepSwitch";
+      [["", "Все"], ...(data.поСменам.смены || []).map((x) => [x, x])].forEach(([k, imya]) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "stepSwitch__item" + (smenaFiltr === k ? " is-on" : "");
+        b.textContent = imya;
+        b.addEventListener("click", () => { smenaFiltr = k; render(); });
+        smenaKn.appendChild(b);
+      });
+      parts.push(block("По сменам",
+                       "штук за смену по неделям · смена — бригада человека в HR (ФБ1, переупаковки СМ1, некомплектов 1 → смена 1) · "
+                       + "выбор смены справа фильтрует людей, ядро и простои ниже",
+                       smenyBlok, smenaKn));
+    }
+
     // Одна динамика вместо двух графиков. Раньше «По неделям» и «По дням»
     // стояли друг под другом и показывали одно и то же в разной нарезке —
     // читать приходилось дважды. Теперь это один блок с переключателем шага.
@@ -1280,12 +1303,6 @@
       barTools));
 
     // 05.10 Карташев: «статистику посменно» — смена по HR-бригаде человека (ФБ1/СМ1/… → смена 1)
-    const smenyBlok = renderSmeny(data);
-    if (smenyBlok) {
-      parts.push(block("По сменам", "штук за смену по неделям · смена — номер бригады человека в HR "
-                       + "(ФБ1, переупаковки СМ1, некомплектов 1 → смена 1) · свои даты, не зависят от периода сверху",
-                       smenyBlok));
-    }
 
     // 05.10 Карташев: «можешь добавить простои?» — паузы > 30 мин по сотруднику и столу
     const prostoiBlok = renderProstoi(data, period.current);
@@ -1346,7 +1363,8 @@
                                       legenda: "штук за смену по номеру смены" })));
     }
 
-    const staff = { list: view.сотрудники, label: period.current.label,
+    const staff = { list: view.сотрудники.filter((x) => !smenaFiltr || x.смена === smenaFiltr),
+                    label: period.current.label + (smenaFiltr ? " · " + smenaFiltr : ""),
                     скрыто: (data.сотрудники || []).length - view.сотрудники.length };
 
     parts.push(block("Ядро и хвост", `На скольких людях держится контур · ${staff.label}`,
