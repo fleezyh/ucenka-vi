@@ -1278,7 +1278,16 @@ async function start() {
     const svoya = views.querySelector('[data-view="me"]');
     if (svoya) svoya.hidden = true;
     const panel = views.querySelector('[data-view="team"]');
-    if (panel) panel.textContent = "Панель подачи";
+    if (panel) panel.textContent = "Панель подачи";    // 05.10 Степан: «зарплата в админке мне неинтересна, всё что мне надо — в блоке ФОТ»:
+    // проверка расчёта (сошлись ли оклады, кого нет, пересчитать) — отсюда, только админу.
+    fetch("/__me", { credentials: "same-origin" }).then((r) => (r.ok ? r.json() : null)).then((me) => {
+      if (!me || me.role !== "admin" || me["примерка"]) return;
+      const a = document.createElement("a");
+      a.className = "zpView zpView--link";
+      a.href = "/__admin/zarplata";
+      a.textContent = "Проверка расчёта →";
+      views.appendChild(a);
+    }).catch(() => {});
   }
   let moya;
   try {
@@ -1372,7 +1381,7 @@ async function start() {
       if (vid !== "me" || location.hash) history.replaceState(null, "", vid === "me" ? location.pathname : "#" + vid);
     };
     views.addEventListener("click", (event) => {
-      const button = event.target.closest(".zpView");
+      const button = event.target.closest(".zpView[data-view]");
       if (button) otkryt(button.dataset.view);
     });
 
