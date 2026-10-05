@@ -210,11 +210,15 @@
     if (kr) {
       // 03.10 «Пикалка × WMS + WTIS — чтобы светились»: в WMS-режиме крошка — две живые системы
       const pre = m === "costlist" ? "себес списком" : m === "pallets" ? "где паллеты" : "";
-      kr.innerHTML = [pre ? `<span>${pre}</span>` : "", vklWms ? sysHtml() : ""].filter(Boolean).join('<span class="sysPl">+</span>');
+      const layout = `${pre}|${vklWms}|${svyaz && svyaz.wms}|${svyaz && svyaz.wtis}`;
+      if (kr.dataset.sysLayout !== layout) {
+        kr.innerHTML = [pre ? `<span>${pre}</span>` : "", vklWms ? sysHtml() : ""].filter(Boolean).join('<span class="sysPl">+</span>');
+        kr.dataset.sysLayout = layout;
+      }
       kr.parentNode.hidden = !pre && !vklWms;
       // 03.10: «ПИКАЛКА × WMS + WTIS»
       const sep = $("#cCrumbSep");
-      if (sep) sep.textContent = vklWms && !pre ? "×" : "/";
+      if (sep) sep.textContent = vklWms && !pre ? "x" : "/";
     }
     risovatLentu();
     obnovitPusto();
@@ -229,6 +233,12 @@
   const KOD = /^(?:(?:CON|CEL|ACT|АКТ)\s?\d{5,12}|0\d{9}|\d+)$/i;
   const PALLETA_IMYA = /[^\d\s]\s*-\s*0\d{9}$/;
   const PALLETA = /(?:^CON\s?\d{5,12}$)|(?:[^\d\s]\s*-\s*0\d{9}$)|(?:^0\d{9}$)/i;
+  // Container labels exported from WMS can omit the name and leading zero.
+  function palletCode(value) {
+    const v = String(value || "").trim().replace(/^"(.*)"$/, "$1").replace(/[–—−]/g, "-").replace(/\u00a0/g, " ");
+    const m = v.match(/^CON\s*(\d{5,12})$/i) || v.match(/^(?:[^\d\s].*-\s*)?(0\d{9})$/) || v.match(/^-\s*(\d{9,10})$/);
+    return m && Number(m[1]) > 0 ? "CON " + m[1].padStart(10, "0") : "";
+  }
   const WMS_KOD = /^(?:ACT|АКТ|CON|CEL)\s?\d{5,12}$/i;
   const poNazvaniyu = (v) => /[A-Za-zА-Яа-яЁё]/.test(v) && v.length >= 3 && !KOD.test(v) && !PALLETA_IMYA.test(v)
     && !WMS_KOD.test((window.latinica || String)(v));
@@ -268,12 +278,20 @@
     const tekst = (e.clipboardData || window.clipboardData)?.getData("text") || "";
     const stroki = tekst.split(/[\r\n]+/).map((x) => x.trim()).filter(Boolean);
     const kuski = tekst.split(/[\r\n,;\t]+/).map((x) => x.trim()).filter(Boolean);
-    // 02.10: столбик наклеек актов — тоже в массовый пик (список актов, одно перемещение).
     const lat = (x) => (window.latinica || String)(x);
-    if (kuski.length >= 2 && (kuski.every((x) => PALLETA.test(x)) || kuski.every((x) => /^(ACT|АКТ)\s?\d{5,12}$/i.test(lat(x))))) {
+    const allPallets = kuski.length >= 2 && kuski.every((x) => palletCode(x));
+    const allActs = kuski.length >= 2 && kuski.every((x) => /^(ACT|АКТ)\s?\d{5,12}$/i.test(lat(x)));
+    if (allPallets || allActs) {
       e.preventDefault(); e.stopImmediatePropagation();
+      rezhim("ucenka");
       const otdat = () => document.dispatchEvent(new CustomEvent("wms:vstavka", { detail: tekst }));
       if (vklWms) otdat(); else { vklyuchitWms(true); setTimeout(otdat, 60); }
+      return;
+    }
+    if (kuski.length >= 2 && (kuski.some((x) => palletCode(x) || /^(CON|ACT|АКТ|CEL)\b/i.test(lat(x))) || (vklWms && (B.dataset.mode || "ucenka") !== "costlist"))) {
+      e.preventDefault(); e.stopImmediatePropagation();
+      const msg = document.getElementById("message");
+      if (msg) { msg.textContent = "Список не загружен: есть неизвестные или разные типы наклеек. Вставьте один столбец паллет или актов."; msg.className = "message warn"; }
       return;
     }
     if (stroki.length >= 2) { e.preventDefault(); e.stopImmediatePropagation(); spisok(tekst); }

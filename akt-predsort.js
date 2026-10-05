@@ -1144,6 +1144,7 @@
       <a class="aktPs__kn" target="_blank" rel="noopener" href="/__akt/pechat?forma=akt&akty=${q}">Акты A4</a></div>`;
   }
   let korzIdet = false;
+  let korzVstavka = null;
   let korzPer = null;        // { yach, proverka: [...] }
   let korzDb = null;         // ответ проверки заказа ДБ
   let korzDbKuda = "";
@@ -1368,7 +1369,7 @@
     const kid = Number((String(kod).match(/(\d{6,12})\s*$/) || [])[1]);
     if (!kid) return;
     if (korzina.some((x) => x.id === kid)) { signal(`${kod} уже в списке`); return; }
-    if (korzina.length >= 30) { signal("в списке уже 30 паллет — сначала сделайте действие"); return; }
+    if (korzina.length >= 2500) { signal("в списке уже 2500 паллет"); return; }
     const z = { kod, id: kid, паллета: kod, zhdu: true };
     korzina.push(z);
     korzDb = null; korzPer = null;
@@ -1388,25 +1389,36 @@
   // Вставка списка (29.09, «всю пачку вставить не смог»): поле скана — однострочное,
   // переносы строк пропадали и имена слипались. Ловим вставку до поля: если в ней
   // больше одной паллеты — включаем массовый пик и кладём все, по 4 параллельно.
-  const PALLETA = /(?:^CON\s?\d{5,12}$)|(?:[^\d\s]\s*-\s*0\d{9}$)|(?:^0\d{9}$)/i;
+  // Container labels exported from WMS can omit the name and leading zero.
+  function palletCode(value) {
+    const v = String(value || "").trim().replace(/^"(.*)"$/, "$1").replace(/[–—−]/g, "-").replace(/\u00a0/g, " ");
+    const m = v.match(/^CON\s*(\d{5,12})$/i) || v.match(/^(?:[^\d\s].*-\s*)?(0\d{9})$/) || v.match(/^-\s*(\d{9,10})$/);
+    return m && Number(m[1]) > 0 ? "CON " + m[1].padStart(10, "0") : "";
+  }
   function vstavitPallety(tekst) {
-    // 02.10: столбик актов («ACT 0005314983» или голые номера актов) — в список актов.
     const stroki = String(tekst || "").split(/[\r\n,;\t]+/).map((x) => (window.latinica || String)(x.trim())).filter(Boolean);
-    const akty = stroki.filter((x) => /^(ACT|АКТ)\s?\d{5,12}$/i.test(x));
-    if (akty.length >= 2) {
-      if (!massPik) { massPik = true; pal = null; aktK = null; yach = null; tovar = null; }
-      let j = 0;
-      const potokA = async () => { while (j < akty.length) { const k = akty[j++]; await vKorzinuAkt(k); } };
-      Promise.all([potokA(), potokA(), potokA(), potokA()]).then(() => signal(`В списке ${korzAkty.length} актов`));
-      return true;
-    }
-    const kody = String(tekst || "").split(/[\r\n,;\t]+/).map((x) => x.trim()).filter((x) => PALLETA.test(x));
-    if (kody.length < 2) return false;
+    if (stroki.length < 2) return false;
+    const akty = stroki.every((x) => /^(ACT|АКТ)\s?\d{5,12}$/i.test(x));
+    const kody = stroki.map(palletCode);
+    if (!akty && kody.some((x) => !x)) { signal("Список не загружен: проверьте неизвестные наклейки. Нужен один столбец паллет или актов."); return true; }
+    if (korzVstavka) { signal("Дождитесь загрузки текущего списка паллет"); return true; }
+    const naKlad = [...new Set(akty ? stroki : kody)];
+    const existing = akty ? korzAkty.length : korzina.length;
+    const additions = akty ? naKlad.length : naKlad.filter((k) => !korzina.some((x) => x.id === Number(k.slice(4)))).length;
+    if (existing + additions > 2500) { signal("Список не загружен: максимум 2500 паллет или актов"); return true; }
     if (!massPik) { massPik = true; pal = null; aktK = null; yach = null; tovar = null; }
-    const naKlad = kody.map((k) => (/^CON/i.test(k) ? k : "CON " + k.slice(-10)));
+    korzVstavka = { total: naKlad.length, done: 0 };
     let i = 0;
-    const potok = async () => { while (i < naKlad.length) { const k = naKlad[i++]; await vKorzinu(k); } };
-    Promise.all([potok(), potok(), potok(), potok()]).then(() => signal(`В списке ${korzina.length} паллет`));
+    const potok = async () => {
+      while (i < naKlad.length) {
+        const k = naKlad[i++];
+        if (akty) await vKorzinuAkt(k); else await vKorzinu(k);
+        korzVstavka.done++; risovat();
+      }
+    };
+    Promise.all([potok(), potok(), potok(), potok()]).finally(() => {
+      korzVstavka = null; risovat(); signal(akty ? `В списке ${korzAkty.length} актов` : `В списке ${korzina.length} паллет`);
+    });
     return true;
   }
   document.addEventListener("paste", (e) => {
@@ -1420,6 +1432,77 @@
     const m = document.getElementById("message");
     if (m) { m.textContent = tekst; m.className = "message warn"; }
   }
+
+  let scQueue = null;
+  let scQueueError = "";
+  let scQueueBusy = false;
+  let scQueueToken = "";
+  async function scQueueRead() {
+    if (!aktivno) return;
+    try {
+      const response = await fetch("/__akt/palleta/sc_queue", { cache: "no-store" });
+      if (!response.ok) return;
+      const d = await response.json();
+      const next = JSON.stringify(d.очередь || null);
+      if (next !== JSON.stringify(scQueue)) { scQueue = d.очередь || null; if (massPik) risovat(); }
+    } catch (e) { /* next poll will recover */ }
+  }
+  async function scQueueAction(action) {
+    if (scQueueBusy) return;
+    if (action === "create" && korzVstavka) { signal("Дождитесь загрузки всего списка паллет"); return; }
+    scQueueBusy = true; scQueueError = ""; risovat();
+    try {
+      if (action === "create" && !scQueueToken) scQueueToken = crypto.randomUUID().replaceAll("-", "");
+      const o = await fetch("/__akt/palleta/sc_queue", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ действие: action, id: action === "create" ? scQueueToken : scQueue?.id,
+          паллеты: action === "create" ? korzina.map((x) => `CON ${String(x.id).padStart(10, "0")}`) : undefined }) });
+      const d = await o.json();
+      if (!o.ok) throw new Error(d.ошибка || `сервер ответил ${o.status}`);
+      scQueue = d.очередь;
+      if (action === "create") scQueueToken = "";
+    } catch (e) { scQueueError = e.message || String(e); }
+    finally { scQueueBusy = false; risovat(); }
+  }
+  function scQueueBlock() {
+    if (!scQueue && !scQueueError) return "";
+    const q = scQueue, counts = q?.счётчики || {};
+    const names = { prepared: "Готова к запуску", running: "Обрабатывается", paused: "Пауза", cancelled: "Останавливается", finished: "Завершена" };
+    const row = (r) => `<p class="aktPs__net"><b>${esc(r.паллета)}</b>: ${esc(r.ошибка || r.шаг || "")}${(r.резервы || []).length ? ` · обработаны резервы ${r.резервы.length} актов` : ""}${r.state === "review" ? " · требуется проверка WMS" : ""}
+      ${Object.entries(r.документы || {}).filter(([k,v]) => /заказ_id|поступление|задание_/.test(k) && Number.isInteger(v)).map(([k,v]) => `<span>${esc(k.replaceAll("_", " "))} №${v}</span>`).join("")}</p>`;
+    return `<div class="aktPs__palleta palPer"><p class="aktPs__zag">Очередь СЦ → ДМД${q ? ` · ${esc(names[q.состояние] || q.состояние)}` : ""}</p>
+      ${q ? `<p class="aktPs__chto">Всего ${q.всего} · готовы ${counts.done || 0} · пропущены ${counts.skipped || 0} · проверить ${counts.review || 0} · ожидают ${counts.waiting || 0}</p>
+        ${q.текущая ? `<p class="aktPs__podskaz">${esc(q.текущая.паллета)} · ${esc(q.текущая.шаг || "проверка")}</p>` : ""}
+        ${q.причина ? `<p class="aktPs__podskaz">${esc(q.причина)}</p>` : ""}
+        ${["prepared", "paused"].includes(q.состояние) ? `<p class="aktPs__podskaz">Полный круг до поступления на ДМД. Резервы нужных актов снимаются через ВТИС; при отказе у курьера снимаются только строки этих актов. Заказ целиком не удаляется. Если снять нельзя, вся паллета пропускается. Отремонтированное переводится в «Брак». Прогресс сохраняется на сервере.</p>
+          <button type="button" class="aktPs__kn is-on" data-sc-queue="start"${scQueueBusy || !vhod() ? " disabled" : ""}>${!vhod() ? "Войдите в WMS" : q.состояние === "prepared" ? "Запустить очередь" : "Продолжить оставшиеся"}</button>` : ""}
+        ${q.состояние === "running" ? `<button type="button" class="aktPs__kn" data-sc-queue="pause"${scQueueBusy ? " disabled" : ""}>Пауза после текущей паллеты</button>` : ""}
+        ${["prepared", "running", "paused"].includes(q.состояние) ? `<button type="button" class="aktPs__kn" data-sc-queue="cancel"${scQueueBusy ? " disabled" : ""}>Отменить оставшиеся</button>` : ""}
+        ${(q.проблемы || []).map(row).join("")}${(counts.skipped || 0) + (counts.review || 0) > 50 ? "<p>Показаны первые 50 проблемных паллет.</p>" : ""}
+        ${(counts.skipped || 0) + (counts.review || 0) ? '<button type="button" class="aktPs__kn" data-sc-queue="report">Скачать список проблем</button>' : ""}` : ""}
+      ${scQueueError ? `<p class="aktPs__net">${esc(scQueueError)}</p>` : ""}</div>`;
+  }
+  document.addEventListener("click", (e) => {
+    const k = e.target.closest("[data-sc-queue]");
+    if (k && vPaneli(e)) {
+      if (k.dataset.scQueue === "report") scQueueReport(); else scQueueAction(k.dataset.scQueue);
+    }
+  });
+  async function scQueueReport() {
+    try {
+      const o = await fetch("/__akt/palleta/sc_queue?report=1", { cache: "no-store" });
+      if (!o.ok) throw new Error("не удалось получить список проблем");
+      const d = await o.json();
+      const cell = (x) => { const s = String(x || "").replace(/[\t\r\n]/g, " "); return /^[=+@-]/.test(s) ? "'" + s : s; };
+      const text = ["Паллета\tСтатус\tПричина\tШаг\tДокументы\tРезервы", ...(d.строки || []).map((r) =>
+        [r.паллета, r.state === "review" ? "Проверить WMS" : "Пропущена", r.ошибка, r.шаг,
+          JSON.stringify(r.документы || {}), JSON.stringify(r.резервы || [])].map(cell).join("\t"))].join("\r\n");
+      const url = URL.createObjectURL(new Blob(["\uFEFF" + text], { type: "text/tab-separated-values;charset=utf-8" }));
+      const a = document.createElement("a"); a.href = url; a.download = "Паллеты — проблемы.tsv"; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (e) { scQueueError = e.message || String(e); risovat(); }
+  }
+  setInterval(scQueueRead, 4000);
+  setTimeout(scQueueRead, 1500);
 
   function risovatKorzinu() {
     const sht = korzina.reduce((n, x) => n + (x.штук || 0), 0);
@@ -1458,23 +1541,28 @@
         const kach = Object.entries(d.по_качеству || {}).map(([k, n]) => `${esc(k.toLowerCase())} ${n}`).join(" · ");
         blok = `<div class="aktPs__palleta palPer"><p class="aktPs__zag">На другой склад — один заказ ДБ</p>
           <p class="aktPs__podskaz">${d.паллет} паллет · ${esc(d.откуда)}${d.куда ? ` → <b>${esc(d.база_куда)}</b> · через «${esc(d.ячейка_отгрузки)}»` : " — куда везём?"}</p>
-          ${(d.куда_можно || []).length > 1 ? `<div class="aktPs__krit">${d.куда_можно.map((k) => `<button type="button" class="aktPs__kn${k === d.куда ? " is-on" : ""}" data-kz-kuda="${esc(k)}">${esc(IMYA_MARSHRUTA[k] || k)}</button>`).join("")}</div>` : ""}
+          ${(d.куда_можно || []).length > 1 ? `<div class="aktPs__krit">${d.куда_можно.map((k) => `<button type="button" class="aktPs__kn${k === d.куда ? " is-on" : ""}" data-kz-kuda="${esc(k)}"${korzIdet ? " disabled" : ""}>${esc(IMYA_MARSHRUTA[k] || k)}</button>`).join("")}</div>` : ""}
           <p class="aktPs__chto">${d.строк} строк · ${d.штук} шт${kach ? ` · ${kach}` : ""}${d.уже_в_заказе ? ` · ${d.уже_в_заказе} строк уже в заказе — пропущены` : ""}</p>
         ${(d.снимутся_с_заказов || []).length ? `<p class="aktPs__podskaz">${d.снимутся_штук || d.снимутся_с_заказов.length} шт в старых заказах — сайт снимет с них резерв во ВТИС и повезёт: ${esc(d.снимутся_с_заказов.join(", "))}</p>` : ""}
-          ${oshibki ? `<p class="aktPs__net"><b class="aktPs__oshibka">WMS не примет: ${esc(oshibki)}</b></p>` : d.можно ? `<p class="aktPs__chto">WMS примет заказ и задание на отбор.</p>` : ""}
+          ${d.стоп_небрак ? `<p class="aktPs__net"><b class="aktPs__oshibka">${esc(d.стоп_небрак)}</b></p>` : ""}
+          ${d.сменю_на_брак && !d.готово ? `<p class="aktPs__net"><b>Сначала переведу в «Брак» ${d.не_брак_штук} шт на ${(new Set((d.не_брак || []).map((x) => x.паллета))).size} паллетах, затем создам заказ ДБ на весь груз.</b>
+            ${(d.не_брак || []).slice(0, 6).map((x) => `<span>${esc(x.паллета)} · ${esc(x.товар)} · ${esc(x.качество)}${x.акт ? ` · акт ${esc(x.акт)}` : ""}</span>`).join("")}</p>` : ""}
+          ${oshibki ? `<p class="aktPs__net"><b class="aktPs__oshibka">WMS не примет: ${esc(oshibki)}</b></p>` : d.можно ? `<p class="aktPs__chto">Проверка пройдена. Заказ создаётся после смены качества и повторной проверки остатков.</p>` : ""}
           ${d.готово ? `<div class="aktPs__gotovo"><b>Заказ ${esc(d.номер)} создан и проведён${d.задание_id ? ` · отбор №${esc(d.задание_id)}` : ""}</b>
+            ${(d.смена_качества || []).length ? `<span>Качество изменено на ${(d.смена_качества || []).length} паллетах.</span>` : ""}
             ${d.без_задания ? `<span class="aktPs__oshibka">${esc(d.без_задания)}</span>` : ""}
             ${d.вмс ? `<a href="${esc(d.вмс)}" target="_blank" rel="noopener">открыть в WMS</a>` : ""}</div>`
-          : d.куда ? `<button type="button" class="aktPs__akt" id="korzDbGo"${oshibki || d.создание_включено === false || !boevoy || !vhod() || korzIdet ? " disabled" : ""}>${
-            d.создание_включено === false ? "Создание заказа ДБ пока не включено" : !vhod() ? "Войдите в WMS" : korzIdet ? "Создаю…" : `Создать заказ ДБ и отбор — ${d.паллет} паллет`}</button>` : ""}</div>`;
+          : d.куда ? `<button type="button" class="aktPs__akt" id="korzDbGo"${!d.можно || d.стоп_небрак || oshibki || d.создание_включено === false || !boevoy || !vhod() || korzIdet ? " disabled" : ""}>${
+            d.создание_включено === false ? "Создание заказа ДБ пока не включено" : !vhod() ? "Войдите в WMS" : korzIdet ? "Обрабатываю паллеты…" : d.сменю_на_брак ? `Перевести в брак и создать заказ ДБ — ${d.паллет} паллет` : `Создать заказ ДБ и отбор — ${d.паллет} паллет`}</button>` : ""}</div>`;
       }
     }
     const knopkiKorz = korzina.length ? `<div class="palKartaAkt__glav">
-        <button type="button" class="aktPs__kn${korzRezhim === "akt" ? " is-on" : ""}" data-kz="akt"${bez && !korzIdet ? "" : " disabled"}>Заактировать без акта</button>
-        <button type="button" class="aktPs__kn${korzRezhim === "per" ? " is-on" : ""}" data-kz="per"${korzIdet ? " disabled" : ""}>Переместить в ячейку</button>
-        <button type="button" class="aktPs__kn${korzRezhim === "db" ? " is-on" : ""}" data-kz="db"${korzIdet || korzina.length > 10 ? " disabled" : ""}>На другой склад</button>
-        <button type="button" class="aktPs__kn${korzRezhim === "priyom" ? " is-on" : ""}" data-kz="priyom"${korzIdet ? " disabled" : ""}>Принять</button>
-        <button type="button" class="aktPs__kn" data-kz="ochistit"${korzIdet ? " disabled" : ""}>Очистить</button>
+        <button type="button" class="aktPs__kn${korzRezhim === "akt" ? " is-on" : ""}" data-kz="akt"${bez && !(korzIdet || !!korzVstavka) ? "" : " disabled"}>Заактировать без акта</button>
+        <button type="button" class="aktPs__kn${korzRezhim === "per" ? " is-on" : ""}" data-kz="per"${(korzIdet || !!korzVstavka) ? " disabled" : ""}>Переместить в ячейку</button>
+        <button type="button" class="aktPs__kn" data-sc-queue="create"${(korzIdet || !!korzVstavka) || scQueueBusy || (scQueue && scQueue.состояние !== "finished") ? " disabled" : ""}>Полный круг СЦ → ДМД · весь список</button>
+        <button type="button" class="aktPs__kn${korzRezhim === "db" ? " is-on" : ""}" data-kz="db"${(korzIdet || !!korzVstavka) || korzina.length > 10 ? " disabled" : ""}>На другой склад</button>
+        <button type="button" class="aktPs__kn${korzRezhim === "priyom" ? " is-on" : ""}" data-kz="priyom"${(korzIdet || !!korzVstavka) ? " disabled" : ""}>Принять</button>
+        <button type="button" class="aktPs__kn" data-kz="ochistit"${(korzIdet || !!korzVstavka) ? " disabled" : ""}>Очистить</button>
       </div>` : "";
     const log = (korzLog.length ? `<div class="aktPs__nomera korzLog">${korzLog.slice(-14).map((x) => `<p>${x}</p>`).join("")}</div>` : "")
       + (!korzIdet && korzPechat.length ? knopkiPechati(korzPechat) : "");
@@ -1485,17 +1573,17 @@
         <th>адрес <button type="button" class="aLnk" data-kz-kop="adr">копировать</button></th>
         <th>шт</th></tr></thead><tbody>${gotovye.map((x) => `<tr><td>${esc(x.паллета)}</td><td>${esc(x.ячейка || "—")}</td><td>${x.штук}</td></tr>`).join("")}</tbody></table>` : "";
     const glav = `<header class="aktPs__shapka"><div><p class="aktPs__nad">Массовый пик · ${korzina.length} паллет</p>
-        <p class="aktPs__rezhim">${sht} шт · без акта ${bez} · пикайте ещё или выберите действие</p></div></header>
+        <p class="aktPs__rezhim">${sht} шт · без акта ${bez} · ${korzVstavka ? `загружаю ${korzVstavka.done} из ${korzVstavka.total}` : "пикайте ещё или выберите действие"}</p></div></header>
       ${korzina.length ? `<div class="korzAdrKn"><button type="button" class="aktPs__kn${korzAdr ? " is-on" : ""}" data-kz-adr>адреса таблицей</button>
         <button type="button" class="aktPs__kn" data-kz-kop="vse">копировать всё (в Excel)</button>${korzKop ? `<span class="aktPs__chto">${esc(korzKop)}</span>` : ""}</div>` : ""}
       ${tablica || (korzina.length ? `<div class="palSpisok">${spisok}</div>` : korzAkty.length ? "" : '<p class="aktPs__chto">Список пуст — пикайте паллеты (CON …), акты (ACT …) или вставьте список.</p>')}
       ${blokAktySpisok()}`;
     const akty = blokAktyKuda() + (korzRezhim === "priyom" ? blokPriyoma() : "");
-    if (!deyEl()) { box.innerHTML = glav + knopkiKorz + blok + akty + log; return; }
+    if (!deyEl()) { box.innerHTML = glav + knopkiKorz + blok + scQueueBlock() + akty + log; return; }
     vyvesti(glav, `${shapkaDey("Массовый пик", `${korzina.length} паллет${korzAkty.length ? ` · ${korzAkty.length} актов` : ""}`, `<span class="cDey__pod">${sht} шт · без акта ${bez}</span>`)}
       ${plashkaVms()}${formaVms()}
       ${knopkiKorz || (korzAkty.length ? "" : '<p class="aktPs__podskaz">Пикайте паллеты или акты подряд — действие потом одно на весь список.</p>')}
-      ${blok}${akty}${log}`);
+      ${blok}${scQueueBlock()}${akty}${log}`);
   }
 
   async function korzAktirovat() {
@@ -1566,11 +1654,15 @@
   }
 
   async function korzProveritDb(sohranit = false) {
-    if (sohranit) { korzIdet = true; } else { korzDb = null; }
+    if (korzIdet) return;
+    if (sohranit && (!korzDb || !korzDb.можно || korzDb.готово || korzDb.стоп_небрак || !boevoy || !vhod())) return;
+    const kuda = korzDbKuda || (korzDb && korzDb.куда) || "";
+    korzIdet = true;
+    if (!sohranit) korzDb = null;
     risovat();
     try {
       const o = await fetch("/__akt/palleta/zakaz_db", { method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ паллеты: korzina.map((x) => `CON ${String(x.id).padStart(10, "0")}`), куда: korzDbKuda || (korzDb && korzDb.куда) || "", сохранить: sohranit }) });
+        body: JSON.stringify({ паллеты: korzina.map((x) => `CON ${String(x.id).padStart(10, "0")}`), куда: kuda, сохранить: sohranit }) });
       const d = await o.json().catch(() => ({}));
       if (d.нужен_вход) { vms = { подключено: false }; formaPolosy = true; oshibkaVhoda = "войдите в WMS, потом «Создать заказ ДБ» ещё раз"; throw new Error("войдите в WMS"); }
       if (!o.ok) throw new Error(d.ошибка || `сервер ответил ${o.status}`);
@@ -1922,6 +2014,7 @@
     if (k.dataset.polosa === "mass") {
       if (korzIdet) return;
       massPik = !massPik;
+      if (massPik) scQueueRead();
       if (massPik) { pal = null; aktK = null; yach = null; tovar = null; }
       else { korzina = []; korzRezhim = ""; korzLog = []; korzPer = null; korzDb = null; box.hidden = true; spryatatDey(); vRezhimPalety(false); }
       risovat();
@@ -2100,7 +2193,7 @@
     if (kdk) { korzDbKuda = kdk.dataset.kzKuda; korzProveritDb(); return; }
     if (e.target.closest("#korzAktGo")) { korzAktirovat(); return; }
     if (e.target.closest("#korzPerGo")) { korzPeremestit(); return; }
-    if (e.target.closest("#korzDbGo") && korzDb && korzDb.можно) { korzProveritDb(true); return; }
+    if (e.target.closest("#korzDbGo") && !korzIdet && korzDb && korzDb.можно && !korzDb.готово && !korzDb.стоп_небрак) { korzProveritDb(true); return; }
     const dk = e.target.closest("[data-db-kuda]");
     if (dk && pal) { dbKuda = dk.dataset.dbKuda; zakazDb(false); return; }
     const pn = e.target.closest("[data-pvnay]");
