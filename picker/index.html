@@ -3,6 +3,9 @@
 <head>
   <meta charset="utf-8">
   <script src="/tema.js?v=20260924-2"></script>
+  <!-- 05.10 Степан: «вмс кнопку вырубай, пусть оно все функции всегда предлагает» — пикалка всегда в режиме WMS:
+       /picker/ сразу становится /picker/wms (та же страница, без перезагрузки), тумблера больше нет -->
+  <script>if (/^\/picker\/?$/.test(location.pathname)) history.replaceState(null, "", "/picker/wms" + location.search + location.hash);</script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <base href="../">
   <meta name="theme-color" content="#0a1018">
@@ -16,7 +19,7 @@
   <link rel="stylesheet" href="tsd/tsd.css?v=20260925-3">
   <link rel="stylesheet" href="wms-rezhim.css?v=20260929-7">
   <link rel="stylesheet" href="pikalka-a.css?v=20261002-k1">
-  <link rel="stylesheet" href="pikalka-c.css?v=20261003-glow-fix">
+  <link rel="stylesheet" href="pikalka-c.css?v=20261005-rejka">
   <script src="reeded-bg.js?v=20260906-7" defer></script>
   <script src="script.js?v=20261001-1" defer></script>
   <script src="kamera.js?v=20260926-1" defer></script>
@@ -25,7 +28,7 @@
   <script src="tsd-rezhim.js?v=20260930-1" defer></script>
   <script src="palleta-prodazh.js?v=20261002-mp1" defer></script>
   <script src="shk-pechat.js?v=20261001-c2" defer></script>
-  <script src="pikalka-c.js?v=20261005-reserves-a102bf" defer></script>
+  <script src="pikalka-c.js?v=20261005-vsegda-wms" defer></script>
   <script src="cost-list.js?v=20260930-c1" defer></script>
   <script src="pallets.js?v=20260924-1" defer></script>
   <script src="nav.js?v=20260921-1" defer></script>

@@ -43,15 +43,16 @@ body.cSkin .topbar { margin-bottom: 14px; }
 .sysPl { margin: 0 .3em; color: var(--muted); font-weight: 500; }
 /* 03.10: «× между ними и такого же размера как пикалка» — WMS и WTIS размером заголовка, без прыжков */
 .cCrumb:has(.sysG) { font-size: clamp(30px, 2.4vw, 40px); line-height: 1; }
-#cCrumbSep { margin-right: .1em; font-weight: 400; }
-.sysG { display: inline-block; font-weight: 600; letter-spacing: .04em; color: var(--muted); transition: color .3s, text-shadow .3s; }
-.sysG--wms.is-on { color: #a6ffcc; text-shadow: 0 0 2px #fff, 0 0 9px rgba(61,220,140,.95), 0 0 22px rgba(61,220,140,.7), 0 0 46px rgba(61,220,140,.45); animation: sysDyh 3.4s ease-in-out infinite; }
-.sysG--wtis.is-on { color: #c9d2ff; text-shadow: 0 0 2px #fff, 0 0 9px rgba(124,140,255,.95), 0 0 22px rgba(124,140,255,.7), 0 0 46px rgba(124,140,255,.45); animation: sysDyh 3.4s ease-in-out 1.7s infinite; }
+#cCrumbSep { margin-right: .1em; font-family: Georgia, "Times New Roman", serif; font-size: .7em; font-style: italic; font-weight: 400; color: var(--text); }
+.sysG { display: inline-block; font-weight: 600; letter-spacing: .015em; color: var(--muted); transition: color .3s, text-shadow .3s; }
+.sysG--wms { --sysGlow: 61, 220, 140; }
+.sysG--wtis { --sysGlow: 124, 140, 255; }
+.sysG.is-on { color: #f2f6fb; text-shadow: 0 0 2px rgba(255,255,255,.25), 0 0 9px rgba(var(--sysGlow),.5), 0 0 22px rgba(var(--sysGlow),.28); animation: sysDyh 3.4s ease-in-out infinite; }
 .sysG.is-off { color: #ff8f9f; text-decoration: line-through; text-decoration-thickness: 1px; }
 .sysG.is-flash { animation: sysVsp 1s ease-out; }
 .sysG.is-err { animation: sysOsh 1s ease-out; }
-@keyframes sysDyh { 0%, 100% { filter: brightness(.95); } 50% { filter: brightness(1.45); } }
-@keyframes sysVsp { 0% { color: #fff; text-shadow: 0 0 6px #fff, 0 0 20px #fff, 0 0 40px currentColor, 0 0 80px currentColor; } 100% { } }
+@keyframes sysDyh { 0%, 100% { filter: brightness(.95); } 50% { filter: brightness(1.12); } }
+@keyframes sysVsp { 0% { text-shadow: 0 0 3px rgba(255,255,255,.35), 0 0 12px rgba(var(--sysGlow),.65), 0 0 24px rgba(var(--sysGlow),.35); } 100% { } }
 @keyframes sysOsh { 0%, 60% { color: #ff6f82; text-shadow: 0 0 6px rgba(240,93,114,.9), 0 0 24px rgba(240,93,114,.6); } 100% { } }
 @media (prefers-reduced-motion: reduce) { .sysG { animation: none !important; } }
 .cPult { display: flex; flex-direction: row-reverse; align-items: center; gap: 16px; min-width: 0; padding: 10px 10px 10px 16px; border-radius: 18px; background: var(--cPanel);
@@ -561,4 +562,12 @@ body.cSkin.is-svetlo .cKuda__forma input { background: #fff; }
 .vmsStoly__gr { margin-top: 12px; }
 .vmsStoly__gr .aktPs__nad { margin: 0 0 6px; color: var(--muted); font-size: 13px; letter-spacing: .06em; text-transform: uppercase; }
 #stolForma { margin: 8px 0 4px; }
-
+/* 05.10 телефон: рейка — ровная сетка по три (база, пикалка, экран / паллета, масс. пик, ТСД), без дыры возле «базы» */
+@media (max-width: 760px) {
+  body.cSkin .cRail { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); justify-items: stretch; gap: 4px; padding: 8px; }
+  body.cSkin .cRail__gr { display: contents; }
+  body.cSkin .cRail > *, body.cSkin .cRail__gr > * { width: auto; min-width: 0; }
+  body.cSkin .cScanner, body.cSkin .cRi { min-height: 64px; padding: 6px 2px; justify-content: center; border-radius: 14px; }
+  body.cSkin .cScanner__ico { width: 34px; height: 34px; border-radius: 10px; }
+  body.cSkin .cRail [hidden] { display: none; }
+}

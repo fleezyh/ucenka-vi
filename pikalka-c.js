@@ -52,9 +52,7 @@
     verh.className = "cTop";
     verh.innerHTML = `<div class="cTitle"><h1>Пикалка</h1><span class="cCrumb"><span id="cCrumbSep">/</span> <b id="cCrumb">Уценка</b></span></div>
       <div class="cPult">
-        <button type="button" class="cTumbler" id="cTumbler" role="switch" aria-checked="false" title="Alt+W">
-          <span class="cTumbler__t">WMS</span><span class="cTumbler__trek"><i></i></span></button>
-        <div class="cKto" id="cKto"><span class="cKto__off">выключен · паллеты, ячейки, акты — включится сам, если пикнуть CON / CEL / ACT</span></div>
+        <div class="cKto" id="cKto"></div>
       </div>`;
 
     const pult = document.createElement("main");
@@ -432,7 +430,8 @@
 
   /* ═════ тумблер WMS ═════ */
   function vklyuchitWms(da) {
-    if (da === vklWms) return;
+    // 05.10: режим WMS всегда включён — выключить его больше нечем (тумблер и Alt+W убраны)
+    if (!da || da === vklWms) return;
     vklWms = da;
     document.dispatchEvent(new CustomEvent("wms:vkl", { detail: da }));
     if (da) document.dispatchEvent(new CustomEvent("wms:pod", { detail: B.classList.contains("aTsd") ? "tsd" : "pikalka" }));
@@ -453,7 +452,6 @@
     const kto = $("#cKto");
     if (kto) {
       if (vklWms && polosa && polosa.parentNode !== kto) { kto.innerHTML = ""; kto.appendChild(polosa); }
-      if (!vklWms && !kto.querySelector(".cKto__off")) kto.innerHTML = '<span class="cKto__off">выключен · паллеты, ячейки, акты — включится сам, если пикнуть CON / CEL / ACT</span>';
     }
     obnovitMass();
   }
@@ -465,7 +463,6 @@
     if (n) { n.textContent = b ? b.textContent : ""; n.hidden = !vkl; }
   }
   document.addEventListener("click", (e) => {
-    if (e.target.closest("#cTumbler")) { vklyuchitWms(!vklWms); return; }
     // Массовый пик из рейки при выключенном WMS — сначала включить.
   });
   document.addEventListener("click", (e) => { if (e.target.closest("#cMass") && !vklWms) vklyuchitWms(true); }, true);
@@ -488,7 +485,7 @@
     else if (e.target.closest(".cEkranOv__x")) ekran(false);
   });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && document.getElementById("cEkranOv")) ekran(false); });
-  document.addEventListener("keydown", (e) => { if (e.altKey && (e.code === "KeyW")) { e.preventDefault(); vklyuchitWms(!vklWms); } });
+
 
   /* ═════ новая паллета: категория → создать в WMS → печать ШК (30.09 вечер) ═════
      Степан: «надо создание паллет из пикалки и возможность печатать ШК сразу после этого».
