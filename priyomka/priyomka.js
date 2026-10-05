@@ -11,6 +11,9 @@
   "use strict";
 
   const DATA = "../data/priyomka.json";
+  // 05.10: зоны входа живьём из ВМС раз в 5 минут — снимок DWH отстаёт на часы
+  // (Карташев: «светится красным, будто буфер загружен, а по факту он пустой»).
+  const ZHIVO = "../data/priyomka_zhivo.json";
 
   const CVETA = {
     "красный": { podpis: "мест нет", klass: "pr--krasnyy" },
@@ -27,8 +30,62 @@
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
 
   let dannye = null;
+  let zhivo = null;
   let filtr = null;
   let sektorNaKarte = null;
+
+  /* Выгрузка детализации. Просили на встрече 18.09: борд смотрят на экране, а
+     разбирать потеряшки удобнее в таблице. CSV с BOM и точкой с запятой —
+     Excel открывает такой файл двойным кликом и не ломает кириллицу. */
+  function vozrastPoZonam() {
+    const karta = new Map();
+    ((dannye.возраст || {}).зоны || []).forEach((z) => karta.set(z.зона, z));
+    return karta;
+  }
+
+  function vygruzit() {
+    const vozrast = vozrastPoZonam();
+    // Возраст WMS считает только по зонам входа (сейчас 14 штук), у остальных
+    // эти колонки пустые — так и задумано, первая итерация про вход.
+    const stolbcy = ["Сектор", "Блок", "Зона", "Назначение", "Мест", "Занято",
+                     "Заполнено, %", "Штук", "Контейнеров", "Состояние",
+                     "До 24 ч", "24–48 ч", "Старше 48 ч", "Движения не найдено",
+                     "Самое старое, ч"];
+    const stroki = [stolbcy];
+    (dannye.секторы || []).forEach((s) => {
+      (s.зоны || []).forEach((z) => {
+        const v = vozrast.get(z.зона) || {};
+        const korziny = v.корзины || {};
+        stroki.push([
+          s.сектор, s.блок, z.зона, z.назначение,
+          z.мест || 0, z.занято || 0, z.мест ? z.процент : "",
+          z.штук || 0, z.контейнеров || 0,
+          (CVETA[z.цвет] || {}).podpis || z.цвет || "",
+          v.зона ? korziny["1. до 24 ч"] || 0 : "",
+          v.зона ? korziny["2. 24–48 ч"] || 0 : "",
+          v.зона ? korziny["3. больше 48 ч"] || 0 : "",
+          v.зона ? korziny["4. движения не найдено"] || 0 : "",
+          v.максимум_часов || "",
+        ]);
+      });
+    });
+
+    // Точка с запятой — разделитель Excel в русской локали; кавычки удваиваем.
+    const text = stroki.map((r) => r.map((v) => {
+      const s = String(v ?? "");
+      return /[";\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    }).join(";")).join("\r\n");
+
+    const den = String(dannye.обновлено || "").slice(0, 10).replace(/\D/g, "-");
+    const ssylka = document.createElement("a");
+    ssylka.href = URL.createObjectURL(new Blob(["﻿" + text],
+      { type: "text/csv;charset=utf-8;" }));
+    ssylka.download = `приёмка ${den || "выгрузка"}.csv`;
+    document.body.appendChild(ssylka);
+    ssylka.click();
+    ssylka.remove();
+    URL.revokeObjectURL(ssylka.href);
+  }
 
   function plitka(zagolovok, znachenie, podpis, klass) {
     return `<article class="prPlitka ${klass || ""}">
@@ -70,6 +127,66 @@
     "3. больше 48 ч": { podpis: "больше 48 ч · SLA нарушен", klass: "pr--krasnyy" },
     "4. движения не найдено": { podpis: "без следа прихода", klass: "pr--net" },
   };
+
+  /* Висяки. Просьба Карташева со встречи 18.09: SLA 48 часов ловит «сегодня
+     тормозим», а потеряшек — нет. Их видно только в неделях и месяцах. */
+  const VISYAKI_CVET = {
+    "1. до 48 часов": "pr--zelyonyy",
+    "2. до недели": "pr--zelyonyy",
+    "3. до месяца": "pr--zhyoltyy",
+    "4. месяц–квартал": "pr--krasnyy",
+    "5. больше квартала": "pr--krasnyy",
+    "6. следов нет": "pr--net",
+  };
+
+  function narisovatVisyaki() {
+    const visyaki = dannye.висяки;
+    const uzel = el("prVisyaki");
+    if (!uzel || !visyaki || !visyaki.зоны || !visyaki.зоны.length) return;
+
+    const korziny = visyaki.корзины || Object.keys(visyaki.итого || {});
+    const itogo = visyaki.итого || {};
+    const vsego = korziny.reduce((s, k) => s + (itogo[k] || 0), 0);
+    const plitki = korziny.map((k) => {
+      const n = itogo[k] || 0;
+      const dolya = vsego ? (100 * n / vsego).toFixed(1) : "0.0";
+      return `<article class="prPlitka ${VISYAKI_CVET[k] || ""}">
+        <p class="prPlitka__zag">${escape(k.replace(/^\d+\.\s*/, ""))}</p>
+        <p class="prPlitka__znak">${chislo(n)}</p>
+        <p class="prPlitka__pod">${dolya}% штук</p>
+      </article>`;
+    }).join("");
+
+    const rows = visyaki.зоны.map((z) => {
+      const k = z.корзины || {};
+      const staroe = z.старое || 0;
+      const dolya = z.штук ? (100 * staroe / z.штук) : 0;
+      return `<tr>
+        <td>${escape(z.зона)}</td>
+        <td class="prNum">${chislo(z.штук)}</td>
+        <td class="prNum">${chislo(k["3. до месяца"] || 0)}</td>
+        <td class="prNum">${chislo(k["4. месяц–квартал"] || 0)}</td>
+        <td class="prNum"><b class="${(k["5. больше квартала"] || 0) ? "prKrit" : ""}">${chislo(k["5. больше квартала"] || 0)}</b></td>
+        <td class="prNum">${chislo(k["6. следов нет"] || 0)}</td>
+        <td class="prNum">${dolya.toFixed(0)}%</td>
+        <td class="prNum">${z.максимум_дней ? chislo(z.максимум_дней) + " дн" : "—"}</td>
+      </tr>`;
+    }).join("");
+
+    uzel.innerHTML = `<h2 class="prVozrast__zag">Висяки: что стоит неделями</h2>
+      <p class="prHint">возраст по последнему событию с товаром — размещению или приёмке,
+        по всей истории, а не за последние 60 дней · «следов нет» значит, что событий
+        по этой паре «ячейка + товар» не нашлось вообще: почти наверняка стоит годами</p>
+      <div class="prPlitki prPlitki--vozrast">${plitki}</div>
+      <table class="prVozrast__tab">
+        <thead><tr><th>Зона</th><th class="prNum">штук</th>
+          <th class="prNum">до месяца</th><th class="prNum">месяц–квартал</th>
+          <th class="prNum">больше квартала</th><th class="prNum">следов нет</th>
+          <th class="prNum">доля старого</th><th class="prNum">самое старое</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+    uzel.hidden = false;
+  }
 
   /* Бэклог по участкам — п.3 бэклога (Карташев, 18.09): хватает ли людей на
      участке или перебрасывать. По сектору: сделали за сутки, темп на человека,
@@ -220,7 +337,8 @@
     // вне системы. Там красит время; у мест хранения — заполненность.
     const v = vozrastPoZonam.get(z.зона);
     if (v && v.штук) {
-      const dolya = v.просрочено / v.штук;
+      // живые штуки меньше снимка — просроченных не может быть больше, чем лежит сейчас
+      const dolya = Math.min(v.просрочено, z.живьём ? z.штук : v.просрочено) / Math.max(v.штук, z.живьём ? z.штук : 0);
       if (dolya >= 0.5) return "красный";
       if (dolya > 0.25) return "жёлтый";
       return "зелёный";
@@ -269,8 +387,10 @@
     const kolonki = new Map(ETAPY.map((e) => [e.key, []]));
     (dannye.секторы || []).forEach((s) => {
       if (sektorNaKarte && s.сектор !== sektorNaKarte) return;
-      (s.зоны || []).forEach((z) => {
-        if (!kolonki.has(z.назначение)) return;
+      (s.зоны || []).forEach((z0) => {
+        if (!kolonki.has(z0.назначение)) return;
+        const zh = zhivo && zhivo.зоны ? zhivo.зоны[z0.зона] : null;
+        const z = zh ? { ...z0, штук: zh.штук, контейнеров: zh.контейнеров, живьём: zh } : z0;
         if (!z.штук) return;
         kolonki.get(z.назначение).push({ ...z, сектор: s.сектор });
       });
@@ -370,7 +490,7 @@
       const vsegoShtuk = spisok.reduce((n, z) => n + (z.штук || 0), 0);
       const prosrocheno = spisok.reduce((n, z) => {
         const v = vozrastPoZonam.get(z.зона);
-        return n + (v ? v.просрочено : 0);
+        return n + (v ? Math.min(v.просрочено, z.живьём ? z.штук : v.просрочено) : 0);
       }, 0);
       dobavit("text", { x: KOL_W * i + KOL_W / 2, y: 22, class: "etap", "text-anchor": "middle" }, svg)
         .textContent = etap.name.toUpperCase();
@@ -489,12 +609,14 @@
     bok.className = "prKartaBok";
     bok.innerHTML = `<div class="prBokZag">${escape(z.зона)}</div>
       <p class="prBokPod">${escape(z.сектор || "")} · ${escape(z.назначение || "")}</p>
-      ${stroka("Штук в зоне", chislo(z.штук))}
+      ${stroka(z.живьём ? "Штук в зоне · ВМС сейчас" : "Штук в зоне", chislo(z.штук))}
       ${z.мест ? stroka("Мест", chislo(z.занято) + " из " + chislo(z.мест)) : ""}
       ${z.мест ? stroka("Занято", z.процент + "%") : ""}
       ${z.контейнеров ? stroka("Контейнеров", chislo(z.контейнеров)) : ""}
+      ${z.живьём ? stroka("Ждут перемещения", chislo(z.живьём.ждут) + (z.живьём.ждут_сотня ? "+" : "") + " конт") : ""}
+      ${z.живьём && z.живьём.ждут ? stroka("Дольше всех ждёт", chislo(z.живьём.ждут_макс_ч) + " ч", z.живьём.ждут_макс_ч > 48 ? "prKrit" : "") : ""}
       ${v && v.часов ? stroka("Самое старое", chislo(v.часов) + " ч", "prKrit") : ""}
-      ${korziny ? `<p class="prBokPod prBokPod--tit">Сколько лежит</p>${korziny}` : ""}
+      ${korziny ? `<p class="prBokPod prBokPod--tit">Сколько лежит${z.живьём ? " · DWH на " + escape(dannye.обновлено.slice(11)) : ""}</p>${korziny}` : ""}
       ${z.сектор ? `<button class="prBokKnopka" type="button">Открыть сектор целиком</button>` : ""}`;
     const knopka = bok.querySelector(".prBokKnopka");
     if (knopka) knopka.addEventListener("click", () => otkrytSektor(z.сектор));
@@ -562,13 +684,30 @@
     el("prFilters").innerHTML = knopki.join("");
   }
 
+  /** Почему у сектора такой цвет. Вопрос со встречи 18.09: «почему И жёлтая,
+   *  а А красная» — правило есть, но его нигде не было видно. */
+  function povodSektora(sektor) {
+    if (sektor.цвет === "нет данных") return "мест в системе нет — цвет не считается";
+    if (sektor.повод === "время") {
+      const dolya = sektor.доля_просрочки;
+      const staroe = sektor.самое_старое_часов
+        ? `, самое старое ${chislo(sektor.самое_старое_часов)} ч` : "";
+      return `цвет по времени: ${dolya == null ? "—" : dolya + "%"} штук лежит дольше 48 ч${staroe}`;
+    }
+    const procent = sektor.процент_хранения;
+    if (procent == null) return "нет мест хранения — цвет не считается";
+    const zona = sektor.худшая_зона ? `, худшая зона «${korotko(sektor.худшая_зона)}»` : "";
+    return `цвет по занятости: ${procent}% мест занято${zona}`;
+  }
+
   function stroka(sektor, nomer) {
     const cvet = CVETA[sektor.цвет] || CVETA["нет данных"];
+    const povod = povodSektora(sektor);
     return `<div class="prRow ${cvet.klass}" data-nomer="${nomer}">
-      <div class="prRow__cvet" title="${escape(cvet.podpis)}"></div>
+      <div class="prRow__cvet" title="${escape(cvet.podpis + " — " + povod)}"></div>
       <div class="prRow__imya">
         <b>${escape(sektor.сектор)}</b>
-        <i>${escape(sektor.блок)}</i>
+        <i>${escape(sektor.блок)} · ${escape(povod)}</i>
       </div>
       <div class="prRow__chislo">
         <b>${sektor.процент_хранения == null ? "—" : sektor.процент_хранения + "%"}</b>
@@ -633,6 +772,18 @@
     row.insertAdjacentHTML("afterend", zonyHtml(sektor));
   }
 
+  async function vzyatZhivo() {
+    try {
+      const o = await fetch(ZHIVO, { cache: "no-cache" });
+      if (o.ok) zhivo = await o.json();
+    } catch { /* без живого — карта по снимку DWH */ }
+  }
+
+  function podpisat() {
+    el("stamp").textContent = `${dannye.склад} · обновлено ${dannye.обновлено}`
+      + (zhivo ? ` · зоны входа из ВМС ${String(zhivo.обновлено).slice(11)}` : "");
+  }
+
   async function start() {
     let otvet;
     try {
@@ -644,16 +795,33 @@
       return;
     }
     el("message").hidden = true;
-    el("stamp").textContent = `${dannye.склад} · обновлено ${dannye.обновлено}`;
+    await vzyatZhivo();
+    podpisat();
+    // карту входа держим живой: раз в 2 минуты забираем свежий снимок ВМС (задача пишет его раз в 5 минут)
+    setInterval(async () => {
+      const bylo = zhivo && zhivo.обновлено;
+      await vzyatZhivo();
+      if (zhivo && zhivo.обновлено !== bylo) { podpisat(); narisovatKartu(); }
+    }, 120000);
 
     narisovatPlitki();
     narisovatUchastki();
     narisovatKartu();
     narisovatVozrast();
+    narisovatVisyaki();
     narisovatFiltry();
     narisovatTablicu();
 
     const p = dannye.пороги || {};
+    const pravilo = el("prPravilo");
+    if (pravilo) {
+      pravilo.textContent = `цвет сектора считается по времени, когда движения видно: `
+        + `больше половины штук за SLA 48 часов — красный, больше четверти — жёлтый, `
+        + `иначе зелёный. где движений нет, цвет берётся по самой забитой зоне хранения: `
+        + `до ${p.недогруз}% недогруз, ${p.недогруз}–${p.норма}% норма, `
+        + `${p.норма}–${p.тревога}% на пределе, выше ${p.тревога}% мест нет. `
+        + `из чего цвет у каждого сектора — написано в строке`;
+    }
     el("prNote").textContent =
       `Заполненность считается по локациям, а не по объёму: корректных ВГХ нет, `
       + `и «в кубах» посчитать нечем. Пороги: до ${p.недогруз}% склад недозагружен, `
@@ -688,6 +856,9 @@
         narisovatKartu();
       }
     });
+    const knopkaVygruzki = el("prVygruzka");
+    if (knopkaVygruzki) knopkaVygruzki.addEventListener("click", vygruzit);
+
     el("prFilters").addEventListener("click", (event) => {
       const knopka = event.target.closest(".prFiltr");
       if (!knopka) return;
