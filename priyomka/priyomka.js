@@ -139,6 +139,13 @@
     "6. следов нет": "pr--net",
   };
 
+  // 05.10 (Карташев: «больше квартала 7 165 — они включены в 26 204?»): нет, корзины не пересекаются —
+  // подписи в днях, чтобы границы читались однозначно
+  const PODPIS_VISYAKA = {
+    "1. до 48 часов": "до 2 дней", "2. до недели": "2–7 дней", "3. до месяца": "7–30 дней",
+    "4. месяц–квартал": "30–90 дней", "5. больше квартала": "больше 90 дней", "6. следов нет": "следов нет",
+  };
+
   function narisovatVisyaki() {
     const visyaki = dannye.висяки;
     const uzel = el("prVisyaki");
@@ -151,7 +158,7 @@
       const n = itogo[k] || 0;
       const dolya = vsego ? (100 * n / vsego).toFixed(1) : "0.0";
       return `<article class="prPlitka ${VISYAKI_CVET[k] || ""}">
-        <p class="prPlitka__zag">${escape(k.replace(/^\d+\.\s*/, ""))}</p>
+        <p class="prPlitka__zag">${escape(PODPIS_VISYAKA[k] || k.replace(/^\d+\.\s*/, ""))}</p>
         <p class="prPlitka__znak">${chislo(n)}</p>
         <p class="prPlitka__pod">${dolya}% штук</p>
       </article>`;
@@ -176,12 +183,13 @@
     uzel.innerHTML = `<h2 class="prVozrast__zag">Висяки: что стоит неделями</h2>
       <p class="prHint">возраст по последнему событию с товаром — размещению или приёмке,
         по всей истории, а не за последние 60 дней · «следов нет» значит, что событий
-        по этой паре «ячейка + товар» не нашлось вообще: почти наверняка стоит годами</p>
+        по этой паре «ячейка + товар» не нашлось вообще: почти наверняка стоит годами ·
+        корзины не пересекаются: каждая штука ровно в одной, сумма плиток — все штуки</p>
       <div class="prPlitki prPlitki--vozrast">${plitki}</div>
       <table class="prVozrast__tab">
         <thead><tr><th>Зона</th><th class="prNum">штук</th>
-          <th class="prNum">до месяца</th><th class="prNum">месяц–квартал</th>
-          <th class="prNum">больше квартала</th><th class="prNum">следов нет</th>
+          <th class="prNum">7–30 дней</th><th class="prNum">30–90 дней</th>
+          <th class="prNum">больше 90 дней</th><th class="prNum">следов нет</th>
           <th class="prNum">доля старого</th><th class="prNum">самое старое</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>`;
@@ -365,8 +373,24 @@
     return stroki.slice(0, 2);
   }
 
+  // 05.10 (Карташев 01.10: «нужно нейминг поменять, чтобы было понятно, что это»): на карте — по-человечески,
+  // полное имя из ВМС остаётся в подсказке и в разборе справа.
+  const PONYATNO = [
+    [/^Приёмка товара (\S+)$/i, "Приёмка · $1"],
+    [/^Зона перемещения с возвратов (\S+)$/i, "Возвраты → сектор $1"],
+    [/^Зона поступления возвратов$/i, "Приход возвратов"],
+    [/^Адресный буфер (\d+) эт (\S+) мез$/i, "Мезонин $2 · $1 этаж"],
+    [/^Перемещение между секторами (\S+)$/i, "Между секторами · $1"],
+    [/^Перемещение в секторе (\S+)\s*(.*)$/i, "Внутри сектора $1 $2"],
+    [/^Разноска товара (\S+)$/i, "Разноска · $1"],
+    [/^ПОСТУПЛЕНИЕ (\S+)$/, "Поступление · $1"],
+    [/^Буфер приемки на ФБ ДМД$/i, "Брак: вход на ФБ"],
+    [/^\((\S+)\) (.+)$/, "$2 · $1"],
+  ];
   function korotko(imya) {
-    return String(imya || "").replace(/^\d+\s*/, "").replace(/\s*\(ДМД\)\s*$/i, "");
+    const s = String(imya || "").replace(/^\d+\s*/, "").replace(/\s*\(ДМД\)\s*$/i, "").trim();
+    for (const [re, zamena] of PONYATNO) if (re.test(s)) return s.replace(re, zamena).trim();
+    return s;
   }
 
   function narisovatKartu() {
@@ -413,17 +437,36 @@
       window.innerHeight - (svoyVerh - window.scrollY) - vysotaShapki - 36);
     const vlezaet = Math.max(5, Math.floor((vysota - 92) / SHAG_Y_MIN));
 
+    // 05.10 (Карташев 01.10: «видно А, В, Д, Б, а может в остальных 8 зоны приёмки переполнены»):
+    // сначала проблемные зоны, потом по штукам — в «ещё N» уходят самые спокойные; сам узел
+    // «ещё N» красится по худшей зоне внутри и по клику показывает список.
+    const RANG = { "красный": 0, "жёлтый": 1, "зелёный": 2 };
     polosy.forEach((e) => {
-      const spisok = kolonki.get(e.key).sort((a, b) => (b.штук || 0) - (a.штук || 0));
+      const spisok = kolonki.get(e.key)
+        .map((z) => {
+          const v = vozrastPoZonam.get(z.зона);
+          const prosr = v ? Math.min(v.просрочено, z.живьём ? z.штук : v.просрочено) : 0;
+          return { ...z, _cvet: cvetZony(z, vozrastPoZonam), _prosr: prosr };
+        })
+        // где пробка больше в штуках за SLA — выше; без возраста — по цвету и штукам
+        .sort((a, b) => (b._prosr - a._prosr) || ((RANG[a._cvet] ?? 3) - (RANG[b._cvet] ?? 3))
+                        || ((b.штук || 0) - (a.штук || 0)));
+      kolonki.set(e.key, spisok);
       if (spisok.length > vlezaet) {
         const hvost = spisok.slice(vlezaet - 1);
+        const krasnyh = hvost.filter((z) => z._cvet === "красный").length;
+        const zheltyh = hvost.filter((z) => z._cvet === "жёлтый").length;
+        const hudshiy = hvost.reduce((h, z) => ((RANG[z._cvet] ?? 3) < (RANG[h] ?? 3) ? z._cvet : h), "нет данных");
         kolonki.set(e.key, spisok.slice(0, vlezaet - 1).concat({
           зона: "· ещё " + hvost.length,
           штук: hvost.reduce((n, z) => n + (z.штук || 0), 0),
           мест: hvost.reduce((n, z) => n + (z.мест || 0), 0),
           занято: hvost.reduce((n, z) => n + (z.занято || 0), 0),
-          цвет: "нет данных",
+          цвет: hudshiy,
+          _cvet: hudshiy,
+          povod: krasnyh ? krasnyh + " за SLA" : zheltyh ? zheltyh + " тормозят" : "",
           свёрнутая: true,
+          внутри: hvost,
         }));
       }
     });
@@ -504,7 +547,7 @@
         const y = OTSTUP_SVERHU + shag * (k + 0.5);
         const r = Math.min(11 + 26 * Math.sqrt((z.штук || 0) / maksVKolonke.get(etap.key)), potolok);
 
-        const cvet = z.свёрнутая ? "нет данных" : cvetZony(z, vozrastPoZonam);
+        const cvet = z._cvet || (z.свёрнутая ? "нет данных" : cvetZony(z, vozrastPoZonam));
         const ton = SVETOFOR[cvet] || SVETOFOR["нет данных"];
         const v = vozrastPoZonam.get(z.зона);
         const gruppa = dobavit("g", { class: "uzel" }, svg);
@@ -541,9 +584,7 @@
           nizhnyaya.appendChild(hvost);
         }
 
-        if (!z.свёрнутая) {
-          gruppa.addEventListener("click", () => pokazatZonu(z, v));
-        }
+        gruppa.addEventListener("click", () => (z.свёрнутая ? pokazatSvyortku(z, vozrastPoZonam) : pokazatZonu(z, v)));
       });
     });
 
@@ -575,7 +616,7 @@
 
   // Почему узел такого цвета — одной строкой под числом.
   function pochemu(z, v) {
-    if (z.свёрнутая) return "";
+    if (z.свёрнутая) return z.povod || "";
     if (v && v.штук) {
       const dolya = Math.round(100 * v.просрочено / v.штук);
       if (v.просрочено) return dolya + "% за SLA";
@@ -620,6 +661,22 @@
       ${z.сектор ? `<button class="prBokKnopka" type="button">Открыть сектор целиком</button>` : ""}`;
     const knopka = bok.querySelector(".prBokKnopka");
     if (knopka) knopka.addEventListener("click", () => otkrytSektor(z.сектор));
+  }
+
+  // «ещё N» по клику: все спрятанные зоны с цветом и штуками — проблемные сверху
+  function pokazatSvyortku(z, vozrastPoZonam) {
+    const bok = el("prKartaBok");
+    if (!bok) return;
+    const SV = { "красный": "prKrit", "жёлтый": "prZhelt" };
+    bok.className = "prKartaBok";
+    bok.innerHTML = `<div class="prBokZag">Ещё ${z.внутри.length} зон</div>
+      <p class="prBokPod">не влезли на карту · клик — разбор зоны</p>
+      ${z.внутри.map((x, i) => `<div class="prBokStroka prBokStroka--klik" data-i="${i}" style="cursor:pointer">
+        <span>${escape(korotko(x.зона))}</span><b class="${SV[x._cvet] || ""}">${chislo(x.штук)}${pochemu(x, vozrastPoZonam.get(x.зона)) ? " · " + escape(pochemu(x, vozrastPoZonam.get(x.зона))) : ""}</b></div>`).join("")}`;
+    bok.querySelectorAll("[data-i]").forEach((n) => n.addEventListener("click", () => {
+      const x = z.внутри[Number(n.dataset.i)];
+      pokazatZonu(x, vozrastPoZonam.get(x.зона));
+    }));
   }
 
   let pereschyot = null;
