@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <script src="/tema.js?v=20260924-2"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0a1018">
+  <title>Уценка · Антигенерация · Экономика позиций</title>
+  <link rel="icon" type="image/svg+xml" href="../../assets/brand/vi-mark.svg">
+  <link rel="preload" href="../../assets/fonts/VI_Sans_Regular.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="../../style.css?v=20260911-3">
+  <link rel="stylesheet" href="ekonomika.css?v=20261005-2">
+  <link rel="stylesheet" href="../../reeded-bg.css?v=20260907-6">
+  <link rel="stylesheet" href="../../site-header.css?v=20260927-2">
+  <script src="../../reeded-bg.js?v=20260906-7" defer></script>
+  <script src="ekonomika.js?v=20261005-3" defer></script>
+  <script src="../../nav.js?v=20260921-1" defer></script>
+</head>
+<body data-mode="ekonomika">
+  <main class="shell">
+    <header class="topbar">
+      <a class="brand" href="../../" aria-label="Уценка — главная">
+        <img class="brand__mark" src="../../assets/brand/vi-mark.svg" alt="" width="36" height="36">
+        <span>Уценка</span>
+      </a>
+      <nav class="siteNav" aria-label="Разделы сайта">
+        <span class="navGroup">
+          <span class="navGroup__label">Уценка</span>
+          <a class="navLink" href="../" aria-current="page">Антигенерация</a>
+          <a class="navLink" href="../../heatmap/">Хитмап</a>
+          <a class="navLink" href="../../sales/">Продажи</a>
+          <a class="navLink" href="../../perf/">Производительность</a>
+        </span>
+        <span class="navGroup">
+          <span class="navGroup__label">Инструменты</span>
+          <a class="navLink" href="../../picker/">Пикалка</a>
+        </span>
+      </nav>
+    </header>
+
+    <section class="ekHero">
+      <div class="ekHero__verh">
+        <div>
+          <p class="ekKicker">Антигенерация · ассортимент</p>
+          <h1>Экономика позиций</h1>
+        </div>
+        <nav class="razdelVkladki" aria-label="Раздел антигенерации">
+          <a href="../">Брак</a>
+          <a href="../mashiny/">Отправка ОЛ с регионов</a>
+          <a class="is-on" href="./" aria-current="page">Экономика позиций</a>
+          <a href="../#roadmap">Дорожная карта</a>
+        </nav>
+      </div>
+      <p class="ekLead">Сколько остаётся с проданной штуки после склада и брака — по любой позиции, что лежала на Домодедово.
+        Цена и себестоимость из продаж, работа склада по сдельным тарифам, хранение от аренды склада по объёму штуки,
+        брак — потерянный себес и наша обработка. Ставки меняются ниже — всё пересчитывается сразу.</p>
+    </section>
+
+    <section class="ekBar" aria-label="Выбор">
+      <label class="ekSel"><span>Рубрика</span><select id="ekR1"><option value="">Все рубрики — сводка и худшие</option></select></label>
+      <label class="ekSel" id="ekR2Box" hidden><span>Категория</span><select id="ekR2"><option value="">Все категории</option></select></label>
+      <label class="ekSel"><span>Модель</span><select id="ekTip"><option value="">Все модели учёта</option></select></label>
+      <input class="ekPoisk" id="ekPoisk" type="search" placeholder="Название или артикул" autocomplete="off">
+      <label class="ekSel"><span>Сортировка</span><select id="ekSort">
+        <option value="seli">склад и брак съели маржу — худшие</option>
+        <option value="god">итог за год — худшие сверху (вместе с продажей в минус)</option>
+        <option value="sht">итог со штуки — худшие сверху</option>
+        <option value="brak">доля брака — больше сверху</option>
+        <option value="hran">хранение за год — больше сверху</option>
+        <option value="vyr">выручка — больше сверху</option>
+      </select></label>
+      <label class="ekFlag"><input type="checkbox" id="ekMinus"> только в минусе</label>
+      <button type="button" class="ekBtn" id="ekStavkiKn" aria-expanded="false">Ставки</button>
+    </section>
+
+    <section class="ekStavki" id="ekStavki" hidden></section>
+    <section class="ekPlitki" id="ekPlitki"></section>
+    <p class="ekStatus" id="ekStatus">Загружаю…</p>
+    <section class="ekSvod" id="ekSvod"></section>
+    <section class="ekTablica" id="ekTablica"></section>
+    <section class="ekKak" id="ekKak"></section>
+  </main>
+
+  <div class="ekOkno" id="ekOkno" hidden>
+    <div class="ekOkno__fon" data-zakryt></div>
+    <article class="ekKarta" id="ekKarta" role="dialog" aria-modal="true"></article>
+  </div>
+</body>
+</html>

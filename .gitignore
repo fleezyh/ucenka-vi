@@ -15,3 +15,6 @@ data/news.json
 # при каждой выкладке кода.
 data/news-sales.json
 data/news-antigen.json
+
+# Экономика позиций (05.10.2026): данные сервера, 29 МБ — собираются из DWH, в репозиторий не тащим.
+data/antigen/ekonomika/

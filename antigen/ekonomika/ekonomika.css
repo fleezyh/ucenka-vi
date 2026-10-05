@@ -1,0 +1,107 @@
+/* Экономика позиций (05.10.2026) — в стиле «Машин» и /antigen/ */
+.ekHero { margin: 18px 0 14px; }
+.ekHero__verh { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 14px; }
+.ekKicker { margin: 0 0 4px; font-size: 13px; letter-spacing: .04em; text-transform: lowercase; color: var(--muted); }
+.ekHero h1 { margin: 0; }
+.ekLead { max-width: 980px; margin: 12px 0 0; color: var(--muted); line-height: 1.5; }
+
+.ekBar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin: 16px 0 12px; }
+.ekSel { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+.ekSel select, .ekPoisk { height: 36px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line-strong, rgba(255,255,255,.18));
+  background: rgba(255,255,255,.04); color: var(--text); font: inherit; font-size: 14px; color-scheme: dark; }
+.ekSel select { padding-right: 28px; max-width: 320px; cursor: pointer; }
+.ekSel select option { background: #1d1f27; color: #f2f3f7; }
+.ekPoisk { min-width: 240px; flex: 1 1 240px; }
+.ekFlag { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--muted); cursor: pointer; }
+.ekFlag input { width: 18px; height: 18px; margin: 0; accent-color: #7b5cf0; }
+.ekBtn { height: 36px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--line-strong, rgba(255,255,255,.18));
+  background: rgba(255,255,255,.05); color: var(--text); font: inherit; font-size: 14px; cursor: pointer; }
+.ekBtn:hover, .ekBtn[aria-expanded="true"] { border-color: rgba(185,162,255,.6); background: rgba(123,92,240,.18); }
+
+.ekStavki { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin: 0 0 16px; padding: 16px;
+  border-radius: 16px; border: 1px solid var(--line, rgba(255,255,255,.1)); background: rgba(255,255,255,.03); }
+.ekSt__gr h3 { margin: 0 0 10px; font-size: 15px; font-weight: 600; }
+.ekSt__gr label { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 8px; font-size: 14px; color: var(--muted); }
+.ekSt__gr input[type=number] { width: 110px; height: 32px; padding: 0 8px; border-radius: 8px; border: 1px solid var(--line-strong, rgba(255,255,255,.18));
+  background: rgba(0,0,0,.2); color: var(--text); font: inherit; font-size: 14px; text-align: right; }
+.ekSt__gr--shir { grid-column: 1 / -1; }
+.ekSt__tarify { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 6px 14px; }
+.ekSt__tarify label { margin: 0; }
+.ekSt__tarify b { min-width: 70px; color: var(--text); font-weight: 600; }
+.ekSt__tarify input[type=number] { width: 70px; }
+.ekSt__itog { margin: 4px 0 0; font-size: 13px; color: var(--muted); }
+.ekSt__kn { grid-column: 1 / -1; }
+
+.ekPlitki { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 0 0 8px; }
+.ekPl { padding: 12px 14px; border-radius: 14px; border: 1px solid var(--line, rgba(255,255,255,.1)); background: rgba(255,255,255,.03); }
+.ekPl span { display: block; font-size: 12.5px; color: var(--muted); }
+.ekPl b { display: block; margin-top: 4px; font-size: 20px; font-weight: 600; }
+.ekPl small { font-size: 12px; color: var(--muted); font-weight: 500; }
+.ekPl.is-minus b { color: #f2a0aa; }
+.ekPl.is-itog { border-color: rgba(39,196,107,.45); background: rgba(39,196,107,.08); }
+.ekPl.is-itog.is-minus { border-color: rgba(240,93,114,.5); background: rgba(240,93,114,.1); }
+.ekStatus { margin: 6px 0 16px; font-size: 13px; color: var(--muted); }
+
+.ekSvod h2, .ekTablica h2, .ekKak h2 { margin: 18px 0 10px; font-size: 18px; font-weight: 600; }
+.ekSvod h2 small, .ekTablica h2 small { margin-left: 8px; font-size: 13px; font-weight: 500; color: var(--muted); }
+.ekSvod__tab, .ekTab { overflow-x: auto; border-radius: 14px; border: 1px solid var(--line, rgba(255,255,255,.1)); }
+.ekSvod table, .ekTab table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.ekSvod th, .ekTab th { position: sticky; top: 0; padding: 8px 10px; text-align: right; font-weight: 600; color: var(--muted); background: rgba(16,20,28,.96); white-space: nowrap; }
+.ekSvod td, .ekTab td { padding: 7px 10px; text-align: right; border-top: 1px solid rgba(255,255,255,.06); white-space: nowrap; }
+.ekSvod th:first-child, .ekSvod td:first-child, .ekTab th:first-child, .ekTab td:first-child { text-align: left; }
+.ekSvod tbody tr, .ekTab tbody tr { cursor: pointer; }
+.ekSvod tbody tr:hover, .ekTab tbody tr:hover { background: rgba(123,92,240,.1); }
+.ekTab__pod th { padding-top: 0; font-size: 12px; font-weight: 500; }
+.ekTab__tov { white-space: normal !important; min-width: 280px; max-width: 460px; }
+.ekTab__tov b { display: block; font-weight: 500; line-height: 1.3; }
+.ekTab__tov small { display: block; margin-top: 2px; font-size: 12px; color: var(--muted); }
+.ekTab .is-m { color: var(--muted); }
+.is-minus { color: #f2a0aa; }
+.is-plus { color: #7fdca6; }
+.ekSvod small { color: var(--muted); font-size: 12px; }
+.ekEshche { display: block; margin: 12px auto 0; }
+
+.ekKak ul { margin: 0; padding-left: 18px; color: var(--muted); line-height: 1.55; font-size: 14px; max-width: 1100px; }
+
+.ekOkno { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 20px; }
+.ekOkno[hidden] { display: none; }
+.ekOkno__fon { position: absolute; inset: 0; background: rgba(5,8,12,.7); }
+.ekKarta { position: relative; width: min(760px, 100%); max-height: calc(100vh - 40px); overflow: auto; padding: 22px 24px;
+  border-radius: 18px; border: 1px solid var(--line-strong, rgba(255,255,255,.18)); background: #121722; }
+.ekKarta h2 { margin: 0 0 6px; font-size: 20px; font-weight: 600; line-height: 1.3; }
+.ekKarta__x { position: absolute; top: 10px; right: 12px; width: 34px; height: 34px; border: 0; border-radius: 10px; background: rgba(255,255,255,.06);
+  color: var(--text); font-size: 20px; cursor: pointer; }
+.ekKarta__pod { margin: 0 0 14px; font-size: 13px; color: var(--muted); }
+.ekItog { display: grid; grid-template-columns: auto auto auto auto; align-items: baseline; gap: 4px 12px; justify-content: start;
+  padding: 12px 14px; border-radius: 14px; margin-bottom: 14px; background: rgba(39,196,107,.1); }
+.ekItog.is-minus { background: rgba(240,93,114,.12); }
+.ekItog span { font-size: 13px; color: var(--muted); }
+.ekItog b { font-size: 24px; font-weight: 600; margin-right: 16px; }
+.ekVodopad { display: grid; gap: 6px; }
+.ekVodopad__s { display: grid; grid-template-columns: 240px 1fr 90px; align-items: center; gap: 10px; font-size: 14px; }
+.ekVodopad__s i { display: block; height: 14px; width: var(--w); min-width: 2px; border-radius: 4px; background: rgba(255,255,255,.25); }
+.ekVodopad__s.is-plus i { background: #4d8df7; }
+.ekVodopad__s.is-minus i { background: #f05d72; }
+.ekVodopad__s.is-itog i { background: #27c46b; }
+.ekVodopad__s.is-itog span, .ekVodopad__s.is-itog b { font-weight: 600; color: var(--text); }
+.ekVodopad__s b { text-align: right; font-weight: 500; }
+.ekKarta__fakty { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 16px 0 0; font-size: 13.5px; }
+.ekKarta__fakty dt { color: var(--muted); }
+.ekKarta__fakty dd { margin: 0; }
+body.ekZamok { overflow: hidden; }
+@media (max-width: 700px) { .ekVodopad__s { grid-template-columns: 1fr 70px; } .ekVodopad__s i { grid-column: 1 / -1; } }
+
+/* вкладки раздела — как в «Машинах» */
+.razdelVkladki { display: inline-flex; gap: 2px; padding: 4px; border: 1px solid var(--line); border-radius: 14px; background: rgba(8, 12, 18, .55); }
+.razdelVkladki a { padding: 8px 14px; border-radius: 10px; color: var(--muted); font-size: 14px; font-weight: 600; text-decoration: none; }
+.razdelVkladki a:hover { color: var(--text); }
+.razdelVkladki a.is-on { background: rgba(255, 255, 255, .1); color: var(--text); }
+.msBar { margin-top: 22px; padding: 12px; border: 1px solid var(--line); border-radius: 18px; background: rgba(8, 12, 18, .35); }
+.msGorodaRyad { margin: 14px 0 10px; gap: 10px; }
+.msSetka { margin-top: 6px; }
+
+/* 05.10: порции карточек */
+
+/* hidden сильнее display у блоков */
+.ekStavki[hidden], .ekSel[hidden] { display: none; }
+.ekBar { padding: 12px; border: 1px solid var(--line); border-radius: 18px; background: rgba(8, 12, 18, .35); }
