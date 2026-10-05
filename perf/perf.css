@@ -634,3 +634,6 @@ body .heroPerf { display: flex; flex-wrap: wrap; justify-content: space-between;
 .prost__track { position: relative; height: 14px; border-radius: 4px; background: rgba(255,255,255,.03); }
 .prost__rabota { position: absolute; top: 0; bottom: 0; border-radius: 4px; background: rgba(143,156,173,.28); }
 .prost__pauza { position: absolute; top: 0; bottom: 0; border-radius: 3px; background: #f05d72; cursor: help; }
+.smeny td:first-child, .smeny th:first-child { text-align: left; }
+.smeny b.isUp { color: #7ee3b3; }
+.smeny__pod { color: var(--muted); font-size: 12px; }

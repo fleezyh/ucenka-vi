@@ -914,6 +914,28 @@
   const chasy = (min) => (min / 60).toLocaleString("ru-RU", { maximumFractionDigits: 1 });
   const minOt = (hhmm) => { const [h, m] = String(hhmm || "0:0").split(":").map(Number); return h * 60 + m; };
 
+  function renderSmeny(data) {
+    const ps = data.поСменам;
+    if (!ps || !ps.недели || !ps.недели.length) return null;
+    const nedeli = ps.недели.slice(-8);
+    const wrap = document.createElement("div");
+    wrap.className = "stoly smeny";
+    const best = {};
+    nedeli.forEach((w) => {
+      const zn = ps.смены.map((sm) => (w.смены[sm] || {}).на_смену || 0);
+      best[w.неделя] = Math.max(...zn);
+    });
+    wrap.innerHTML = `<div class="stoly__scroll"><table><thead><tr><th>неделя</th>${ps.смены.map((sm) => `<th class="num">${escapeHtml(sm)}</th>`).join("")}</tr></thead><tbody>`
+      + nedeli.map((w) => `<tr><td>${escapeHtml(w.неделя)}</td>${ps.смены.map((sm) => {
+        const z = w.смены[sm];
+        if (!z) return `<td class="num">—</td>`;
+        const luchshe = z.на_смену && z.на_смену === best[w.неделя] && ps.смены.length > 1;
+        return `<td class="num" title="${count(z.штук)} шт · ${z.смен} смен · ${z.людей} чел."><b${luchshe ? ' class="isUp"' : ""}>${one(z.на_смену)}</b><span class="smeny__pod"> · ${z.людей} чел.</span></td>`;
+      }).join("")}</tr>`).join("")
+      + "</tbody></table></div>";
+    return wrap;
+  }
+
   function renderProstoi(data) {
     const pr = data.простои;
     if (!pr || !pr.по_неделям || !pr.по_неделям.length) return null;
@@ -1239,6 +1261,14 @@
       poDnyam ? renderDaily(view.дни)
               : renderLine(bars, { label: (row) => row.подпись || row.ключ }),
       barTools));
+
+    // 05.10 Карташев: «статистику посменно» — смена по HR-бригаде человека (ФБ1/СМ1/… → смена 1)
+    const smenyBlok = renderSmeny(data);
+    if (smenyBlok) {
+      parts.push(block("По сменам", "штук за смену по неделям · смена — номер бригады человека в HR "
+                       + "(ФБ1, переупаковки СМ1, некомплектов 1 → смена 1) · свои даты, не зависят от периода сверху",
+                       smenyBlok));
+    }
 
     // 05.10 Карташев: «можешь добавить простои?» — паузы > 30 мин по сотруднику и столу
     const prostoiBlok = renderProstoi(data);
