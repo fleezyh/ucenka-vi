@@ -9,11 +9,11 @@
   <link rel="icon" type="image/svg+xml" href="../../assets/brand/vi-mark.svg">
   <link rel="preload" href="../../assets/fonts/VI_Sans_Regular.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="../../style.css?v=20260911-3">
-  <link rel="stylesheet" href="ekonomika.css?v=20261005-2">
+  <link rel="stylesheet" href="ekonomika.css?v=20261005-4">
   <link rel="stylesheet" href="../../reeded-bg.css?v=20260907-6">
   <link rel="stylesheet" href="../../site-header.css?v=20260927-2">
   <script src="../../reeded-bg.js?v=20260906-7" defer></script>
-  <script src="ekonomika.js?v=20261005-3" defer></script>
+  <script src="ekonomika.js?v=20261005-4" defer></script>
   <script src="../../nav.js?v=20260921-1" defer></script>
 </head>
 <body data-mode="ekonomika">
@@ -51,34 +51,21 @@
           <a href="../#roadmap">Дорожная карта</a>
         </nav>
       </div>
-      <p class="ekLead">Сколько остаётся с проданной штуки после склада и брака — по любой позиции, что лежала на Домодедово.
-        Цена и себестоимость из продаж, работа склада по сдельным тарифам, хранение от аренды склада по объёму штуки,
-        брак — потерянный себес и наша обработка. Ставки меняются ниже — всё пересчитывается сразу.</p>
+      <p class="ekLead">Сколько маржи остаётся после склада и брака — по любой позиции Домодедово за год.</p>
     </section>
 
     <section class="ekBar" aria-label="Выбор">
-      <label class="ekSel"><span>Рубрика</span><select id="ekR1"><option value="">Все рубрики — сводка и худшие</option></select></label>
+      <label class="ekSel"><span>Рубрика</span><select id="ekR1"><option value="">Все рубрики</option></select></label>
       <label class="ekSel" id="ekR2Box" hidden><span>Категория</span><select id="ekR2"><option value="">Все категории</option></select></label>
-      <label class="ekSel"><span>Модель</span><select id="ekTip"><option value="">Все модели учёта</option></select></label>
-      <input class="ekPoisk" id="ekPoisk" type="search" placeholder="Название или артикул" autocomplete="off">
-      <label class="ekSel"><span>Сортировка</span><select id="ekSort">
-        <option value="seli">склад и брак съели маржу — худшие</option>
-        <option value="god">итог за год — худшие сверху (вместе с продажей в минус)</option>
-        <option value="sht">итог со штуки — худшие сверху</option>
-        <option value="brak">доля брака — больше сверху</option>
-        <option value="hran">хранение за год — больше сверху</option>
-        <option value="vyr">выручка — больше сверху</option>
-      </select></label>
-      <label class="ekFlag"><input type="checkbox" id="ekMinus"> только в минусе</label>
+      <input class="ekPoisk" id="ekPoisk" type="search" placeholder="Найти товар: название или код" autocomplete="off">
       <button type="button" class="ekBtn" id="ekStavkiKn" aria-expanded="false">Ставки</button>
     </section>
 
     <section class="ekStavki" id="ekStavki" hidden></section>
-    <section class="ekPlitki" id="ekPlitki"></section>
-    <p class="ekStatus" id="ekStatus">Загружаю…</p>
-    <section class="ekSvod" id="ekSvod"></section>
-    <section class="ekTablica" id="ekTablica"></section>
-    <section class="ekKak" id="ekKak"></section>
+    <section class="ekGlav" id="ekGlav"><p class="ekGlav__kto">Загружаю…</p></section>
+    <section class="ekGruppy" id="ekGruppy"></section>
+    <section class="ekPozicii" id="ekPozicii"></section>
+    <details class="ekKak" id="ekKak"></details>
   </main>
 
   <div class="ekOkno" id="ekOkno" hidden>
