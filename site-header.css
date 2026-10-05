@@ -780,3 +780,17 @@ input::-webkit-datetime-edit-hour-field, input::-webkit-datetime-edit-minute-fie
   body:not(.nav-enhanced) .siteHeaderShell .brand { font-size: 18px; }
   body:not(.nav-enhanced) .siteHeaderShell .siteNav .navLink { padding: 6px 7px; font-size: 13px; }
 }
+
+/* 05.10 («ви уценка везде в разных положениях»): на телефоне марка стоит одинаково на всех страницах —
+   один размер (36 px, текст 24 px) и один отступ сверху; главная и пикалка больше не исключение. */
+@media (max-width: 640px) {
+  body .shell, body.cSkin .shell, body.cSkin:not(.aTsd) .shell { padding-top: 14px; }
+  .siteHeaderShell { padding-top: 24px; }
+  body:not(.nav-enhanced) .siteHeaderShell .brand,
+  .siteHeaderShell .brand, .shell > .topbar .brand { gap: 11px; font-size: 24px; }
+  body:not(.nav-enhanced) .siteHeaderShell .brand__mark,
+  .siteHeaderShell .brand__mark, .shell > .topbar .brand__mark { width: 36px; height: 36px; }
+}
+@media (max-width: 375px) {
+  body:not(.nav-enhanced) .siteHeaderShell .brand { font-size: 24px; }
+}

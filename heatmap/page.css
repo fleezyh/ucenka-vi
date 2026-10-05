@@ -631,11 +631,11 @@ body[data-mode="heatmap"] .shell {
  * обычного — читать будут с проектора, а не с ноутбука. */
 .pokazBtn {
   margin-top: 10px; padding: 8px 14px; border-radius: 10px;
-  border: 1px solid var(--line-strong); background: rgba(255, 255, 255, .04);
+  border: 1px solid var(--line-strong); background: var(--panel, #0d151f);   /* 05.10: не прозрачная */
   color: var(--text); font-family: inherit; font-size: 13px; font-weight: 600;
   cursor: pointer;
 }
-.pokazBtn:hover { background: rgba(255, 255, 255, .09); }
+.pokazBtn:hover { background: #142033; }
 
 body.pokaz-on { overflow: hidden; }
 .pokaz {
