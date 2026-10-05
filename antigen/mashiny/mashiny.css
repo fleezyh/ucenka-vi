@@ -281,3 +281,7 @@ body.is-svetlo .msZagruzka { background: #e7ecf3; }
 .msBar { margin-top: 22px; padding: 12px; border: 1px solid var(--line); border-radius: 18px; background: rgba(8, 12, 18, .35); }
 .msGorodaRyad { margin: 14px 0 10px; gap: 10px; }
 .msSetka { margin-top: 6px; }
+
+/* 05.10: порции карточек */
+.msEshche { grid-column: 1 / -1; justify-self: center; margin: 8px 0 24px; }
+.msChipRazd { display: inline-block; width: 1px; height: 22px; margin: 0 6px; background: rgba(255,255,255,.14); vertical-align: middle; }

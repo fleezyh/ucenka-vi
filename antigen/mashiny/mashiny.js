@@ -34,7 +34,15 @@
   };
 
   let dannye = { рейсы: [], склады: [], я: "" };
-  const filtr = { vid: "", gorod: "", q: "", mes: "" };
+  const filtr = { vid: "", gorod: "", q: "", mes: "", foto: "", cel: "cel" };
+  // 05.10: из ВМС заводятся все рейсы, «целевые» (магистраль: РЦ и склады регионов + ОЛ) — по умолчанию;
+  // заведённые руками видны всегда.
+  const AVTO = "вмс · рейс TMS";
+  const celevoy = (r) => r.создал !== AVTO || !!(r.tms || {}).целевой;
+  // 05.10: машины приходят сами из рейсов TMS (~3 тыс. в месяц) — рисуем порциями.
+  const PORCIYA = 120;
+  let pokazano = PORCIYA;
+  let mesVybran = false;
   // 29.09 (Чударов): «фильтр… чтобы вот кто встреча за сентябрь, чтобы сразу только сентябрь, сколько было»
   const mesyac = (r) => String(r.дата || "").slice(0, 7);
   const imyaMes = (m) => {
@@ -91,6 +99,11 @@
       return;
     }
     dannye = await o.json();
+    if (!mesVybran) {   // по умолчанию — последний месяц, иначе тысячи карточек разом
+      const ms = [...new Set(dannye.рейсы.map(mesyac).filter(Boolean))].sort();
+      if (ms.length > 1) filtr.mes = ms[ms.length - 1];
+      mesVybran = true;
+    }
     risovat();
     if (otkryt) risovatKartu();
   }
@@ -110,9 +123,12 @@
   function vidimye() {
     const q = filtr.q.trim().toLowerCase();
     return dannye.рейсы.filter((r) => {
+      if (filtr.cel === "cel" && !celevoy(r)) return false;
       if (filtr.vid && r.вид !== filtr.vid) return false;
       if (filtr.gorod && region(r) !== filtr.gorod) return false;
       if (filtr.mes && mesyac(r) !== filtr.mes) return false;
+      if (filtr.foto === "net" && r.фото.length) return false;
+      if (filtr.foto === "est" && !r.фото.length) return false;
       if (q) {
         const stroka = `${r.откуда} ${r.куда} ${gorod(r.откуда)} ${gorod(r.куда)} ${r.госномер} ${r.комментарий} ${(r.tms || {}).прицеп || ""}`.toLowerCase();
         if (!stroka.includes(q)) return false;
@@ -123,7 +139,7 @@
 
   function risovatGoroda() {
     const schet = {};
-    dannye.рейсы.filter((r) => (!filtr.vid || r.вид === filtr.vid) && (!filtr.mes || mesyac(r) === filtr.mes))
+    dannye.рейсы.filter((r) => (filtr.cel !== "cel" || celevoy(r)) && (!filtr.vid || r.вид === filtr.vid) && (!filtr.mes || mesyac(r) === filtr.mes))
       .forEach((r) => { schet[region(r)] = (schet[region(r)] || 0) + 1; });
     const spisok = Object.keys(schet).sort((a, b) => schet[b] - schet[a] || a.localeCompare(b, "ru"));
     el("msGoroda").innerHTML = spisok.length < 2 ? "" : [
@@ -136,7 +152,7 @@
     const box = el("msMesyacy");
     if (!box) return;
     const schet = {};
-    dannye.рейсы.filter((r) => (!filtr.vid || r.вид === filtr.vid) && (!filtr.gorod || region(r) === filtr.gorod))
+    dannye.рейсы.filter((r) => (filtr.cel !== "cel" || celevoy(r)) && (!filtr.vid || r.вид === filtr.vid) && (!filtr.gorod || region(r) === filtr.gorod))
       .forEach((r) => { const m = mesyac(r); if (m) schet[m] = (schet[m] || 0) + 1; });
     const spisok = Object.keys(schet).sort().reverse();
     box.innerHTML = spisok.length < 2 ? "" : [
@@ -166,15 +182,33 @@
     return `<span class="msKart__vms${v.брак_в_расхождениях ? " is-brak" : ""}">брак на приёмке ${chislo(v.брак_в_расхождениях)} шт</span>`;
   }
 
+  function risovatFotoFiltr() {
+    const box = el("msFotoFiltr");
+    if (!box) return;
+    const vse = dannye.рейсы.filter((r) => (!filtr.vid || r.вид === filtr.vid) && (!filtr.gorod || region(r) === filtr.gorod)
+      && (!filtr.mes || mesyac(r) === filtr.mes));
+    const baza = filtr.cel === "cel" ? vse.filter(celevoy) : vse;
+    const net = baza.filter((r) => !r.фото.length).length;
+    box.innerHTML = [["cel", "Целевые", vse.filter(celevoy).length, "Магистраль: РЦ и склады регионов и ОЛ в ДМД"],
+                     ["", "Все рейсы", vse.length, "Все рейсы ВМС: и магазины, ПВЗ, маркетплейсы"]]
+      .map(([k, imya, n, t]) => `<button type="button" class="msChip${filtr.cel === k ? " is-on" : ""}" data-cel="${k}" title="${t}">${imya} <b>${chislo(n)}</b></button>`).join("")
+      + '<span class="msChipRazd"></span>'
+      + [["", "С фото и без", baza.length], ["net", "Без фото", net], ["est", "С фото", baza.length - net]]
+      .map(([k, imya, n]) => `<button type="button" class="msChip${filtr.foto === k ? " is-on" : ""}" data-foto="${k}">${imya} <b>${chislo(n)}</b></button>`).join("");
+  }
+
   function risovat() {
     risovatMesyacy();
     risovatGoroda();
-    const spisok = vidimye();
+    risovatFotoFiltr();
+    const vse = vidimye();
+    const spisok = vse.slice(0, pokazano);
     const vseFoto = spisok.reduce((n, r) => n + r.фото.length, 0);
     const obe = spisok.filter((r) => foto(r, "pogruzka").length && foto(r, "vygruzka").length).length;
     el("msSvodka").textContent = dannye.рейсы.length
-      ? `${spisok.length} ${sklon(spisok.length, "машина", "машины", "машин")} · ${vseFoto} фото · с обеих сторон — ${obe}`
-      : "Пока ни одной машины. Нажмите «Новая машина».";
+      ? `${chislo(vse.length)} ${sklon(vse.length, "машина", "машины", "машин")} · ${vseFoto} фото на первых ${spisok.length} · с обеих сторон — ${obe}`
+        + " · машины приходят сами из рейсов ВМС, фото — бот или руками"
+      : "Пока ни одной машины.";
     el("msSetka").innerHTML = spisok.map((r) => `
       <button type="button" class="msKart" data-reys="${r.id}">
         ${oblozhka(r)}
@@ -187,7 +221,8 @@
             <span>погрузка ${foto(r, "pogruzka").length}</span><span>выгрузка ${foto(r, "vygruzka").length}</span>${vmsKorotko(r)}
           </span>
         </span>
-      </button>`).join("");
+      </button>`).join("") + (vse.length > spisok.length
+      ? `<button type="button" class="msBtn msBtn--ghost msEshche" data-eshche="1">Показать ещё ${Math.min(PORCIYA, vse.length - spisok.length)} из ${chislo(vse.length - spisok.length)}</button>` : "");
   }
 
   function sklon(n, a, b, c) {
@@ -493,9 +528,14 @@
       risovat(); return;
     }
     const g = t.closest("[data-gorod]");
-    if (g) { filtr.gorod = g.dataset.gorod; risovat(); return; }
+    if (g) { filtr.gorod = g.dataset.gorod; pokazano = PORCIYA; risovat(); return; }
     const mk = t.closest("#msMesyacy [data-mes]");
-    if (mk) { filtr.mes = mk.dataset.mes; risovat(); return; }
+    if (mk) { filtr.mes = mk.dataset.mes; pokazano = PORCIYA; risovat(); return; }
+    const ck = t.closest("#msFotoFiltr [data-cel]");
+    if (ck) { filtr.cel = ck.dataset.cel; pokazano = PORCIYA; risovat(); return; }
+    const fk = t.closest("#msFotoFiltr [data-foto]");
+    if (fk) { filtr.foto = fk.dataset.foto; pokazano = PORCIYA; risovat(); return; }
+    if (t.closest("[data-eshche]")) { pokazano += PORCIYA; risovat(); return; }
     const k = t.closest(".msKart[data-reys]");
     if (k) { otkrytMashinu(k.dataset.reys); return; }
     if (t.closest("#msNovaya")) {
