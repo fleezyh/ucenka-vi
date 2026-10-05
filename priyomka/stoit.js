@@ -58,15 +58,19 @@
   async function start() {
     const uzel = el("stoit");
     if (!uzel) return;
-    const [pr, dv, sv] = await Promise.all([json("../data/priyomka.json"), json("../data/dvor.json"), json("../data/svezhest.json")]);
-    const temp = pr && pr.темп;
+    const [pr, dv, sv, tz] = await Promise.all([json("../data/priyomka.json"), json("../data/dvor.json"),
+      json("../data/svezhest.json"), json("../data/priyomka_temp_zhivo.json")]);
+    // 05.10: темп приёмки и размещения — живьём из ВМС (раз в 5 минут). Свежий — берём его, DWH только для двора.
+    const zhivoy = tz && tz.обновлено && (Date.now() - Date.parse(tz.обновлено.replace(" ", "T") + ":00+03:00")) < 30 * 60000;
+    const temp = zhivoy ? tz : pr && pr.темп;
     const v = (temp && temp.вердикт) || {};
     const dmd = dv && (dv.склады || []).find((s) => s.склад === "ДМД");
-    const zastyl = sv && sv.застыл;
+    const zastylDvor = sv && sv.застыл;
+    const zastyl = zastylDvor && !zhivoy;
     const kray = sv && (sv.источники || []).reduce((m, x) => (!m || x.край > m.край ? x : m), null);
 
     const zvenya = [];
-    if (dmd) zvenya.push(["двор", zastyl ? "застыл" : DVOR[dmd.цвет] || "нет нормы"]);
+    if (dmd && !zastylDvor) zvenya.push(["двор", DVOR[dmd.цвет] || "нет нормы"]);
     ["приёмка", "размещение"].forEach((k) => { if (v[k]) zvenya.push([k, v[k].состояние]); });
     const stoyat = zvenya.filter(([, s]) => s === "стоит").map(([k]) => k);
     const tormozyat = zvenya.filter(([, s]) => s === "тормозит").map(([k]) => k);
@@ -91,8 +95,10 @@
     } else {
       otvet = "Нет — склад работает";
       klass = "st--zelyonyy";
-      poyasnenie = "двор без пробки, приёмка и размещение идут в обычном темпе";
+      poyasnenie = (zastylDvor ? "приёмка и размещение идут в обычном темпе (двор — по застывшим данным, не учитываю)"
+        : "двор без пробки, приёмка и размещение идут в обычном темпе");
     }
+    if (zhivoy) poyasnenie += ` · темп из ВМС на ${esc(vremya(tz.обновлено))}`;
 
     const ryad = (k) => (temp && temp.ряд || []).filter((x) => x.участок === k);
     const temKart = (k) => {
@@ -101,13 +107,27 @@
       const dolya = x.доля_3ч != null ? `${Math.round(x.доля_3ч * 100)}% от нормы` : "нормы пока нет";
       return kartochka(k[0].toUpperCase() + k.slice(1), x.состояние,
         `${chislo(x.факт_3ч)} шт <small>за 3 ч · ${dolya}</small>`,
-        `норма ${x.норма_3ч != null ? chislo(x.норма_3ч) : "—"} шт · в ${vremya(x.час)} работало ${x.людей} чел. · линия — двое суток, пунктир — норма`,
+        `норма ${x.норма_3ч != null ? chislo(x.норма_3ч) : "—"} шт`
+          + (x.людей != null ? ` · в ${vremya(x.час)} работало ${x.людей} чел.` : ` · сейчас за час уже ${chislo(x.текущий_час)} шт`)
+          + " · линия — двое суток, пунктир — норма",
         k === "размещение" ? "#prUchastki" : "#prUchastki", ryad(k));
     };
-    const dvorKart = dmd ? kartochka("Двор", zastyl ? "застыл" : DVOR[dmd.цвет] || "нет нормы",
+    const dvorKart = dmd ? kartochka("Двор", zastylDvor ? "застыл" : DVOR[dmd.цвет] || "нет нормы",
       `${chislo(dmd.ждут_ворот)} машин <small>ждут ворот · ${chislo(dmd.паллет_в_очереди)} паллет</small>`,
-      zastyl ? "цифры от застывших данных — не верить" : `дольше всех ${skolko(dmd.дольше_всех_мин || 0)} · на разгрузке ${dmd.на_разгрузке}`,
+      zastylDvor ? "цифры от застывших данных — не верить" : `дольше всех ${skolko(dmd.дольше_всех_мин || 0)} · на разгрузке ${dmd.на_разгрузке}`,
       "#dvor", null) : "";
+
+    // смены ВМС: день 09–21, ночь 21–09 — сколько сделано против нормы
+    const dolya = (x) => (x && x.норма ? Math.round(x.факт / x.норма * 100) : null);
+    const cvetSmeny = (p) => (p == null ? "st--seryy" : p < 40 ? "st--krasnyy" : p < 70 ? "st--zhyoltyy" : "st--zelyonyy");
+    const smeny = zhivoy && (tz.смены || []).length ? `<p class="stSmeny__zag">По сменам · день 09–21, ночь 21–09 · сделано / норма на эти часы</p>
+      <div class="stSmeny">${tz.смены.map((sm) => {
+        const p = Math.min(dolya(sm.приёмка) ?? 999, dolya(sm.размещение) ?? 999);
+        return `<div class="stSmena ${cvetSmeny(p === 999 ? null : p)}">
+          <p class="stSmena__kto">${sm.смена === "день" ? "День" : "Ночь"} ${esc(sm.с.slice(8, 10))}.${esc(sm.с.slice(5, 7))}${sm.идёт ? " · идёт" : ""}</p>
+          <p>приёмка <b>${chislo(sm.приёмка.факт)}</b>${dolya(sm.приёмка) != null ? ` · ${dolya(sm.приёмка)}%` : ""}</p>
+          <p>размещение <b>${chislo(sm.размещение.факт)}</b>${dolya(sm.размещение) != null ? ` · ${dolya(sm.размещение)}%` : ""}</p></div>`;
+      }).join("")}</div>` : "";
 
     uzel.innerHTML = `<div class="stOtvet ${klass}">
         <p class="stOtvet__vopros">Стоит ли склад?</p>
@@ -115,6 +135,7 @@
         <p class="stOtvet__pochemu">${poyasnenie}</p>
       </div>
       <div class="stKarty">${dvorKart}${temKart("приёмка")}${temKart("размещение")}</div>
+      ${smeny}
       ${temp && temp.дней_истории < 14 ? `<p class="stSnoska">норма ещё копится: истории ${temp.дней_истории} дн., нужно пять недель</p>` : ""}`;
     uzel.hidden = false;
   }
