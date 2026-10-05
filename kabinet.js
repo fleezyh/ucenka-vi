@@ -2,7 +2,7 @@
    человека в кабинете совпадал с кабинетом зарплаты именно в том же красивом виде; самое главное в кабинете —
    не то, что есть сейчас»). Сверху — деньги и выработка (zp.js), под ними — профиль, пароль и выход теми же
    карточками. Блок «Кабинет · Админка» — только админу, два блока на всю ширину; у остальных переключать нечего.
-   Данные профиля — /__account.json. */
+   Данные профиля — /__account/profil. */
 (function () {
   "use strict";
   const hero = document.querySelector(".hero");
@@ -140,6 +140,13 @@
     document.getElementById("kabPredl")?.remove();
   });
 
-  fetch("/__account.json", { credentials: "same-origin", cache: "no-store" })
+  // «Кабинет · Админка» — сразу по /__me, не дожидаясь профиля: админка не должна пропадать, если профиль не ответил
+  fetch("/__me", { credentials: "same-origin" }).then((o) => (o.ok ? o.json() : null)).then((u) => {
+    if (u && u.role === "admin" && !u["примерка"] && !document.querySelector(".kabDva")) {
+      hero.insertAdjacentHTML("afterend", '<nav class="kabDva" aria-label="Кабинет и админка">'
+        + '<a class="kabDva__a is-on" href="/zp/">Кабинет</a><a class="kabDva__a" href="/__admin">Админка</a></nav>');
+    }
+  }).catch(() => {});
+  fetch("/__account/profil", { credentials: "same-origin", cache: "no-store" })
     .then((o) => (o.ok ? o.json() : null)).then((k) => { if (k) narisovat(k); }).catch(() => {});
 })();

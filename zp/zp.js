@@ -1312,6 +1312,14 @@ async function start() {
   } else if (!moya["я"]) {
     message.textContent = moya["почему_пусто"] || "По вам расчёта пока нет.";
     message.className = "message warn";
+    // 06.10: денег нет, а выработка есть — кабинет всё равно показывает личную производительность
+    const rab = moya["выработка"];
+    if (rab && (rab["по_неделям"] || []).length) {
+      blockMe.classList.remove("zpMe--concealed");
+      blockMe.innerHTML = grafikVyrabotki(rab);
+      blockMe.hidden = false;
+      podklyuchitGrafiki(blockMe);
+    }
   } else {
     message.textContent = "";
     message.className = "message";
