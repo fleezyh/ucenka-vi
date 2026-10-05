@@ -794,3 +794,11 @@ input::-webkit-datetime-edit-hour-field, input::-webkit-datetime-edit-minute-fie
 @media (max-width: 375px) {
   body:not(.nav-enhanced) .siteHeaderShell .brand { font-size: 24px; }
 }
+
+/* 05.10 (телефон): контур в меню был уже своей ячейки и прижимался влево — растянут на ячейку, текст по центру, как «Пикалка» */
+@media (max-width: 640px) {
+  .siteHeaderShell .siteNav.is-open .navKonturWrap,
+  .shell > .topbar .siteNav.is-open .navKonturWrap { display: flex; min-width: 0; }
+  .siteHeaderShell .siteNav.is-open .navKontur,
+  .shell > .topbar .siteNav.is-open .navKontur { flex: 1 1 auto; width: 100%; justify-content: center; }
+}
