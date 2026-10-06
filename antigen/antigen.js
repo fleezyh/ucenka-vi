@@ -893,6 +893,10 @@
        Смысл в том, чтобы на графике было видно не только «стало меньше», но и
        «после чего стало меньше» — иначе связь действий и результата держится
        только в голове у того, кто их проводил. */
+    // 06.10: несколько мероприятий в одной точке (или рядом) писались в одну строку поверх друг друга.
+    // Подпись встаёт в первую «дорожку», где не налезает на предыдущую; линия и точка — одна на точку графика.
+    const dorozhki = [];
+    const uzheLiniya = new Set();
     const marks = (events || []).map((event) => {
       const day = String(event.дата || '').slice(0, 10);
       const at = points.findIndex((point) => {
@@ -907,11 +911,19 @@
       });
       if (at < 0) return '';
       const label = String(event.название || '').slice(0, 34);
-      return `<line class="agEvent" x1="${x(at)}" y1="${pad.top - 8}" x2="${x(at)}" y2="${pad.top + innerH}"></line>`
+      const x0 = x(at) + 6;
+      const shirina = label.length * 6.4;
+      let d = dorozhki.findIndex((konec) => konec < x0 - 6);
+      if (d < 0) { d = dorozhki.length; dorozhki.push(0); }
+      dorozhki[d] = x0 + shirina;
+      const liniya = uzheLiniya.has(at) ? '' :
+        `<line class="agEvent" x1="${x(at)}" y1="${pad.top - 8}" x2="${x(at)}" y2="${pad.top + innerH}"></line>`;
+      uzheLiniya.add(at);
+      return liniya
         + `<circle class="agEventDot" cx="${x(at)}" cy="${pad.top - 8}" r="4">`
         + `<title>${escape(event.дата)} · ${escape(event.название)}`
         + `${event.что ? ' — ' + escape(event.что) : ''}</title></circle>`
-        + `<text class="agEventLabel" x="${x(at) + 6}" y="${pad.top + 6}">${escape(label)}</text>`;
+        + `<text class="agEventLabel" x="${x0}" y="${pad.top + 6 + d * 14}"><title>${escape(event.дата)} · ${escape(event.название)}</title>${escape(label)}</text>`;
     }).join('');
 
     box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Динамика периода">`
