@@ -131,6 +131,7 @@
   let formaVhoda = false;
   let oshibkaVhoda = "";
   let oshibkaAkta = "";
+  let zametkaAkta = "";   // 06.10: что сервер сделал до акта (перенёс из буфера входа на стол)
 
   function zagruzitSostoyanie() {
     fetch("/__akt/sostoyanie", { cache: "no-store" }).then((o) => o.ok ? o.json() : {})
@@ -1747,7 +1748,7 @@
     if (gotovo) {
       vyvestiTovar(`${shapka}
         <div class="aktPs__gotovo"><b>Акт №${esc(gotovo.nomer)}</b>
-          <span>${esc(gotovo.tovar)}</span><span>${esc(gotovo.reshenie)} · мех. повреждения, ${esc(gotovo.defekt)}</span></div>
+          <span>${esc(gotovo.tovar)}</span><span>${esc(gotovo.reshenie)} · мех. повреждения, ${esc(gotovo.defekt)}</span>${gotovo.zametka ? `<span>${esc(gotovo.zametka)}</span>` : ""}</div>
         ${blokPalety()}`);
       return;
     }
@@ -2077,6 +2078,7 @@
     const r = RESHENIYA().find((x) => String(x.id) === String(reshenie));
     let nomerAkta = nomer++;
     oshibkaAkta = "";
+    zametkaAkta = "";
     if (boevoy) {
       try {
         const otvet = await fetch("/__akt/sozdat", {
@@ -2091,10 +2093,12 @@
           vms = { подключено: false }; formaVhoda = true; oshibkaVhoda = "войдите в WMS, потом снова «Заактировать»";
           risovat(); return;
         }
-        if (!otvet.ok || !d.акт) throw new Error(d.ошибка || `сервер ответил ${otvet.status}`);
+        if (!otvet.ok || !d.акт) throw Object.assign(new Error(d.ошибка || `сервер ответил ${otvet.status}`), { ponyatno: !!d.понятно });
         nomerAkta = d.акт;
+        zametkaAkta = d.заметка || "";
       } catch (oshibka) {
-        oshibkaAkta = `${oshibka.message || oshibka}. Заактируйте руками в WMS.`;
+        // 06.10: свой текст сервера («уже заактирована: акт …», «нет на столе — числится в …») — как есть
+        oshibkaAkta = oshibka.ponyatno ? `${oshibka.message}.` : `${oshibka.message || oshibka}. Заактируйте руками в WMS.`;
         risovat();
         return;
       }
@@ -2102,7 +2106,7 @@
       await new Promise((ok) => setTimeout(ok, 400));
     }
     zaSmenu += 1;
-    gotovo = { nomer: nomerAkta, tovar: tovar.name || "", reshenie: r ? `${r.имя} → ${r.куда}` : "без решения", defekt: `${defekt}, ${krit}` };
+    gotovo = { nomer: nomerAkta, zametka: zametkaAkta, tovar: tovar.name || "", reshenie: r ? `${r.имя} → ${r.куда}` : "без решения", defekt: `${defekt}, ${krit}` };
     zhdemPalletu = r ? { ishod: r, akt: nomerAkta } : null;
     perItog = null;
     risovat();
