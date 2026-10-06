@@ -410,9 +410,10 @@ body.cSkin.aTsd .searchCard > .message { display: none; }
   .cTop { flex-direction: column; align-items: stretch; gap: 10px; }
   /* 06.10 (скрин Ерофеевой): ряд справа налево не растягивался — слева пустота, имя прижато к «Звуку».
      Имя слева, звук справа, одной строкой; длинное имя — с многоточием. */
-  .cPult { flex-wrap: nowrap; justify-content: space-between; gap: 10px; padding: 8px 8px 8px 14px; }
+  /* «должно быть симметрично»: имя и «Звук» — одинаковые плашки, одинаковые поля с обеих сторон */
+  .cPult { flex-wrap: nowrap; justify-content: space-between; gap: 8px; padding: 8px; }
   .cKto { flex: 1 1 auto; }
-  .cKto .aWho { min-width: 0; gap: 8px; font-size: 14px; }
+  .cKto .aWho { min-width: 0; height: 36px; padding: 0 12px; gap: 8px; font-size: 14px; border: 1px solid var(--cLine2, #2c3a4e); border-radius: 12px; }
   .cKto .aWho b { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
   .cKto .aWho .aWho__nm { display: none; }
   .cZvuk { height: 36px; padding: 0 12px; }
@@ -431,7 +432,15 @@ body.cSkin.aTsd .searchCard > .message { display: none; }
   body.cSkin .cField #go::after { content: "→"; font-size: 24px; }
   body.cSkin .cCenter > .message, body.cSkin .cCenter > #answer, body.cSkin .cCenter > #nameResults, body.cSkin .cCenter > #wmsDHost,
   body.cSkin .cCenter > .costListCard, body.cSkin .cCenter > .palletsCard, .cPusto { margin-left: 14px; margin-right: 14px; }
-  .cPusto__g { grid-template-columns: 1fr; }
+  /* 06.10 (скрин Ерофеевой: «блоки большие, непонятно зачем»): подсказки — одной компактной
+     шпаргалкой, строка на вид пика, а не шесть плиток по экрану */
+  .cPusto h2 { margin-bottom: 10px; font-size: 18px; }
+  .cPusto__g { grid-template-columns: 1fr; gap: 0; border: 1px solid var(--cLine); border-radius: 14px; background: var(--cTile); overflow: hidden; }
+  .cPusto__g > * { min-height: 0; padding: 10px 14px; border: 0; border-radius: 0; background: none; flex-direction: row; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
+  .cPusto__g > * + * { border-top: 1px solid var(--cLine); }
+  .cPusto__g b { font-size: 15px; }
+  .cPusto__g span { flex-basis: 100%; font-size: 12.5px; line-height: 1.35; }
+  .cPusto__g code { font-size: 11px; padding: 2px 6px; }
   .cTiles { grid-template-columns: 1fr 1fr; gap: 8px; }
   .cT { grid-column: span 1 !important; min-height: 96px; padding: 14px; }
   .cT--hero, .cT--pal { grid-column: span 2 !important; min-height: 130px; }
