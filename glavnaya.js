@@ -4,16 +4,21 @@
 (function () {
   "use strict";
 
-  // Новости — три последние из общей ленты (data/news.json), целиком — на /novosti/.
-  fetch("data/news.json", { cache: "no-store" }).then((o) => (o.ok ? o.json() : null)).then((d) => {
-    const zap = ((d && d.записи) || []).slice(0, 3);
-    const esc = (t) => String(t || "").replace(/[&<>"]/g, (x) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[x]));
-    const html = zap.map((z, j) => {
-      const dt = String(z.дата || "");
-      return `<a class="pvNovost" href="novosti/#/uc-${esc(dt)}-${j}"><small>${esc(dt.slice(8, 10))}.${esc(dt.slice(5, 7))}</small><span>${esc(z.заголовок)}</span></a>`;
-    }).join("");
-    document.querySelectorAll("[data-novosti]").forEach((x) => { x.innerHTML = html || '<p class="pvNovost">пока пусто</p>'; });
-  }).catch(() => {});
+  // Новости — три самые свежие из всех лент, как вкладка «Все» на /novosti/ (06.10: брали только ленту уценки —
+  // на главной висело 24.09, а в антигенерации было 29.09).
+  const LENTY = [["uc", "data/news.json"], ["ag", "data/news-antigen.json"], ["sl", "data/news-sales.json"]];
+  Promise.all(LENTY.map(([, src]) => fetch(src, { cache: "no-store" }).then((o) => (o.ok ? o.json() : null)).catch(() => null)))
+    .then((dannye) => {
+      const esc = (t) => String(t || "").replace(/[&<>"]/g, (x) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[x]));
+      const vse = [];
+      dannye.forEach((d, i) => ((d && d.записи) || []).forEach((z, j) => vse.push({ ...z, id: `${LENTY[i][0]}-${z.дата}-${j}` })));
+      vse.sort((a, b) => String(b.дата || "").localeCompare(String(a.дата || "")));
+      const html = vse.slice(0, 3).map((z) => {
+        const dt = String(z.дата || "");
+        return `<a class="pvNovost" href="novosti/#/${esc(z.id)}"><small>${esc(dt.slice(8, 10))}.${esc(dt.slice(5, 7))}</small><span>${esc(z.заголовок)}</span></a>`;
+      }).join("");
+      document.querySelectorAll("[data-novosti]").forEach((x) => { x.innerHTML = html || '<p class="pvNovost">пока пусто</p>'; });
+    });
 
   // Замки по правам.
   fetch("/__me", { credentials: "same-origin" }).then((o) => (o.ok ? o.json() : null)).then((u) => {
