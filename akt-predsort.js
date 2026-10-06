@@ -934,7 +934,11 @@
     if (!vtisZ) return `<button type="button" class="aktPs__kn" data-vtis="pokazat">Снять резерв заказа ${esc(r.zakaz)} во ВТИС…</button>`;
     if (vtisZ.zhdu) return '<p class="aktPs__chto">Открываю заказ во ВТИС…</p>';
     if (vtisZ.idet) return '<p class="aktPs__chto">Снимаю резерв во ВТИС — несколько секунд…</p>';
-    if (vtisZ.oshibka) return `<p class="aktPs__net"><b class="aktPs__oshibka">${esc(vtisZ.oshibka)}</b></p>`;
+    // 06.10 Степан: «если нельзя снять с резерва — пишешь исключительный случай, автоматизировать нельзя,
+    // только снимать с заказа через ХД»
+    if (vtisZ.oshibka) return `<div class="aktPs__gotovo is-oshibka"><b>Исключительный случай — снять резерв сайт не может</b>
+      <span>Снять штуку с заказа ${esc(r.zakaz || "")} можно только через ХД: оформите заявку на снятие с заказа (акт, номер заказа).
+      Штуку не кладите на паллету, пока её не снимут.</span><span class="aktPs__chto">${esc(vtisZ.oshibka)}</span></div>`;
     const z = vtisZ.заказ;
     if (vtisZ.готово) {
       return `<div class="aktPs__gotovo"><b>Резерв заказа ${esc(z.номер)} снят во ВТИС</b><span>${vtisZ.резерв_снят
