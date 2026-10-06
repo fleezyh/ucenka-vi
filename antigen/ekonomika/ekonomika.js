@@ -39,30 +39,38 @@
   const sost = { r1: "", r2: "", tip: "", q: "", gr: "", vid: "minus", pokazano: 50, vseGrupp: false };
 
   // 06.10 Степан: «было задание сделать конкретно по длинномерам и светильникам из антигенерации, только
-  // рубрика слишком неточно — я никак их не найду». Группы антигенерации (data/antigen/gruppy.json) —
-  // те же слова в названии и «кроме», что на странице брака; кнопками над всем, ссылкой ?gruppa=Длинномеры.
+  // рубрика слишком неточно — я никак их не найду». Первая версия брала словарь групп страницы брака
+  // (data/antigen/gruppy.json: «профиль», «трубка», «лоток»… — 12,7 тыс. позиций), ответ: «че-то не то».
+  // Направления — из записки «Куда бить» (22.09, Черновики/2026-09-22/zapiska_kuda_bit.py): там они заданы
+  // моделью учёта и категорией, а не словами. Кнопками над всем, ссылкой ?gruppa=Хрупкие длинномеры.
+  const NAPRAVLENIYA = [
+    { имя: "Хрупкие длинномеры", модели: ["Ф(ДЛ.ХРУПК)"], признак: "модель учёта «длинномер хрупкий»",
+      что: "мех. повреждение — 4 036 актов за 8 недель, 14,4% брака; хранить горизонтально в кассетах, не сгибать под ячейку" },
+    { имя: "Тара с крышкой", слова: ["ведро", "ведра", "ёмкость", "емкость", "контейнер с крышкой", "банка с крышкой"],
+      признак: "в названии: ведро, ёмкость, контейнер или банка с крышкой",
+      что: "некомплект — 2 034 акта за 8 недель и растёт; хранить комплектом, в лоток только с надетой крышкой" },
+    { имя: "Светильники и лампы", категории: ["Освещение", "Светильники"], признак: "категории «Освещение» и «Светильники»",
+      что: "мех. повреждение — 1 580 актов за 8 недель; панели 595×595 на ребре, лампы T8 в кассете по длине" },
+    { имя: "Сыпучка · мешки", модели: ["Ф(СЫПУЧКА)"], признак: "модель учёта «сыпучка»",
+      что: "мех. повреждение и рваные мешки — 1 534 акта за 8 недель; паллет с прокладкой, не в нижний ярус" },
+  ];
   let gruppyAg = [];
-  async function zagruzitGruppy() {
-    try {
-      const o = await fetch("../../data/antigen/gruppy.json", { cache: "no-cache" });
-      if (o.ok) gruppyAg = ((await o.json()).группы || []).map((g) => ({ ...g,
-        _slova: (g.слова || []).map((s) => String(s).toLocaleLowerCase("ru-RU")),
-        _krome: (g.кроме || []).map((s) => String(s).toLocaleLowerCase("ru-RU")) }));
-    } catch (e) { /* без групп страница работает как раньше */ }
+  function zagruzitGruppy() {
+    const nomer = (spisok, slov) => new Set((spisok || []).map((x) => slov.indexOf(x)).filter((n) => n >= 0));
+    gruppyAg = NAPRAVLENIYA.map((g) => ({ ...g, _m: g.модели && nomer(g.модели, idx.slov.model),
+      _r2: g.категории && nomer(g.категории, idx.slov.r2), _slova: (g.слова || []).map((s) => s.toLocaleLowerCase("ru-RU")) }));
   }
   const gruppaAg = () => gruppyAg.find((g) => g.имя === sost.gr) || null;
-  function vGruppe(g, imya) {
-    const hay = imya.toLocaleLowerCase("ru-RU");
-    return !g._krome.some((w) => hay.includes(w)) && g._slova.some((w) => hay.includes(w));
+  function vGruppe(g, k, i) {
+    if (g._m) return g._m.has(k.model[i]);
+    if (g._r2) return g._r2.has(k.r2[i]);
+    const hay = k.imya[i].toLocaleLowerCase("ru-RU");
+    return g._slova.some((w) => hay.includes(w));
   }
-  const dataRu = (d) => (d ? d.split("-").reverse().join(".") : "");
   function risovatGruppyAg() {
     const box = $("ekGrAg");
-    if (!gruppyAg.length) { box.hidden = true; return; }
-    // сначала группы с мероприятием (есть дата «с»), дальше остальные
-    const sp = [...gruppyAg].sort((a, b) => (b.с ? 1 : 0) - (a.с ? 1 : 0));
     box.hidden = false;
-    box.innerHTML = `<span class="ekGrAg__zag">Группы антигенерации</span>${sp.map((g) => `<button type="button" class="ekGrAg__kn${g.с ? " is-mer" : ""}" data-grag="${esc(g.имя)}" aria-pressed="${g.имя === sost.gr}" title="${esc(g.что || "")}">${esc(g.имя)}${g.с ? `<small>с ${esc(dataRu(g.с))}</small>` : ""}</button>`).join("")}${sost.gr ? `<button type="button" class="ekGrAg__sbros" data-grag="">× все товары</button>` : ""}`;
+    box.innerHTML = `<span class="ekGrAg__zag">Направления «Куда бить»</span>${gruppyAg.map((g) => `<button type="button" class="ekGrAg__kn" data-grag="${esc(g.имя)}" aria-pressed="${g.имя === sost.gr}" title="${esc(g.признак)}">${esc(g.имя)}</button>`).join("")}${sost.gr ? `<button type="button" class="ekGrAg__sbros" data-grag="">× все товары</button>` : ""}`;
   }
 
   // 05.10 Степан: «куда бить, зачем, что самое невыгодное — ВООБЩЕ ничего непонятно». Страница отвечает
@@ -193,7 +201,7 @@
       for (let i = 0; i < k.id.length; i++) {
         if (sost.r2 !== "" && k.r2[i] !== Number(sost.r2)) continue;
         if (sost.tip !== "" && k.tip[i] !== Number(sost.tip)) continue;
-        if (g && !vGruppe(g, k.imya[i])) continue;
+        if (g && !vGruppe(g, k, i)) continue;
         if (q) {
           if (art != null) { if (k.art[i] !== art) continue; }
           else { const im = k.imya[i].toLowerCase(); if (!slova.every((s) => im.includes(s))) continue; }
@@ -358,14 +366,14 @@
     }
     const sp = vybor();
     const s = summa(sp);
-    const grPref = g ? `Группа «${esc(g.имя)}»${g.с ? ` · мероприятие с ${esc(dataRu(g.с))}` : ""}${g.что ? ` · ${esc(g.что)}` : ""}` : "";
+    const grPref = g ? `Направление «${esc(g.имя)}» · ${esc(g.что)}` : "";
     const mesto = q ? `Поиск «${esc(sost.q.trim())}»`
       : sost.r1 !== "" ? esc(imyaR1(Number(sost.r1))) + (sost.r2 !== "" ? " · " + esc(idx.slov.r2[Number(sost.r2)] || "без категории") : "")
         : g ? "" : "Все рубрики · Домодедово · " + esc(idx.meta.период);
     kudaBit(s.poteri, s.n, [grPref, mesto].filter(Boolean).join(" · "));
     if (g && !q && sost.r1 === "") {
       // группа антигенерации по всем рубрикам: где она лежит — по рубрикам, клик сужает
-      glavnaya(s, `Группа «${esc(g.имя)}» · слова: ${esc(g.слова.join(", "))}${g.кроме?.length ? ` · кроме: ${esc(g.кроме.join(", "))}` : ""}`);
+      glavnaya(s, `Направление «${esc(g.имя)}» · ${esc(g.признак)}`);
       const po = new Map();
       sp.forEach((x) => { const id = x.k.r1[x.i]; if (!po.has(id)) po.set(id, []); po.get(id).push(x); });
       gruppy([...po].map(([id, a]) => ({ id, imya: imyaR1(id), s: summa(a) })), "Где теряем", "рубрики группы по потерям · щёлкните — категории и позиции группы", "r1");
