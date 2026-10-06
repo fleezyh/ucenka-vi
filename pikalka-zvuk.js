@@ -33,14 +33,23 @@
   }
 
   let poslednee = 0;
+  function sygrat(vid) {
+    if (vid === "ok") { ton(1400, 0, 0.12, "triangle", 0.5); }
+    else { ton(200, 0, 0.18, "square", 0.22); ton(200, 0.24, 0.18, "square", 0.22); }
+  }
   function zvuk(vid) {
-    if (!vklyuchen() || !ctx || ctx.state !== "running") return;
+    if (!vklyuchen()) return;
     const seychas = Date.now();
     if (seychas - poslednee < 250) return;   // «нашёл» и «ошибка» от одного скана не накладываются
     poslednee = seychas;
-    if (vid === "ok") ton(1320, 0, 0.09, "sine", 0.25);
-    else { ton(220, 0, 0.16, "square", 0.12); ton(220, 0.22, 0.16, "square", 0.12); }
+    // 06.10 «на компе не слышу»: раньше молчали, пока браузер не перевёл звук в «running» — первый пик после
+    // загрузки страницы терялся. Теперь будим и играем, как только браузер разрешит.
+    razbudit();
+    if (!ctx) return;
+    if (ctx.state === "running") sygrat(vid);
+    else ctx.resume().then(() => sygrat(vid)).catch(() => {});
   }
+  window.pikalkaZvukSostoyanie = () => ({ vklyuchen: vklyuchen(), kontekst: ctx ? ctx.state : "нет" });
   window.pikalkaZvuk = zvuk;
 
   document.addEventListener("picker:hit", () => zvuk("ok"));
