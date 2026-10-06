@@ -571,3 +571,6 @@ body.cSkin.is-svetlo .cKuda__forma input { background: #fff; }
   body.cSkin .cScanner__ico { width: 34px; height: 34px; border-radius: 10px; }
   body.cSkin .cRail [hidden] { display: none; }
 }
+/* 06.10 кнопка «Звук» в шапке пикалки */
+.cZvuk { flex: none; height: 40px; padding: 0 14px; border: 1px solid var(--cLine2, #2c3a4e); border-radius: 12px; background: transparent; color: var(--text, #f2f6fb); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.cZvuk.is-off { color: var(--muted, #8f9cad); }
