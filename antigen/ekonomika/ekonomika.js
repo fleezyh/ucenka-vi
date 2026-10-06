@@ -36,7 +36,34 @@
   let idx = null;                 // общий файл
   const rubriki = new Map();      // r1 → колонки
   let stavki = null;              // текущие ставки
-  const sost = { r1: "", r2: "", tip: "", q: "", vid: "minus", pokazano: 50, vseGrupp: false };
+  const sost = { r1: "", r2: "", tip: "", q: "", gr: "", vid: "minus", pokazano: 50, vseGrupp: false };
+
+  // 06.10 Степан: «было задание сделать конкретно по длинномерам и светильникам из антигенерации, только
+  // рубрика слишком неточно — я никак их не найду». Группы антигенерации (data/antigen/gruppy.json) —
+  // те же слова в названии и «кроме», что на странице брака; кнопками над всем, ссылкой ?gruppa=Длинномеры.
+  let gruppyAg = [];
+  async function zagruzitGruppy() {
+    try {
+      const o = await fetch("../../data/antigen/gruppy.json", { cache: "no-cache" });
+      if (o.ok) gruppyAg = ((await o.json()).группы || []).map((g) => ({ ...g,
+        _slova: (g.слова || []).map((s) => String(s).toLocaleLowerCase("ru-RU")),
+        _krome: (g.кроме || []).map((s) => String(s).toLocaleLowerCase("ru-RU")) }));
+    } catch (e) { /* без групп страница работает как раньше */ }
+  }
+  const gruppaAg = () => gruppyAg.find((g) => g.имя === sost.gr) || null;
+  function vGruppe(g, imya) {
+    const hay = imya.toLocaleLowerCase("ru-RU");
+    return !g._krome.some((w) => hay.includes(w)) && g._slova.some((w) => hay.includes(w));
+  }
+  const dataRu = (d) => (d ? d.split("-").reverse().join(".") : "");
+  function risovatGruppyAg() {
+    const box = $("ekGrAg");
+    if (!gruppyAg.length) { box.hidden = true; return; }
+    // сначала группы с мероприятием (есть дата «с»), дальше остальные
+    const sp = [...gruppyAg].sort((a, b) => (b.с ? 1 : 0) - (a.с ? 1 : 0));
+    box.hidden = false;
+    box.innerHTML = `<span class="ekGrAg__zag">Группы антигенерации</span>${sp.map((g) => `<button type="button" class="ekGrAg__kn${g.с ? " is-mer" : ""}" data-grag="${esc(g.имя)}" aria-pressed="${g.имя === sost.gr}" title="${esc(g.что || "")}">${esc(g.имя)}${g.с ? `<small>с ${esc(dataRu(g.с))}</small>` : ""}</button>`).join("")}${sost.gr ? `<button type="button" class="ekGrAg__sbros" data-grag="">× все товары</button>` : ""}`;
+  }
 
   // 05.10 Степан: «куда бить, зачем, что самое невыгодное — ВООБЩЕ ничего непонятно». Страница отвечает
   // сначала на это: сколько теряем, на чём и что с этим делать; разбор по рубрикам и позициям — ниже.
@@ -93,7 +120,10 @@
   async function zagruzitVse() {
     for (const f of idx.рубрики) await rubrika(f.r1);
   }
-  function zagruzka(t) { $("ekGlav").classList.add("is-gruzhu"); const p = $("ekGlav").querySelector(".ekGlav__kto"); if (p) p.textContent = t; }
+  function zagruzka(t) {
+    $("ekGlav").classList.add("is-gruzhu");
+    for (const id of ["ekBit", "ekGlav"]) { const p = $(id).querySelector(".ekGlav__kto"); if (p) p.textContent = t; }
+  }
 
   // ------------------------------------------------------------ ставки
 
@@ -157,11 +187,13 @@
     const art = /^\d{5,}$/.test(q) ? Number(q) : null;
     const slova = q.split(/\s+/).filter(Boolean);   // «пескобетон dauer» — каждое слово где угодно в названии
     const ist = sost.r1 !== "" ? [rubriki.get(Number(sost.r1))].filter(Boolean) : [...rubriki.values()];
+    const g = gruppaAg();
     const out = [];
     for (const k of ist) {
       for (let i = 0; i < k.id.length; i++) {
         if (sost.r2 !== "" && k.r2[i] !== Number(sost.r2)) continue;
         if (sost.tip !== "" && k.tip[i] !== Number(sost.tip)) continue;
+        if (g && !vGruppe(g, k.imya[i])) continue;
         if (q) {
           if (art != null) { if (k.art[i] !== art) continue; }
           else { const im = k.imya[i].toLowerCase(); if (!slova.every((s) => im.includes(s))) continue; }
@@ -299,7 +331,13 @@
   function risovat() {
     const q = zapros();
     const imyaR1 = (n) => idx.slov.r1[n] || "без рубрики";
-    if (sost.r1 === "" && !q && !vseZagruzheny()) {
+    risovatGruppyAg();
+    const g = gruppaAg();
+    if (g && !vseZagruzheny() && sost.r1 === "") {
+      zagruzitVse().then(risovat).catch(oshibka);
+      return;
+    }
+    if (sost.r1 === "" && !q && !g && !vseZagruzheny()) {
       // обзор без загрузки всех рубрик: сводка из index и топ-300 «маржу съели»
       const sv = idx.рубрики.filter((f) => f.свод).map((f) => ({ id: f.r1, imya: f.имя, s: izSvoda(f) }));
       const s = sv.reduce((a, { s: x }) => { for (const p in a) a[p] += x[p]; return a; }, { vyr: 0, marzha: 0, rabota: 0, hran: 0, brak: 0, itog: 0, minus: 0, n: 0 });
@@ -320,10 +358,18 @@
     }
     const sp = vybor();
     const s = summa(sp);
-    kudaBit(s.poteri, s.n, q ? `Поиск «${esc(sost.q.trim())}»`
+    const grPref = g ? `Группа «${esc(g.имя)}»${g.с ? ` · мероприятие с ${esc(dataRu(g.с))}` : ""}${g.что ? ` · ${esc(g.что)}` : ""}` : "";
+    const mesto = q ? `Поиск «${esc(sost.q.trim())}»`
       : sost.r1 !== "" ? esc(imyaR1(Number(sost.r1))) + (sost.r2 !== "" ? " · " + esc(idx.slov.r2[Number(sost.r2)] || "без категории") : "")
-        : "Все рубрики · Домодедово · " + esc(idx.meta.период));
-    if (q) {
+        : g ? "" : "Все рубрики · Домодедово · " + esc(idx.meta.период);
+    kudaBit(s.poteri, s.n, [grPref, mesto].filter(Boolean).join(" · "));
+    if (g && !q && sost.r1 === "") {
+      // группа антигенерации по всем рубрикам: где она лежит — по рубрикам, клик сужает
+      glavnaya(s, `Группа «${esc(g.имя)}» · слова: ${esc(g.слова.join(", "))}${g.кроме?.length ? ` · кроме: ${esc(g.кроме.join(", "))}` : ""}`);
+      const po = new Map();
+      sp.forEach((x) => { const id = x.k.r1[x.i]; if (!po.has(id)) po.set(id, []); po.get(id).push(x); });
+      gruppy([...po].map(([id, a]) => ({ id, imya: imyaR1(id), s: summa(a) })), "Где теряем", "рубрики группы по потерям · щёлкните — категории и позиции группы", "r1");
+    } else if (q) {
       glavnaya(s, `Поиск «${esc(sost.q.trim())}»${sost.r1 !== "" ? " в рубрике " + esc(imyaR1(Number(sost.r1))) : ""}`);
       const po = new Map();
       sp.forEach((x) => { const id = x.k.r1[x.i]; if (!po.has(id)) po.set(id, []); po.get(id).push(x); });
@@ -477,6 +523,17 @@
     if (t.closest("[data-sbros]")) { stavki = stavkiPoUmolch(); sohranitStavki(); risovatStavki(); kakSchitali(); risovat(); return; }
     if (t.closest("[data-eshche]")) { sost.pokazano += 50; risovat(); return; }
     if (t.closest("[data-vsegrupp]")) { sost.vseGrupp = true; risovat(); return; }
+    const ga = t.closest("[data-grag]");
+    if (ga) {
+      sost.gr = ga.dataset.grag === sost.gr ? "" : ga.dataset.grag;
+      sost.pokazano = 50; sost.vseGrupp = false;
+      if (sost.gr) sost.vid = "vse";   // по группе нужен весь её состав, худшие сверху
+      const u = new URL(location.href);
+      if (sost.gr) u.searchParams.set("gruppa", sost.gr); else u.searchParams.delete("gruppa");
+      history.replaceState(null, "", u);
+      risovat();
+      return;
+    }
     const vd = t.closest("[data-vid]");
     if (vd) {
       sost.vid = vd.dataset.vid; sost.pokazano = 50; risovat();
@@ -509,6 +566,9 @@
       Object.keys(idx.топ[0] || {}).forEach((p) => { kol[p] = idx.топ.map((x) => x[p]); });
       idx.топKol = kol;
       zagruzitStavki();
+      await zagruzitGruppy();
+      const izSsylki = new URL(location.href).searchParams.get("gruppa");
+      if (izSsylki && gruppyAg.some((g) => g.имя === izSsylki)) { sost.gr = izSsylki; sost.vid = "vse"; }
       $("ekR1").innerHTML += [...idx.рубрики].sort((a, b) => a.имя.localeCompare(b.имя, "ru"))
         .map((f) => `<option value="${f.r1}">${esc(f.имя)} · ${chislo(f.строк)}</option>`).join("");
       risovatStavki();

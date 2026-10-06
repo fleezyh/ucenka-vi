@@ -211,3 +211,17 @@ body.ekZamok { overflow: hidden; }
 .ekPrich { display: inline-block; padding: 0 6px; border-radius: 6px; font-style: normal; font-size: 11.5px; color: #0a1018; font-weight: 600; }
 .ekPrich.is-cena { background: var(--ek-cena); } .ekPrich.is-hran { background: var(--ek-hran); }
 .ekPrich.is-brak { background: var(--ek-brak); } .ekPrich.is-rab { background: var(--ek-rab); }
+
+/* 06.10: группы антигенерации кнопками — длинномеры, светильники и т.д. (те же слова, что на странице брака) */
+.ekGrAg { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; flex: 1 1 100%; padding-top: 10px; border-top: 1px solid var(--line); }
+.ekGrAg[hidden] { display: none; }
+.ekGrAg__zag { margin-right: 4px; font-size: 13px; color: var(--muted); }
+.ekGrAg__kn { display: inline-flex; align-items: baseline; gap: 6px; height: 34px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--line-strong, rgba(255,255,255,.18));
+  background: rgba(255,255,255,.04); color: var(--text); font: inherit; font-size: 14px; font-weight: 600; line-height: 32px; cursor: pointer; }
+.ekGrAg__kn small { font-size: 11.5px; font-weight: 600; color: var(--ek-hran); }
+.ekGrAg__kn.is-mer { border-color: rgba(245,173,50,.45); }
+.ekGrAg__kn:hover { border-color: rgba(185,162,255,.6); background: rgba(123,92,240,.14); }
+.ekGrAg__kn[aria-pressed="true"] { border-color: transparent; background: #7b5cf0; color: #fff; }
+.ekGrAg__kn[aria-pressed="true"] small { color: rgba(255,255,255,.85); }
+.ekGrAg__sbros { height: 34px; padding: 0 10px; border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 13px; cursor: pointer; }
+.ekGrAg__sbros:hover { color: var(--text); }
