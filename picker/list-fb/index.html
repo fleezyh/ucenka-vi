@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <script src="/tema.js?v=20260924-2"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0a1018">
+  <title>Уценка · Лист «Готовый паллет для ФБ»</title>
+  <link rel="icon" type="image/svg+xml" href="/assets/brand/vi-mark.svg">
+  <link rel="preload" href="/assets/fonts/VI_Sans_DemiBold.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/style.css?v=20260911-3">
+  <link rel="stylesheet" href="/reeded-bg.css?v=20260907-6">
+  <link rel="stylesheet" href="/site-header.css?v=20261005-2">
+  <script src="/reeded-bg.js?v=20260906-7" defer></script>
+  <script src="/nav.js?v=20261006-1" defer></script>
+  <!-- 06.10.2026: ФБ просит склад сдавать готовые паллеты с этим листом сверху (Широких / Соболев, образец из чата).
+       Тот же лист, но в стиле сайта: шрифт VI Sans 600, марка ВИ; печать — чёрным на белом, A4 книжный. -->
+  <style>
+    .lfVerh { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 14px; margin: 18px 0 16px; }
+    .lfVerh h1 { margin: 0; }
+    .lfVerh p { margin: 8px 0 0; max-width: 760px; color: var(--muted); font-size: 15px; line-height: 1.5; }
+    .lfPanel { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin: 0 0 18px; padding: 12px; border: 1px solid var(--line); border-radius: 18px; background: rgba(8, 12, 18, .35); }
+    .lfPanel label { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+    .lfPanel select, .lfPanel input[type=text], .lfPanel input[type=number] { height: 38px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line-strong, rgba(255,255,255,.18)); background: rgba(255,255,255,.04); color: var(--text); font: inherit; font-size: 14px; font-weight: 600; color-scheme: dark; }
+    .lfPanel input[type=number] { width: 70px; }
+    .lfPanel input[type=checkbox] { width: 18px; height: 18px; margin: 0; accent-color: #7b5cf0; }
+    .lfPanel select option { background: #1d1f27; color: #f2f3f7; }
+    .lfPechat { height: 40px; padding: 0 22px; border: 0; border-radius: 12px; background: #e30613; color: #fff; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
+    .lfPechat:hover { filter: brightness(1.08); }
+    .lfStol { display: flex; flex-wrap: wrap; gap: 22px; justify-content: center; padding: 6px 0 40px; }
+
+    /* сам лист: A4 книжный, на экране — превью в масштабе */
+    .lf { box-sizing: border-box; width: 210mm; height: 297mm; padding: 16mm 16mm 14mm; background: #fff; color: #111; font-family: "VI Sans", Arial, sans-serif; font-weight: 600;
+      display: flex; flex-direction: column; box-shadow: 0 18px 50px rgba(0,0,0,.45); border-radius: 6px; zoom: .62; }
+    .lf__shapka { display: flex; align-items: center; justify-content: space-between; gap: 6mm; }
+    .lf__marka { display: flex; align-items: center; gap: 4mm; font-size: 7mm; letter-spacing: -.01em; }
+    .lf__marka img { width: 13mm; height: 13mm; }
+    .lf__sklad { padding: 2.5mm 6mm; border: .7mm solid #111; border-radius: 4mm; font-size: 7mm; }
+    .lf__ramka { margin: 14mm 0 20mm; padding: 10mm 8mm; border: 1.6mm solid #111; border-radius: 7mm; text-align: center; font-size: 23mm; line-height: 1.04; letter-spacing: -.02em; }
+    .lf__pole { display: flex; align-items: flex-end; gap: 5mm; margin: 0 0 17mm; font-size: 11mm; }
+    .lf__pole span { flex: none; }
+    .lf__pole i { flex: 1; min-height: 12mm; border-bottom: .8mm solid #111; font-style: normal; font-size: 10mm; padding: 0 2mm 1mm; color: #111; }
+    .lf__kont { display: flex; align-items: center; gap: 6mm; margin-top: 3mm; font-size: 11mm; }
+    .lf__kont i { flex: 1; height: 46mm; border: 1mm solid #111; border-radius: 5mm; font-style: normal; display: grid; place-items: center; font-size: 13mm; }
+    .lf__niz { margin-top: auto; padding-top: 6mm; border-top: .4mm solid #bbb; display: flex; justify-content: space-between; font-size: 4.2mm; color: #555; }
+
+    @page { size: A4 portrait; margin: 0; }
+    @media print {
+      body { background: #fff !important; }
+      body > *:not(.shell), .shell > *:not(.lfStol), .reeded-bg, canvas { display: none !important; }
+      .shell { padding: 0 !important; margin: 0 !important; max-width: none !important; }
+      .lfStol { display: block; padding: 0; }
+      .lf { zoom: 1; box-shadow: none; border-radius: 0; page-break-after: always; break-after: page; }
+      .lf:last-child { page-break-after: auto; break-after: auto; }
+    }
+    @media (max-width: 760px) { .lf { zoom: .42; } }
+  </style>
+</head>
+<body data-mode="picker">
+  <main class="shell">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="Уценка — главная">
+        <img class="brand__mark" src="/assets/brand/vi-mark.svg" alt="" width="36" height="36">
+        <span>Уценка</span>
+      </a>
+      <nav class="siteNav" aria-label="Разделы сайта">
+        <span class="navGroup">
+          <span class="navGroup__label">Инструменты</span>
+          <a class="navLink" href="/picker/">Пикалка</a>
+        </span>
+      </nav>
+    </header>
+
+    <section class="lfVerh">
+      <div>
+        <h1>Готовый паллет для ФБ</h1>
+        <p>Лист кладут сверху на паллет, который склад передаёт в фильтр брака. Дату, отдел и контейнер можно вписать
+          здесь — напечатаются сразу, — или оставить пустыми и заполнить ручкой.</p>
+      </div>
+    </section>
+
+    <section class="lfPanel" aria-label="Что напечатать">
+      <label>Склад <select id="lfSklad"><option>ДМД</option><option>ЧШК</option><option>ДНЛ</option><option>СПб</option><option value="">не печатать</option></select></label>
+      <label><input type="checkbox" id="lfSegodnya"> вписать сегодняшнюю дату</label>
+      <label>Отдел <input type="text" id="lfOtdel" placeholder="пусто — от руки" size="18"></label>
+      <label>Контейнер <input type="text" id="lfKont" placeholder="пусто — от руки" size="14"></label>
+      <label>Листов <input type="number" id="lfSkolko" min="1" max="50" value="1"></label>
+      <button type="button" class="lfPechat" id="lfPechat">Печать</button>
+    </section>
+
+    <section class="lfStol" id="lfStol"></section>
+  </main>
+
+  <script>
+  (function () {
+    "use strict";
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+    const KL = "list-fb-v1";
+    try { const s = JSON.parse(localStorage.getItem(KL) || "{}");
+      if (s.sklad != null) $("lfSklad").value = s.sklad; if (s.otdel) $("lfOtdel").value = s.otdel; if (s.segodnya) $("lfSegodnya").checked = true;
+    } catch (e) { /* по умолчанию */ }
+
+    function list() {
+      const sklad = $("lfSklad").value;
+      const data = $("lfSegodnya").checked ? new Date().toLocaleDateString("ru-RU") : "";
+      return `<article class="lf">
+        <div class="lf__shapka"><span class="lf__marka"><img src="/assets/brand/vi-mark.svg" alt="">Фильтр брака</span>${sklad ? `<span class="lf__sklad">${esc(sklad)}</span>` : ""}</div>
+        <div class="lf__ramka">Готовый<br>паллет<br>для ФБ</div>
+        <p class="lf__pole"><span>Дата:</span><i>${esc(data)}</i></p>
+        <p class="lf__pole"><span>Отдел:</span><i>${esc($("lfOtdel").value.trim())}</i></p>
+        <div class="lf__kont"><span>Контейнер:</span><i>${esc($("lfKont").value.trim())}</i></div>
+        <div class="lf__niz"><span>лист — сверху на паллет, лицом наружу</span><span>ucenka-vi.ru</span></div>
+      </article>`;
+    }
+    function risovat() {
+      const n = Math.max(1, Math.min(50, Number($("lfSkolko").value) || 1));
+      $("lfStol").innerHTML = Array.from({ length: n }, list).join("");
+      try { localStorage.setItem(KL, JSON.stringify({ sklad: $("lfSklad").value, otdel: $("lfOtdel").value, segodnya: $("lfSegodnya").checked })); } catch (e) { /* не страшно */ }
+    }
+    document.addEventListener("input", (e) => { if (e.target.closest(".lfPanel")) risovat(); });
+    document.addEventListener("change", (e) => { if (e.target.closest(".lfPanel")) risovat(); });
+    $("lfPechat").addEventListener("click", () => { risovat(); window.print(); });
+    risovat();
+  })();
+  </script>
+</body>
+</html>
