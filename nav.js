@@ -400,9 +400,13 @@
     const options = (user["роли"] || [])
       .map((role) => `<a class="viewAs__role${role["ключ"] === user.role ? " is-on" : ""}"`
         + ` href="/__view?role=${role["ключ"]}&back=${back}">${role["название"]}</a>`).join("");
-    bar.innerHTML = `<span class="viewAs__label">Смотрите как <b>${user["роль"]}</b></span>`
-      + `<span class="viewAs__roles">${options}</span>`
-      + `<a class="viewAs__exit" href="/__view?role=&back=${back}">Вернуться к своей роли</a>`;
+    // 06.10: «глазами человека» — сайт целиком как у него (его разделы, кабинет, зарплата), только смотреть
+    bar.innerHTML = user["глазами"]
+      ? `<span class="viewAs__label">Смотрите глазами <b>${user["глазами"]}</b> · ${user["роль"]} · только просмотр</span>`
+        + `<a class="viewAs__exit" href="/__view?role=&back=%2F__admin%2Flyudi">Вернуться к себе</a>`
+      : `<span class="viewAs__label">Смотрите как <b>${user["роль"]}</b></span>`
+        + `<span class="viewAs__roles">${options}</span>`
+        + `<a class="viewAs__exit" href="/__view?role=&back=${back}">Вернуться к своей роли</a>`;
     document.body.prepend(bar);
   }
 })();
