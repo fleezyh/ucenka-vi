@@ -59,27 +59,27 @@
     const sek = document.createElement("section");
     sek.className = "kabProfil kabPanel";   // 06.10 «прозрачное и нецельное»: весь профиль — одна непрозрачная панель
     sek.innerHTML = `
-      <h2 class="kabZag">Профиль</h2>
-      <div class="kabKol">
-        <div class="kabKol__part">
-          <p class="zpCheck__cap">Кто вы в системе</p>
-          ${stroka("Логин", k["логин"], "выдаётся один раз и не меняется")}
-          ${stroka("Должность", k["должность"], "из 1С")}
-          ${stroka("Подразделение", k["подразделение"])}
-          ${stroka("Принят", k["принят"])}
-          ${stroka("Доступ на сайте", k["доступ"])}
-          ${stroka("Учётка WMS", k["вмс_логин"] || "не привязана", vms["подключено"] ? "сейчас вошли в WMS как " + (vms["имя"] || "") : "входите в WMS через пикалку")}
-          ${ots ? stroka("Отпуска и больничные", "", ots + " — за эти дни оклад не начисляется, они оплачиваются отдельно") : ""}
+      <!-- 06.10 «так и не сделала компактным и красивым»: визитка вместо строк «подпись — значение» на всю ширину -->
+      <div class="kabViz">
+        <div class="kabViz__ava">${esc(String(k["имя"] || k["логин"] || "?").split(" ").slice(0, 2).map((s) => s[0] || "").join(""))}</div>
+        <div class="kabViz__kto">
+          <p class="kabViz__imya">${esc(k["имя"])}</p>
+          <p class="kabViz__dol">${esc([k["должность"], k["подразделение"]].filter(Boolean).join(" · ") || "должность не найдена в 1С")}</p>
+          <div class="kabViz__chipy">
+            <span class="kabChip"><small>логин</small>${esc(k["логин"])}</span>
+            ${k["принят"] ? `<span class="kabChip"><small>принят</small>${esc(k["принят"])}</span>` : ""}
+            <span class="kabChip"><small>доступ</small>${esc(k["доступ"] || "—")}</span>
+            <span class="kabChip${vms["подключено"] ? " is-ok" : ""}"><small>WMS</small>${esc(k["вмс_логин"] || "не привязана")}${vms["подключено"] ? " · в сети" : ""}</span>
+          </div>
+          ${ots ? `<p class="kabViz__ots">Отпуска и больничные: ${esc(ots)} — эти дни оплачиваются отдельно</p>` : ""}
         </div>
-        <div class="kabKol__part">
-          <p class="zpCheck__cap">На сайте</p>
-          ${stroka("Последний вход", k["последний_вход"])}
-          ${stroka("Дней за месяц", chislo(a["дней_за_месяц"]), chislo(a["обращений"]) + " обращений")}
-          ${stroka("Сканов в пикалке", chislo(a["сканов"]))}
-          ${stroka("Отметок по КГТ", chislo(a["кгт"]))}
-          ${stroka("Вопросов помощнику", chislo(a["вопросов"]))}
-          ${stroka("Действий всего", chislo(a["действий"]), "с переезда сайта на свой сервер")}
-        </div>
+      </div>
+      <div class="kabCifry">
+        <div><b>${esc(String(k["последний_вход"] || "—").slice(0, 16))}</b><small>последний вход</small></div>
+        <div><b>${chislo(a["дней_за_месяц"])}</b><small>дней за месяц · ${chislo(a["обращений"])} обращений</small></div>
+        <div><b>${chislo(a["сканов"])}</b><small>сканов в пикалке</small></div>
+        <div><b>${chislo(a["вопросов"])}</b><small>вопросов помощнику</small></div>
+        <div><b>${chislo(a["действий"])}</b><small>действий всего</small></div>
       </div>
 
       <!-- 06.10 «нижний блок можно прикольнее»: три плитки — статус крупно, формы раскрываются по кнопке -->

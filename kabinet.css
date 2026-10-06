@@ -98,3 +98,23 @@
   .kabKol__part + .kabKol__part, .kabPanel .kabPl + .kabPl { padding-left: 0; border-left: 0; margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(255, 255, 255, .07); }
   .kabPanel { padding: 18px 16px 20px; }
 }
+
+/* 06.10 вечер: профиль-визитка — компактно */
+.kabViz { display: flex; align-items: flex-start; gap: 18px; }
+.kabViz__ava { flex: none; width: 64px; height: 64px; border-radius: 18px; display: grid; place-items: center; background: linear-gradient(145deg, #2a3b55, #1a2433); color: #dce6f3; font-size: 22px; font-weight: 600; letter-spacing: .02em; }
+.kabViz__kto { min-width: 0; flex: 1; }
+.kabViz__imya { margin: 2px 0 2px; font-size: 22px; font-weight: 600; color: var(--text, #f2f6fb); }
+.kabViz__dol { margin: 0 0 10px; color: var(--muted, #8f9cad); font-size: 14px; }
+.kabViz__chipy { display: flex; flex-wrap: wrap; gap: 6px; }
+.kabChip { display: inline-flex; align-items: baseline; gap: 6px; padding: 5px 10px; border: 1px solid #263345; border-radius: 999px; background: #0d141e; color: var(--text, #f2f6fb); font-size: 13px; font-weight: 600; }
+.kabChip small { color: var(--muted, #8f9cad); font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+.kabChip.is-ok { border-color: rgba(61, 220, 140, .4); }
+.kabViz__ots { margin: 10px 0 0; color: var(--amber, #f5ad32); font-size: 13px; }
+.kabCifry { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-top: 18px; }
+.kabCifry > div { padding: 10px 12px; border: 1px solid #1f2a39; border-radius: 12px; background: #0d141e; }
+.kabCifry b { display: block; font-size: 18px; font-weight: 600; color: var(--text, #f2f6fb); font-variant-numeric: tabular-nums; }
+.kabCifry small { display: block; margin-top: 2px; color: var(--muted, #8f9cad); font-size: 12px; }
+@media (max-width: 760px) {
+  .kabCifry { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .kabViz__ava { width: 48px; height: 48px; font-size: 17px; border-radius: 14px; }
+}
