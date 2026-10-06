@@ -16,6 +16,7 @@
 (function () {
   "use strict";
 
+  const DATA_V = "20261006-sht";   // версия данных: менять при каждой пересборке v_sayt.py, иначе браузер держит старые
   const DATA = "../../data/antigen/ekonomika/";   // под правом «antigen»: себес и маржа всей номенклатуры
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -67,10 +68,69 @@
     const hay = k.imya[i].toLocaleLowerCase("ru-RU");
     return g._slova.some((w) => hay.includes(w));
   }
-  function risovatGruppyAg() {
-    const box = $("ekGrAg");
+  // кнопки направлений теперь — карточки сравнения (ekNapr); строка кнопок не нужна
+  function risovatGruppyAg() { $("ekGrAg").hidden = true; }
+
+  // 06.10 Степан: «я всё равно тут ничего не понимаю — что самое многочисленное, что самое дорогое, суммы по
+  // группам в итоге». Четыре направления рядом: сколько теряем, сколько брака, что самое массовое по браку и
+  // что самое дорогое; клик — направление открывается ниже. Нужны все рубрики: грузим фоном после первого экрана.
+  function itogNapr(g) {
+    const s = { n: 0, minus: 0, akty: 0, sht: 0, vyr: 0, marzha: 0, brak: 0, hran: 0, rabota: 0, poteri: 0, itog: 0, topBrak: null, topPoteri: null };
+    for (const k of rubriki.values()) {
+      for (let i = 0; i < k.id.length; i++) {
+        if (!vGruppe(g, k, i)) continue;
+        const r = raschet(k, i);
+        s.n += 1; s.akty += r.ak; s.sht += r.sht; s.vyr += r.vyr; s.marzha += r.marzha;
+        s.brak += r.brak; s.hran += r.hran; s.rabota += r.rabota; s.itog += r.itog;
+        if (r.itog < 0) { s.minus += 1; s.poteri -= r.itog; }
+        if (!s.topBrak || r.ak > s.topBrak.r.ak) s.topBrak = { k, i, r };
+        if (!s.topPoteri || r.itog < s.topPoteri.r.itog) s.topPoteri = { k, i, r };
+      }
+    }
+    return s;
+  }
+  function risovatNapr() {
+    const box = $("ekNapr");
+    if (!vseZagruzheny()) {
+      box.innerHTML = `<h2>Четыре направления «Куда бить» <small>считаю по всем позициям…</small></h2>`;
+      return;
+    }
+    const it = gruppyAg.map((g) => ({ g, s: itogNapr(g) }));
+    const maks = Math.max(...it.map((x) => x.s.poteri), 1);
+    const sumPot = it.reduce((a, x) => a + x.s.poteri, 0), sumAkt = it.reduce((a, x) => a + x.s.akty, 0);
+    const tov = (x, chto) => (x ? `<span class="ekNk__tov" data-k="${x.k.r1[x.i]}" data-i="${x.i}"><b>${esc(x.k.imya[x.i])}</b><em>${chto(x.r)}</em></span>` : "—");
+    box.innerHTML = `<h2>Четыре направления «Куда бить» <small>за год по всем позициям ДМД · вместе теряем ${dengi(sumPot)} ₽ и ${chislo(sumAkt)} актов брака · щёлкните направление — разбор ниже</small>
+        ${sost.gr ? `<button type="button" class="ekGrAg__sbros" data-grag="">× все товары</button>` : ""}</h2>
+      <div class="ekNapr__setka">${it.map(({ g, s }) => `<div class="ekNk${g.имя === sost.gr ? " is-on" : ""}" data-grag="${esc(g.имя)}" role="button" tabindex="0">
+        <p class="ekNk__imya">${esc(g.имя)}<small>${esc(g.признак)}</small></p>
+        <p class="ekNk__glav"><b class="is-minus">−${dengi(s.poteri)} ₽</b><span>теряем за год</span></p>
+        <div class="ekNk__pol"><i style="width:${(s.poteri / maks * 100).toFixed(1)}%"></i></div>
+        <dl class="ekNk__dl">
+          <dt>позиций</dt><dd>${chislo(s.n)} <small>в минусе ${chislo(s.minus)}</small></dd>
+          <dt>актов брака за год</dt><dd>${chislo(s.akty)} <small>${s.sht ? chislo(s.akty / s.sht * 100, 1) + "% от проданного" : ""}</small></dd>
+          <dt>продали</dt><dd>${chislo(s.sht)} шт <small>на ${dengi(s.vyr)} ₽</small></dd>
+          <dt>маржа</dt><dd>${dengi(s.marzha)} ₽</dd>
+          <dt>брак съел</dt><dd>${dengi(s.brak)} ₽ <small>себес и обработка</small></dd>
+          <dt>склад съел</dt><dd>${dengi(s.rabota + s.hran)} ₽ <small>работа и хранение</small></dd>
+        </dl>
+        <p class="ekNk__pod">больше всего брака</p>${tov(s.topBrak, (r) => `${chislo(r.ak)} актов`)}
+        <p class="ekNk__pod">больше всего теряем</p>${tov(s.topPoteri, (r) => `${dengi(r.itog)} ₽ за год`)}
+      </div>`).join("")}</div>`;
+  }
+
+  // внутри направления: две короткие таблицы — самое массовое по браку и самое дорогое по потерям
+  function risovatTopy(sp, g) {
+    const box = $("ekTopy");
+    if (!g) { box.hidden = true; return; }
+    const poBraku = sp.filter((x) => x.r.ak > 0).sort((a, b) => b.r.ak - a.r.ak).slice(0, 10);
+    const poPoteryam = sp.filter((x) => x.r.itog < 0).sort((a, b) => a.r.itog - b.r.itog).slice(0, 10);
+    const tab = (zag, spisok, kol) => `<div class="ekTop"><h3>${zag}</h3><table><thead><tr><th>товар</th>${kol.map((c) => `<th>${c[0]}</th>`).join("")}</tr></thead>
+      <tbody>${spisok.map(({ k, i, r }) => `<tr class="ekTopRyad" data-k="${k.r1[i]}" data-i="${i}"><td><b>${esc(k.imya[i])}</b><small>${k.art[i] || ""}</small></td>${kol.map((c) => `<td>${c[1](r)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
     box.hidden = false;
-    box.innerHTML = `<span class="ekGrAg__zag">Направления «Куда бить»</span>${gruppyAg.map((g) => `<button type="button" class="ekGrAg__kn" data-grag="${esc(g.имя)}" aria-pressed="${g.имя === sost.gr}" title="${esc(g.признак)}">${esc(g.имя)}</button>`).join("")}${sost.gr ? `<button type="button" class="ekGrAg__sbros" data-grag="">× все товары</button>` : ""}`;
+    box.innerHTML = `<h2>«${esc(g.имя)}»: что самое массовое и что самое дорогое</h2><div class="ekTopy__setka">
+      ${tab("Больше всего брака", poBraku, [["актов", (r) => chislo(r.ak)], ["продано", (r) => chislo(r.sht)], ["брак, %", (r) => (r.brakDolya != null ? chislo(r.brakDolya, 1) : "—")], ["теряем за год", (r) => `<span class="${r.itog < 0 ? "is-minus" : "is-plus"}">${dengi(r.itog)}</span>`]])}
+      ${tab("Больше всего теряем", poPoteryam, [["теряем за год", (r) => `<span class="is-minus">${dengi(r.itog)}</span>`], ["со штуки", (r) => (r.sht ? rub(r.itog / r.sht) : "—")], ["актов", (r) => chislo(r.ak)], ["почему", (r) => esc(prichina(r))]])}
+    </div>`;
   }
 
   // 05.10 Степан: «куда бить, зачем, что самое невыгодное — ВООБЩЕ ничего непонятно». Страница отвечает
@@ -103,7 +163,7 @@
   // ------------------------------------------------------------ загрузка
 
   async function gz(put) {
-    const o = await fetch(DATA + put, { cache: "default" });
+    const o = await fetch(`${DATA}${put}?v=${DATA_V}`, { cache: "default" });
     if (!o.ok) throw new Error(o.status === 403 ? "нет доступа к разделу" : `сервер ответил ${o.status}`);
     const bufer = await o.arrayBuffer();
     const b = new Uint8Array(bufer);
@@ -142,7 +202,7 @@
       аренда: m.ставки.аренда, коммуналка: m.ставки.коммуналка, эксплуатация: m.ставки.эксплуатация,
       объём: m.средний_объём_остатка_ДМД_м3, дней: m.ставки.дней,
       обработка: m.ставки.обработка, обработка_с_арендой: m.ставки.обработка_с_арендой, с_арендой_фб: false,
-      тарифы: { ...m.тарифы }, место: {}, на_операцию: { ...(m.штук_на_операцию || {}) }, по_штукам: [...(m.по_штукам || [])],
+      тарифы: { ...m.тарифы }, место: {}, тарифы_шт: { ...(m.тарифы_шт || {}) }, по_штукам: [...(m.по_штукам || [])],
     };
   }
   function zagruzitStavki() {
@@ -150,7 +210,7 @@
     try {
       const s = JSON.parse(localStorage.getItem(KL) || "null");
       if (s) stavki = { ...stavki, ...s, тарифы: { ...stavki.тарифы, ...(s.тарифы || {}) }, место: { ...(s.место || {}) },
-        на_операцию: { ...stavki.на_операцию, ...(s.на_операцию || {}) }, по_штукам: s.по_штукам || stavki.по_штукам };
+        тарифы_шт: { ...stavki.тарифы_шт, ...(s.тарифы_шт || {}) }, по_штукам: s.по_штукам || stavki.по_штукам };
     } catch (e) { /* по умолчанию */ }
   }
   const sohranitStavki = () => { try { localStorage.setItem(KL, JSON.stringify(stavki)); } catch (e) { /* не страшно */ } };
@@ -162,7 +222,7 @@
     const d = stavkiPoUmolch();
     return Object.keys(stavki.тарифы).some((t) => stavki.тарифы[t] !== d.тарифы[t])
       || Object.values(stavki.место).some((v) => v !== 1)
-      || Object.keys(stavki.на_операцию).some((t) => stavki.на_операцию[t] !== d.на_операцию[t]);
+      || Object.keys(stavki.тарифы_шт).some((t) => stavki.тарифы_шт[t] !== d.тарифы_шт[t]);
   };
 
   // ------------------------------------------------------------ расчёт одной позиции
@@ -171,15 +231,17 @@
     const tip = idx.slov.tip[k.tip[i]];
     const sht = k.sht[i], vyr = k.vyr[i], seb = k.seb[i], ak = k.akty[i];
     const marzha = vyr - seb;
-    // операций: мелочь — строки заказов (берут пачками); крупное — не меньше штук ÷ штук на операцию
-    const ops = stavki.по_штукам.includes(tip) && stavki.на_операцию[tip] ? Math.max(k.str[i], sht / stavki.на_операцию[tip]) : k.str[i];
-    const rabota = (stavki.тарифы[tip] || 0) * ops;
+    // крупное (КГ, ДЛ, негабарит, тележки) — ₽ на штуку × штуки, как в книге 24.09 для Тани (ДЛ 12,9, КГ 29,7);
+    // мелочь — тариф на операцию × строки заказов: её берут пачками, на штуку вышло бы в разы дороже правды
+    const poSht = stavki.по_штукам.includes(tip) && stavki.тарифы_шт[tip];
+    const ops = k.str[i];
+    const rabota = poSht ? stavki.тарифы_шт[tip] * sht : (stavki.тарифы[tip] || 0) * ops;
     const mesto = stavki.место[tip] || 1;
     const hran = stavkaM3() * k.l[i] / 1000 * mesto * k.ost[i] * 365;       // ₽ за м³·сутки × объём × средний остаток × год
     const brakSeb = sht ? ak * seb / sht : 0;
     const obr = ak * obrabotka();
     const itog = marzha - rabota - hran - brakSeb - obr;
-    return { tip, sht, vyr, seb, ak, marzha, rabota, hran, brakSeb, obr, brak: brakSeb + obr, itog, ops,
+    return { tip, sht, vyr, seb, ak, marzha, rabota, hran, brakSeb, obr, brak: brakSeb + obr, itog, ops, poSht: !!poSht,
       na: (v) => (sht > 0 ? v / sht : null),
       dney: sht > 0 ? k.ost[i] / sht * 365 : null,
       brakDolya: sht > 0 ? ak / sht * 100 : null };
@@ -340,7 +402,9 @@
     const q = zapros();
     const imyaR1 = (n) => idx.slov.r1[n] || "без рубрики";
     risovatGruppyAg();
+    risovatNapr();
     const g = gruppaAg();
+    if (!g) risovatTopy(null, null);
     if (g && !vseZagruzheny() && sost.r1 === "") {
       zagruzitVse().then(risovat).catch(oshibka);
       return;
@@ -371,6 +435,7 @@
       : sost.r1 !== "" ? esc(imyaR1(Number(sost.r1))) + (sost.r2 !== "" ? " · " + esc(idx.slov.r2[Number(sost.r2)] || "без категории") : "")
         : g ? "" : "Все рубрики · Домодедово · " + esc(idx.meta.период);
     kudaBit(s.poteri, s.n, [grPref, mesto].filter(Boolean).join(" · "));
+    risovatTopy(sp, g);
     if (g && !q && sost.r1 === "") {
       // группа антигенерации по всем рубрикам: где она лежит — по рубрикам, клик сужает
       glavnaya(s, `Направление «${esc(g.имя)}» · ${esc(g.признак)}`);
@@ -427,7 +492,7 @@
         <dt>Средний остаток на ДМД</dt><dd>${chislo(k.ost[i], 0)} шт · ${r.dney != null ? chislo(r.dney) + " дней продаж" : "не продаётся"}</dd>
         <dt>Объём штуки</dt><dd>${chislo(k.l[i], 2)} л${k.dl[i] ? ` · длина ${chislo(k.dl[i])} мм` : ""}${k.oc[i] ? " · габаритов нет в ВМС — медиана модели" : ""}</dd>
         <dt>Хранение за год</dt><dd>${mln(-r.hran)} ₽ — ${chislo(stavkaM3(), 1)} ₽ за м³ в сутки${(stavki.место[r.tip] || 1) !== 1 ? ` × место ${stavki.место[r.tip]}` : ""}</dd>
-        <dt>Склад: работа</dt><dd>${chislo(stavki.тарифы[r.tip] || 0, 1)} ₽ на операцию × ${chislo(r.ops)} операций${r.ops > k.str[i] ? ` (${chislo(r.sht)} шт ÷ ${chislo(stavki.на_операцию[r.tip], 2)} шт на операцию)` : " (строки заказов)"} = ${mln(-r.rabota)} ₽</dd>
+        <dt>Склад: работа</dt><dd>${r.poSht ? `${chislo(stavki.тарифы_шт[r.tip], 1)} ₽ на штуку × ${chislo(r.sht)} шт` : `${chislo(stavki.тарифы[r.tip] || 0, 1)} ₽ на операцию × ${chislo(r.ops)} строк заказов`} = ${mln(-r.rabota)} ₽</dd>
         <dt>Брак за год</dt><dd>себес ${mln(-r.brakSeb)} ₽ + обработка ${chislo(r.ak)} × ${chislo(obrabotka())} ₽ = ${mln(-r.obr)} ₽</dd>
       </dl>`;
     $("ekOkno").hidden = false;
@@ -454,9 +519,9 @@
         <div class="ekSt__tarify">${tipy.map((tp) => `<label><b>${esc(tp)}</b>
           <span>₽ <input type="number" step="0.1" data-tarif="${esc(tp)}" value="${t[tp] ?? 0}"></span>
           <span>место × <input type="number" step="0.1" min="0.1" data-mesto="${esc(tp)}" value="${stavki.место[tp] || 1}"></span>
-          ${stavki.по_штукам.includes(tp) ? `<span>шт/опер <input type="number" step="0.1" min="0.1" data-naop="${esc(tp)}" value="${stavki.на_операцию[tp] || 1}"></span>` : ""}</label>`).join("")}</div>
+          ${stavki.по_штукам.includes(tp) ? `<span>₽/шт <input type="number" step="0.1" min="0" data-tsht="${esc(tp)}" value="${stavki.тарифы_шт[tp] ?? 0}"></span>` : ""}</label>`).join("")}</div>
         <p class="ekSt__itog">«место ×» — сколько объёма штука занимает сверх своего: длинномер лежит в длинной ячейке, рулон — с пустотами.
-          Операций: мелочь — строки заказов (её берут пачками); крупное (${esc(stavki.по_штукам.join(", "))}) — не меньше штук ÷ «шт/опер» (по сдельщине отбора).</p></div>
+          Крупное (${esc(stavki.по_штукам.join(", "))}) — «₽/шт» × проданные штуки, как в книге 24.09; мелочь — «₽» на операцию × строки заказов (её берут пачками).</p></div>
       <div class="ekSt__kn"><button type="button" class="ekBtn" data-sbros>Вернуть ставки по умолчанию</button></div>`;
   }
 
@@ -465,7 +530,7 @@
     $("ekKak").innerHTML = `<summary>Как считали · ${esc(m.период)} · ${chislo(m.строк)} позиций · хранение ${chislo(stavkaM3(), 1)} ₽ за м³ в сутки · обработка брака ${chislo(obrabotka())} ₽ за штуку</summary><ul>
       <li>Период ${esc(m.период)}. Позиции — всё, что лежало на Домодедово хоть на одном снимке за год, или было в актах брака; на странице — с продажами от ${m.порог_продаж} шт за год или с актами (${chislo(m.строк)} из ${chislo(m.позиций)}).</li>
       <li>Продажи — витрина продаж (проведённые продажи и возвраты-продажи), без канала уценки; цена и себестоимость без НДС. Сверено с книгой 24.09 до штуки (профиль 6 мм — 38 290 шт).</li>
-      <li>Склад, работа — сдельщина ДМД за март–август 2026 на одну операцию (приёмка, размещение, отбор, консолидация, комплектация) по типу модели учёта × операции. Операций: у мелочи — строки заказов (её берут пачками), у крупного — не меньше штук ÷ штук на операцию отбора по сдельщине (КГ 1,6). Тип по модели учёта ВМС: Ф(ДЛ…) → ДЛ, Ф(КГ…), сыпучка, тяжёлые → КГ, лоточное хранение и «Диски» → МОС, расходка → РМ, остальное → ОС.</li>
+      <li>Склад, работа — сдельщина ДМД за март–август 2026 на одну операцию (приёмка, размещение, отбор, консолидация, комплектация) по типу модели учёта. Крупное (КГ, ДЛ, негабарит, тележки) — на штуку × проданные штуки, как в книге 24.09 (ДЛ 12,9 ₽, КГ 29,7 ₽); мелочь — на операцию × строки заказов (её берут пачками). Тип по модели учёта ВМС: Ф(ДЛ…) → ДЛ, Ф(КГ…), сыпучка, тяжёлые → КГ, лоточное хранение и «Диски» → МОС, расходка → РМ, остальное → ОС.</li>
       <li>Хранение — расходы ДМД в месяц (аренда, коммуналка, эксплуатация) / средний объём товара на складе ${chislo(m.средний_объём_остатка_ДМД_м3)} м³ / дни. Объём штуки — габариты базовой единицы в ВМС; без габаритов (${chislo(m.без_габаритов)} позиций) — медиана модели. Средний остаток ДМД — по 1-м числам 12 месяцев.</li>
       <li>Брак — акты внутреннего брака (проведённые) за год: потерянный себес и наша обработка (ФОТ и аутсорс фильтра брака на штуку входа; с арендой площадей ФБ — дороже).</li>
       <li>Не вошло: вывоз и утилизация отходов подрядчиком, логистика до клиента, продажа уценённого (выручка уценки по этим позициям мала).</li></ul>`;
@@ -512,7 +577,7 @@
     }
     if (t.dataset.tarif) { stavki.тарифы[t.dataset.tarif] = Number(t.value) || 0; sohranitStavki(); risovat(); return; }
     if (t.dataset.mesto) { stavki.место[t.dataset.mesto] = Number(t.value) || 1; sohranitStavki(); risovat(); return; }
-    if (t.dataset.naop) { stavki.на_операцию[t.dataset.naop] = Number(t.value) || 1; sohranitStavki(); risovat(); }
+    if (t.dataset.tsht) { stavki.тарифы_шт[t.dataset.tsht] = Number(t.value) || 0; sohranitStavki(); risovat(); }
   });
   document.addEventListener("input", (e) => {
     if (e.target.id !== "ekPoisk") return;
@@ -531,6 +596,8 @@
     if (t.closest("[data-sbros]")) { stavki = stavkiPoUmolch(); sohranitStavki(); risovatStavki(); kakSchitali(); risovat(); return; }
     if (t.closest("[data-eshche]")) { sost.pokazano += 50; risovat(); return; }
     if (t.closest("[data-vsegrupp]")) { sost.vseGrupp = true; risovat(); return; }
+    const nt = t.closest(".ekNk__tov[data-i]");
+    if (nt) { const k = rubriki.get(Number(nt.dataset.k)); if (k) karta(k, Number(nt.dataset.i)); return; }
     const ga = t.closest("[data-grag]");
     if (ga) {
       sost.gr = ga.dataset.grag === sost.gr ? "" : ga.dataset.grag;
@@ -540,6 +607,7 @@
       if (sost.gr) u.searchParams.set("gruppa", sost.gr); else u.searchParams.delete("gruppa");
       history.replaceState(null, "", u);
       risovat();
+      if (sost.gr && !$("ekTopy").hidden) $("ekTopy").scrollIntoView({ behavior: "smooth", block: "start" });
       return;
     }
     const vd = t.closest("[data-vid]");
@@ -552,7 +620,7 @@
     if (g1) { vybratRubriku(g1.dataset.r1).then(() => $("ekGlav").scrollIntoView({ behavior: "smooth", block: "start" })).catch(oshibka); return; }
     const g2 = t.closest(".ekGr[data-r2]");
     if (g2) { vybratKategoriyu(g2.dataset.r2); return; }
-    const p = t.closest(".ekPoz[data-i]");
+    const p = t.closest(".ekPoz[data-i], .ekTopRyad[data-i]");
     if (p) {
       const k = p.dataset.k === "top" ? idx.топKol : rubriki.get(Number(p.dataset.k));
       if (k) karta(k, Number(p.dataset.i));
@@ -582,6 +650,8 @@
       risovatStavki();
       kakSchitali();
       risovat();
+      // направления считаются по всем позициям — догружаем рубрики фоном и перерисовываем
+      if (!vseZagruzheny()) zagruzitVse().then(risovat).catch(oshibka);
     } catch (e) { oshibka(e); }
   })();
 })();

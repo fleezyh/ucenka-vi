@@ -225,3 +225,46 @@ body.ekZamok { overflow: hidden; }
 .ekGrAg__kn[aria-pressed="true"] small { color: rgba(255,255,255,.85); }
 .ekGrAg__sbros { height: 34px; padding: 0 10px; border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 13px; cursor: pointer; }
 .ekGrAg__sbros:hover { color: var(--text); }
+
+/* 06.10: четыре направления рядом — «что самое многочисленное, что самое дорогое, суммы по группам» */
+.ekNapr { margin: 0 0 22px; }
+.ekNapr h2, .ekTopy h2 { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; margin: 0 0 12px; font-size: 20px; font-weight: 600; }
+.ekNapr h2 small { font-size: 13px; font-weight: 500; color: var(--muted); }
+.ekNapr__setka { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.ekNk { padding: 16px 16px 14px; border-radius: 18px; border: 1px solid var(--line); background: linear-gradient(160deg, rgba(255,255,255,.05), rgba(255,255,255,.015));
+  cursor: pointer; transition: border-color .15s, background .15s; }
+.ekNk:hover { border-color: rgba(185,162,255,.55); }
+.ekNk.is-on { border-color: #7b5cf0; background: linear-gradient(160deg, rgba(123,92,240,.22), rgba(123,92,240,.06)); }
+.ekNk__imya { margin: 0 0 10px; font-size: 17px; font-weight: 600; line-height: 1.25; }
+.ekNk__imya small { display: block; margin-top: 3px; font-size: 12px; font-weight: 500; color: var(--muted); }
+.ekNk__glav { margin: 0; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.ekNk__glav b { font-size: 30px; font-weight: 600; line-height: 1.1; color: #f2a0aa; }
+.ekNk__glav span { font-size: 13px; color: var(--muted); }
+.ekNk__pol { height: 6px; margin: 8px 0 12px; border-radius: 3px; background: rgba(255,255,255,.07); }
+.ekNk__pol i { display: block; height: 100%; border-radius: 3px; background: var(--ek-brak); }
+.ekNk__dl { display: grid; grid-template-columns: max-content 1fr; gap: 5px 10px; margin: 0 0 10px; font-size: 13.5px; }
+.ekNk__dl dt { color: var(--muted); }
+.ekNk__dl dd { margin: 0; text-align: right; font-weight: 600; }
+.ekNk__dl dd small { display: block; font-size: 11.5px; font-weight: 500; color: var(--muted); }
+.ekNk__pod { margin: 10px 0 3px; font-size: 11.5px; letter-spacing: .03em; text-transform: lowercase; color: var(--muted); }
+.ekNk__tov { display: block; padding: 7px 9px; border-radius: 10px; background: rgba(255,255,255,.04); font-size: 13px; line-height: 1.3; }
+.ekNk__tov:hover { background: rgba(123,92,240,.16); }
+.ekNk__tov b { display: block; font-weight: 600; }
+.ekNk__tov em { display: block; margin-top: 2px; font-style: normal; color: #f2a0aa; font-weight: 600; }
+
+.ekTopy { margin: 0 0 22px; }
+.ekTopy[hidden] { display: none; }
+.ekTopy__setka { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.ekTop { padding: 14px 16px; border-radius: 16px; border: 1px solid var(--line); background: rgba(255,255,255,.025); overflow-x: auto; }
+.ekTop h3 { margin: 0 0 8px; font-size: 16px; font-weight: 600; }
+.ekTop table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.ekTop th { padding: 4px 8px; font-size: 12px; font-weight: 500; color: var(--muted); text-align: right; white-space: nowrap; }
+.ekTop td { padding: 7px 8px; border-top: 1px solid rgba(255,255,255,.06); text-align: right; white-space: nowrap; font-weight: 600; }
+.ekTop th:first-child, .ekTop td:first-child { text-align: left; white-space: normal; }
+.ekTop td:first-child b { display: block; font-weight: 600; line-height: 1.3; }
+.ekTop td:first-child small { font-size: 11.5px; font-weight: 500; color: var(--muted); }
+.ekTop tr.ekTopRyad { cursor: pointer; }
+.ekTop tr.ekTopRyad:hover td { background: rgba(123,92,240,.1); }
+@media (max-width: 1200px) { .ekNapr__setka { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 900px) { .ekTopy__setka { grid-template-columns: 1fr; } }
+@media (max-width: 620px) { .ekNapr__setka { grid-template-columns: 1fr; } }
