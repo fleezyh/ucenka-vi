@@ -184,6 +184,23 @@
       if (r.ok) Object.assign(svyaz, await r.json());
     } catch (e) { /* без сети — оставляем как было */ }
     obnovitRezhim();
+    risovatZastryali();
+  }
+  // 06.10 Степан: «должен увидеть и я и он» — свои штуки, не доехавшие из транзита СЦ→ДМД (пикалка сказала
+  // «доедет сама», а круг упал позже, в фоне). Плашка внизу, пока список не пуст; «скрыть» — до нового случая.
+  function risovatZastryali() {
+    const sp = (svyaz && svyaz.мои_застряли) || [];
+    let el = document.getElementById("cZastryali");
+    const klyuch = sp.map((x) => x.id).join(",");
+    if (!sp.length || localStorage.getItem("pikalka-zastryali-skryto") === klyuch) { if (el) el.remove(); return; }
+    if (!el) { el = document.createElement("div"); el.id = "cZastryali"; el.className = "cZastryali"; document.body.appendChild(el); }
+    const e = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+    el.innerHTML = `<b>${sp.length} шт не доехали из транзита СЦ→ДМД</b>
+      <span>Физически они на паллетах, куда вы их пикнули, по WMS — в «СЦ-ДМД Перемещение ФБ на РЦ». Не перекладывайте — Рысакову сообщено.</span>
+      <ul>${sp.slice(0, 6).map((x) => `<li>${e(x.товар)} · акт ${e(x.акт)} → ${e(x.паллета)} <small>${e(x.когда)} · ${e(x.причина)}</small></li>`).join("")}</ul>
+      ${sp.length > 6 ? `<small>…и ещё ${sp.length - 6}</small>` : ""}
+      <button type="button" data-zastryali-skryt>скрыть</button>`;
+    el.querySelector("[data-zastryali-skryt]").onclick = () => { localStorage.setItem("pikalka-zastryali-skryto", klyuch); el.remove(); };
   }
   // Каждый запрос пикалки в ВМС/ВТИС — вспышка нужного слова (ответ с ошибкой — красная)
   const fetchBez = window.fetch.bind(window);

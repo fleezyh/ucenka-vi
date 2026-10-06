@@ -574,3 +574,10 @@ body.cSkin.is-svetlo .cKuda__forma input { background: #fff; }
 /* 06.10 кнопка «Звук» в шапке пикалки */
 .cZvuk { flex: none; height: 40px; padding: 0 14px; border: 1px solid var(--cLine2, #2c3a4e); border-radius: 12px; background: transparent; color: var(--text, #f2f6fb); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
 .cZvuk.is-off { color: var(--muted, #8f9cad); }
+/* 06.10: штуки, не доехавшие из транзита СЦ→ДМД — плашка внизу пикалки */
+.cZastryali { position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 70; max-width: 760px; margin: 0 auto; padding: 14px 16px; border-radius: 16px; border: 1px solid rgba(240,93,114,.7); background: #2a0f16; color: #fbe7ea; box-shadow: 0 14px 40px rgba(0,0,0,.5); font-size: 14px; line-height: 1.4; }
+.cZastryali b { display: block; margin-bottom: 4px; font-size: 16px; font-weight: 600; color: #ff9aa8; }
+.cZastryali ul { margin: 8px 0 0; padding-left: 18px; }
+.cZastryali li { margin: 0 0 5px; }
+.cZastryali small { display: block; color: #f3b9c2; font-size: 12px; }
+.cZastryali button { position: absolute; top: 10px; right: 12px; border: 0; border-radius: 8px; padding: 4px 10px; background: rgba(255,255,255,.1); color: #fbe7ea; font: inherit; font-size: 12px; cursor: pointer; }
