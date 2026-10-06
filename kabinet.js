@@ -26,7 +26,7 @@
   function narisovat(k) {
     document.body.classList.add("kabinet");
     const eyebrow = hero.querySelector(".eyebrow");
-    if (eyebrow) eyebrow.textContent = "Личный кабинет · " + k["имя"];
+    if (eyebrow) eyebrow.textContent = k["имя"];   // 06.10: «Личный кабинет · …» над «Личный кабинет» — повтор
 
     if (k["админ"] && !document.querySelector(".kabDva")) {
       hero.insertAdjacentHTML("afterend", '<nav class="kabDva" aria-label="Кабинет и админка">'
@@ -57,11 +57,11 @@
       <td class="n">${p["цена"] ? chislo(Math.round(p["цена"])) + " ₽" : ""}</td></tr>`).join("");
 
     const sek = document.createElement("section");
-    sek.className = "kabProfil";
+    sek.className = "kabProfil kabPanel";   // 06.10 «прозрачное и нецельное»: весь профиль — одна непрозрачная панель
     sek.innerHTML = `
       <h2 class="kabZag">Профиль</h2>
-      <div class="zpCheck">
-        <div class="zpCheck__part">
+      <div class="kabKol">
+        <div class="kabKol__part">
           <p class="zpCheck__cap">Кто вы в системе</p>
           ${stroka("Логин", k["логин"], "выдаётся один раз и не меняется")}
           ${stroka("Должность", k["должность"], "из 1С")}
@@ -71,7 +71,7 @@
           ${stroka("Учётка WMS", k["вмс_логин"] || "не привязана", vms["подключено"] ? "сейчас вошли в WMS как " + (vms["имя"] || "") : "входите в WMS через пикалку")}
           ${ots ? stroka("Отпуска и больничные", "", ots + " — за эти дни оклад не начисляется, они оплачиваются отдельно") : ""}
         </div>
-        <div class="zpCheck__part">
+        <div class="kabKol__part">
           <p class="zpCheck__cap">На сайте</p>
           ${stroka("Последний вход", k["последний_вход"])}
           ${stroka("Дней за месяц", chislo(a["дней_за_месяц"]), chislo(a["обращений"]) + " обращений")}
@@ -81,9 +81,7 @@
           ${stroka("Действий всего", chislo(a["действий"]), "с переезда сайта на свой сервер")}
         </div>
       </div>
-      ${skany ? `<details class="zpCheck__part kabSkany"><summary>Ваши сканы в пикалке · последние ${k["сканы"].length}</summary>
-        <div class="kabScroll"><table><thead><tr><th>Когда</th><th>Штрихкод</th><th>Товар</th><th class="n">Цена</th></tr></thead>
-        <tbody>${skany}</tbody></table></div></details>` : ""}
+
       <!-- 06.10 «нижний блок можно прикольнее»: три плитки — статус крупно, формы раскрываются по кнопке -->
       <div class="kabTri">
         <div class="kabPl${k["пароль_из_вмс"] ? " is-ok" : ""}" id="kabParol">
@@ -127,7 +125,10 @@
           <p class="kabPl__pod">продлевается сама, пока вы работаете</p>
           <div class="kabPl__kn"><a class="kabKn kabKn--vyhod" href="/__logout">Выйти из аккаунта</a></div>
         </div>
-      </div>`;
+      </div>
+      ${skany ? `<details class="kabSkany"><summary>Ваши сканы в пикалке · последние ${k["сканы"].length}</summary>
+        <div class="kabScroll"><table><thead><tr><th>Когда</th><th>Штрихкод</th><th>Товар</th><th class="n">Цена</th></tr></thead>
+        <tbody>${skany}</tbody></table></div></details>` : ""}`;
     (document.getElementById("note") || document.querySelector(".shell").lastElementChild).insertAdjacentElement("afterend", sek);
   }
 
