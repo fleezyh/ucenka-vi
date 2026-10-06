@@ -1311,7 +1311,15 @@ async function start() {
     message.className = "message";
   } else if (!moya["я"]) {
     message.textContent = moya["почему_пусто"] || "По вам расчёта пока нет.";
-    message.className = "message warn";
+    message.className = moya["скрыто"] ? "message" : "message warn";
+    // 06.10: показ зарплаты выключен — страница остаётся кабинетом: выработка, профиль, пароль
+    if (moya["скрыто"]) {
+      const h1 = document.querySelector(".hero h1");
+      const lead = document.querySelector(".hero .lead");
+      if (h1) h1.textContent = "Личный кабинет";
+      if (lead) lead.hidden = true;
+      document.title = "Уценка · Личный кабинет";
+    }
     // 06.10: денег нет, а выработка есть — кабинет всё равно показывает личную производительность
     const rab = moya["выработка"];
     if (rab && (rab["по_неделям"] || []).length) {
