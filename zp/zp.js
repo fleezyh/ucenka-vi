@@ -160,22 +160,32 @@ function vyrChM(m) {
 }
 const vyrMin = (hm) => { const [h, m] = String(hm || "0:0").split(":").map(Number); return h * 60 + m; };
 
-/* Все календарные дни периода, по последний день, который уже есть в данных (обычно вчера). */
+/* Все календарные дни периода, по последний день, который уже есть в данных (обычно вчера).
+   moy — штуки со столов контура, ops — все операции в WMS (06.10: «надо чтоб все»). */
 function vyrDni(rab, dney) {
   const kont = rab["контур_по_дням"] || [];
   const moi = rab["по_дням"] || [];
-  const posl = [kont.length ? kont[kont.length - 1][0] : "", moi.length ? moi[moi.length - 1]["день"] : ""].sort().pop();
+  const ops = rab["операции_по_дням"] || [];
+  const posl = [kont.length ? kont[kont.length - 1][0] : "", moi.length ? moi[moi.length - 1]["день"] : "",
+    ops.length ? ops[ops.length - 1]["день"] : ""].sort().pop();
   if (!posl) return [];
   const poDnyu = Object.fromEntries(moi.map((z) => [z["день"], z]));
+  const opsPoDnyu = Object.fromEntries(ops.map((z) => [z["день"], z]));
   const kontPoDnyu = Object.fromEntries(kont);
+  const kontOps = Object.fromEntries(rab["операции_контура"] || []);
   const konec = new Date(`${posl}T12:00:00Z`).getTime();
   const out = [];
   for (let i = dney - 1; i >= 0; i -= 1) {
     const den = new Date(konec - i * 864e5).toISOString().slice(0, 10);
-    out.push({ den, moy: poDnyu[den] || null, kontur: kontPoDnyu[den] ?? null });
+    out.push({ den, moy: poDnyu[den] || null, ops: opsPoDnyu[den] || null,
+      kontur: kontPoDnyu[den] ?? null, kontOps: kontOps[den] ?? null });
   }
   return out;
 }
+
+// Что считаем: все операции в WMS или штуки со столов контура.
+const vyrZnach = (z, chto) => (chto === "vse" ? (z.ops ? z.ops["операций"] : null) : (z.moy ? z.moy["штук"] : null));
+const vyrKont = (z, chto) => (chto === "vse" ? z.kontOps : z.kontur);
 
 function vyrKogda(den) {
   const segodnya = new Date(Date.now() + 3 * 3600e3).toISOString().slice(0, 10);
@@ -183,38 +193,44 @@ function vyrKogda(den) {
   return n === 0 ? "сегодня" : n === 1 ? "вчера" : n === 2 ? "позавчера" : `${vyrNed(den)} ${vyrDm(den)}`;
 }
 
-function vyrPlitki(rab, dni, dney) {
-  const rab_ = dni.filter((z) => z.moy);
+function vyrPlitki(rab, dni, dney, chto) {
+  const vse = chto === "vse";
+  const rab_ = dni.filter((z) => vyrZnach(z, chto) != null);
   const posl = rab_[rab_.length - 1];
-  const vsego = rab_.reduce((s, z) => s + z.moy["штук"], 0);
-  const naSmenu = rab_.length ? vsego / rab_.length : 0;
-  const kontDni = rab_.map((z) => z.kontur).filter((v) => v);
+  const vsego = rab_.reduce((s, z) => s + vyrZnach(z, chto), 0);
+  const naDen = rab_.length ? vsego / rab_.length : 0;
+  const kontDni = rab_.map((z) => vyrKont(z, chto)).filter((v) => v);
   const kontSr = kontDni.length ? kontDni.reduce((s, v) => s + v, 0) / kontDni.length : 0;
-  const k = kontSr ? Math.round(100 * naSmenu / kontSr - 100) : null;
-  const sVremenem = rab_.filter((z) => z.moy["начало"]);
+  const k = kontSr ? Math.round(100 * naDen / kontSr - 100) : null;
+  const sVremenem = dni.filter((z) => z.moy && z.moy["начало"]);
   const prostoy = sVremenem.reduce((s, z) => s + (z.moy["простой"] || 0), 0);
   const pauz = sVremenem.reduce((s, z) => s + (z.moy["паузы"] || []).length, 0);
   const plitka = (b, small) => `<div><b>${b}</b><small>${small}</small></div>`;
+  const vremya = posl && posl.moy && posl.moy["начало"] ? ` · ${posl.moy["начало"]}–${posl.moy["конец"]}` : "";
   return `<div class="kabCifry zpWork__cifry">
-    ${plitka(posl ? vyrSht(posl.moy["штук"]) : "—",
-      posl ? `${vyrKogda(posl.den)}${posl.moy["начало"] ? ` · ${posl.moy["начало"]}–${posl.moy["конец"]}` : ""}` : `не было смен за ${dney} дней`)}
-    ${plitka(vyrSht(vsego), `штук за ${dney} дней · смен ${rab_.length}`)}
-    ${plitka(rab_.length ? vyrSht(naSmenu) : "—", k === null ? "штук за смену" : `за смену · ${k >= 0 ? "+" : ""}${k}% к контуру`)}
+    ${plitka(posl ? vyrSht(vyrZnach(posl, chto)) : "—",
+      posl ? `${vse ? "операций " : "шт "}${vyrKogda(posl.den)}${vremya}` : `не было работы за ${dney} дней`)}
+    ${plitka(vyrSht(vsego), `${vse ? "операций" : "штук"} за ${dney} дней · дней ${rab_.length}`)}
+    ${plitka(rab_.length ? vyrSht(naDen) : "—", `${vse ? "в день" : "за смену"}${k === null ? "" : ` · ${k >= 0 ? "+" : ""}${k}% к контуру`}`)}
     ${plitka(sVremenem.length ? vyrChM(prostoy) : "—",
       sVremenem.length ? `простои · пауз дольше ${rab["простой_порог"] || 30} мин: ${pauz}` : "простои — только за 45 дней")}
-    ${plitka(rab["место"] ? `${rab["место"]} из ${rab["из"]}` : "—", "место в контуре")}
+    ${plitka(rab["место"] ? `${rab["место"]} из ${rab["из"]}` : "—", "место по штукам со столов")}
   </div>`;
 }
 
-/* День целиком: лента с 8 утра (или раньше, если начал(а) раньше) до вечера, работа — синим,
-   паузы дольше порога — красным, с подписью времени. */
+/* День целиком: что сделано в WMS и откуда, сколько со столов, лента рабочего времени
+   (работа — синим, паузы дольше порога — красным). */
 function vyrDen(z, rab, blokShirina) {
-  if (!z || !z.moy) return "";
-  const m = z.moy;
-  const zag = `<p class="zpDen__zag"><b>${vyrNed(z.den)} ${vyrDm(z.den)}</b> · ${vyrSht(m["штук"])} шт`
-    + `${z.kontur ? ` · контур ${vyrSht(z.kontur)} за смену` : ""}${(m["столы"] || []).length ? ` · ${vyrEsc(m["столы"].join(", "))}` : ""}</p>`;
+  if (!z || (!z.moy && !z.ops)) return "";
+  const m = z.moy || {};
+  const o = z.ops;
+  const zag = `<p class="zpDen__zag"><b>${vyrNed(z.den)} ${vyrDm(z.den)}</b>`
+    + (o ? ` · ${vyrSht(o["операций"])} операций в WMS (${vyrSht(o["штук"])} шт)${z.kontOps ? ` · контур ${vyrSht(z.kontOps)} на человека` : ""}` : "")
+    + (z.moy ? ` · со столов ${vyrSht(m["штук"])} шт${(m["столы"] || []).length ? ` (${vyrEsc(m["столы"].join(", "))})` : ""}` : "") + "</p>";
+  const otkuda = o ? `<p class="zpDen__txt zpDen__ops">откуда: ${(o["зоны"] || []).map(([zona, n]) => `${vyrEsc(zona)} — ${vyrSht(n)}`).join(" · ")}`
+    + `${Object.keys(o["типы"] || {}).length > 1 ? `<br>что: ${Object.entries(o["типы"]).sort((a, b) => b[1] - a[1]).map(([t, n]) => `${t} ${vyrSht(n)}`).join(" · ")}` : ""}</p>` : "";
   if (!m["начало"]) {
-    return `<div class="zpDen">${zag}<p class="zpDen__txt">время работы по часам есть только с ${rab["простои_с"] ? vyrDm(rab["простои_с"]) : "последних 45 дней"}</p></div>`;
+    return `<div class="zpDen">${zag}${otkuda}${z.moy ? `<p class="zpDen__txt">время работы по часам есть только с ${rab["простои_с"] ? vyrDm(rab["простои_с"]) : "последних 45 дней"}</p>` : ""}</div>`;
   }
   const a = vyrMin(m["начало"]);
   const b = vyrMin(m["конец"]);
@@ -225,7 +241,7 @@ function vyrDen(z, rab, blokShirina) {
   const chasy = [];
   const shagCh = (blokShirina || 900) < 560 ? 4 : 2;
   for (let h = ot / 60; h <= doo / 60; h += shagCh) chasy.push(`<span style="left:${pr(h * 60)}%">${String(h).padStart(2, "0")}:00</span>`);
-  return `<div class="zpDen">${zag}
+  return `<div class="zpDen">${zag}${otkuda}
     <div class="zpDen__lenta">
       <i class="zpDen__rab" style="left:${pr(a)}%;width:${(pr(b) - pr(a)).toFixed(2)}%"></i>
       ${pauzy.map(([s, e, min]) => `<i class="zpDen__pauza" style="left:${pr(vyrMin(s))}%;width:${(pr(vyrMin(e)) - pr(vyrMin(s))).toFixed(2)}%" title="${s}–${e} · ${vyrChM(min)}"></i>`).join("")}
@@ -240,14 +256,17 @@ function vyrDen(z, rab, blokShirina) {
 function grafikVyrabotki(rab) {
   if (!rab || !rab["на_смену"]) return "";
   const id = "w" + Math.random().toString(36).slice(2, 8);
-  const moi = rab["по_дням"] || [];
-  VYR.set(id, { rab, dney: 30, den: moi.length ? moi[moi.length - 1]["день"] : "" });
+  const estOps = (rab["операции_по_дням"] || []).length > 0;
+  const posl = [...(rab["по_дням"] || []), ...(rab["операции_по_дням"] || [])].map((z) => z["день"]).sort().pop() || "";
+  VYR.set(id, { rab, dney: 30, den: posl, chto: estOps ? "vse" : "stoly" });
   return `
     <div class="zpWork" data-work="${id}">
       <div class="zpWork__head">
         <div><p class="zpWork__cap">Выработка · ${vyrEsc(rab["контур"])}</p>
-        <p class="zpWork__note">Штук за день. Разрыв — дни без выхода, пунктир — средняя смена контура. Клик по дню — как он прошёл.</p></div>
+        <p class="zpWork__note" data-vyr-note></p></div>
         <div class="zpWork__tools">
+          ${estOps ? `<button class="zpView is-on" type="button" data-chto="vse">Все операции</button>
+          <button class="zpView" type="button" data-chto="stoly">Штуки со столов</button>` : ""}
           <button class="zpView is-on" type="button" data-dney="30">30 дней</button>
           <button class="zpView" type="button" data-dney="92">3 месяца</button>
           <a class="zpWork__link" href="/perf/">Весь контур →</a>
@@ -260,49 +279,56 @@ function grafikVyrabotki(rab) {
 function vyrNarisovat(blok) {
   const st = VYR.get(blok.dataset.work);
   if (!st) return;
-  const { rab, dney } = st;
+  const { rab, dney, chto } = st;
+  const vse = chto === "vse";
   const dni = vyrDni(rab, dney);
+  blok.querySelector("[data-vyr-note]").textContent = vse
+    ? "Все проведённые операции в WMS за день. Разрыв — дни без работы, пунктир — обычный день человека в контуре (медиана). Клик по дню — откуда и как он прошёл."
+    : "Штуки со столов контура за день. Разрыв — дни без выхода, пунктир — средняя смена контура. Клик по дню — как он прошёл.";
   const telo = blok.querySelector("[data-vyr-telo]");
-  telo.innerHTML = vyrPlitki(rab, dni, dney) + '<div class="zpWork__plot"></div>'
-    + vyrDen(dni.find((z) => z.den === st.den && z.moy) || [...dni].reverse().find((z) => z.moy), rab, blok.clientWidth);
+  const est = (z) => z.moy || z.ops;
+  telo.innerHTML = vyrPlitki(rab, dni, dney, chto) + '<div class="zpWork__plot"></div>'
+    + vyrDen(dni.find((z) => z.den === st.den && est(z)) || [...dni].reverse().find(est), rab, blok.clientWidth);
   const plot = telo.querySelector(".zpWork__plot");
   if (!window.ViGrafik || !dni.length) {
-    plot.innerHTML = '<p class="zpWork__note">за последние три месяца смен нет</p>';
+    plot.innerHTML = '<p class="zpWork__note">за последние три месяца работы нет</p>';
     return;
   }
   // даты под осью — сколько влезает по ширине (на телефоне 30 дат сливались в кашу)
   const shag = Math.max(1, Math.ceil(dni.length * 46 / Math.max(260, plot.clientWidth || 900)));
   plot.append(window.ViGrafik.sozdat({
     tochki: dni.map((z, i) => ({
-      znach: z.moy ? z.moy["штук"] : null,
+      znach: vyrZnach(z, chto),
       os: (dni.length - 1 - i) % shag ? "" : vyrDm(z.den),
       zag: `${vyrNed(z.den)} ${vyrDm(z.den)}`,
       vybrano: z.den === st.den,
-      dop: z.moy ? [
-        (z.moy["столы"] || []).join(", "),
-        z.moy["начало"] ? `с ${z.moy["начало"]} до ${z.moy["конец"]}` : "",
-        z.moy["паузы"] && z.moy["паузы"].length ? `простои ${vyrChM(z.moy["простой"])}` : "",
-      ].filter(Boolean) : ["выхода не было"],
+      dop: vyrZnach(z, chto) == null ? ["работы не было"] : [
+        vse ? (z.ops["зоны"] || []).slice(0, 3).map(([zona, n]) => `${zona} — ${vyrSht(n)}`).join("; ") : (z.moy["столы"] || []).join(", "),
+        z.moy && z.moy["начало"] ? `с ${z.moy["начало"]} до ${z.moy["конец"]}` : "",
+        z.moy && z.moy["паузы"] && z.moy["паузы"].length ? `простои ${vyrChM(z.moy["простой"])}` : "",
+      ].filter(Boolean),
     })),
     format: (v) => vyrSht(v),
-    formatTochno: (v) => `${vyrSht(v)} шт`,
+    formatTochno: (v) => `${vyrSht(v)} ${vse ? "операций" : "шт"}`,
     otNulya: true,
     trend: 0,
-    prizrak: dni.map((z) => z.kontur),
-    prizrakPodpis: "средняя смена контура",
+    prizrak: dni.map((z) => vyrKont(z, chto)),
+    prizrakPodpis: vse ? "обычный день в контуре" : "средняя смена контура",
     vysota: 240,
-    klik: (i) => { if (dni[i] && dni[i].moy) { st.den = dni[i].den; vyrNarisovat(blok); } },
+    klik: (i) => { if (dni[i] && est(dni[i])) { st.den = dni[i].den; vyrNarisovat(blok); } },
   }));
 }
 
 document.addEventListener("click", (event) => {
-  const button = event.target.closest(".zpWork__tools .zpView[data-dney]");
+  const button = event.target.closest(".zpWork__tools .zpView[data-dney], .zpWork__tools .zpView[data-chto]");
   if (!button) return;
   const blok = button.closest(".zpWork");
   const st = VYR.get(blok.dataset.work);
   if (!st) return;
-  st.dney = Number(button.dataset.dney) || 30;
-  blok.querySelectorAll(".zpWork__tools .zpView").forEach((b) => b.classList.toggle("is-on", b === button));
+  const klyuch = button.dataset.dney ? "dney" : "chto";
+  if (klyuch === "dney") st.dney = Number(button.dataset.dney) || 30;
+  else st.chto = button.dataset.chto;
+  blok.querySelectorAll(`.zpWork__tools .zpView[data-${klyuch}]`).forEach((b) => b.classList.toggle("is-on", b === button));
   vyrNarisovat(blok);
 });
 
