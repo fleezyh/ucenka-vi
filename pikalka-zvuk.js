@@ -33,9 +33,11 @@
   }
 
   let poslednee = 0;
+  // 06.10 «очень страшный звук, нестандартный»: квадратная волна звучала сиреной. Теперь как у кассы/сканера —
+  // чистый синус с мягким затуханием: удачно — две ноты вверх (ми–ля), ошибка — две ноты вниз (ми–до).
   function sygrat(vid) {
-    if (vid === "ok") { ton(1400, 0, 0.12, "triangle", 0.5); }
-    else { ton(200, 0, 0.18, "square", 0.22); ton(200, 0.24, 0.18, "square", 0.22); }
+    if (vid === "ok") { ton(1318.5, 0, 0.09, "sine", 0.28); ton(1760, 0.08, 0.16, "sine", 0.24); }
+    else { ton(659.3, 0, 0.16, "sine", 0.3); ton(523.3, 0.17, 0.24, "sine", 0.3); }
   }
   function zvuk(vid) {
     if (!vklyuchen()) return;
@@ -77,12 +79,42 @@
 
   // Ошибки WMS-панели (акт, паллета, перемещение) — красные строки .aktPs__oshibka. Панель перерисовывается
   // целиком, поэтому звучим только на новый текст ошибки, а не на каждую перерисовку.
+  // 06.10 «звук есть только при нажатии на кнопку»: в режиме WMS пикают наклейки акта, паллеты и стола, а не
+  // штрихкод товара — на них «пик» не звучал совсем. Теперь: после такого скана ждём, пока панель перестанет
+  // «смотреть в WMS»; не появилось новой ошибки — «пик». Готово (перекладка, заказ, перемещение) — тоже «пик».
   let bylo = new Set();
+  let byloGotovo = new Set();
+  let zhdemOtvet = null;   // { t, oshibka }
+  ["picker:akt", "picker:palleta", "picker:stol", "wms:yacheyka"].forEach((t) =>
+    document.addEventListener(t, () => {
+      zhdemOtvet = { t: Date.now(), oshibka: false };
+      // быстрый ответ мог отрисоваться раньше 250 мс — тогда новых изменений страницы не будет, проверяем сами
+      [400, 1200, 3000].forEach((ms) => setTimeout(proverit, ms));
+    }));
+  const tekstyPaneli = () => ["aktDey", "aktPs"].map((id) => {
+    const el = document.getElementById(id);
+    return el && !el.hidden ? el.textContent : "";
+  }).join(" ");
   function proverit() {
-    const est = new Set([...document.querySelectorAll(".aktPs__oshibka")].map((x) => x.textContent.trim()).filter(Boolean));
-    if ([...est].some((t) => !bylo.has(t))) zvuk("oshibka");
+    const est = new Set([...document.querySelectorAll(".aktPs__oshibka, .aktPs__gotovo.is-oshibka")]
+      .map((x) => x.textContent.trim()).filter(Boolean));
+    const novayaOshibka = [...est].some((t) => !bylo.has(t));
+    if (novayaOshibka) { zvuk("oshibka"); if (zhdemOtvet) zhdemOtvet.oshibka = true; }
     bylo = est;
+    const gotovo = new Set([...document.querySelectorAll(".aktPs__gotovo:not(.is-oshibka)")]
+      .map((x) => x.textContent.trim()).filter(Boolean));
+    if ([...gotovo].some((t) => !byloGotovo.has(t)) && !novayaOshibka) zvuk("ok");
+    byloGotovo = gotovo;
+    if (zhdemOtvet) {
+      const proshlo = Date.now() - zhdemOtvet.t;
+      const zhdet = /Смотрю|Загружаю|Ищу|Открываю|смотрю в WMS/.test(tekstyPaneli());
+      if (zhemOtvetGotov(proshlo, zhdet)) {
+        if (!zhdemOtvet.oshibka) zvuk("ok");
+        zhdemOtvet = null;
+      } else if (proshlo > 20000) zhdemOtvet = null;
+    }
   }
+  const zhemOtvetGotov = (proshlo, zhdet) => proshlo > 250 && !zhdet;
   let zhdu = false;
   new MutationObserver(() => {
     if (zhdu) return;
