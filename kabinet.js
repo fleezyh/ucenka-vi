@@ -34,6 +34,12 @@
     }
 
     // предложение, как WMS просит сменить пароль: пока пароль сайта не общий с WMS
+    if (!k["мессенджер"] && sessionStorage.getItem("kabYmPotom") !== "1") {
+      document.getElementById("message").insertAdjacentHTML("beforebegin", `<section class="kabPredl" id="kabPredlYm">
+        <p><b>Мессенджер</b> · привяжите рабочую почту — тогда пароль можно сбросить самому</p>
+        <button type="button" class="kabPredl__da" data-k="kabYm">Привязать</button>
+        <button type="button" class="kabPredl__net" data-potom="kabYmPotom">Не сейчас</button></section>`);
+    }
     if (!k["пароль_из_вмс"] && sessionStorage.getItem("kabVmsPotom") !== "1") {
       const msg = document.getElementById("message");
       // тонкой полосой: главное в кабинете — деньги, форма сама в карточке «Пароль» ниже
@@ -93,8 +99,18 @@
               <label>Новый ещё раз<input name="confirm" type="password" minlength="10" autocomplete="new-password" required></label>
               <button type="submit">Сохранить пароль</button><p class="kabMsg" role="status"></p></form></details>
         </div>
-        <div class="zpCheck__part">
-          <p class="zpCheck__cap">Выход</p>
+        <div class="zpCheck__part" id="kabYm">
+          <p class="zpCheck__cap">Яндекс Мессенджер</p>
+          ${k["мессенджер"]
+            ? stroka("Привязан", k["мессенджер"], "сюда бот пришлёт ссылку, если забудете пароль")
+            : `<p class="kabPod">Привяжите — тогда «Забыли пароль?» на входе пришлёт ссылку для нового пароля вам в Мессенджер.</p>
+               <form class="kabForma" data-forma="ymKod">
+                 <label>Рабочая почта<input name="pochta" autocomplete="email" autocapitalize="none" required placeholder="imya.familiya@vseinstrumenti.ru"></label>
+                 <button type="submit">Прислать код в Мессенджер</button><p class="kabMsg" role="status"></p></form>
+               <form class="kabForma" data-forma="ymOk" hidden>
+                 <label>Код из Мессенджера<input name="kod" inputmode="numeric" autocomplete="one-time-code" maxlength="6" required></label>
+                 <button type="submit">Привязать</button><p class="kabMsg" role="status"></p></form>`}
+          <p class="zpCheck__cap" style="margin-top:22px">Выход</p>
           <p class="kabPod">Сессия живёт двенадцать часов и продлевается сама, пока вы работаете.</p>
           <a class="kabVyhod" href="/__logout">Выйти из аккаунта</a>
         </div>
@@ -110,7 +126,17 @@
     b.disabled = true;
     msg.className = "kabMsg";
     try {
-      if (f.dataset.forma === "vms") {
+      if (f.dataset.forma === "ymKod") {
+        msg.textContent = "Отправляю код…";
+        await post("/__account/ym-kod", { "почта": f.pochta.value });
+        msg.textContent = "Код в Мессенджере — от бота «Направление по работе с браком».";
+        const ok = document.querySelector('[data-forma="ymOk"]');
+        if (ok) { ok.hidden = false; ok.kod.focus(); }
+      } else if (f.dataset.forma === "ymOk") {
+        await post("/__account/ym-podtverdit", { "код": f.kod.value });
+        msg.textContent = "Привязано.";
+        setTimeout(() => location.reload(), 800);
+      } else if (f.dataset.forma === "vms") {
         msg.textContent = "Проверяю вход в WMS…";
         await post("/__account/vms-parol", { "логин": f.l.value, "пароль": f.p.value });
         msg.textContent = "Готово: пароль сайта = пароль WMS.";
@@ -127,6 +153,19 @@
     b.disabled = false;
   });
   document.addEventListener("click", (e) => {
+    const kuda = e.target.closest("[data-k]");
+    if (kuda) {
+      const karta = document.getElementById(kuda.dataset.k);
+      karta?.scrollIntoView({ behavior: "smooth", block: "center" });
+      setTimeout(() => karta?.querySelector("input:not([readonly])")?.focus(), 450);
+      return;
+    }
+    const potom = e.target.closest("[data-potom]");
+    if (potom) {
+      sessionStorage.setItem(potom.dataset.potom, "1");
+      potom.closest(".kabPredl")?.remove();
+      return;
+    }
     if (e.target.closest("#kabKParolyu")) {
       const karta = document.getElementById("kabParol");
       karta?.scrollIntoView({ behavior: "smooth", block: "center" });

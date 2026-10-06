@@ -56,3 +56,4 @@
   .kabDva__a { min-height: 50px; font-size: 15px; }
   .kabSkany { padding: 0 16px; }
 }
+.kabForma[hidden] { display: none; }
