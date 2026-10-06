@@ -84,35 +84,48 @@
       ${skany ? `<details class="zpCheck__part kabSkany"><summary>Ваши сканы в пикалке · последние ${k["сканы"].length}</summary>
         <div class="kabScroll"><table><thead><tr><th>Когда</th><th>Штрихкод</th><th>Товар</th><th class="n">Цена</th></tr></thead>
         <tbody>${skany}</tbody></table></div></details>` : ""}
-      <div class="zpCheck">
-        <div class="zpCheck__part" id="kabParol">
-          <p class="zpCheck__cap">Пароль</p>
-          ${stroka(k["пароль_из_вмс"] ? "Общий с WMS" : "Свой пароль сайта", k["пароль_менялся"] || "не менялся", "когда менялся")}
-          <p class="kabPod">${k["пароль_из_вмс"]
-            ? "Сменили пароль в WMS — войдите в WMS через пикалку или введите новый здесь, сайт подтянет."
-            : "Сделайте пароль как в WMS — один на обе системы."}</p>
-          ${formaVms(k, k["пароль_из_вмс"] ? "Обновить из WMS" : "Сделать как в WMS")}
-          <details class="kabSvoy"><summary>или задать свой пароль сайта</summary>
+      <!-- 06.10 «нижний блок можно прикольнее»: три плитки — статус крупно, формы раскрываются по кнопке -->
+      <div class="kabTri">
+        <div class="kabPl${k["пароль_из_вмс"] ? " is-ok" : ""}" id="kabParol">
+          <p class="kabPl__cap">Пароль</p>
+          <p class="kabPl__zn">${k["пароль_из_вмс"] ? "Общий с WMS" : "Свой пароль сайта"}</p>
+          <p class="kabPl__pod">${k["пароль_менялся"] ? "менялся " + esc(k["пароль_менялся"]) : "не менялся"}</p>
+          <div class="kabPl__kn">
+            <button type="button" class="kabKn kabKn--glav" data-otkryt="kabFvms">${k["пароль_из_вмс"] ? "Обновить из WMS" : "Сделать как в WMS"}</button>
+            <button type="button" class="kabKn" data-otkryt="kabFsvoy">Свой пароль</button>
+          </div>
+          <div class="kabPl__forma" id="kabFvms" hidden>
+            <p class="kabPod">${k["пароль_из_вмс"] ? "Сменили пароль в WMS — введите новый, сайт подтянет (или просто войдите в WMS через пикалку)."
+              : "Один пароль на сайт и WMS: сайт проверит его входом в WMS."}</p>
+            ${formaVms(k, k["пароль_из_вмс"] ? "Обновить" : "Сделать как в WMS")}
+          </div>
+          <div class="kabPl__forma" id="kabFsvoy" hidden>
             <form class="kabForma" data-forma="svoy">
               <label>Текущий пароль<input name="current" type="password" autocomplete="current-password" required></label>
               <label>Новый пароль<input name="next" type="password" minlength="10" autocomplete="new-password" required></label>
               <label>Новый ещё раз<input name="confirm" type="password" minlength="10" autocomplete="new-password" required></label>
-              <button type="submit">Сохранить пароль</button><p class="kabMsg" role="status"></p></form></details>
+              <button type="submit">Сохранить пароль</button><p class="kabMsg" role="status"></p></form>
+          </div>
         </div>
-        <div class="zpCheck__part" id="kabYm">
-          <p class="zpCheck__cap">Яндекс Мессенджер</p>
-          ${k["мессенджер"]
-            ? stroka("Привязан", k["мессенджер"], "сюда бот пришлёт ссылку, если забудете пароль")
-            : `<p class="kabPod">Привяжите — тогда «Забыли пароль?» на входе пришлёт ссылку для нового пароля вам в Мессенджер.</p>
-               <form class="kabForma" data-forma="ymKod">
-                 <label>Рабочая почта<input name="pochta" autocomplete="email" autocapitalize="none" required placeholder="imya.familiya@vseinstrumenti.ru"></label>
-                 <button type="submit">Прислать код в Мессенджер</button><p class="kabMsg" role="status"></p></form>
-               <form class="kabForma" data-forma="ymOk" hidden>
-                 <label>Код из Мессенджера<input name="kod" inputmode="numeric" autocomplete="one-time-code" maxlength="6" required></label>
-                 <button type="submit">Привязать</button><p class="kabMsg" role="status"></p></form>`}
-          <p class="zpCheck__cap" style="margin-top:22px">Выход</p>
-          <p class="kabPod">Сессия живёт двенадцать часов и продлевается сама, пока вы работаете.</p>
-          <a class="kabVyhod" href="/__logout">Выйти из аккаунта</a>
+        <div class="kabPl${k["мессенджер"] ? " is-ok" : " is-net"}" id="kabYm">
+          <p class="kabPl__cap">Яндекс Мессенджер</p>
+          <p class="kabPl__zn">${k["мессенджер"] ? "Привязан" : "Не привязан"}</p>
+          <p class="kabPl__pod">${k["мессенджер"] ? esc(k["мессенджер"]) : "без него «Забыли пароль?» не пришлёт ссылку"}</p>
+          ${k["мессенджер"] ? "" : `<div class="kabPl__kn"><button type="button" class="kabKn kabKn--glav" data-otkryt="kabFym">Привязать</button></div>
+          <div class="kabPl__forma" id="kabFym" hidden>
+            <form class="kabForma" data-forma="ymKod">
+              <label>Рабочая почта<input name="pochta" autocomplete="email" autocapitalize="none" required placeholder="imya.familiya@vseinstrumenti.ru"></label>
+              <button type="submit">Прислать код в Мессенджер</button><p class="kabMsg" role="status"></p></form>
+            <form class="kabForma" data-forma="ymOk" hidden>
+              <label>Код из Мессенджера<input name="kod" inputmode="numeric" autocomplete="one-time-code" maxlength="6" required></label>
+              <button type="submit">Привязать</button><p class="kabMsg" role="status"></p></form>
+          </div>`}
+        </div>
+        <div class="kabPl">
+          <p class="kabPl__cap">Сессия</p>
+          <p class="kabPl__zn">12 часов</p>
+          <p class="kabPl__pod">продлевается сама, пока вы работаете</p>
+          <div class="kabPl__kn"><a class="kabKn kabKn--vyhod" href="/__logout">Выйти из аккаунта</a></div>
         </div>
       </div>`;
     (document.getElementById("note") || document.querySelector(".shell").lastElementChild).insertAdjacentElement("afterend", sek);
@@ -153,9 +166,22 @@
     b.disabled = false;
   });
   document.addEventListener("click", (e) => {
+    const otk = e.target.closest("[data-otkryt]");
+    if (otk) {   // кнопка плитки — раскрыть её форму, остальные формы этой плитки свернуть
+      const pl = otk.closest(".kabPl");
+      const nuzhna = document.getElementById(otk.dataset.otkryt);
+      const bylaOtkryta = nuzhna && !nuzhna.hidden;
+      pl?.querySelectorAll(".kabPl__forma").forEach((f) => { f.hidden = true; });
+      if (nuzhna && !bylaOtkryta) {
+        nuzhna.hidden = false;
+        setTimeout(() => nuzhna.querySelector("input:not([readonly])")?.focus(), 50);
+      }
+      return;
+    }
     const kuda = e.target.closest("[data-k]");
     if (kuda) {
       const karta = document.getElementById(kuda.dataset.k);
+      karta?.querySelector(".kabPl__forma[hidden]")?.removeAttribute("hidden");
       karta?.scrollIntoView({ behavior: "smooth", block: "center" });
       setTimeout(() => karta?.querySelector("input:not([readonly])")?.focus(), 450);
       return;
@@ -168,6 +194,7 @@
     }
     if (e.target.closest("#kabKParolyu")) {
       const karta = document.getElementById("kabParol");
+      document.getElementById("kabFvms")?.removeAttribute("hidden");
       karta?.scrollIntoView({ behavior: "smooth", block: "center" });
       setTimeout(() => karta?.querySelector('[data-forma="vms"] input:not([readonly])')?.focus(), 450);
       return;
