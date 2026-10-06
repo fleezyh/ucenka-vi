@@ -35,7 +35,8 @@
     const sektory = priyomka?.секторы || [];
     const porogi = priyomka?.пороги || { недогруз: 80, норма: 90, тревога: 92 };
 
-    const zastyl = !!(sv && sv.застыл);
+    // 06.10: двор теперь из живой ВМС («Отчет по поставкам») — застывший DWH его не касается
+    const zastyl = !!(sv && sv.застыл) && dvor?.источник !== "ВМС";
     const kray = zastyl ? (sv.источники || []).map((x) => x.край).sort().pop() : "";
     const cvetMinut = (m) => m >= porogiDvor.пробка ? "krasnyy" : m >= porogiDvor.тревога ? "zhyoltyy" : "zelyonyy";
     const zvenya = [];

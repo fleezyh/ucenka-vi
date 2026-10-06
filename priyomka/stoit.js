@@ -65,7 +65,8 @@
     const temp = zhivoy ? tz : pr && pr.темп;
     const v = (temp && temp.вердикт) || {};
     const dmd = dv && (dv.склады || []).find((s) => s.склад === "ДМД");
-    const zastylDvor = sv && sv.застыл;
+    // 06.10: двор из живой ВМС — плашка «DWH застыл» его не гасит
+    const zastylDvor = sv && sv.застыл && !(dv && dv.источник === "ВМС");
     const zastyl = zastylDvor && !zhivoy;
     const kray = sv && (sv.источники || []).reduce((m, x) => (!m || x.край > m.край ? x : m), null);
 
