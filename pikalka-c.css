@@ -408,7 +408,14 @@ body.cSkin.aTsd .searchCard > .message { display: none; }
 @media (max-width: 760px) {
   body.cSkin { --cRail: 0px; }
   .cTop { flex-direction: column; align-items: stretch; gap: 10px; }
-  .cPult { flex-wrap: wrap; }
+  /* 06.10 (скрин Ерофеевой): ряд справа налево не растягивался — слева пустота, имя прижато к «Звуку».
+     Имя слева, звук справа, одной строкой; длинное имя — с многоточием. */
+  .cPult { flex-wrap: nowrap; justify-content: space-between; gap: 10px; padding: 8px 8px 8px 14px; }
+  .cKto { flex: 1 1 auto; }
+  .cKto .aWho { min-width: 0; gap: 8px; font-size: 14px; }
+  .cKto .aWho b { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .cKto .aWho .aWho__nm { display: none; }
+  .cZvuk { height: 36px; padding: 0 12px; }
   .cKto__off { white-space: normal; }
   .cConsole { display: block; border-radius: 18px; }
   .cRail { flex-direction: row; justify-content: space-around; flex-wrap: wrap; padding: 8px; border-right: 0; border-bottom: 1px solid var(--cLine); }

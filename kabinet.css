@@ -117,4 +117,7 @@
 @media (max-width: 760px) {
   .kabCifry { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .kabViz__ava { width: 48px; height: 48px; font-size: 17px; border-radius: 14px; }
+  /* 06.10 (скрин Ерофеевой): пятая плитка стояла одна в ряду с дырой — на всю строку */
+  .kabCifry > div:last-child:nth-child(odd) { grid-column: span 2; }
+  .kabViz__imya { font-size: 20px; }
 }
