@@ -140,240 +140,178 @@ function schetchik(tik, schitano) {
   setInterval(risovat, 1000);
 }
 
-/* Выработка — графиком, а не столбцом чисел.
+/* Выработка по дням (06.10, Степан, скрин Азизовой: «сделай людям человеческий… по дням, вчера была
+ * столько, когда работала какие дни, когда простои… в формате главного лайн-чарта, а то 99 07»).
  *
- * Голые «276,2 штук за смену» и «1 из 51» ничего не говорят: человеку важно,
- * растёт он или падает и где он относительно контура. Линия по месяцам с
- * пунктиром среднего отвечает на оба вопроса сразу.
+ * График — общий ViGrafik сайта: точка — штуки за день, выходной — разрыв линии, пунктир — средняя
+ * смена контура в тот же день. Над ним — те же плитки, что в профиле; под ним — выбранный день
+ * целиком: с какого по какое время работал(а), где стоял(а) и где были паузы дольше порога.
  */
-/* Ширину SVG берём фактическую, а не растягиваем картинку под контейнер:
-   с preserveAspectRatio="none" на широком экране буквы и кружки расползались
-   вдвое по горизонтали. */
-function liniyaVyrabotki(tochki, sredne, opts) {
-  if (tochki.filter((t) => t.v !== null).length < 2) return "";
-  const W = Math.max(520, Math.round((opts && opts.shirina) || 900));
-  const H = 260;
-  const padTop = 34;
-  const padBottom = 30;
-  const padLeft = 34;
-  const padRight = 22;
+const VYR = new Map();   // id блока → { rab, dney, den }
+const NED = ["вс", "пн", "вт", "ср", "чт", "пт", "сб"];
+const vyrDm = (d) => `${d.slice(8, 10)}.${d.slice(5, 7)}`;
+const vyrNed = (d) => NED[new Date(`${d}T12:00:00Z`).getUTCDay()];
+const vyrSht = (n) => Math.round(n || 0).toLocaleString("ru-RU");
+const vyrEsc = (t) => String(t ?? "").replace(/[&<>"]/g, (x) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[x]));
+function vyrChM(m) {
+  m = Math.round(m || 0);
+  if (m < 60) return `${m} мин`;
+  return `${Math.floor(m / 60)} ч${m % 60 ? ` ${m % 60} мин` : ""}`;
+}
+const vyrMin = (hm) => { const [h, m] = String(hm || "0:0").split(":").map(Number); return h * 60 + m; };
 
-  const est = tochki.filter((t) => t.v !== null);
-  const svoi = tochki.some((t) => t.k);           // есть ли линия контура
-  const cap = Math.max(...est.map((t) => t.v), sredne,
-                       ...tochki.map((t) => t.k || 0)) * 1.2 || 1;
-  const x = (i) => padLeft + (i / (tochki.length - 1)) * (W - padLeft - padRight);
-  const y = (v) => padTop + (1 - v / cap) * (H - padTop - padBottom);
-
-  /* Пропущенные недели рвут линию, а не склеиваются в прямую: человек в них
-     не выходил, и рисовать там ход выработки — враньё. */
-  function put(znachenie) {
-    let d = "";
-    let razryv = true;
-    tochki.forEach((t, i) => {
-      const v = znachenie(t);
-      if (v === null || v === undefined) { razryv = true; return; }
-      d += (razryv ? "M" : "L") + x(i).toFixed(1) + "," + y(v).toFixed(1) + " ";
-      razryv = false;
-    });
-    return d.trim();
+/* Все календарные дни периода, по последний день, который уже есть в данных (обычно вчера). */
+function vyrDni(rab, dney) {
+  const kont = rab["контур_по_дням"] || [];
+  const moi = rab["по_дням"] || [];
+  const posl = [kont.length ? kont[kont.length - 1][0] : "", moi.length ? moi[moi.length - 1]["день"] : ""].sort().pop();
+  if (!posl) return [];
+  const poDnyu = Object.fromEntries(moi.map((z) => [z["день"], z]));
+  const kontPoDnyu = Object.fromEntries(kont);
+  const konec = new Date(`${posl}T12:00:00Z`).getTime();
+  const out = [];
+  for (let i = dney - 1; i >= 0; i -= 1) {
+    const den = new Date(konec - i * 864e5).toISOString().slice(0, 10);
+    out.push({ den, moy: poDnyu[den] || null, kontur: kontPoDnyu[den] ?? null });
   }
-
-  const moya = put((t) => t.v);
-  const konturLine = svoi
-    ? `<path d="${put((t) => t.k || null)}" class="zpLineKontur"/>` : "";
-  // Числа над точками ставим всегда, когда они физически влезают: решает не
-  // количество точек, а расстояние между ними в пикселях.
-  const shagPx = (W - padLeft - padRight) / Math.max(1, tochki.length - 1);
-  const gusto = shagPx < 34;
-  const podpisi = gusto ? "" : tochki.map((t, i) => t.v === null ? "" :
-    `<text x="${x(i).toFixed(1)}" y="${(y(t.v) - 11).toFixed(1)}"
-      class="zpNum${shagPx < 56 ? " zpNum--melko" : ""}">${Math.round(t.v)}</text>`).join("");
-  const shag = Math.max(1, Math.ceil(tochki.length / 10));
-  const osi = tochki.map((t, i) => (i % shag && i !== tochki.length - 1) ? "" :
-    `<text x="${x(i).toFixed(1)}" y="${H - 8}" class="zpAx">${t.p}</text>`).join("");
-
-  // Легенда в самом графике: подпись под заголовком читают не все.
-  const legenda = `
-    <g class="zpLeg" transform="translate(${padLeft},14)">
-      <line x1="0" x2="16" y1="-4" y2="-4" class="zpLine"/>
-      <text x="22" y="0">вы</text>
-      ${svoi ? `<line x1="60" x2="76" y1="-4" y2="-4" class="zpLineKontur"/>
-      <text x="82" y="0">контур в ту же неделю</text>` : ""}
-      <line x1="${svoi ? 232 : 60}" x2="${svoi ? 248 : 76}" y1="-4" y2="-4" class="zpAvg"/>
-      <text x="${svoi ? 254 : 82}" y="0">среднее по контуру</text>
-    </g>`;
-
-  return `
-    <svg class="zpChart" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}"
-         preserveAspectRatio="xMidYMid meet">
-      <line x1="${padLeft}" x2="${W - padRight}" y1="${y(sredne).toFixed(1)}"
-            y2="${y(sredne).toFixed(1)}" class="zpAvg"/>
-      <text x="${padLeft - 6}" y="${(y(sredne) + 4).toFixed(1)}" class="zpAvgNum"
-        >${Math.round(sredne)}</text>
-      ${est.length === tochki.length ? `<path d="${moya}
-        L${x(tochki.length - 1).toFixed(1)},${H - padBottom}
-        L${x(0).toFixed(1)},${H - padBottom} Z" class="zpArea"/>` : ""}
-      ${konturLine}
-      <path d="${moya}" class="zpLine"/>
-      ${tochki.map((t, i) => t.v === null ? "" :
-        `<circle cx="${x(i).toFixed(1)}" cy="${y(t.v).toFixed(1)}"
-          r="${gusto ? 3 : 3.8}" class="zpDot"/>`).join("")}
-      ${podpisi}${osi}${legenda}
-      ${/* Прозрачные столбцы поверх: наведение где угодно по вертикали
-            ловит ближайшую точку и показывает цифры за этот шаг. */ ""}
-      <g class="zpHover">${tochki.map((t, i) => t.v === null ? "" : `
-        <rect x="${(x(i) - shagPx / 2).toFixed(1)}" y="0" width="${shagPx.toFixed(1)}"
-              height="${H - padBottom}" class="zpHit"
-              data-x="${x(i).toFixed(1)}" data-y="${y(t.v).toFixed(1)}"
-              data-v="${Math.round(t.v)}" data-k="${t.k ? Math.round(t.k) : ""}"
-              data-p="${t.p}"/>`).join("")}</g>
-    </svg>`;
+  return out;
 }
 
-/* Недели, в которые человек не выходил, всё равно должны быть на оси —
-   иначе месячный простой выглядит как обычный шаг вправо. */
-function polnyeNedeli(nedeli) {
-  if (nedeli.length < 2) return nedeli;
-  const nomer = (s) => {
-    const m = String(s || "").match(/(\d{4})-W(\d{2})/);
-    return m ? Number(m[1]) * 100 + Number(m[2]) : null;
-  };
-  const itog = [];
-  for (let i = 0; i < nedeli.length; i += 1) {
-    itog.push(nedeli[i]);
-    const a = nomer(nedeli[i].n);
-    const b = i + 1 < nedeli.length ? nomer(nedeli[i + 1].n) : null;
-    if (a === null || b === null || b - a <= 1 || b - a > 12) continue;
-    for (let k = a + 1; k < b; k += 1) {
-      itog.push({ v: null, k: 0, p: "W" + String(k % 100).padStart(2, "0"), n: "" });
-    }
-  }
-  return itog;
+function vyrKogda(den) {
+  const segodnya = new Date(Date.now() + 3 * 3600e3).toISOString().slice(0, 10);
+  const n = Math.round((new Date(`${segodnya}T12:00:00Z`) - new Date(`${den}T12:00:00Z`)) / 864e5);
+  return n === 0 ? "сегодня" : n === 1 ? "вчера" : n === 2 ? "позавчера" : `${vyrNed(den)} ${vyrDm(den)}`;
 }
 
-/* Подпись под заголовком: про светлую линию говорим только там, где она есть,
-   то есть на неделях. */
-function zametkaVyrabotki(sredne, estKontur) {
-  // Что есть что — написано легендой на самом графике; здесь только суть.
-  return estKontur
-    ? "Штук за смену. Разрыв линии — недели, в которые человек не выходил"
-    : "Штук за смену";
+function vyrPlitki(rab, dni, dney) {
+  const rab_ = dni.filter((z) => z.moy);
+  const posl = rab_[rab_.length - 1];
+  const vsego = rab_.reduce((s, z) => s + z.moy["штук"], 0);
+  const naSmenu = rab_.length ? vsego / rab_.length : 0;
+  const kontDni = rab_.map((z) => z.kontur).filter((v) => v);
+  const kontSr = kontDni.length ? kontDni.reduce((s, v) => s + v, 0) / kontDni.length : 0;
+  const k = kontSr ? Math.round(100 * naSmenu / kontSr - 100) : null;
+  const sVremenem = rab_.filter((z) => z.moy["начало"]);
+  const prostoy = sVremenem.reduce((s, z) => s + (z.moy["простой"] || 0), 0);
+  const pauz = sVremenem.reduce((s, z) => s + (z.moy["паузы"] || []).length, 0);
+  const plitka = (b, small) => `<div><b>${b}</b><small>${small}</small></div>`;
+  return `<div class="kabCifry zpWork__cifry">
+    ${plitka(posl ? vyrSht(posl.moy["штук"]) : "—",
+      posl ? `${vyrKogda(posl.den)}${posl.moy["начало"] ? ` · ${posl.moy["начало"]}–${posl.moy["конец"]}` : ""}` : `не было смен за ${dney} дней`)}
+    ${plitka(vyrSht(vsego), `штук за ${dney} дней · смен ${rab_.length}`)}
+    ${plitka(rab_.length ? vyrSht(naSmenu) : "—", k === null ? "штук за смену" : `за смену · ${k >= 0 ? "+" : ""}${k}% к контуру`)}
+    ${plitka(sVremenem.length ? vyrChM(prostoy) : "—",
+      sVremenem.length ? `простои · пауз дольше ${rab["простой_порог"] || 30} мин: ${pauz}` : "простои — только за 45 дней")}
+    ${plitka(rab["место"] ? `${rab["место"]} из ${rab["из"]}` : "—", "место в контуре")}
+  </div>`;
+}
+
+/* День целиком: лента с 8 утра (или раньше, если начал(а) раньше) до вечера, работа — синим,
+   паузы дольше порога — красным, с подписью времени. */
+function vyrDen(z, rab, blokShirina) {
+  if (!z || !z.moy) return "";
+  const m = z.moy;
+  const zag = `<p class="zpDen__zag"><b>${vyrNed(z.den)} ${vyrDm(z.den)}</b> · ${vyrSht(m["штук"])} шт`
+    + `${z.kontur ? ` · контур ${vyrSht(z.kontur)} за смену` : ""}${(m["столы"] || []).length ? ` · ${vyrEsc(m["столы"].join(", "))}` : ""}</p>`;
+  if (!m["начало"]) {
+    return `<div class="zpDen">${zag}<p class="zpDen__txt">время работы по часам есть только с ${rab["простои_с"] ? vyrDm(rab["простои_с"]) : "последних 45 дней"}</p></div>`;
+  }
+  const a = vyrMin(m["начало"]);
+  const b = vyrMin(m["конец"]);
+  const ot = Math.min(8 * 60, Math.floor(a / 60) * 60);
+  const doo = Math.max(21 * 60, Math.ceil(b / 60) * 60);
+  const pr = (x) => (100 * (x - ot) / (doo - ot)).toFixed(2);
+  const pauzy = m["паузы"] || [];
+  const chasy = [];
+  const shagCh = (blokShirina || 900) < 560 ? 4 : 2;
+  for (let h = ot / 60; h <= doo / 60; h += shagCh) chasy.push(`<span style="left:${pr(h * 60)}%">${String(h).padStart(2, "0")}:00</span>`);
+  return `<div class="zpDen">${zag}
+    <div class="zpDen__lenta">
+      <i class="zpDen__rab" style="left:${pr(a)}%;width:${(pr(b) - pr(a)).toFixed(2)}%"></i>
+      ${pauzy.map(([s, e, min]) => `<i class="zpDen__pauza" style="left:${pr(vyrMin(s))}%;width:${(pr(vyrMin(e)) - pr(vyrMin(s))).toFixed(2)}%" title="${s}–${e} · ${vyrChM(min)}"></i>`).join("")}
+    </div>
+    <div class="zpDen__os">${chasy.join("")}</div>
+    <p class="zpDen__txt">с ${m["начало"]} до ${m["конец"]}${pauzy.length
+      ? ` · простои ${vyrChM(m["простой"])}: ${pauzy.map(([s, e, min]) => `${s}–${e} (${vyrChM(min)})`).join(", ")}`
+      : ` · пауз дольше ${rab["простой_порог"] || 30} мин не было`}</p>
+  </div>`;
 }
 
 function grafikVyrabotki(rab) {
   if (!rab || !rab["на_смену"]) return "";
-  const sredne = Number(rab["среднее_контура"]) || 0;
-  const tren = rab["тренд"];
-
-  const mesyacy = (rab["по_месяцам"] || []).filter((m) => m["на_смену"])
-    .map((m) => ({ v: Number(m["на_смену"]) || 0, p: String(m["месяц"] || "").slice(5), k: 0 }));
-  const nedeli = polnyeNedeli((rab["по_неделям"] || []).filter((w) => w["на_смену"])
-    .map((w) => ({ v: Number(w["на_смену"]) || 0,
-                   p: "W" + String(w["неделя"] || "").slice(-2),
-                   n: w["неделя"] || "",
-                   k: Number(w["контур"]) || 0 })));
-
-  const k = sredne ? Math.round(100 * rab["на_смену"] / sredne - 100) : 0;
-
   const id = "w" + Math.random().toString(36).slice(2, 8);
+  const moi = rab["по_дням"] || [];
+  VYR.set(id, { rab, dney: 30, den: moi.length ? moi[moi.length - 1]["день"] : "" });
   return `
     <div class="zpWork" data-work="${id}">
       <div class="zpWork__head">
-        <div><p class="zpWork__cap">Выработка · ${rab["контур"]}</p>
-        <p class="zpWork__note" data-note>${zametkaVyrabotki(sredne,
-          nedeli.length > 1 && nedeli.some((n) => n.k))}</p></div>
+        <div><p class="zpWork__cap">Выработка · ${vyrEsc(rab["контур"])}</p>
+        <p class="zpWork__note">Штук за день. Разрыв — дни без выхода, пунктир — средняя смена контура. Клик по дню — как он прошёл.</p></div>
         <div class="zpWork__tools">
-          ${nedeli.length > 1 ? `<button class="zpView is-on" type="button" data-shag="недели">Недели</button>` : ""}
-          ${mesyacy.length > 1 ? `<button class="zpView${nedeli.length > 1 ? "" : " is-on"}" type="button" data-shag="месяцы">Месяцы</button>` : ""}
+          <button class="zpView is-on" type="button" data-dney="30">30 дней</button>
+          <button class="zpView" type="button" data-dney="92">3 месяца</button>
           <a class="zpWork__link" href="/perf/">Весь контур →</a>
         </div>
       </div>
-      <div class="zpWork__plot" data-nedeli='${JSON.stringify(nedeli)}'
-           data-mesyacy='${JSON.stringify(mesyacy)}' data-sredne="${sredne}"
-           data-shag="${nedeli.length > 1 ? "недели" : "месяцы"}">
-        ${nedeli.length > 1 ? liniyaVyrabotki(nedeli, sredne) : liniyaVyrabotki(mesyacy, sredne)}
-      </div>
-      <div class="zpWork__itog">
-        <span><b>${(rab["на_смену"] || 0).toLocaleString("ru-RU")}</b> штук за смену
-          <i>${k >= 0 ? "+" : ""}${k}% к среднему по контуру</i></span>
-        <span><b>${rab["место"] ? rab["место"] + " из " + rab["из"] : "—"}</b> место
-          <i>среди тех, у кого хватает смен</i></span>
-        <span><b>${tren === null || tren === undefined ? "—"
-          : (tren > 0 ? "+" : "") + tren.toFixed(1) + "%"}</b> тренд
-          <i>${(rab["смен"] || 0).toLocaleString("ru-RU")} смен, ${(rab["штук"] || 0).toLocaleString("ru-RU")} штук с ${String(rab["первая_смена"] || "").slice(0, 10)}</i></span>
-      </div>
+      <div data-vyr-telo></div>
     </div>`;
 }
 
-/* Переключение шага прямо в блоке: данные уже в разметке, ходить за ними
-   второй раз незачем. */
-document.addEventListener("click", (event) => {
-  const button = event.target.closest(".zpWork__tools .zpView");
-  if (!button) return;
-  const blok = button.closest(".zpWork");
-  const plot = blok.querySelector(".zpWork__plot");
-  blok.querySelectorAll(".zpWork__tools .zpView")
-    .forEach((b) => b.classList.toggle("is-on", b === button));
-  plot.dataset.shag = button.dataset.shag;
-  pererisovat(plot);
-});
-
-/* Рисуем под фактическую ширину блока: так штрихи, кружки и подписи остаются
-   такими, какими задуманы, на любом экране. */
-function pererisovat(plot) {
-  const nabor = plot.dataset.shag === "месяцы"
-    ? JSON.parse(plot.dataset.mesyacy) : JSON.parse(plot.dataset.nedeli);
-  const sredne = Number(plot.dataset.sredne) || 0;
-  plot.innerHTML = liniyaVyrabotki(nabor, sredne,
-    { shirina: plot.clientWidth || 900 });
-  const note = plot.closest(".zpWork").querySelector("[data-note]");
-  if (note) note.textContent = zametkaVyrabotki(sredne, nabor.some((t) => t.k));
+function vyrNarisovat(blok) {
+  const st = VYR.get(blok.dataset.work);
+  if (!st) return;
+  const { rab, dney } = st;
+  const dni = vyrDni(rab, dney);
+  const telo = blok.querySelector("[data-vyr-telo]");
+  telo.innerHTML = vyrPlitki(rab, dni, dney) + '<div class="zpWork__plot"></div>'
+    + vyrDen(dni.find((z) => z.den === st.den && z.moy) || [...dni].reverse().find((z) => z.moy), rab, blok.clientWidth);
+  const plot = telo.querySelector(".zpWork__plot");
+  if (!window.ViGrafik || !dni.length) {
+    plot.innerHTML = '<p class="zpWork__note">за последние три месяца смен нет</p>';
+    return;
+  }
+  // даты под осью — сколько влезает по ширине (на телефоне 30 дат сливались в кашу)
+  const shag = Math.max(1, Math.ceil(dni.length * 46 / Math.max(260, plot.clientWidth || 900)));
+  plot.append(window.ViGrafik.sozdat({
+    tochki: dni.map((z, i) => ({
+      znach: z.moy ? z.moy["штук"] : null,
+      os: (dni.length - 1 - i) % shag ? "" : vyrDm(z.den),
+      zag: `${vyrNed(z.den)} ${vyrDm(z.den)}`,
+      vybrano: z.den === st.den,
+      dop: z.moy ? [
+        (z.moy["столы"] || []).join(", "),
+        z.moy["начало"] ? `с ${z.moy["начало"]} до ${z.moy["конец"]}` : "",
+        z.moy["паузы"] && z.moy["паузы"].length ? `простои ${vyrChM(z.moy["простой"])}` : "",
+      ].filter(Boolean) : ["выхода не было"],
+    })),
+    format: (v) => vyrSht(v),
+    formatTochno: (v) => `${vyrSht(v)} шт`,
+    otNulya: true,
+    trend: 0,
+    prizrak: dni.map((z) => z.kontur),
+    prizrakPodpis: "средняя смена контура",
+    vysota: 240,
+    klik: (i) => { if (dni[i] && dni[i].moy) { st.den = dni[i].den; vyrNarisovat(blok); } },
+  }));
 }
 
-/* Наведение на график: показываем неделю, свою выработку и контур за неё же.
-   Ловим на всём блоке — точки мелкие, целиться в них мышью неудобно. */
-document.addEventListener("mouseover", (event) => {
-  const hit = event.target.closest(".zpHit");
-  if (!hit) return;
-  const plot = hit.closest(".zpWork__plot");
-  const svg = hit.closest("svg");
-  if (!plot || !svg) return;
-  const mashtab = svg.getBoundingClientRect().width / (svg.viewBox.baseVal.width || 1);
-  const kontur = hit.dataset.k
-    ? `<i>контур ${Number(hit.dataset.k).toLocaleString("ru-RU")}</i>` : "";
-  let vsplyvashka = plot.querySelector(".zpTip");
-  if (!vsplyvashka) {
-    vsplyvashka = document.createElement("div");
-    vsplyvashka.className = "zpTip";
-    plot.appendChild(vsplyvashka);
-  }
-  vsplyvashka.innerHTML = `<b>${Number(hit.dataset.v).toLocaleString("ru-RU")}</b>
-    <span>${hit.dataset.p}</span>${kontur}`;
-  vsplyvashka.style.left = (Number(hit.dataset.x) * mashtab) + "px";
-  vsplyvashka.style.top = (Number(hit.dataset.y) * mashtab) + "px";
-  vsplyvashka.dataset.on = "1";
+document.addEventListener("click", (event) => {
+  const button = event.target.closest(".zpWork__tools .zpView[data-dney]");
+  if (!button) return;
+  const blok = button.closest(".zpWork");
+  const st = VYR.get(blok.dataset.work);
+  if (!st) return;
+  st.dney = Number(button.dataset.dney) || 30;
+  blok.querySelectorAll(".zpWork__tools .zpView").forEach((b) => b.classList.toggle("is-on", b === button));
+  vyrNarisovat(blok);
 });
 
-document.addEventListener("mouseout", (event) => {
-  const hit = event.target.closest(".zpHit");
-  if (!hit) return;
-  const tip = hit.closest(".zpWork__plot").querySelector(".zpTip");
-  if (tip) delete tip.dataset.on;
-});
-
-const nablyudatel = typeof ResizeObserver === "function"
-  ? new ResizeObserver((zapisi) => zapisi.forEach((z) => pererisovat(z.target)))
-  : null;
-
-/* Новый блок графика появляется после отрисовки карточки — подхватываем его
-   и сразу пересчитываем под реальную ширину. */
+/* Новый блок появляется после отрисовки карточки — подхватываем и рисуем. */
 function podklyuchitGrafiki(koren) {
-  (koren || document).querySelectorAll(".zpWork__plot").forEach((plot) => {
-    if (plot.dataset.gotov) return;
-    plot.dataset.gotov = "1";
-    pererisovat(plot);
-    if (nablyudatel) nablyudatel.observe(plot);
+  (koren || document).querySelectorAll(".zpWork[data-work]").forEach((blok) => {
+    if (blok.dataset.gotov) return;
+    blok.dataset.gotov = "1";
+    vyrNarisovat(blok);
   });
 }
 

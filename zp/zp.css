@@ -515,14 +515,14 @@
   box-shadow: 0 0 0 4px rgba(39, 196, 107, 0.12);
 }
 
-/* Выработка под разбором зарплаты. Пока это соседний факт, а не слагаемое —
-   поэтому отдельным блоком, а не строкой в выписке. */
+/* Выработка (06.10, «цвет разный у блоков… должно быть органично»): та же панель, что профиль
+   кабинета (.kabPanel) — один фон, одна рамка; плитки — .kabCifry оттуда же. */
 .zpWork {
-  margin-top: 14px;
-  padding: 18px 22px 20px;
-  border: 1px solid var(--line);
-  border-radius: 18px;
-  background: var(--panel-soft);
+  margin-top: 30px;
+  padding: 22px 26px 24px;
+  border: 1px solid var(--line, #263345);
+  border-radius: 22px;
+  background: #111924;
 }
 
 /* На телефоне кнопки не влезают рядом с заголовком и выталкивали страницу
@@ -543,69 +543,26 @@
   padding: 6px 12px;
   border: 1px solid var(--line);
   border-radius: 10px;
-  background: var(--panel);
+  background: #0d141e;
 }
-/* Линия контура за ту же неделю — сплошная и синяя: раньше она была таким же
-   серым пунктиром, как среднее, и две линии сливались в кашу. */
-.zpLineKontur { fill: none; stroke: #6ea8ff; stroke-width: 1.8; stroke-linejoin: round; opacity: 0.85; }
+.zpWork__cifry { margin-top: 16px; }
+.zpWork__plot { position: relative; margin-top: 16px; }
+.zpWork__plot .vg { border: 0; padding: 0; background: none; }
 
-/* График выработки. Числа под ним — не сами по себе, а подпись к линии. */
-.zpChart { display: block; max-width: 100%; margin: 14px 0 2px; }
-.zpLine { fill: none; stroke: var(--green); stroke-width: 2.4; stroke-linejoin: round; }
-.zpArea { fill: var(--green); fill-opacity: 0.1; }
-.zpDot { fill: var(--green); }
-.zpAvg { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 5 5; opacity: 0.55; }
-.zpAvgNum { fill: var(--muted); font-size: 11px; text-anchor: end; font-variant-numeric: tabular-nums; }
-.zpLeg text { fill: var(--muted); font-size: 11px; dominant-baseline: middle; }
-
-/* Наведение: прозрачные столбцы ловят мышь, точка под курсором подсвечивается. */
-.zpHit { fill: transparent; cursor: crosshair; }
-.zpHit:hover { fill: rgba(255, 255, 255, 0.04); }
-.zpWork__plot { position: relative; }
-.zpTip {
-  position: absolute;
-  transform: translate(-50%, calc(-100% - 26px));
-  display: none;
-  padding: 7px 10px;
-  border: 1px solid var(--line-strong);
-  border-radius: 10px;
-  background: #0f1620;
-  white-space: nowrap;
-  pointer-events: none;
-}
-.zpTip[data-on] { display: block; }
-.zpTip b { font-size: 15px; font-variant-numeric: tabular-nums; }
-.zpTip span { margin-left: 7px; color: var(--muted); font-size: 12px; }
-.zpTip i { display: block; margin-top: 2px; color: #6ea8ff; font-size: 11.5px; font-style: normal; }
-.zpNum {
-  fill: var(--text);
-  font-size: 12px;
-  font-weight: 600;
-  text-anchor: middle;
-  font-variant-numeric: tabular-nums;
-}
-.zpNum--melko { font-size: 11px; }
-.zpAx { fill: var(--muted); font-size: 11px; text-anchor: middle; }
-
-.zpWork__itog {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 12px;
-  margin-top: 10px;
-  padding-top: 14px;
-  border-top: 1px solid var(--line);
-}
-
-.zpWork__itog span { color: var(--muted); font-size: 13px; }
-.zpWork__itog b {
-  display: block;
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--text);
-  letter-spacing: -0.02em;
-  font-variant-numeric: tabular-nums;
-}
-.zpWork__itog i { display: block; margin-top: 2px; font-size: 11px; font-style: normal; }
+/* День целиком: лента рабочего времени, паузы дольше порога — красным. */
+.zpDen { margin-top: 18px; padding-top: 16px; border-top: 1px solid rgba(255, 255, 255, .07); }
+.zpDen__zag { margin: 0 0 12px; color: var(--muted); font-size: 13px; }
+.zpDen__zag b { color: var(--text); font-weight: 600; }
+.zpDen__lenta { position: relative; height: 14px; border-radius: 7px; background: #0d141e; border: 1px solid #1f2a39; }
+.zpDen__lenta i { position: absolute; top: 0; bottom: 0; border-radius: 6px; }
+.zpDen__rab { background: linear-gradient(90deg, #3d7be6, #6ea8ff); opacity: .85; }
+.zpDen__pauza { background: #f05d72; cursor: help; }
+.zpDen__os { position: relative; height: 18px; margin-top: 5px; color: var(--muted); font-size: 11px; }
+.zpDen__os span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+.zpDen__os span:first-child { transform: none; }
+.zpDen__os span:last-child { transform: translateX(-100%); }
+.zpDen__txt { margin: 6px 0 0; color: var(--muted); font-size: 12.5px; line-height: 1.5; }
+@media (max-width: 760px) { .zpWork { padding: 18px 16px 20px; } .zpWork__cifry > div:last-child:nth-child(odd) { grid-column: span 2; } }
 
 .zpTeam { margin-top: 18px; }
 
