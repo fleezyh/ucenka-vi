@@ -733,7 +733,11 @@
     return d;
   }
 
+  // 06.10: сканер на подставке сыпал одну наклейку 5 раз в секунду — тот же акт в течение 2 с не открываем заново
+  let aktPosl = { kod: "", t: 0 };
   async function otkrytAkt(kod) {
+    if (kod === aktPosl.kod && Date.now() - aktPosl.t < 2000) return;
+    aktPosl = { kod, t: Date.now() };
     aktK = { zhdu: true }; aktPer = null; vtisZ = null; defRed = null; novP = null; pal = null; yach = null; tovar = null; vRezhimPalety(true); risovat();
     try { aktK = await chitat(`/__vms/akt?kod=${encodeURIComponent(kod)}`); } catch (e) { aktK = { oshibka: e.message || String(e) }; }
     risovat();
