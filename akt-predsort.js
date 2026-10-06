@@ -1549,9 +1549,12 @@
       blok = `<div class="aktPs__palleta palPer"><p class="aktPs__zag">Переместить все паллеты в одну ячейку</p>
         ${!p.yach ? `<p class="aktPs__podskaz">Пикните ячейку, куда везёте (CEL …), или выберите:</p>${variantyKuda("data-kz-per-kuda")}`
           : `<p class="aktPs__podskaz">→ <b>${esc(p.yach)}</b>${p.proverka ? ` · проверено ${p.proverka.length} из ${korzina.length}${oshibok ? ` · <b class="aktPs__oshibka">не примет: ${oshibok}</b>` : ""}` : " · проверяю…"}</p>
+          ${(p.proverka || []).filter((x) => x.uzhe).length ? `<p class="aktPs__chto">уже в этой ячейке: ${(p.proverka || []).filter((x) => x.uzhe).length} — двигать не нужно</p>` : ""}
           ${(p.proverka || []).filter((x) => x.oshibka).map((x) => `<p class="aktPs__net">${esc(x.паллета)}: ${esc(x.oshibka)}</p>`).join("")}
-          ${p.proverka && p.proverka.length === korzina.length ? `<div class="aktPs__vopros">
-            <button type="button" class="aktPs__kn is-on" id="korzPerGo"${korzIdet || !vhod() || oshibok === korzina.length ? " disabled" : ""}>${!vhod() ? "Войдите в WMS" : `Переместить ${korzina.length - oshibok} паллет`}</button>
+          ${p.hod ? `<p class="aktPs__podskaz"><b>Перемещаю: ${p.hod.sdelano + p.hod.oshibok} из ${p.hod.vsego}</b> · готово ${p.hod.sdelano}${p.hod.oshibok ? ` · <b class="aktPs__oshibka">не вышло ${p.hod.oshibok}</b>` : ""} — не закрывайте пикалку</p>`
+            : p.proverka && p.proverka.length === korzina.length ? `<div class="aktPs__vopros">
+            <button type="button" class="aktPs__kn is-on" id="korzPerGo"${korzIdet || !vhod() || !kDvizheniyu(p).length ? " disabled" : ""}>${!vhod() ? "Войдите в WMS" : `Переместить ${kDvizheniyu(p).length} паллет`}</button>
+            ${oshibok ? `<p class="aktPs__chto">с замечаниями ${oshibok} — попробую и их; что вмс не примет, уйдёт в реестр ошибок</p>` : ""}
           </div>` : ""}`}</div>`;
     } else if (korzRezhim === "db") {
       const d = korzDb;
@@ -1645,7 +1648,8 @@
         const d = await o.json().catch(() => ({}));
         if (!o.ok) throw new Error(d.ошибка || `сервер ответил ${o.status}`);
         const osh = d.ошибки_WMS || d.ошибки_вмс;
-        korzPer.proverka.push({ паллета: x.паллета, id: x.id, oshibka: osh ? Object.values(osh).flat().join("; ") : "", kuda: d.куда });
+        // 06.10 (Мамян, 184 паллеты): «уже в этой ячейке» — не ошибка, а сделано: двигать нечего
+        korzPer.proverka.push({ паллета: x.паллета, id: x.id, oshibka: osh ? Object.values(osh).flat().join("; ") : "", kuda: d.куда, uzhe: !!d.уже_там });
         if (d.куда) korzPer.yach = d.куда;
       } catch (e) {
         korzPer.proverka.push({ паллета: x.паллета, id: x.id, oshibka: e.message || String(e) });
@@ -1656,22 +1660,40 @@
     risovat();
   }
 
+  // к перемещению — всё, что прошло проверку и ещё не стоит в этой ячейке
+  // 06.10: и те, что не прошли проверку, — пробуем (таймаут вмс пройдёт с повтором), настоящий отказ уйдёт в реестр ошибок
+  function kDvizheniyu(p) { return (p.proverka || []).filter((k) => !k.uzhe); }
+
   async function korzPeremestit() {
-    korzIdet = true; korzLog = []; risovat();
-    for (const x of (korzPer.proverka || []).filter((k) => !k.oshibka)) {
+    if (korzIdet || !korzPer) return;   // 06.10: второе нажатие во время хода не запускает второй проход
+    const spisokPer = kDvizheniyu(korzPer);
+    const uzhe = (korzPer.proverka || []).filter((k) => k.uzhe).length;
+    korzIdet = true; korzLog = []; korzPer.hod = { vsego: spisokPer.length, sdelano: 0, oshibok: 0 }; risovat();
+    let provedeno = 0, chernovik = 0;
+    for (const x of spisokPer) {
       try {
         const o = await fetch("/__akt/palleta/peremestit", { method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ паллета: String(x.id), ячейка: korzPer.kod, сохранить: true }) });
         const d = await o.json().catch(() => ({}));
         if (d.нужен_вход) { vms = { подключено: false }; korzLog.push(`<b class="aktPs__oshibka">войдите в WMS</b>`); break; }
         if (!o.ok) throw new Error(d.ошибка || `сервер ответил ${o.status}`);
-        korzLog.push(`${esc(x.паллета)} → ${esc(d.куда)}: перемещение${d.перемещение ? ` №${esc(d.перемещение)}` : ""} черновиком`);
+        korzPer.hod.sdelano += 1;
+        if (d.уже_там) korzLog.push(`${esc(x.паллета)}: уже в ${esc(d.куда)}`);
+        else {
+          if (d.проведено) provedeno += 1; else chernovik += 1;
+          korzLog.push(`${esc(x.паллета)} → ${esc(d.куда)}: перемещение${d.перемещение ? ` №${esc(d.перемещение)}` : ""} ${d.проведено ? "проведено" : "черновиком"}`);
+        }
       } catch (e) {
-        korzLog.push(`${esc(x.паллета)}: <b class="aktPs__oshibka">${esc(e.message || e)}</b>`);
+        korzPer.hod.oshibok += 1;
+        korzLog.push(`${esc(x.паллета)}: <b class="aktPs__oshibka">${esc(e.message || e)}</b> — в реестре ошибок`);
       }
       risovat();
     }
+    const h = korzPer.hod;
+    korzLog.push(`<b>Итог: перемещено ${h.sdelano} из ${h.vsego}</b>${provedeno ? ` · проведено ${provedeno}` : ""}${chernovik ? ` · черновиком ${chernovik}` : ""}`
+      + `${uzhe ? ` · уже были там ${uzhe}` : ""}${h.oshibok ? ` · <b class="aktPs__oshibka">не вышло ${h.oshibok} — записаны в реестр ошибок</b>` : ""}`);
     korzIdet = false; korzRezhim = ""; korzPer = null; risovat();
+    if (navigator.vibrate) navigator.vibrate(150);
   }
 
   async function korzProveritDb(sohranit = false) {
