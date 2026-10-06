@@ -385,7 +385,9 @@
     if (!est) { box.innerHTML = glav; return; }
     const tab = palPer ? "per" : palDb ? "db" : "akt";
     const zanyato = (palPer && palPer.idet) || (palDb && palDb.idet) || (palRabota && palRabota.идёт);
-    const vkladki = [["akt", `Акт${bezVybr ? ` · <em>${bezVybr}</em>` : ""}`], ["per", "Переместить"], ["db", "На склад"]];
+    // 06.10 Бершацкая: «в пикалке удалилась кнопка принять» — «Принять» было только у списка паллет (масс. пик);
+    // у одной паллеты — та же кнопка, ведёт в тот же приём с этой паллетой.
+    const vkladki = [["akt", `Акт${bezVybr ? ` · <em>${bezVybr}</em>` : ""}`], ["per", "Переместить"], ["db", "На склад"], ["priyom", "Принять"]];
     vyvesti(glav, `${shapkaDey("Паллета", pal.паллета, `<span class="cDey__pod">${vseVybrany() ? `${vsego} шт` : `выбрано ${shtVybr} из ${vsego} шт`}</span>`)}
       ${plashkaVms()}${formaVms()}
       <div class="cSeg">${vkladki.map(([k, t]) => `<button type="button" class="${k === tab ? "is-on" : ""}" data-ptab="${k}"${zanyato && k !== tab ? " disabled" : ""}>${t}</button>`).join("")}</div>
@@ -2110,6 +2112,15 @@
     const pt = e.target.closest("[data-ptab]");
     if (pt && pal) {
       const t = pt.dataset.ptab;
+      if (t === "priyom") {
+        const kod = pal.паллета_id ? `CON ${String(pal.паллета_id).padStart(10, "0")}` : (pal.паллета || "");
+        massPik = true; korzina = []; korzAkty = []; korzLog = []; korzPer = null; korzDb = null;
+        pal = null; aktK = null; yach = null; tovar = null; palPer = null; palDb = null;
+        korzRezhim = "priyom"; priyom = { marshrut: (priyom && priyom.marshrut) || "ДМД→ДНЛ", plany: {} };
+        risovat();
+        vKorzinu(kod).then(() => { if (korzRezhim === "priyom" && priyom) priyomProverit(); });
+        return;
+      }
       if (t === "per") { palDb = null; if (!palPer) palPer = { zhdem: true }; risovat(); vFokus(); return; }
       if (t === "db") { palPer = null; if (!palDb) { dbKuda = ""; dbNeBrak = ""; zakazDb(false); } else risovat(); return; }
       palPer = null; palDb = null; risovat(); vFokus(); return;
