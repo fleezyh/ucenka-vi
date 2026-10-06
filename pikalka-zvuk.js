@@ -55,6 +55,26 @@
   document.addEventListener("picker:hit", () => zvuk("ok"));
   document.addEventListener("picker:miss", () => zvuk("oshibka"));
 
+  // 06.10 «когда вписываю вручную — ничего не слышно»: ручной ввод названия даёт список, а не «товар найден»,
+  // и событий hit/miss нет. Слушаем строку сообщений пикалки: ok — «пик», error/warn — «бзз». Только в ответ на
+  // действие человека (5 с после клавиши или клика), иначе пищало бы при загрузке и фоновых обновлениях.
+  let deystvie = 0;
+  ["keydown", "pointerdown"].forEach((t) => document.addEventListener(t, () => { deystvie = Date.now(); }, { capture: true, passive: true }));
+  function slushatSoobshchenie() {
+    const m = document.getElementById("message");
+    if (!m) return false;
+    let bylTekst = m.textContent;
+    new MutationObserver(() => {
+      const tekst = m.textContent.trim();
+      if (!tekst || tekst === bylTekst || Date.now() - deystvie > 5000) { bylTekst = tekst; return; }
+      bylTekst = tekst;
+      if (/\b(error|warn)\b/.test(m.className)) zvuk("oshibka");
+      else if (/\bok\b/.test(m.className)) zvuk("ok");
+    }).observe(m, { childList: true, characterData: true, subtree: true, attributes: true, attributeFilter: ["class"] });
+    return true;
+  }
+  if (!slushatSoobshchenie()) document.addEventListener("DOMContentLoaded", slushatSoobshchenie);
+
   // Ошибки WMS-панели (акт, паллета, перемещение) — красные строки .aktPs__oshibka. Панель перерисовывается
   // целиком, поэтому звучим только на новый текст ошибки, а не на каждую перерисовку.
   let bylo = new Set();
