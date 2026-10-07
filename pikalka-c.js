@@ -549,7 +549,7 @@
         ${st.length ? '<button type="button" class="cBtn cBtn--sm" data-osh-excel="1">Excel</button>' : ""}
         <span>${oshZhdu ? "загружаю…" : `${st.length} строк${Object.keys(vidy).length ? " · " + Object.entries(vidy).map(([k, n]) => `${esc(k)} ${n}`).join(" · ") : ""}`}</span></div>
       ${st.length ? `<div class="oshZh__tab"><table><thead><tr><th>Время</th><th>Вид</th><th>Контейнер</th><th>Акт</th><th>Товар</th><th>По ВМС</th><th>Виновный</th><th>Комментарий</th><th>Записал</th></tr></thead><tbody>
-        ${st.map((x) => `<tr><td>${esc(x._когда)}</td><td><b>${esc(x["Вид ошибки"])}</b></td><td>${esc(x["Номер контейнера"])}</td><td>${esc(x["Номер акта"])}</td>
+        ${st.map((x) => `<tr><td>${esc(x._когда)}</td><td><b>${esc(x["Вид ошибки"])}</b></td><td>${esc(x["Номер контейнера"])}</td><td>${x["Номер акта"] ? `<button type="button" class="palStroka__aktKn" data-akt-detal="${esc(x["Номер акта"])}">${esc(x["Номер акта"])}</button>` : ""}</td>
           <td>${esc(String(x["Товар"] || "").slice(0, 60))}</td><td>${esc(x["Программное размещение"])}</td><td>${esc(x["Виновный"])}</td>
           <td>${esc(x["Комментарий"])}</td><td>${esc(x._кто_записал)}</td></tr>`).join("")}</tbody></table></div>`
         : `<p class="aktPs__chto">${oshZhdu ? "" : "За этот день ошибок не записано. Записать: пикнуть паллету → «Сверка», или пикнуть акт → блок «Ошибка ДВК»."}</p>`}

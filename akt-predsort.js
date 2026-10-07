@@ -356,7 +356,7 @@
         <span class="palStroka__tovar">${esc(x.товар)}${x.качество && !/^брак$/i.test(x.качество) ? ` <i class="palStroka__kach">${esc(x.качество)}</i>` : ""}${svMetka(x)}</span>
         <span class="palStroka__kat">${katPal(x)}</span>
         <span class="palStroka__sht">${x.штук} шт</span>
-        <span class="palStroka__akt">${x.акт ? `акт №${x.акт}` : x.уже_нами && !x.без_акта ? "заактировано нами" : "без акта"}</span>
+        <span class="palStroka__akt">${x.акт ? `<button type="button" class="palStroka__aktKn" data-akt-detal="${esc(x.акт)}" title="Акт целиком: что с ним и фото">акт №${x.акт}</button>` : x.уже_нами && !x.без_акта ? "заактировано нами" : "без акта"}</span>
         <button type="button" class="palNet${palNetZapisano.has(x.ключ) ? " is-on" : ""}" data-pal-net="${esc(x.ключ)}" title="Физически на паллете нет — записать ошибку «Недостача»">${palNetZapisano.has(x.ключ) ? "записано: нет" : "нет в паллете"}</button>
       </label>`).join("");
     const shtVybr = vybrano().reduce((n, x) => n + x.штук, 0);
@@ -830,7 +830,7 @@
     if (izl.zhdu) telo = '<p class="aktPs__chto">Ищу акт в WMS…</p>';
     else if (izl.oshibka) telo = `<p class="aktPs__net"><b class="aktPs__oshibka">${esc(izl.oshibka)}</b></p>`;
     else if (k && k.акт) {
-      telo = `<div class="izl__karta"><b>акт ${esc(k.акт)} · ${esc(k.товар || "")}</b>
+      telo = `<div class="izl__karta"><b><button type="button" class="palStroka__aktKn" data-akt-detal="${esc(k.акт)}" title="Акт целиком: что с ним и фото">акт ${esc(k.акт)}</button> · ${esc(k.товар || "")}</b>
           <span>${k.категория ? `категория: ${esc(k.категория)} · ` : ""}по WMS числится: ${gde ? `${esc(gde.ячейка || "")} · ${esc(gde.паллета || "без паллеты")}` : "нигде (не принят или в пути)"}</span></div>
         ${tut ? '<p class="aktPs__chto">По WMS штука уже на этой паллете — излишка нет, обновите состав.</p>' : `
         <label class="izl__gal"><input type="checkbox" data-izl-zap${izl.zapisat ? " checked" : ""}> записать ошибку «Излишек» (с виновным и уведомлением)</label>
@@ -1266,7 +1266,8 @@
           <span>${esc(g.ячейка)}${g.зона ? ` <span class="yachPalleta__zak">· ${esc(g.зона)}</span>` : ""}${g.база ? ` <span class="yachPalleta__zak">· база ${esc(g.база)}</span>` : ""}</span>
           ${g.заказ ? `<span class="yachPalleta__zak">заказ ${esc(g.заказ)}</span>` : ""}
         </button>`).join("")}</div>` : '<p class="aktPs__chto">По WMS штука нигде не числится — не принята, в перемещении, продана или списана.</p>'}
-      ${panel ? "" : nelzyaPerelozhit(a) + (est ? blokAktPer(a) : "") + vWms + otkuda}`;
+      ${panel ? "" : nelzyaPerelozhit(a) + (est ? blokAktPer(a) : "") + vWms + otkuda}
+      ${panel || !window.AktDetal || !a.акт ? "" : window.AktDetal.blok(a.акт)}`;
     if (!panel) { box.innerHTML = glav; return; }
     vyvesti(glavAkta(a), `${shapkaDey("Акт", "№" + a.акт, a.особый ? `<span class="cDey__osob">${esc(a.особый)}</span>` : "")}
       ${plashkaVms()}${formaVms()}
@@ -1368,7 +1369,8 @@
       ${(a.где || []).length > 1 ? `<p class="aktPs__zag">Где ещё</p><div class="yachPallety">${a.где.slice(1).map((x) => `
         <button type="button" class="yachPalleta yachPalleta--stolb" data-pal-otkryt="${esc(x.паллета)}"${x.паллета ? "" : " disabled"}>
           <span class="yachPalleta__imya">${esc(x.паллета || "без паллеты")}</span><span>${esc(x.ячейка)}</span></button>`).join("")}</div>` : ""}
-      ${a.комментарии && a.комментарии.length ? `<p class="aktPs__zag">Комментарии</p><div class="aktKom cT">${a.комментарии.map((k) => `<p><span>${esc(k.когда)} · ${esc(k.кто)}</span>${esc(k.текст)}</p>`).join("")}</div>` : ""}`;
+      ${a.комментарии && a.комментарии.length ? `<p class="aktPs__zag">Комментарии</p><div class="aktKom cT">${a.комментарии.map((k) => `<p><span>${esc(k.когда)} · ${esc(k.кто)}</span>${esc(k.текст)}</p>`).join("")}</div>` : ""}
+      ${window.AktDetal && a.акт ? window.AktDetal.blok(a.акт) : ""}`;
   }
 
   /* 30.09: «пока приехал, может поменяться дефект» — поменять заявленный дефект прямо в акте. */
@@ -1659,7 +1661,7 @@
       <header class="cModal__sh"><div><b>Ошибки на мне — ${st.length} за 30 дней</b><span>кто записал, когда и почему</span></div>
         <button type="button" class="cBtn cBtn--sm" data-moi-osh-zakryt="1">закрыть</button></header>
       <div class="oshZh__tab"><table><thead><tr><th>Когда</th><th>Вид</th><th>Акт</th><th>Товар</th><th>Контейнер</th><th>Основание</th><th>Записал</th><th>Комментарий</th></tr></thead><tbody>
-      ${st.map((x) => `<tr><td>${esc(x._когда)}</td><td><b>${esc(x["Вид ошибки"])}</b></td><td>${esc(x["Номер акта"])}</td><td>${esc(String(x["Товар"] || "").slice(0, 60))}</td>
+      ${st.map((x) => `<tr><td>${esc(x._когда)}</td><td><b>${esc(x["Вид ошибки"])}</b></td><td>${x["Номер акта"] ? `<button type="button" class="palStroka__aktKn" data-akt-detal="${esc(x["Номер акта"])}">${esc(x["Номер акта"])}</button>` : ""}</td><td>${esc(String(x["Товар"] || "").slice(0, 60))}</td>
         <td>${esc(x["Номер контейнера"])}</td><td>${esc(x.Основание || "")}</td><td>${esc(x._кто_записал)}</td><td>${esc(x["Комментарий"])}</td></tr>`).join("")}</tbody></table></div></section>`;
     m.hidden = false;
   }
