@@ -172,7 +172,8 @@ function vyrDni(rab, dney) {
   const poDnyu = Object.fromEntries(moi.map((z) => [z["день"], z]));
   const opsPoDnyu = Object.fromEntries(ops.map((z) => [z["день"], z]));
   const kontPoDnyu = Object.fromEntries(kont);
-  const kontOps = Object.fromEntries(rab["операции_контура"] || []);
+  // контур: [день, операций, кг, литров] (07.10 кг и литры; старый ответ — [день, операций])
+  const kontOps = Object.fromEntries((rab["операции_контура"] || []).map((r) => [r[0], r.slice(1)]));
   const konec = new Date(`${posl}T12:00:00Z`).getTime();
   const out = [];
   for (let i = dney - 1; i >= 0; i -= 1) {
@@ -183,9 +184,22 @@ function vyrDni(rab, dney) {
   return out;
 }
 
-// Что считаем: все операции в WMS или штуки со столов контура.
-const vyrZnach = (z, chto) => (chto === "vse" ? (z.ops ? z.ops["операций"] : null) : (z.moy ? z.moy["штук"] : null));
-const vyrKont = (z, chto) => (chto === "vse" ? z.kontOps : z.kontur);
+/* Что считаем: все операции в WMS, их вес и объём по карточкам WMS, или штуки со столов контура.
+   07.10 встреча: «мистери-бокс до 1000 ₽ и шкаф — не одна штука» — кг и м³ показывают, сколько человек перенёс. */
+const VYR_OPS = { vse: ["операций", 0], kg: ["кг", 1], m3: ["литров", 2] };
+const vyrZnach = (z, chto) => {
+  if (chto === "stoly") return z.moy ? z.moy["штук"] : null;
+  if (!z.ops) return null;
+  const v = z.ops[VYR_OPS[chto][0]];
+  return v == null ? null : chto === "m3" ? v / 1000 : v;
+};
+const vyrKont = (z, chto) => {
+  if (chto === "stoly") return z.kontur;
+  const v = z.kontOps ? z.kontOps[VYR_OPS[chto][1]] : null;
+  return v == null ? null : chto === "m3" ? v / 1000 : v;
+};
+const VYR_ED = { vse: "операций", kg: "кг", m3: "м³", stoly: "шт" };
+const vyrFmt = (v, chto) => (chto === "m3" ? (v || 0).toLocaleString("ru-RU", { maximumFractionDigits: v < 10 ? 2 : 1 }) : vyrSht(v));
 
 function vyrKogda(den) {
   const segodnya = new Date(Date.now() + 3 * 3600e3).toISOString().slice(0, 10);
@@ -194,7 +208,8 @@ function vyrKogda(den) {
 }
 
 function vyrPlitki(rab, dni, dney, chto) {
-  const vse = chto === "vse";
+  const ops = chto !== "stoly";
+  const ed = VYR_ED[chto];
   const rab_ = dni.filter((z) => vyrZnach(z, chto) != null);
   const posl = rab_[rab_.length - 1];
   const vsego = rab_.reduce((s, z) => s + vyrZnach(z, chto), 0);
@@ -208,10 +223,10 @@ function vyrPlitki(rab, dni, dney, chto) {
   const plitka = (b, small) => `<div><b>${b}</b><small>${small}</small></div>`;
   const vremya = posl && posl.moy && posl.moy["начало"] ? ` · ${posl.moy["начало"]}–${posl.moy["конец"]}` : "";
   return `<div class="kabCifry zpWork__cifry">
-    ${plitka(posl ? vyrSht(vyrZnach(posl, chto)) : "—",
-      posl ? `${vse ? "операций " : "шт "}${vyrKogda(posl.den)}${vremya}` : `не было работы за ${dney} дней`)}
-    ${plitka(vyrSht(vsego), `${vse ? "операций" : "штук"} за ${dney} дней · дней ${rab_.length}`)}
-    ${plitka(rab_.length ? vyrSht(naDen) : "—", `${vse ? "в день" : "за смену"}${k === null ? "" : ` · ${k >= 0 ? "+" : ""}${k}% к контуру`}`)}
+    ${plitka(posl ? vyrFmt(vyrZnach(posl, chto), chto) : "—",
+      posl ? `${ed} ${vyrKogda(posl.den)}${vremya}` : `не было работы за ${dney} дней`)}
+    ${plitka(vyrFmt(vsego, chto), `${ed} за ${dney} дней · дней ${rab_.length}`)}
+    ${plitka(rab_.length ? vyrFmt(naDen, chto) : "—", `${ops ? "в день" : "за смену"}${k === null ? "" : ` · ${k >= 0 ? "+" : ""}${k}% к контуру`}`)}
     ${plitka(sVremenem.length ? vyrChM(prostoy) : "—",
       sVremenem.length ? `простои · пауз дольше ${rab["простой_порог"] || 30} мин: ${pauz}` : "простои — только за 45 дней")}
     ${plitka(rab["место"] ? `${rab["место"]} из ${rab["из"]}` : "—", "место по штукам со столов")}
@@ -225,7 +240,7 @@ function vyrDen(z, rab, blokShirina) {
   const m = z.moy || {};
   const o = z.ops;
   const zag = `<p class="zpDen__zag"><b>${vyrNed(z.den)} ${vyrDm(z.den)}</b>`
-    + (o ? ` · ${vyrSht(o["операций"])} операций в WMS (${vyrSht(o["штук"])} шт)${z.kontOps ? ` · контур ${vyrSht(z.kontOps)} на человека` : ""}` : "")
+    + (o ? ` · ${vyrSht(o["операций"])} операций в WMS (${vyrSht(o["штук"])} шт${o["кг"] != null ? ` · ${vyrSht(o["кг"])} кг · ${vyrFmt((o["литров"] || 0) / 1000, "m3")} м³` : ""})${z.kontOps ? ` · контур ${vyrSht(z.kontOps[0])} на человека` : ""}` : "")
     + (z.moy ? ` · со столов ${vyrSht(m["штук"])} шт${(m["столы"] || []).length ? ` (${vyrEsc(m["столы"].join(", "))})` : ""}` : "") + "</p>";
   const otkuda = o ? `<p class="zpDen__txt zpDen__ops">откуда: ${(o["зоны"] || []).map(([zona, n]) => `${vyrEsc(zona)} — ${vyrSht(n)}`).join(" · ")}`
     + `${Object.keys(o["типы"] || {}).length > 1 ? `<br>что: ${Object.entries(o["типы"]).sort((a, b) => b[1] - a[1]).map(([t, n]) => `${t} ${vyrSht(n)}`).join(" · ")}` : ""}</p>` : "";
@@ -266,6 +281,8 @@ function grafikVyrabotki(rab) {
         <p class="zpWork__note" data-vyr-note></p></div>
         <div class="zpWork__tools">
           ${estOps ? `<button class="zpView is-on" type="button" data-chto="vse">Все операции</button>
+          <button class="zpView" type="button" data-chto="kg">Кг</button>
+          <button class="zpView" type="button" data-chto="m3">Объём</button>
           <button class="zpView" type="button" data-chto="stoly">Штуки со столов</button>` : ""}
           <button class="zpView is-on" type="button" data-dney="30">30 дней</button>
           <button class="zpView" type="button" data-dney="92">3 месяца</button>
@@ -280,9 +297,11 @@ function vyrNarisovat(blok) {
   const st = VYR.get(blok.dataset.work);
   if (!st) return;
   const { rab, dney, chto } = st;
-  const vse = chto === "vse";
+  const vse = chto !== "stoly";
   const dni = vyrDni(rab, dney);
-  blok.querySelector("[data-vyr-note]").textContent = vse
+  blok.querySelector("[data-vyr-note]").textContent = chto === "kg" || chto === "m3"
+    ? `${chto === "kg" ? "Вес" : "Объём"} всего, что человек провёл в WMS за день, по карточкам товаров WMS: шкаф весит больше мистери-бокса. Пунктир — обычный день в контуре (медиана). Клик по дню — откуда и как он прошёл.`
+    : vse
     ? "Все проведённые операции в WMS за день. Разрыв — дни без работы, пунктир — обычный день человека в контуре (медиана). Клик по дню — откуда и как он прошёл."
     : "Штуки со столов контура за день. Разрыв — дни без выхода, пунктир — средняя смена контура. Клик по дню — как он прошёл.";
   const telo = blok.querySelector("[data-vyr-telo]");
@@ -308,8 +327,8 @@ function vyrNarisovat(blok) {
         z.moy && z.moy["паузы"] && z.moy["паузы"].length ? `простои ${vyrChM(z.moy["простой"])}` : "",
       ].filter(Boolean),
     })),
-    format: (v) => vyrSht(v),
-    formatTochno: (v) => `${vyrSht(v)} ${vse ? "операций" : "шт"}`,
+    format: (v) => vyrFmt(v, chto),
+    formatTochno: (v) => `${vyrFmt(v, chto)} ${VYR_ED[chto]}`,
     otNulya: true,
     trend: 0,
     prizrak: dni.map((z) => vyrKont(z, chto)),
