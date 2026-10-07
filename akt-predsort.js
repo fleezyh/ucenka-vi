@@ -222,6 +222,13 @@
   // На другой склад заказом ДБ (29.09, задача Гамлета: форма вмс берёт только брак).
   // null | { idet } | { predv } | { gotovo } | { oshibka }
   let palDb = null;
+  // 07.10 Сверка паллеты (служба контроля сверяет контейнеры с ВМС руками в книге «Ошибки ДРП»; Степан: «всё в
+  // одном, отдельный блок не надо — для всех»): вкладка панели паллеты. Пока она открыта, пик акта не уводит с
+  // паллеты, а отмечает штуку. sverka: { pid, imya, nashli: Map(ключ строки → штук), lishnie: [], kat: Map(акт →
+  // {…}), zhdut, posl, itog }.
+  let palTab = "";
+  let sverka = null;
+  let sverkaPosl = null;   // прошлая сверка этой паллеты — с сервера
   const IMYA_MARSHRUTA = { ДАНИЛОВО: "в Данилово", "СЦ-ДМД": "на СЦ-ДМД", ДОМОДЕДОВО: "в ДМД (РЦ)" };
   // Выбор части паллеты (29.09, «надо добавить выбор части паллет»): ключи строк.
   let palVybor = null;
@@ -272,6 +279,7 @@
     pal = null; palKrit = ""; palDefekt = ""; palRabota = null; palOshibka = ""; palPer = null; yach = null;
     aktK = null; istP = null; palVybor = null; palSvoy = ""; palDb = null; palPoisk = ""; palPosledniy = null;
     tovar = null; gotovo = null; zhdemPalletu = null; perItog = null;
+    palTab = ""; sverka = null; sverkaPosl = null;
     vRezhimPalety(true);
     box.hidden = false;
     vyvesti('<p class="aktPs__chto">Смотрю паллету…</p>', shapkaDey("Паллета", kod));
@@ -285,6 +293,10 @@
       if (!o.ok) throw new Error(d.ошибка || `сервер ответил ${o.status}`);
       pal = d;
       palVybor = new Set((pal.строки || []).map((x) => x.ключ));
+      if (pal.паллета_id) {
+        chitat(`/__akt/sverka?palleta_id=${encodeURIComponent(pal.паллета_id)}`)
+          .then((s) => { if (pal && s.сверка) { sverkaPosl = s.сверка; risovat(); } }).catch(() => {});
+      }
     } catch (e) {
       palOshibka = e.message || String(e);
       pal = { паллета: kod, ячейка: "", строки: [], без_акта: 0 };
@@ -322,9 +334,18 @@
     const vsego = pal.строки.reduce((n, x) => n + x.штук, 0);
     const vkl = (x) => !palVybor || palVybor.has(x.ключ);
     const vidno = palNaydeno();
+    // на сверке у каждой строки — отметка: ✓ сверено, 2/5 по штукам без акта, «не та категория»
+    const sv = palTab === "sverka" && sverka;
+    const svMetka = (x) => {
+      if (!sv) return "";
+      const est = sverka.nashli.get(x.ключ) || 0;
+      const kat = x.акт && sverka.kat.get(String(x.акт));
+      return `<span class="palStroka__sv${est >= x.штук ? " is-ok" : est ? " is-chast" : ""}${kat ? " is-kat" : ""}">${kat ? `не та категория → ${esc(kat.нужна)}`
+        : est >= x.штук ? "✓ сверено" : est ? `${est} из ${x.штук}` : "не пикнута"}</span>`;
+    };
     const spisok = vidno.map((x) => `<label class="palStroka palStroka--vybor${x.без_акта ? " is-bez" : ""}${vkl(x) ? "" : " is-vykl"}">
         <input type="checkbox" data-pvyb="${esc(x.ключ)}"${vkl(x) ? " checked" : ""}${palRabota && palRabota.идёт ? " disabled" : ""}>
-        <span class="palStroka__tovar">${esc(x.товар)}${x.качество && !/^брак$/i.test(x.качество) ? ` <i class="palStroka__kach">${esc(x.качество)}</i>` : ""}</span>
+        <span class="palStroka__tovar">${esc(x.товар)}${x.качество && !/^брак$/i.test(x.качество) ? ` <i class="palStroka__kach">${esc(x.качество)}</i>` : ""}${svMetka(x)}</span>
         <span class="palStroka__kat">${katPal(x)}</span>
         <span class="palStroka__sht">${x.штук} шт</span>
         <span class="palStroka__akt">${x.акт ? `акт №${x.акт}` : x.уже_нами && !x.без_акта ? "заактировано нами" : "без акта"}</span>
@@ -384,15 +405,17 @@
       ${spisok ? `${panelVybora}<div class="palSpisok">${spisok}</div>` : ""}
       ${est ? "" : niz}`;
     if (!est) { box.innerHTML = glav; return; }
-    const tab = palPer ? "per" : palDb ? "db" : "akt";
+    const tab = palTab === "sverka" ? "sverka" : palPer ? "per" : palDb ? "db" : "akt";
     const zanyato = (palPer && palPer.idet) || (palDb && palDb.idet) || (palRabota && palRabota.идёт);
     // 06.10 Бершацкая: «в пикалке удалилась кнопка принять» — «Принять» было только у списка паллет (масс. пик);
     // у одной паллеты — та же кнопка, ведёт в тот же приём с этой паллетой.
-    const vkladki = [["akt", `Акт${bezVybr ? ` · <em>${bezVybr}</em>` : ""}`], ["per", "Переместить"], ["db", "На склад"], ["priyom", "Принять"]];
+    // 07.10: «Сверка» — пятой вкладкой, остальные четыре не меняются.
+    const vkladki = [["akt", `Акт${bezVybr ? ` · <em>${bezVybr}</em>` : ""}`], ["per", "Переместить"], ["db", "На склад"], ["priyom", "Принять"],
+      ["sverka", `Сверка${sverka ? ` · <em>${Math.min(sverkaNashli(), vsego)}/${vsego}</em>` : ""}`]];
     vyvesti(glav, `${shapkaDey("Паллета", pal.паллета, `<span class="cDey__pod">${vseVybrany() ? `${vsego} шт` : `выбрано ${shtVybr} из ${vsego} шт`}</span>`)}
       ${plashkaVms()}${formaVms()}
       <div class="cSeg">${vkladki.map(([k, t]) => `<button type="button" class="${k === tab ? "is-on" : ""}" data-ptab="${k}"${zanyato && k !== tab ? " disabled" : ""}>${t}</button>`).join("")}</div>
-      <div class="cDey__telo">${tab === "per" ? blokPeremeshcheniya() : tab === "db" ? blokDb() : niz}</div>
+      <div class="cDey__telo">${tab === "sverka" ? blokSverki() : tab === "per" ? blokPeremeshcheniya() : tab === "db" ? blokDb() : niz}</div>
       <div class="cDey__niz"><button type="button" class="aktPs__kn" data-pkk="istoriya">История</button>
         <button type="button" class="aktPs__kn" data-pkk="uz">Задание</button></div>`);
   }
@@ -621,6 +644,143 @@
     setTimeout(() => URL.revokeObjectURL(a.href), 2000);
   }
 
+  // ---------------- Сверка паллеты (07.10) ----------------
+  // Колонки — как в книге «Ошибки ДРП» службы контроля, чтобы строки можно было вставить к ним как есть.
+  const SVERKA_KOL = ["Дата нарушения", "Номер контейнера", "Номер акта", "Товар", "Стоимость сайт", "Программное размещение",
+    "Вид ошибки", "ДВК ГРУ", "Виновный", "Комментарий"];
+  const sverkaVsego = () => (pal ? pal.строки.reduce((n, x) => n + x.штук, 0) : 0);
+  const sverkaNashli = () => (sverka ? [...sverka.nashli.values()].reduce((n, v) => n + v, 0) : 0);
+  const nomerAkta = (kod) => { const m = String(kod || "").match(/(\d{5,12})\s*$/); return m ? String(Number(m[1])) : ""; };
+  const gdeStr = (g) => (g && g.length ? g.map((x) => [x.ячейка, x.паллета].filter(Boolean).join(" · ")).join("; ") : "нигде не числится");
+  const zvukPik = (vid) => { if (window.pikalkaZvuk) setTimeout(() => window.pikalkaZvuk(vid), 280); };
+  function sverkaNachat() {
+    sverka = { pid: pal.паллета_id || null, imya: (palKarta && palKarta.паллета) || pal.паллета, nashli: new Map(),
+      lishnie: [], kat: new Map(), zhdut: 0, posl: "", itog: null };
+  }
+
+  async function sverkaAkt(kod) {
+    if (!sverka) sverkaNachat();
+    if (sverka.itog) { sverka.posl = "сверка закончена — «Новая сверка», чтобы начать заново"; zvukPik("oshibka"); risovat(); return; }
+    const akt = nomerAkta(kod);
+    if (!akt) return;
+    const x = pal.строки.find((s) => s.акт && String(s.акт) === akt);
+    if (x && sverka.nashli.get(x.ключ)) { sverka.posl = `акт ${akt} уже отмечен`; zvukPik("oshibka"); risovat(); return; }
+    if (!x && sverka.lishnie.some((l) => String(l.акт) === akt)) { sverka.posl = `акт ${akt} уже в излишках`; zvukPik("oshibka"); risovat(); return; }
+    if (x) { sverka.nashli.set(x.ключ, x.штук || 1); sverka.posl = `✓ ${x.товар}`; zvukPik("ok"); }
+    sverka.zhdut += 1; risovat();
+    try {
+      // свой акт — проверить категорию; чужой — где числится по ВМС и кто клал
+      const d = await chitat(`/__akt/sverka/akt?kod=${encodeURIComponent(kod)}&palleta=${encodeURIComponent(sverka.imya)}`);
+      if (x || d.на_этой) {
+        if (!x) { sverka.nashli.set(`акт ${akt}`, 1); sverka.posl = `✓ ${d.товар} (появился в ВМС после открытия)`; zvukPik("ok"); }
+        if (d.подходит === false) {
+          sverka.kat.set(akt, { акт: akt, товар: d.товар, нужна: d.категория, кто: d.кто, цена: d.цена });
+          sverka.posl = `не та категория: ${d.товар} → нужна «${d.категория}»`; zvukPik("oshibka");
+        }
+      } else {
+        sverka.lishnie.push({ акт: akt, товар: d.товар, где: d.где, кто: d.кто, цена: d.цена, вид: d.принят ? "Излишек" : "Не принят в ВМС" });
+        sverka.posl = `${d.принят ? "излишек" : "не принят в ВМС"}: ${d.товар}`; zvukPik("oshibka");
+      }
+    } catch (e) {
+      if (!x) sverka.lishnie.push({ акт: akt, товар: "", где: [], кто: null, вид: "Излишек", комм: `ВМС не ответила: ${e.message || e}` });
+    } finally {
+      sverka.zhdut -= 1; risovat();
+    }
+  }
+
+  // Штука без акта — по штрихкоду товара: засчитываем в строку «без акта» с тем же названием.
+  function sverkaTovar(t) {
+    if (!sverka) sverkaNachat();
+    if (sverka.itog) return;
+    const imya = String(t.name || "").trim();
+    const x = pal.строки.find((s) => !s.акт && s.товар === imya && (sverka.nashli.get(s.ключ) || 0) < s.штук);
+    if (x) {
+      sverka.nashli.set(x.ключ, (sverka.nashli.get(x.ключ) || 0) + 1);
+      sverka.posl = `✓ ${imya} — без акта, ${sverka.nashli.get(x.ключ)} из ${x.штук}`; zvukPik("ok");
+    } else if (pal.строки.some((s) => s.акт && s.товар === imya)) {
+      sverka.posl = `«${imya}» на паллете с актом — пикните наклейку акта`; zvukPik("oshibka");
+    } else {
+      sverka.lishnie.push({ акт: "", товар: imya, где: [], кто: null, цена: t.price || "", вид: "Излишек", комм: "без акта, по штрихкоду" });
+      sverka.posl = `излишек без акта: ${imya}`; zvukPik("oshibka");
+    }
+    risovat();
+  }
+
+  function sverkaStroka(vid, o) {
+    return { "Дата нарушения": new Date().toLocaleDateString("ru-RU"), "Номер контейнера": sverka.imya, "Номер акта": o.акт || "",
+      "Товар": o.товар || "", "Стоимость сайт": o.цена || "", "Программное размещение": o.размещение || "", "Вид ошибки": vid,
+      "ДВК ГРУ": "", "Виновный": o.кто ? o.кто.кто : "", "Комментарий": o.комм || "" };
+  }
+
+  async function sverkaKonec() {
+    const stroki = [];
+    sverka.lishnie.forEach((l) => stroki.push(sverkaStroka(l.вид, { ...l, размещение: gdeStr(l.где),
+      комм: l.комм || (l.кто ? `перекладывал(а) пикалкой ${l.кто.когда} на ${l.кто.паллета}` : "") })));
+    sverka.kat.forEach((k) => stroki.push(sverkaStroka("Ошибка Категории", { ...k, размещение: sverka.imya, комм: `нужна «${k.нужна}»` })));
+    pal.строки.forEach((x) => {
+      const est = sverka.nashli.get(x.ключ) || 0;
+      if (est < x.штук) stroki.push(sverkaStroka("Недостача", { акт: x.акт || "", товар: x.товар, цена: x.цена, размещение: sverka.imya,
+        комм: x.акт ? "" : `без акта: нет ${x.штук - est} из ${x.штук}` }));
+    });
+    sverka.zhdut += 1; risovat();
+    try {
+      const o = await fetch("/__akt/sverka", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ паллета: sverka.imya, паллета_id: sverka.pid, всего: sverkaVsego(),
+          совпало: Math.min(sverkaNashli(), sverkaVsego()), строки: stroki }) });
+      const d = await o.json().catch(() => ({}));
+      if (!o.ok) throw new Error(d.ошибка || `сервер ответил ${o.status}`);
+      sverka.itog = d.строки || stroki;
+      sverka.posl = "";
+      sverkaPosl = { когда: "только что", кто: "вы", всего: sverkaVsego(), совпало: Math.min(sverkaNashli(), sverkaVsego()), ошибок: stroki.length };
+    } catch (e) {
+      sverka.itog = stroki;
+      sverka.posl = `на сервере не сохранилось (${e.message || e}) — выгрузите Excel`;
+    } finally {
+      sverka.zhdut -= 1; risovat();
+    }
+  }
+
+  function sverkaExcel() {
+    const rows = [SVERKA_KOL].concat((sverka.itog || []).map((s) => SVERKA_KOL.map((k) => s[k] ?? "")));
+    const csv = String.fromCharCode(0xFEFF) + rows.map((r) => r.map((x) => `"${String(x ?? "").replace(/"/g, '""')}"`).join(";")).join("\r\n");
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    a.download = `сверка ${String(sverka.imya).replace(/[\\/:*?"<>|]/g, "_")} ${new Date().toLocaleDateString("ru-RU")}.csv`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  }
+
+  function blokSverki() {
+    if (!sverka) sverkaNachat();
+    const N = sverkaVsego();
+    const n = Math.min(sverkaNashli(), N);
+    const posl = sverkaPosl ? `<p class="aktPs__chto">Прошлая сверка: ${esc(sverkaPosl.когда)} · ${esc(sverkaPosl.кто)} · сошлось ${sverkaPosl.совпало} из ${sverkaPosl.всего}, ошибок ${sverkaPosl.ошибок}</p>` : "";
+    if (sverka.itog) {
+      const it = sverka.itog;
+      return `<div class="sverka">
+        <div class="sverka__schet"><b>${it.length ? it.length : "✓"}</b><span>${it.length ? "ошибок по паллете" : "всё сошлось с ВМС"}</span></div>
+        ${sverka.posl ? `<p class="aktPs__net"><b class="aktPs__oshibka">${esc(sverka.posl)}</b></p>` : ""}
+        ${it.length ? `<div class="sverka__spisok">${it.map((s) => `<p><b>${esc(s["Вид ошибки"])}</b> ${s["Номер акта"] ? `акт ${esc(s["Номер акта"])} · ` : ""}${esc(s["Товар"])}
+          <span>${esc(s["Программное размещение"] || "")}${s["Виновный"] ? ` · кандидат: ${esc(s["Виновный"])}` : ""}${s["Комментарий"] ? ` · ${esc(s["Комментарий"])}` : ""}</span></p>`).join("")}</div>` : ""}
+        <div class="aktPs__vopros">${it.length ? '<button type="button" class="aktPs__kn is-on" data-sverka="excel">Excel — в колонках книги ошибок</button>' : ""}
+          <button type="button" class="aktPs__kn" data-sverka="novaya">Новая сверка</button></div>
+        <p class="aktPs__chto">«Кандидат» — кто последним перекладывал штуку пикалкой; перекладки руками в WMS пикалка не видит.</p>
+      </div>`;
+    }
+    const kat = [...sverka.kat.values()];
+    return `<div class="sverka">
+      <div class="sverka__schet"><b>${n}</b><span>из ${N} шт сверено</span>${sverka.lishnie.length ? `<em>излишков ${sverka.lishnie.length}</em>` : ""}${kat.length ? `<em>не та категория ${kat.length}</em>` : ""}${sverka.zhdut ? `<i>проверяю в ВМС…</i>` : ""}</div>
+      <p class="aktPs__chto">${sverka.posl ? esc(sverka.posl) : "Пикайте акты с паллеты по одному — пикалка сравнит с составом по ВМС. Штуки без акта — штрихкодом товара."}</p>
+      ${sverka.lishnie.length ? `<p class="aktPs__zag">Лежат здесь, по ВМС — не здесь</p><div class="sverka__spisok">${sverka.lishnie.map((l) => `<p><b>${l.акт ? `акт ${esc(l.акт)}` : "без акта"}</b> ${esc(l.товар)}
+        <span>${l.вид === "Не принят в ВМС" ? "акт не принят в ВМС" : `числится: ${esc(gdeStr(l.где))}`}${l.кто ? ` · клал(а) ${esc(l.кто.кто)} ${esc(l.кто.когда)}` : ""}</span></p>`).join("")}</div>` : ""}
+      ${kat.length ? `<p class="aktPs__zag">Не та категория</p><div class="sverka__spisok">${kat.map((k) => `<p><b>акт ${esc(k.акт)}</b> ${esc(k.товар)}
+        <span>нужна «${esc(k.нужна)}»${k.кто ? ` · клал(а) ${esc(k.кто.кто)} ${esc(k.кто.когда)}` : ""}</span></p>`).join("")}</div>` : ""}
+      <div class="aktPs__vopros"><button type="button" class="aktPs__kn is-on" data-sverka="konec"${sverka.zhdut ? " disabled" : ""}>Закончить сверку${N - n > 0 ? ` · не пикнуто ${N - n} — в недостачу` : ""}</button>
+        <button type="button" class="aktPs__kn" data-sverka="sbros">Сначала</button></div>
+      ${posl}
+    </div>`;
+  }
+
   async function palStart() {
     const kn = document.getElementById("palGo");
     if (kn) kn.disabled = true;
@@ -741,10 +901,94 @@
   async function otkrytAkt(kod) {
     if (kod === aktPosl.kod && Date.now() - aktPosl.t < 2000) return;
     aktPosl = { kod, t: Date.now() };
+    // 07.10 (руководитель контроля: «сотрудник отсканировал акт, идёт на контейнер, но не пикнул перемещение, —
+    // чтобы пикалка запомнила»): прошлый акт так и лежит на столе, а пикнули следующий — в список и звук.
+    const byl = aktK && aktK.акт ? aktK : null;
+    if (byl && !(aktPer && aktPer.itog && aktPer.itog.ok) && naStole(byl) && nomerAkta(kod) !== String(byl.акт)) {
+      nePerZapisat(nePerSpisok().filter((x) => String(x.акт) !== String(byl.акт))
+        .concat([{ акт: byl.акт, товар: byl.товар, наклейка: byl.наклейка || "", когда: new Date().toTimeString().slice(0, 5) }]));
+      signal(`акт ${byl.акт} пикнут и не переложен — так и лежит на столе`);
+      zvukPik("oshibka");
+    }
     aktK = { zhdu: true }; aktPer = null; vtisZ = null; defRed = null; novP = null; pal = null; yach = null; tovar = null; vRezhimPalety(true); risovat();
     try { aktK = await chitat(`/__vms/akt?kod=${encodeURIComponent(kod)}`); } catch (e) { aktK = { oshibka: e.message || String(e) }; }
+    // переоткрыли акт из списка «не переложены», а он уже не на столе — убрать из списка
+    if (aktK && aktK.акт && aktK.живьём && !naStole(aktK)) nePerUbrat(aktK.акт);
     risovat();
     if (neprinyat(aktK)) stopPokazat(aktK);
+  }
+
+  // «Не переложены за смену» — в этом браузере, сбрасывается с новым днём.
+  const KL_NEPER = "pikNePer";
+  const naStole = (a) => Boolean(a && a.живьём && a.где && a.где.length && /стол/i.test(`${a.где[0].ячейка} ${a.где[0].зона || ""}`));
+  function nePerSpisok() {
+    try { const d = JSON.parse(localStorage.getItem(KL_NEPER) || "{}"); return d.den === new Date().toDateString() ? d.akty || [] : []; } catch { return []; }
+  }
+  function nePerZapisat(akty) { localStorage.setItem(KL_NEPER, JSON.stringify({ den: new Date().toDateString(), akty: akty.slice(-50) })); }
+  function nePerUbrat(akt) { const sp = nePerSpisok(); const ost = sp.filter((x) => String(x.акт) !== String(akt)); if (ost.length !== sp.length) nePerZapisat(ost); }
+  function nePerPolosa() {
+    const sp = nePerSpisok();
+    if (!sp.length) return "";
+    return `<div class="nePer"><p><b>Пикнуты и не переложены за смену: ${sp.length}</b> — нажмите, чтобы открыть и доделать</p>
+      <div>${sp.slice(-8).reverse().map((x) => `<button type="button" class="aktPs__kn" data-akt-otkryt="${esc(x.наклейка || x.акт)}">${esc(x.когда)} · акт ${esc(x.акт)} · ${esc(String(x.товар || "").slice(0, 36))}</button>`).join("")}</div></div>`;
+  }
+
+  /* 07.10 «Контейнер с остатком» (руководитель контроля: «чтобы не давала завершить работу с контейнером, пока остаток
+     не перемещён: на контейнере 100, обработали 99 — уведомление, что числится ещё 1»). Исходный контейнер — откуда
+     реально переложили штуку (ответ перекладки). Перешли к штуке из другого контейнера — смотрим прошлый по ВМС;
+     что-то числится — окно: доразобрать или «физически нет» (в журнал сверок недостачей). */
+  let istKont = "";
+  let ostatok = null;   // { imya, stroki } — окно открыто
+  async function proveritOstatok(imya) {
+    try {
+      const d = await chitat(`/__akt/palleta?kod=${encodeURIComponent(imya)}`);
+      const stroki = (d.строки || []).filter((x) => x.штук > 0);
+      if (!stroki.length) return;
+      ostatok = { imya: d.паллета || imya, pid: d.паллета_id || null, stroki };
+      ostatokPokazat();
+    } catch { /* ВМС не ответила — не мешаем работе */ }
+  }
+  function ostatokPokazat() {
+    let el = document.getElementById("kontOst");
+    if (!el) {
+      el = document.createElement("div");
+      el.id = "kontOst";
+      el.className = "aktStop aktStop--ost";
+      el.setAttribute("role", "alertdialog");
+      document.body.appendChild(el);
+      el.addEventListener("click", (e) => { const b = e.target.closest("[data-ost]"); if (b) ostatokReshit(b.dataset.ost); });
+    }
+    const o = ostatok;
+    const sht = o.stroki.reduce((n, x) => n + x.штук, 0);
+    el.innerHTML = `<div class="aktStop__okno">
+        <p class="aktStop__nad">Вы перешли к другому контейнеру</p>
+        <h2 class="aktStop__zag">В ${esc(o.imya)} ещё числится ${sht} шт</h2>
+        <div class="aktStop__spisok">${o.stroki.slice(0, 8).map((x) => `<p>${x.акт ? `акт ${esc(x.акт)} · ` : ""}${esc(x.товар)}${x.штук > 1 ? ` · ${x.штук} шт` : ""}</p>`).join("")}${o.stroki.length > 8 ? `<p>…и ещё ${o.stroki.length - 8}</p>` : ""}</div>
+        <p class="aktStop__chto">Если штуки там лежат — доразберите контейнер. Если их физически нет — отметьте, это уйдёт в журнал недостачей.</p>
+        <div class="aktStop__knopki">
+          <button type="button" class="aktStop__da" data-ost="vernus">Вернусь и доразберу</button>
+          <button type="button" class="aktStop__snova" data-ost="net">Физически нет — записать недостачу</button>
+          <button type="button" class="aktStop__snova" data-ost="dalshe">Контейнер не мой — дальше</button>
+        </div>
+      </div>`;
+    el.hidden = false;
+    document.body.classList.add("is-aktStop");
+    zvukPik("oshibka");
+  }
+  async function ostatokReshit(kak) {
+    const o = ostatok;
+    if (kak === "net" && o) {
+      const den = new Date().toLocaleDateString("ru-RU");
+      const stroki = o.stroki.map((x) => ({ "Дата нарушения": den, "Номер контейнера": o.imya, "Номер акта": x.акт || "", "Товар": x.товар,
+        "Стоимость сайт": x.цена || "", "Программное размещение": o.imya, "Вид ошибки": "Недостача", "ДВК ГРУ": "", "Виновный": "",
+        "Комментарий": `контейнер оставлен с остатком${x.штук > 1 ? `, ${x.штук} шт` : ""}` }));
+      fetch("/__akt/sverka", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ паллета: o.imya, паллета_id: o.pid, всего: stroki.length, совпало: 0, строки: stroki }) }).catch(() => {});
+    }
+    ostatok = null;
+    const el = document.getElementById("kontOst");
+    if (el) el.hidden = true;
+    if (!stopAkt) document.body.classList.remove("is-aktStop");
   }
 
   /* 07.10 Струков, Белитов (разбор ошибок с ДВК, «очень много у Калачёва»): акт в вмс не числится, а человек
@@ -813,9 +1057,9 @@
   }
   // Пока стоп — любые пики гасим раньше остальных обработчиков (захват, этот файл грузится до pikalka-c.js).
   ["picker:hit", "picker:akt", "picker:palleta", "picker:miss"].forEach((tip) => document.addEventListener(tip, (e) => {
-    if (!stopAkt) return;
+    if (!stopAkt && !ostatok) return;
     e.stopImmediatePropagation();
-    const el = document.getElementById("aktStop");
+    const el = document.getElementById(stopAkt ? "aktStop" : "kontOst");
     if (el) { el.classList.remove("is-tryas"); void el.offsetWidth; el.classList.add("is-tryas"); }
     setTimeout(() => window.pikalkaZvuk && window.pikalkaZvuk("oshibka"), 260);
   }, { capture: true }));
@@ -893,6 +1137,7 @@
     if (!panel) { box.innerHTML = glav; return; }
     vyvesti(glavAkta(a), `${shapkaDey("Акт", "№" + a.акт, a.особый ? `<span class="cDey__osob">${esc(a.особый)}</span>` : "")}
       ${plashkaVms()}${formaVms()}
+      ${nePerPolosa()}
       ${shagiAkta(a)}
       ${kat}
       ${nelzyaPerelozhit(a)}
@@ -1113,6 +1358,13 @@
       aktPer = d.через_сц ? { itog: { ok: true, zag: `Принято → ${d.паллета} · через СЦ`, tekst: `${d.через_сц} · перемещение №${d.перемещение}` } }
         : { itog: { ok: true, zag: `${d.проведено ? "Перемещено" : "Перемещение черновиком"} → ${d.паллета}`,
         tekst: `${d.откуда} → ${d.ячейка} · перемещение №${d.перемещение}${d.подходит === false ? " · паллета не своей категории" : ""}` } };
+      nePerUbrat(aktK.акт);
+      // исходный контейнер — «ячейка · паллета» из ответа; сменился — проверить, не остался ли хвост в прошлом
+      const ist = String(d.откуда || "").split(" · ")[1] || "";
+      if (ist && ist !== "без паллеты") {
+        if (istKont && ist !== istKont) proveritOstatok(istKont);
+        istKont = ist;
+      }
       aktK.где = [{ паллета: d.паллета, ячейка: d.ячейка, зона: "", заказ: "" }];
       if (navigator.vibrate) navigator.vibrate(120);
     } catch (oshibka) {
@@ -1870,6 +2122,7 @@
 
   document.addEventListener("picker:hit", (e) => {
     if (!aktivno) return;
+    if (pal && palTab === "sverka") { sverkaTovar(e.detail || {}); return; }   // 07.10: штука без акта на сверке
     wmsZakryt();
     tovar = e.detail; reshenie = ""; defekt = ""; krit = ""; gotovo = null; oshibkaAkta = ""; aktVsyo = false; novP = null;
     aktK = null; gdeT = null; yach = null; vozvrat = null; vyborStola = false;
@@ -1884,6 +2137,7 @@
 
   document.addEventListener("picker:akt", (e) => {
     vozvrat = null;
+    if (pal && palTab === "sverka") { sverkaAkt(e.detail.kod); return; }   // 07.10: на сверке акт отмечается, а не открывается
     if (massPik) { vKorzinuAkt(e.detail.kod); return; }
     otkrytAkt(e.detail.kod);
   });
@@ -2235,9 +2489,19 @@
       stol = null; reshenie = ""; localStorage.removeItem(KLYUCH_STOLA);
       return risovat();
     }
+    const svk = e.target.closest("[data-sverka]");
+    if (svk && pal && sverka) {
+      const t = svk.dataset.sverka;
+      if (t === "konec") sverkaKonec();
+      else if (t === "excel") sverkaExcel();
+      else { sverkaNachat(); risovat(); vFokus(); }
+      return;
+    }
     const pt = e.target.closest("[data-ptab]");
     if (pt && pal) {
       const t = pt.dataset.ptab;
+      if (t === "sverka") { palPer = null; palDb = null; palTab = "sverka"; if (!sverka) sverkaNachat(); risovat(); vFokus(); return; }
+      palTab = "";
       if (t === "priyom") {
         const kod = pal.паллета_id ? `CON ${String(pal.паллета_id).padStart(10, "0")}` : (pal.паллета || "");
         massPik = true; korzina = []; korzAkty = []; korzLog = []; korzPer = null; korzDb = null;

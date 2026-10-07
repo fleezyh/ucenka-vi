@@ -619,3 +619,32 @@ body.cSkin.is-svetlo .cKuda__forma input { background: #fff; }
 .aktKat--stop{background:rgba(240,93,114,.16)!important;border-color:rgba(240,93,114,.6)!important}
 .aktKat--stop .aktKat__imya{color:#ff6f82}
 @media (max-width:760px){.aktStop__okno{padding:22px 18px 18px}.aktStop__zag{font-size:26px}.aktStop__chto{font-size:16px}}
+
+/* 07.10 Сверка паллеты — вкладка панели паллеты */
+.sverka{display:grid;gap:10px}
+.sverka__schet{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px}
+.sverka__schet b{font-size:34px;line-height:1;font-weight:600}
+.sverka__schet span{color:var(--muted)}
+.sverka__schet em{font-style:normal;padding:3px 9px;border-radius:9px;background:rgba(240,93,114,.16);color:#ff8a9a;font-size:13px}
+.sverka__schet i{font-style:normal;color:var(--muted);font-size:13px}
+.sverka__spisok{display:grid;gap:6px;max-height:260px;overflow:auto}
+.sverka__spisok p{margin:0;padding:8px 10px;border-radius:10px;background:#141c28;border:1px solid var(--cLine2,#2c3a4e);font-size:13px}
+.sverka__spisok p b{color:#ff8a9a;margin-right:4px}
+.sverka__spisok p span{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+.palStroka__sv{display:inline-block;margin-left:8px;padding:1px 8px;border-radius:8px;font-size:12px;font-style:normal;background:#1b2433;color:var(--muted)}
+.palStroka__sv.is-ok{background:rgba(52,199,123,.16);color:#5fe0a0}
+.palStroka__sv.is-chast{background:rgba(240,180,60,.16);color:#f3c56b}
+.palStroka__sv.is-kat{background:rgba(240,93,114,.16);color:#ff8a9a}
+/* «пикнуты и не переложены» — полоса в панели акта */
+.nePer{margin:10px 0;padding:10px 12px;border-radius:12px;background:rgba(240,180,60,.12);border:1px solid rgba(240,180,60,.45)}
+.nePer p{margin:0 0 8px;font-size:13px;color:#f3d89a}
+.nePer div{display:flex;flex-wrap:wrap;gap:6px}
+.nePer .aktPs__kn{font-size:12px;padding:6px 10px}
+/* окно «контейнер с остатком» — как стоп-экран, но жёлтое */
+.aktStop--ost{background:rgba(40,30,6,.82)}
+.aktStop--ost .aktStop__okno{border-color:#f0b43c;box-shadow:0 0 0 6px rgba(240,180,60,.18),0 24px 60px rgba(0,0,0,.6);background:#1c170d}
+.aktStop--ost .aktStop__zag{color:#f3c56b;font-size:28px}
+.aktStop--ost .aktStop__da{background:#f0b43c;color:#1c170d}
+.aktStop--ost .aktStop__snova{color:#f3d89a;border-color:rgba(240,180,60,.5)}
+.aktStop__spisok{margin:0 0 14px;text-align:left;display:grid;gap:4px;max-height:200px;overflow:auto}
+.aktStop__spisok p{margin:0;font-size:14px;color:#f3e6d0}
