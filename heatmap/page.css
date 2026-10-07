@@ -843,15 +843,14 @@ body.is-svetlo .dtip { background: rgba(255, 255, 255, 0.98); }
   .dgraph--many .dgraph__pin.is-below { transform: translate(-50%, 7px) rotate(180deg); }
 }
 
-/* 07.10 «Почему растёт» бэклог: пришло / ушло двумя колонками с полосами */
-.potoki__setka { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 10px; }
-@media (max-width: 760px) { .potoki__setka { grid-template-columns: 1fr; } }
+/* 07.10 «Почему растёт» бэклог: матрицы группа × день, клик по группе — исходные зоны ВМС */
+.potoki__setka { display: grid; gap: 16px; margin-top: 10px; }
 .potoki__zag { margin: 0 0 6px; font-size: 13px; font-weight: 600; }
-.potoki__kol.is-in .potoki__zag { color: #ff8f9f; }
-.potoki__kol.is-out .potoki__zag { color: #7be3a6; }
-.potoki__r { position: relative; display: flex; justify-content: space-between; gap: 10px; padding: 5px 8px; margin-bottom: 3px; border-radius: 7px; font-size: 12.5px; overflow: hidden; }
-.potoki__r span { position: relative; z-index: 1; color: var(--text); }
-.potoki__r b { position: relative; z-index: 1; font-weight: 600; white-space: nowrap; }
-.potoki__r i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 7px; }
-.potoki__kol.is-in .potoki__r i { background: rgba(240, 93, 114, .22); }
-.potoki__kol.is-out .potoki__r i { background: rgba(39, 196, 107, .2); }
+.potoki__t td, .potoki__t th { padding: 5px 7px; font-size: 12px; }
+.potoki__t td:first-child { text-align: left; white-space: normal; min-width: 260px; max-width: 420px; }
+.potoki__gr { cursor: pointer; }
+.potoki__gr td:first-child { font-weight: 600; }
+.potoki__gr:hover td { outline: 1px solid rgba(255, 255, 255, .12); outline-offset: -1px; }
+.potoki__zona td { font-size: 11.5px; color: var(--muted); }
+.potoki__zona td:first-child { padding-left: 22px; color: var(--text); }
+.potoki__zona small { color: var(--muted); }

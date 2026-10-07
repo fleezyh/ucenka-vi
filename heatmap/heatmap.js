@@ -1308,15 +1308,47 @@
       lead.textContent = `За ${p.дней} дней пришло ${shtuki(prishlo)}, ушло ${shtuki(ushlo)} — по живым потокам бэклог `
         + `${raz >= 0 ? "прибавил" : "убавил"} ${shtuki(Math.abs(raz))} шт. Перекладка СЦ→ДМД внутри ФБ — не рост, а транзит: `
         + `с СЦ ушло ${shtuki(trOut)}, на ДМД пришло ${shtuki(trIn)} (разница ${trIn - trOut >= 0 ? "+" : "−"}${shtuki(Math.abs(trIn - trOut))} — едет или вернули назад).`;
-      const kolonka = (zag, spisok, klass) => {
-        const maks = Math.max(...spisok.map((x) => x[1]), 1);
-        return `<div class="potoki__kol ${klass}"><p class="potoki__zag">${zag}</p>${spisok.map(([g, v]) =>
-          `<div class="potoki__r"><span>${g}</span><b>${shtuki(v)}</b><i style="width:${(v / maks * 100).toFixed(1)}%"></i></div>`).join("")}</div>`;
+      // 07.10 «не видно из каких зон — это ты расшифровал, и только итог»: матрица группа × день, клик по
+      // группе раскрывает исходные зоны ВМС (по ту сторону границы → наша зона) с теми же днями
+      const dniP = p.дни || (p.по_дням || []).map((d) => d.день);
+      const det = p.детально || [];
+      const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+      const matrica = (napr, zag, rgb) => {
+        const stroki = det.filter((x) => x.напр === napr);
+        const gruppy = new Map();
+        stroki.forEach((x) => {
+          const g = gruppy.get(x.группа) || { dni: {}, vsego: 0, zony: [] };
+          dniP.forEach((d) => { g.dni[d] = (g.dni[d] || 0) + (x.дни[d] || 0); });
+          g.vsego += x.всего; g.zony.push(x);
+          gruppy.set(x.группа, g);
+        });
+        const spisok = [...gruppy].sort((a, b) => b[1].vsego - a[1].vsego);
+        const maks = Math.max(1, ...spisok.flatMap(([, g]) => dniP.map((d) => g.dni[d] || 0)));
+        const yach = (v, m = maks) => `<td style="${v ? `background:rgba(${rgb},${(0.08 + 0.7 * Math.sqrt(v / m)).toFixed(2)})` : ""}">${v ? shtuki(v) : ""}</td>`;
+        const vsego = spisok.reduce((a, [, g]) => a + g.vsego, 0);
+        return `<div class="potoki__blok"><p class="potoki__zag" style="color:rgb(${rgb})">${zag} · ${shtuki(vsego)}</p>
+          <div class="zones__wrap"><table class="zones__table potoki__t"><thead><tr><th>${napr === "ушло" ? "куда" : "откуда"}</th>
+          ${dniP.map((d) => `<th>${d.slice(8, 10)}.${d.slice(5, 7)}</th>`).join("")}<th>всего</th></tr></thead><tbody>
+          ${spisok.map(([gr, g], n) => `<tr class="potoki__gr" data-gr="${napr}-${n}"><td>▸ ${esc(gr)}</td>${dniP.map((d) => yach(g.dni[d] || 0)).join("")}<td><b>${shtuki(g.vsego)}</b></td></tr>`
+            + g.zony.sort((a, b) => b.всего - a.всего).map((z) => `<tr class="potoki__zona" data-v="${napr}-${n}" hidden>
+              <td title="${esc(z.зона)} → ${esc(z.наша_зона)}">${esc(z.зона)}${z.наша_зона ? ` <small>${napr === "ушло" ? "из" : "в"} ${esc(z.наша_зона)}</small>` : ""}</td>
+              ${dniP.map((d) => yach(z.дни[d] || 0)).join("")}<td>${shtuki(z.всего)}</td></tr>`).join("")).join("")}
+          </tbody></table></div></div>`;
       };
       const setka = document.createElement("div");
       setka.className = "potoki__setka";
-      setka.innerHTML = kolonka(`Пришло · ${shtuki(prishlo)}`, p.итого.пришло || [], "is-in")
-        + kolonka(`Ушло · ${shtuki(ushlo)}`, p.итого.ушло || [], "is-out");
+      setka.innerHTML = det.length
+        ? matrica("пришло", "Пришло", "240, 93, 114") + matrica("ушло", "Ушло", "39, 196, 107")
+          + matrica("транзит", "Транзит СЦ→ДМД (внутри ФБ, не рост)", "122, 160, 255")
+        : "<p class=\"how__caveat\">Разбивка по зонам появится после ближайшего пересчёта (7, 13 и 19 часов).</p>";
+      setka.addEventListener("click", (event) => {
+        event.stopPropagation();
+        const tr = event.target.closest(".potoki__gr");
+        if (!tr) return;
+        const otkr = tr.classList.toggle("is-open");
+        tr.firstElementChild.textContent = tr.firstElementChild.textContent.replace(/^[▸▾]/, otkr ? "▾" : "▸");
+        setka.querySelectorAll(`.potoki__zona[data-v="${tr.dataset.gr}"]`).forEach((z) => { z.hidden = !otkr; });
+      });
       const lezhit = document.createElement("p");
       lezhit.className = "how__caveat";
       lezhit.textContent = `Сейчас в зонах ФБ ещё лежит: на паллетах продаж ${shtuki(p.в_паллетах_продаж_штук || 0)} шт (обработано, `
