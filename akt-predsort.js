@@ -227,6 +227,7 @@
   // паллеты, а отмечает штуку. sverka: { pid, imya, nashli: Map(ключ строки → штук), lishnie: [], kat: Map(акт →
   // {…}), zhdut, posl, itog }.
   let palTab = "";
+  let zhdemSverku = false;   // 07.10 «а где сверка»: нажали «Сверка» в меню — следующая паллета открывается на ней
   let sverka = null;
   let sverkaPosl = null;   // прошлая сверка этой паллеты — с сервера
   const IMYA_MARSHRUTA = { ДАНИЛОВО: "в Данилово", "СЦ-ДМД": "на СЦ-ДМД", ДОМОДЕДОВО: "в ДМД (РЦ)" };
@@ -293,6 +294,8 @@
       if (!o.ok) throw new Error(d.ошибка || `сервер ответил ${o.status}`);
       pal = d;
       palVybor = new Set((pal.строки || []).map((x) => x.ключ));
+      posledPal = pal.паллета || posledPal;
+      if (zhdemSverku) { zhdemSverku = false; palTab = "sverka"; sverkaNachat(); }
       if (pal.паллета_id) {
         chitat(`/__akt/sverka?palleta_id=${encodeURIComponent(pal.паллета_id)}`)
           .then((s) => { if (pal && s.сверка) { sverkaPosl = s.сверка; risovat(); } }).catch(() => {});
@@ -918,6 +921,13 @@
     if (neprinyat(aktK)) stopPokazat(aktK);
   }
 
+  // Меню слева (pikalka-c.js): «Сверка» — ждём паллету; «Ошибки» — журнал за день.
+  document.addEventListener("pikalka:sverka", () => {
+    if (pal) { palPer = null; palDb = null; palTab = "sverka"; if (!sverka) sverkaNachat(); risovat(); return; }
+    zhdemSverku = true;
+    signal("Сверка: пикните паллету (CON …) — откроется сразу на сверке");
+  });
+
   // «Не переложены за смену» — в этом браузере, сбрасывается с новым днём.
   const KL_NEPER = "pikNePer";
   const naStole = (a) => Boolean(a && a.живьём && a.где && a.где.length && /стол/i.test(`${a.где[0].ячейка} ${a.где[0].зона || ""}`));
@@ -1144,8 +1154,58 @@
       ${kat}
       ${nelzyaPerelozhit(a)}
       ${est ? blokAktPer(a, true) : ""}
+      ${blokOshibki(a)}
       <div class="cDey__niz">${vWms}</div>
       ${otkuda}`);
+  }
+
+  /* 07.10 Степан: «а где я вижу, где ошибка, и как выставить ошибку — не вижу». Блок «Ошибка ДВК» на карточке
+     любого акта: вид из книги «Ошибки ДРП», контейнер, где нашли (по умолчанию — последняя открытая паллета),
+     комментарий. Где числится по ВМС и «кто клал» (журнал пикалки) сервер подставит сам. Журнал за день —
+     «Ошибки» в меню слева. Паллету целиком — пикнуть паллету → вкладка «Сверка». */
+  const VIDY_OSHIBOK = ["Излишек", "Недостача", "Ошибка Категории", "Неверный дефект", "Дисконт", "Ошибка Дисконта", "Переупаковка",
+    "Ошибка акта", "Ошибка Описи", "Нет заключения ССЦ", "Вывод в сток", "Проверка СБ", "Маркетплейс", "Товары до 1000р"];
+  let oshAkt = null;      // { akt, vid, kont, komm, idet, gotovo, oshibka }
+  let posledPal = "";     // последняя открытая паллета — «где нашли» по умолчанию
+  function blokOshibki(a) {
+    if (!a || !a.акт) return "";
+    if (!oshAkt || oshAkt.akt !== a.акт) oshAkt = { akt: a.акт, vid: "", kont: posledPal, komm: "" };
+    const o = oshAkt;
+    const gde = a.где && a.где.length ? gdeStr(a.где) : (a.живьём ? "не принят в ВМС" : "");
+    if (o.gotovo) {
+      return `<details class="oshDvk" open><summary>Ошибка ДВК</summary>
+        <div class="aktPs__gotovo"><b>Записано: ${esc(o.vid)}${o.kont ? ` · ${esc(o.kont)}` : ""}</b>
+          <span>в журнале ошибок за сегодня (меню слева → «Ошибки»)${o.gotovo.Виновный ? ` · кандидат: ${esc(o.gotovo.Виновный)}` : ""}</span></div>
+        <button type="button" class="aktPs__kn" data-osh="eshche">Записать ещё одну по этому акту</button></details>`;
+    }
+    return `<details class="oshDvk"${o.vid ? " open" : ""}><summary>Ошибка ДВК — записать</summary>
+      <p class="aktPs__chto">по ВМС: ${esc(gde || "—")}</p>
+      <div class="oshDvk__vidy">${VIDY_OSHIBOK.map((v) => `<button type="button" class="aktPs__kn${v === o.vid ? " is-on" : ""}" data-osh-vid="${esc(v)}">${esc(v)}</button>`).join("")}</div>
+      <input class="aktPs__svoy" data-osh-pole="kont" placeholder="контейнер, где нашли (CON … или имя)" value="${esc(o.kont)}">
+      <input class="aktPs__svoy" data-osh-pole="komm" placeholder="комментарий" value="${esc(o.komm)}">
+      ${o.oshibka ? `<p class="aktPs__net"><b class="aktPs__oshibka">${esc(o.oshibka)}</b></p>` : ""}
+      <button type="button" class="aktPs__kn is-on" data-osh="zapisat"${!o.vid || o.idet ? " disabled" : ""}>${o.idet ? "Записываю…" : o.vid ? `Записать: ${esc(o.vid)}` : "Выберите вид ошибки"}</button>
+    </details>`;
+  }
+  async function zapisatOshibku() {
+    const a = aktK, o = oshAkt;
+    if (!a || !o || !o.vid || o.idet) return;
+    o.idet = true; o.oshibka = ""; risovat();
+    const stroka = { "Дата нарушения": new Date().toLocaleDateString("ru-RU"), "Номер контейнера": o.kont || "", "Номер акта": a.акт,
+      "Товар": a.товар || "", "Стоимость сайт": a.цена || "", "Программное размещение": a.где && a.где.length ? gdeStr(a.где) : "не принят в ВМС",
+      "Вид ошибки": o.vid, "ДВК ГРУ": "", "Виновный": "", "Комментарий": o.komm || "" };
+    try {
+      const otv = await fetch("/__akt/sverka", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ паллета: o.kont || "", паллета_id: null, всего: 1, совпало: 0, строки: [stroka] }) });
+      const d = await otv.json().catch(() => ({}));
+      if (!otv.ok) throw new Error(d.ошибка || `сервер ответил ${otv.status}`);
+      o.gotovo = (d.строки || [stroka])[0];
+      zvukPik("ok");
+    } catch (e) {
+      o.oshibka = `не записалось: ${e.message || e}`;
+    } finally {
+      o.idet = false; risovat();
+    }
   }
 
   /* Центр акта плитками (дизайн C): себес, цена, где сейчас — крупно; дефект и вид обращения;
@@ -2257,6 +2317,7 @@
     risovat();
   });
   naPaneli("input", (e) => {
+    if (e.target.dataset && e.target.dataset.oshPole && oshAkt) { oshAkt[e.target.dataset.oshPole] = e.target.value; return; }
     if (e.target.id === "palPoisk") {
       palPoisk = e.target.value;
       const poz = e.target.selectionStart;
@@ -2490,6 +2551,14 @@
     if (e.target.closest("[data-stol-sbros]")) {
       stol = null; reshenie = ""; localStorage.removeItem(KLYUCH_STOLA);
       return risovat();
+    }
+    const ov = e.target.closest("[data-osh-vid]");
+    if (ov && oshAkt) { oshAkt.vid = ov.dataset.oshVid; oshAkt.oshibka = ""; risovat(); return; }
+    const oz = e.target.closest("[data-osh]");
+    if (oz && oshAkt) {
+      if (oz.dataset.osh === "zapisat") zapisatOshibku();
+      else { oshAkt = { akt: oshAkt.akt, vid: "", kont: oshAkt.kont, komm: "" }; risovat(); }
+      return;
     }
     const svk = e.target.closest("[data-sverka]");
     if (svk && pal && sverka) {

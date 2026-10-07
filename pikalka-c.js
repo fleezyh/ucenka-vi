@@ -72,6 +72,12 @@
           <button type="button" class="cRi" id="cMass" data-polosa="mass">${ikonka("stack")}Масс. пик<span class="cBadge" id="cMassN" hidden></span></button>
           <button type="button" class="cRi" id="aTsdBtn">${ikonka("phone")}ТСД</button>
         </nav>
+        <!-- 07.10 Степан: «а где я вижу, где ошибка, и как выставить ошибку», «а где сверка» -->
+        <nav class="cRail__gr" aria-label="Контроль">
+          <span class="cRail__lbl">Контроль</span>
+          <button type="button" class="cRi" id="cSverka" title="Сверка паллеты с ВМС: пикните паллету">${ikonka("stack")}Сверка</button>
+          <button type="button" class="cRi" id="cOshibki" title="Журнал ошибок за день">${ikonka("ekran")}Ошибки</button>
+        </nav>
       </aside>
       <aside class="cSide">
         <section class="cLenta" id="cLenta"></section>
@@ -517,6 +523,51 @@
   let novSozdano = [];
   let novIdet = "";
   let novOshibka = "";
+  // 07.10 Журнал ошибок за день: сверки паллет, «контейнер с остатком», ошибки с карточки акта — в колонках книги ДРП.
+  const OSH_KOL = ["Дата нарушения", "Номер контейнера", "Номер акта", "Товар", "Стоимость сайт", "Программное размещение",
+    "Вид ошибки", "ДВК ГРУ", "Виновный", "Комментарий"];
+  let oshDen = "", oshMoi = false, oshStroki = null, oshZhdu = false;
+  async function zagruzitOshibki() {
+    oshZhdu = true; risovatOshibki();
+    try {
+      const o = await fetch(`/__akt/sverka/zhurnal?den=${oshDen}&moi=${oshMoi ? 1 : 0}`, { cache: "no-store" });
+      const d = await o.json();
+      oshStroki = d.строки || [];
+    } catch (e) { oshStroki = []; }
+    oshZhdu = false; risovatOshibki();
+  }
+  function risovatOshibki() {
+    let m = $("#cOshModal");
+    if (!m) { m = document.createElement("div"); m.id = "cOshModal"; m.className = "cModal"; B.appendChild(m); }
+    const st = oshStroki || [];
+    const vidy = {};
+    st.forEach((x) => { vidy[x["Вид ошибки"]] = (vidy[x["Вид ошибки"]] || 0) + 1; });
+    m.innerHTML = `<div class="cModal__fon" data-osh-zakryt="1"></div><section class="cModal__okno cModal__okno--shir" role="dialog" aria-label="Ошибки">
+      <header class="cModal__sh"><div><b>Ошибки за ${oshDen.split("-").reverse().join(".")}</b><span>сверки паллет, контейнеры с остатком, записанные с карточки акта</span></div>
+        <button type="button" class="cBtn cBtn--sm" data-osh-zakryt="1">закрыть</button></header>
+      <div class="oshZh__pult"><button type="button" class="cBtn cBtn--sm" data-osh-den="-1">← день</button>
+        <button type="button" class="cBtn cBtn--sm" data-osh-den="1">день →</button>
+        <button type="button" class="cBtn cBtn--sm${oshMoi ? " is-on" : ""}" data-osh-moi="1">${oshMoi ? "только мои" : "все"}</button>
+        ${st.length ? '<button type="button" class="cBtn cBtn--sm" data-osh-excel="1">Excel</button>' : ""}
+        <span>${oshZhdu ? "загружаю…" : `${st.length} строк${Object.keys(vidy).length ? " · " + Object.entries(vidy).map(([k, n]) => `${esc(k)} ${n}`).join(" · ") : ""}`}</span></div>
+      ${st.length ? `<div class="oshZh__tab"><table><thead><tr><th>Время</th><th>Вид</th><th>Контейнер</th><th>Акт</th><th>Товар</th><th>По ВМС</th><th>Виновный</th><th>Комментарий</th><th>Записал</th></tr></thead><tbody>
+        ${st.map((x) => `<tr><td>${esc(x._когда)}</td><td><b>${esc(x["Вид ошибки"])}</b></td><td>${esc(x["Номер контейнера"])}</td><td>${esc(x["Номер акта"])}</td>
+          <td>${esc(String(x["Товар"] || "").slice(0, 60))}</td><td>${esc(x["Программное размещение"])}</td><td>${esc(x["Виновный"])}</td>
+          <td>${esc(x["Комментарий"])}</td><td>${esc(x._кто_записал)}</td></tr>`).join("")}</tbody></table></div>`
+        : `<p class="aktPs__chto">${oshZhdu ? "" : "За этот день ошибок не записано. Записать: пикнуть паллету → «Сверка», или пикнуть акт → блок «Ошибка ДВК»."}</p>`}
+    </section>`;
+    m.hidden = false;
+  }
+  function oshibkiExcel() {
+    const rows = [OSH_KOL.concat(["Время записи", "Записал"])].concat((oshStroki || []).map((x) => OSH_KOL.map((k) => x[k] ?? "").concat([x._когда, x._кто_записал])));
+    const csv = String.fromCharCode(0xFEFF) + rows.map((r) => r.map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`).join(";")).join("\r\n");
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    a.download = `ошибки ${oshDen}.csv`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  }
+
   function risovatNovPal() {
     let m = $("#cNovModal");
     if (!m) { m = document.createElement("div"); m.id = "cNovModal"; m.className = "cModal"; B.appendChild(m); }
@@ -555,6 +606,13 @@
   }
   document.addEventListener("click", (e) => {
     if (e.target.closest("#cNovPal")) { novOshibka = ""; risovatNovPal(); return; }
+    if (e.target.closest("#cSverka")) { document.dispatchEvent(new CustomEvent("pikalka:sverka")); $("#scan")?.focus(); return; }
+    if (e.target.closest("#cOshibki")) { oshDen = new Date(Date.now() + 3 * 3600e3).toISOString().slice(0, 10); zagruzitOshibki(); return; }
+    if (e.target.closest("[data-osh-zakryt]")) { const m = $("#cOshModal"); if (m) m.hidden = true; $("#scan")?.focus(); return; }
+    if (e.target.closest("[data-osh-moi]")) { oshMoi = !oshMoi; zagruzitOshibki(); return; }
+    if (e.target.closest("[data-osh-excel]")) { oshibkiExcel(); return; }
+    const od = e.target.closest("[data-osh-den]");
+    if (od) { const d = new Date(`${oshDen}T12:00:00Z`); d.setUTCDate(d.getUTCDate() + Number(od.dataset.oshDen)); oshDen = d.toISOString().slice(0, 10); zagruzitOshibki(); return; }
     if (e.target.closest("[data-nov-zakryt]")) { const m = $("#cNovModal"); if (m) m.hidden = true; $("#scan")?.focus(); return; }
     const k = e.target.closest("[data-nov-sozdat]");
     if (k) { sozdatPalletu(k.dataset.novSozdat); return; }

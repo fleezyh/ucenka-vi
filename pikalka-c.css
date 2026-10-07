@@ -648,3 +648,18 @@ body.cSkin.is-svetlo .cKuda__forma input { background: #fff; }
 .aktStop--ost .aktStop__snova{color:#f3d89a;border-color:rgba(240,180,60,.5)}
 .aktStop__spisok{margin:0 0 14px;text-align:left;display:grid;gap:4px;max-height:200px;overflow:auto}
 .aktStop__spisok p{margin:0;font-size:14px;color:#f3e6d0}
+
+/* 07.10 Ошибка ДВК на карточке акта и журнал ошибок */
+.oshDvk{margin:12px 0;padding:10px 12px;border-radius:12px;background:#141c28;border:1px solid var(--cLine2,#2c3a4e)}
+.oshDvk summary{cursor:pointer;font-weight:600;color:#ffb3bf}
+.oshDvk[open] summary{margin-bottom:8px}
+.oshDvk__vidy{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.oshDvk__vidy .aktPs__kn{font-size:12px;padding:6px 10px}
+.oshDvk .aktPs__svoy{margin:4px 0;width:100%}
+.cModal__okno--shir{width:min(1200px,96vw)}
+.oshZh__pult{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0 12px}
+.oshZh__pult span{color:var(--muted);font-size:13px}
+.oshZh__tab{max-height:65vh;overflow:auto}
+.oshZh__tab table{width:100%;border-collapse:collapse;font-size:13px}
+.oshZh__tab th{position:sticky;top:0;background:#111924;text-align:left;padding:6px 8px;color:var(--muted);font-weight:600}
+.oshZh__tab td{padding:6px 8px;border-top:1px solid var(--cLine2,#2c3a4e);vertical-align:top}
