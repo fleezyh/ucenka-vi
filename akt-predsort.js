@@ -229,6 +229,9 @@
   let palTab = "";
   let palNetZapisano = new Set();   // строки, по которым уже записали «нет в паллете»
   let palNetItog = null;            // { zag, str[] } — что записали и кто виноват
+  // 07.10 ночь Степан: «а если надо туда добавить товар, который нашёлся, а его нет по акту? с возможностью найти
+  // его и принудительно перенести». { kod, zhdu, karta, oshibka, zapisat, idet, vopros, itog }
+  let izl = null;
   let zhdemSverku = false;   // 07.10 «а где сверка»: нажали «Сверка» в меню — следующая паллета открывается на ней
   let sverka = null;
   let sverkaPosl = null;   // прошлая сверка этой паллеты — с сервера
@@ -282,7 +285,7 @@
     pal = null; palKrit = ""; palDefekt = ""; palRabota = null; palOshibka = ""; palPer = null; yach = null;
     aktK = null; istP = null; palVybor = null; palSvoy = ""; palDb = null; palPoisk = ""; palPosledniy = null;
     tovar = null; gotovo = null; zhdemPalletu = null; perItog = null;
-    palTab = ""; sverka = null; sverkaPosl = null; palNetZapisano = new Set(); palNetItog = null;
+    palTab = ""; sverka = null; sverkaPosl = null; palNetZapisano = new Set(); palNetItog = null; izl = null;
     vRezhimPalety(true);
     box.hidden = false;
     vyvesti('<p class="aktPs__chto">Смотрю паллету…</p>', shapkaDey("Паллета", kod));
@@ -409,7 +412,8 @@
       ${blokKarty()}
       ${est ? "" : blokPeremeshcheniya() + blokDb()}
       ${blokIstorii()}
-      ${spisok ? `${panelVybora}<div class="palSpisok">${spisok}</div>` : ""}
+      ${pal.строки.length ? `${panelVybora}${spisok ? `<div class="palSpisok">${spisok}</div>` : `<p class="aktPs__chto">По «${esc(q)}» в составе ничего нет.</p>`}` : ""}
+      ${blokIzlishka()}
       ${est ? "" : niz}`;
     if (!est) { box.innerHTML = glav; return; }
     const tab = palTab === "sverka" ? "sverka" : palPer ? "per" : palDb ? "db" : "akt";
@@ -792,7 +796,7 @@
   // (кто клал пикалкой, когда, откуда → куда) и шлёт ему уведомление; здесь — сразу показываем, кто и почему.
   function vinovnyStroki(r) {
     if (!r || !r.Виновный) return ["виновный не определён — штуку клали не через пикалку (руками в WMS)"];
-    return [`виновный: ${r.Виновный}`, r.Основание || "", r.Виновный_логин ? "ему отправлено уведомление в мессенджер" : ""].filter(Boolean);
+    return [`виновный: ${r.Виновный}`, r.Основание || "", `уведомление: ${r.Уведомление || "не отправлялось"}`].filter(Boolean);
   }
   async function palNet(kluch) {
     const x = pal && pal.строки.find((z) => z.ключ === kluch);
@@ -814,6 +818,91 @@
       palNetItog = { zag: "Не записалось", str: [e.message || String(e)] };
     }
     risovat();
+  }
+
+  function blokIzlishka() {
+    if (!pal || palOshibka) return "";
+    if (!izl) return `<div class="izl"><button type="button" class="aktPs__kn izl__kn" data-izl="otkryt">+ нашли на паллете то, чего нет в составе</button></div>`;
+    const k = izl.karta;
+    const gde = k && k.где && k.где[0];
+    const tut = gde && String(gde.паллета || "") === String(pal.паллета);
+    let telo = "";
+    if (izl.zhdu) telo = '<p class="aktPs__chto">Ищу акт в WMS…</p>';
+    else if (izl.oshibka) telo = `<p class="aktPs__net"><b class="aktPs__oshibka">${esc(izl.oshibka)}</b></p>`;
+    else if (k && k.акт) {
+      telo = `<div class="izl__karta"><b>акт ${esc(k.акт)} · ${esc(k.товар || "")}</b>
+          <span>${k.категория ? `категория: ${esc(k.категория)} · ` : ""}по WMS числится: ${gde ? `${esc(gde.ячейка || "")} · ${esc(gde.паллета || "без паллеты")}` : "нигде (не принят или в пути)"}</span></div>
+        ${tut ? '<p class="aktPs__chto">По WMS штука уже на этой паллете — излишка нет, обновите состав.</p>' : `
+        <label class="izl__gal"><input type="checkbox" data-izl-zap${izl.zapisat ? " checked" : ""}> записать ошибку «Излишек» (с виновным и уведомлением)</label>
+        ${izl.vopros ? `<p class="aktPs__net"><b class="aktPs__oshibka">${esc(izl.vopros)}</b></p>
+          <button type="button" class="aktPs__akt" data-izl="podtv"${izl.idet ? " disabled" : ""}>Всё равно перенести на ${esc(pal.паллета)}</button>`
+          : gde ? `<button type="button" class="aktPs__akt" data-izl="perenesti"${izl.idet ? " disabled" : ""}>${izl.idet ? "Переношу…" : `Перенести принудительно на ${esc(pal.паллета)}`}</button>`
+            : '<p class="aktPs__chto">Перенести нельзя, пока штуку не примут в WMS — можно только записать ошибку.</p>'}
+        <button type="button" class="aktPs__kn" data-izl="tolkoOsh"${izl.idet ? " disabled" : ""}>только записать ошибку, без переноса</button>`}`;
+    }
+    const itog = izl.itog ? `<div class="aktPs__gotovo palNetItog${izl.itog.ok ? "" : " is-ploho"}"><b>${esc(izl.itog.zag)}</b>${izl.itog.str.map((t) => `<span>${esc(t)}</span>`).join("")}</div>` : "";
+    return `<div class="izl is-otkr"><p class="aktPs__zag">Нашли на паллете, а в составе нет — излишек</p>
+      ${itog}
+      <div class="izl__poisk"><input id="izlKod" autocomplete="off" placeholder="ACT … или номер акта" value="${esc(izl.kod || "")}">
+        <button type="button" class="aktPs__kn" data-izl="nayti">найти</button>
+        <button type="button" class="aktPs__kn" data-izl="zakryt">закрыть</button></div>
+      ${telo}
+      <p class="aktPs__chto">Без наклейки акта штуку не найти — сначала заактируйте её (пикните товар → акт).</p></div>`;
+  }
+  async function izlNayti() {
+    const kod = String(izl.kod || "").trim();
+    if (!kod) return;
+    izl = { kod, zhdu: true, zapisat: izl.zapisat };
+    risovat();
+    try { izl.karta = await chitat(`/__vms/akt?kod=${encodeURIComponent(kod)}`); if (!izl.karta || !izl.karta.акт) throw new Error("акт не найден"); }
+    catch (e) { izl.oshibka = e.message || String(e); }
+    izl.zhdu = false;
+    risovat();
+  }
+  async function izlZapisat(k, pereneseno) {
+    const gde = k.где && k.где[0];
+    const bylo = gde ? `${gde.ячейка || ""} · ${gde.паллета || "без паллеты"}` : "нигде (не принят)";
+    const stroka = { "Дата нарушения": new Date().toLocaleDateString("ru-RU"), "Номер контейнера": pal.паллета, "Номер акта": String(k.акт),
+      "Товар": k.товар || "", "Стоимость сайт": k.цена || "", "Программное размещение": bylo, "Вид ошибки": "Излишек",
+      "ДВК ГРУ": "", "Виновный": "", "Комментарий": `найден на ${pal.паллета}, по WMS: ${bylo}${pereneseno ? " — переносим сюда" : ""}` };
+    const o = await fetch("/__akt/sverka", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ паллета: pal.паллета, паллета_id: pal.паллета_id || null, всего: 1, совпало: 0, строки: [stroka] }) });
+    const d = await o.json().catch(() => ({}));
+    if (!o.ok) throw new Error(d.ошибка || `ошибка не записалась: сервер ответил ${o.status}`);
+    return vinovnyStroki((d.строки || [stroka])[0]);
+  }
+  async function izlPerenesti(podtv, bezPerenosa) {
+    const k = izl && izl.karta;
+    if (!k || izl.idet) return;
+    if (!bezPerenosa && !vms.подключено) { formaVhoda = true; oshibkaVhoda = "войдите в WMS, потом нажмите «перенести» ещё раз"; risovat(); return; }
+    izl.idet = true; izl.itog = null; risovat();
+    const str = [];
+    try {
+      // ошибку — ДО переноса: виновный берётся по последней перекладке пикалкой, а после переноса последний — сам ДВК
+      if (izl.zapisat && !izl.zapisano) { str.push(...await izlZapisat(k, !bezPerenosa)); izl.zapisano = true; }
+      if (bezPerenosa) {
+        izl.itog = { ok: true, zag: `Записано: излишек — акт ${k.акт}`, str };
+      } else {
+        const o = await fetch("/__akt/akt_v_palletu", { method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ акт: k.наклейка || String(k.акт), паллета: pal.паллета, излишек: true, подтвердил: Boolean(podtv) }) });
+        const d = await o.json().catch(() => ({}));
+        if (d.предупреждение) { izl.vopros = d.предупреждение; izl.itog = str.length ? { ok: true, zag: "Ошибка записана, перенос ждёт подтверждения", str } : null; return; }
+        if (d.нужен_вход) { vms = { подключено: false }; formaVhoda = true; oshibkaVhoda = "войдите в WMS, потом нажмите «перенести» ещё раз"; izl.itog = str.length ? { ok: true, zag: "Ошибка записана, перенос — после входа в WMS", str } : null; return; }
+        if (!o.ok || !d.готово) throw new Error(d.ошибка || `сервер ответил ${o.status}`);
+        izl.vopros = null;
+        izl.itog = { ok: true, zag: `${d.проведено ? "Перенесено" : "Перемещение черновиком"} → ${d.паллета} · акт ${k.акт}`,
+          str: [`${d.откуда} → ${d.ячейка} · перемещение №${d.перемещение}`, ...str] };
+        izl.karta = null; izl.kod = "";
+        zvukPik("ok");
+        obnovitSostav();
+      }
+    } catch (e) {
+      izl.itog = { ok: false, zag: izl.zapisano ? "Ошибка записана, но перенос не прошёл" : "Не получилось", str: [e.message || String(e), ...str] };
+      zvukPik("oshibka");
+    } finally {
+      if (izl) izl.idet = false;
+      risovat();
+    }
   }
 
   async function palStart() {
@@ -2384,8 +2473,13 @@
     if (palDb && palDb.predv) palDb = null;   // проверка была по другому выбору
     risovat();
   });
+  document.addEventListener("keydown", (e) => {
+    if (e.target.id === "izlKod" && e.key === "Enter" && izl) { e.preventDefault(); e.stopPropagation(); izl.kod = e.target.value; izlNayti(); }
+  }, true);
   naPaneli("input", (e) => {
     if (e.target.dataset && e.target.dataset.oshPole && oshAkt) { oshAkt[e.target.dataset.oshPole] = e.target.value; return; }
+    if (e.target.id === "izlKod" && izl) { izl.kod = e.target.value; return; }
+    if (e.target.dataset && "izlZap" in e.target.dataset && izl) { izl.zapisat = e.target.checked; return; }
     if (e.target.id === "palPoisk") {
       palPoisk = e.target.value;
       const poz = e.target.selectionStart;
@@ -2619,6 +2713,23 @@
     if (e.target.closest("[data-stol-sbros]")) {
       stol = null; reshenie = ""; localStorage.removeItem(KLYUCH_STOLA);
       return risovat();
+    }
+    const iz = e.target.closest("[data-izl]");
+    if (iz && pal) {
+      e.preventDefault();
+      const d = iz.dataset.izl;
+      if (d === "otkryt") {
+        const q = palPoisk.trim();
+        izl = { kod: /^(act\s*)?\d{5,12}$/i.test(q) && !palNaydeno().length ? q : "", zapisat: true };
+        risovat();
+        const pole = document.getElementById("izlKod"); if (pole) pole.focus();
+        if (izl.kod) izlNayti();
+      } else if (d === "zakryt") { izl = null; risovat(); }
+      else if (d === "nayti") { const pole = document.getElementById("izlKod"); if (pole) izl.kod = pole.value; izlNayti(); }
+      else if (d === "perenesti") izlPerenesti(false, false);
+      else if (d === "podtv") izlPerenesti(true, false);
+      else if (d === "tolkoOsh") izlPerenesti(false, true);
+      return;
     }
     const palNetKn = e.target.closest("[data-pal-net]");
     if (palNetKn && pal) { e.preventDefault(); palNet(palNetKn.dataset.palNet); return; }

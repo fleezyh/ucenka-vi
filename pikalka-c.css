@@ -673,3 +673,17 @@ body.cSkin.is-svetlo .cKuda__forma input { background: #fff; }
 .cRezh{margin-left:6px;padding:6px 12px;border-radius:10px;border:1px solid var(--cLine2,#2c3a4e);background:#141c28;color:var(--muted);font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
 .cRezh.is-on{background:#7b5cf0;border-color:#7b5cf0;color:#fff}
 .cRezh .cBadge{margin-left:6px}
+.palStroka--vybor:has(.palNet){grid-template-columns:auto minmax(0,1fr) auto auto auto auto}
+body.aTsd .palStroka--vybor:has(.palNet){grid-template-columns:auto minmax(0,1fr) auto auto auto}
+.palStroka--vybor .palNet{margin-left:0}
+.palNetItog .is-net{color:#f3c56b}
+.izl{margin:12px 0 4px;display:grid;gap:8px}
+.izl__kn{justify-self:start;border-style:dashed}
+.izl.is-otkr{padding:12px 14px;border:1px solid rgba(240,180,60,.45);border-radius:12px;background:rgba(240,180,60,.05)}
+.izl__poisk{display:flex;gap:8px;align-items:center}
+.izl__poisk input{flex:1;min-width:0;height:40px;padding:0 12px;border-radius:10px;border:1px solid var(--line,#263345);background:#0d1320;color:var(--text,#fff);font:inherit}
+.izl__karta{display:grid;gap:3px}
+.izl__karta span{color:var(--muted)}
+.izl__gal{display:flex;gap:8px;align-items:center;color:var(--muted)}
+.izl__gal input{width:18px;height:18px;accent-color:#7b5cf0}
+.palNetItog.is-ploho{border-color:rgba(240,93,114,.5)}
