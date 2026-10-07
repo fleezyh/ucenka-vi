@@ -597,3 +597,25 @@ body.cSkin.is-svetlo .cKuda__forma input { background: #fff; }
 .cZastryali li { margin: 0 0 5px; }
 .cZastryali small { display: block; color: #f3b9c2; font-size: 12px; }
 .cZastryali button { position: absolute; top: 10px; right: 12px; border: 0; border-radius: 8px; padding: 4px 10px; background: rgba(255,255,255,.1); color: #fbe7ea; font: inherit; font-size: 12px; cursor: pointer; }
+
+/* 07.10 стоп-экран: акт не принят в WMS — категорию не показываем, пока не нажмут «Отложил в сторону» */
+.aktStop{position:fixed;inset:0;z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(40,6,12,.82);backdrop-filter:blur(6px)}
+.aktStop[hidden]{display:none}
+.aktStop__okno{width:min(640px,100%);padding:30px 30px 24px;border-radius:22px;background:#1c0d12;border:2px solid #f05d72;box-shadow:0 0 0 6px rgba(240,93,114,.18),0 24px 60px rgba(0,0,0,.6);text-align:center}
+.aktStop__nad{margin:0;color:#ffb3bf;font-size:15px}
+.aktStop__zag{margin:8px 0 6px;font-size:34px;line-height:1.1;font-weight:600;color:#ff6f82}
+.aktStop__tovar{margin:0 0 14px;font-size:17px;color:#f3e6e9}
+.aktStop__chto{margin:0 0 22px;font-size:18px;line-height:1.4;color:#fff}
+.aktStop__chto b{color:#ff6f82}
+.aktStop__knopki{display:flex;flex-direction:column;gap:10px}
+.aktStop__da,.aktStop__snova{min-height:58px;border-radius:14px;font:inherit;font-size:20px;font-weight:600;cursor:pointer}
+.aktStop__da{border:0;background:#f05d72;color:#fff}
+.aktStop__da:hover{background:#ff7184}
+.aktStop__snova{min-height:46px;font-size:16px;background:transparent;color:#ffb3bf;border:1px solid rgba(240,93,114,.5)}
+.aktStop__snova:disabled{opacity:.6;cursor:wait}
+.aktStop__poka{margin:14px 0 0;font-size:13px;color:#c99aa3}
+.aktStop.is-tryas .aktStop__okno{animation:aktStopTr .35s}
+@keyframes aktStopTr{0%,100%{transform:none}20%{transform:translateX(-12px)}40%{transform:translateX(10px)}60%{transform:translateX(-7px)}80%{transform:translateX(4px)}}
+.aktKat--stop{background:rgba(240,93,114,.16)!important;border-color:rgba(240,93,114,.6)!important}
+.aktKat--stop .aktKat__imya{color:#ff6f82}
+@media (max-width:760px){.aktStop__okno{padding:22px 18px 18px}.aktStop__zag{font-size:26px}.aktStop__chto{font-size:16px}}

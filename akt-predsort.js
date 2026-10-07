@@ -744,15 +744,90 @@
     aktK = { zhdu: true }; aktPer = null; vtisZ = null; defRed = null; novP = null; pal = null; yach = null; tovar = null; vRezhimPalety(true); risovat();
     try { aktK = await chitat(`/__vms/akt?kod=${encodeURIComponent(kod)}`); } catch (e) { aktK = { oshibka: e.message || String(e) }; }
     risovat();
+    if (neprinyat(aktK)) stopPokazat(aktK);
   }
+
+  /* 07.10 Струков, Белитов (разбор ошибок с ДВК, «очень много у Калачёва»): акт в вмс не числится, а человек
+     видит крупную категорию, плашку ниже не читает и кладёт штуку в паллету — по камерам не отследить, в паллете
+     излишек. Теперь: категории нет («не раскладывать»), экран стопорится, пики паллет/товаров/актов не проходят,
+     пока человек не нажмёт «Отложил в сторону». Нажатие пишется в журнал (/__akt/otlozheno) — список для Гамлета. */
+  const neprinyat = (a) => Boolean(a && a.живьём && !(a.где && a.где.length) && !(a.транзит && (a.транзит.причина || a.транзит.едет)));
+  let stopAkt = null;
+  function stopPokazat(a) {
+    stopAkt = a;
+    let el = document.getElementById("aktStop");
+    if (!el) {
+      el = document.createElement("div");
+      el.id = "aktStop";
+      el.className = "aktStop";
+      el.setAttribute("role", "alertdialog");
+      document.body.appendChild(el);
+      el.addEventListener("click", (e) => {
+        if (e.target.closest("[data-stop-otlozhil]")) stopOtlozhil();
+        else if (e.target.closest("[data-stop-snova]")) stopProverit();
+      });
+    }
+    el.innerHTML = `<div class="aktStop__okno">
+        <p class="aktStop__nad">Акт №${esc(a.акт)}${a.статус ? ` · ${esc(a.статус.toLowerCase())}` : ""}</p>
+        <h2 class="aktStop__zag">Стоп. Акт не принят в WMS</h2>
+        <p class="aktStop__tovar">${esc(a.товар || "")}</p>
+        <p class="aktStop__chto">В паллету <b>не класть</b> — получится излишек. Отложите товар в сторону, к непринятым.
+          Когда его примут, пикните акт снова.</p>
+        <div class="aktStop__knopki">
+          <button type="button" class="aktStop__da" data-stop-otlozhil="1">Отложил(а) в сторону</button>
+          <button type="button" class="aktStop__snova" data-stop-snova="1">Проверить ещё раз</button>
+        </div>
+        <p class="aktStop__poka">пока не нажмёте — пикалка не принимает паллеты, товары и другие акты</p>
+      </div>`;
+    el.hidden = false;
+    document.body.classList.add("is-aktStop");
+    setTimeout(() => window.pikalkaZvuk && window.pikalkaZvuk("oshibka"), 300);
+    setTimeout(() => el.querySelector("[data-stop-otlozhil]")?.focus(), 50);
+  }
+  function stopSnyat() {
+    stopAkt = null;
+    const el = document.getElementById("aktStop");
+    if (el) el.hidden = true;
+    document.body.classList.remove("is-aktStop");
+    const sk = document.getElementById("scan");
+    if (sk) { sk.value = ""; sk.focus(); }
+  }
+  function stopOtlozhil() {
+    const a = stopAkt;
+    if (!a) return stopSnyat();
+    fetch("/__akt/otlozhil", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ акт: a.акт, товар: a.товар, наклейка: a.наклейка || "", стол: stol ? stol.имя : "", статус: a.статус || "" }) })
+      .catch(() => {});
+    stopSnyat();
+  }
+  async function stopProverit() {
+    const a = stopAkt;
+    if (!a) return stopSnyat();
+    const kn = document.querySelector("#aktStop [data-stop-snova]");
+    if (kn) { kn.disabled = true; kn.textContent = "смотрю в WMS…"; }
+    let svezh = null;
+    try { svezh = await chitat(`/__vms/akt?kod=${encodeURIComponent(a.наклейка || a.акт)}`); } catch { svezh = null; }
+    if (svezh && !neprinyat(svezh)) { aktK = svezh; stopSnyat(); risovat(); return; }
+    if (kn) { kn.disabled = false; kn.textContent = "всё ещё не принят — проверить ещё раз"; }
+    window.pikalkaZvuk && window.pikalkaZvuk("oshibka");
+  }
+  // Пока стоп — любые пики гасим раньше остальных обработчиков (захват, этот файл грузится до pikalka-c.js).
+  ["picker:hit", "picker:akt", "picker:palleta", "picker:miss"].forEach((tip) => document.addEventListener(tip, (e) => {
+    if (!stopAkt) return;
+    e.stopImmediatePropagation();
+    const el = document.getElementById("aktStop");
+    if (el) { el.classList.remove("is-tryas"); void el.offsetWidth; el.classList.add("is-tryas"); }
+    setTimeout(() => window.pikalkaZvuk && window.pikalkaZvuk("oshibka"), 260);
+  }, { capture: true }));
 
   function shagiAkta(a) {
     const itog = aktPer && aktPer.itog;
     const gotovo = itog && itog.ok;
+    const net = neprinyat(a);
     return `<div class="cShag3">
       <div class="${stol ? "is-ok" : "is-net"}"><i>1</i><span>стол</span><b>${stol ? esc(String(stol.имя).replace(/^ФБ \(ДМД\) /, "")) : "без стола"}</b></div>
-      <div class="${a.категория ? "is-ok" : "is-net"}"><i>2</i><span>категория</span><b>${esc(a.категория || "нет")}</b></div>
-      <div class="${gotovo ? "is-ok" : "is-sled"}"><i>3</i><span>паллета</span><b>${gotovo ? "переложена" : "пикните"}</b></div>
+      <div class="${a.категория && !net ? "is-ok" : "is-net"}"><i>2</i><span>категория</span><b>${net ? "не принят" : esc(a.категория || "нет")}</b></div>
+      <div class="${gotovo ? "is-ok" : net ? "is-net" : "is-sled"}"><i>3</i><span>паллета</span><b>${gotovo ? "переложена" : net ? "нельзя" : "пикните"}</b></div>
     </div>`;
   }
 
@@ -789,7 +864,10 @@
     if (a.oshibka) { vyvesti(`<p class="aktPs__net"><b class="aktPs__oshibka">${esc(a.oshibka)}</b></p>`, ""); return; }
     const est = a.живьём && a.где && a.где.length;
     const panel = Boolean(deyEl());
-    const kat = a.живьём ? `<div class="aktKat"><span class="aktKat__nad">категория уценки${a.цена ? ` <b class="aktKat__cena">${esc(Number(a.цена).toLocaleString("ru-RU"))} ₽${a.цена_откуда === "сайт" ? " · цена сайта" : ""}</b>` : ""}</span>
+    const kat = neprinyat(a) ? `<div class="aktKat aktKat--stop"><span class="aktKat__nad">категория уценки</span>
+        <b class="aktKat__imya">не раскладывать</b>
+        <span class="aktKat__rub">акт не принят в WMS — товар в сторону, в паллету не класть</span></div>`
+      : a.живьём ? `<div class="aktKat"><span class="aktKat__nad">категория уценки${a.цена ? ` <b class="aktKat__cena">${esc(Number(a.цена).toLocaleString("ru-RU"))} ₽${a.цена_откуда === "сайт" ? " · цена сайта" : ""}</b>` : ""}</span>
         <b class="aktKat__imya">${esc(a.категория || "не определилась")}</b>${a.спорно ? ' <span class="aTag aTag--spor">спорно</span>' : ""}
         <span class="aktKat__rub">${a.мисбокс ? "цена до 1 000 ₽ — мистери бокс · " : ""}рубрика «${esc(a.рубрика || "—")}»${a.рубрика_вмс ? ` · ${esc(a.рубрика_вмс)}` : ""}</span></div>` : "";
     const vWms = `<div class="palKartaAkt__knopki"><a class="aktPs__kn" href="${esc(a.вмс || a.WMS)}" target="_blank" rel="noopener">Открыть акт в WMS</a></div>`;
