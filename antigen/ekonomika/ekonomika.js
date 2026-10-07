@@ -429,7 +429,8 @@
         ${seg([["", "все товары"], ...NAPRAVLENIYA.map((g) => [g.имя, g.имя])], "grag", sost.gr)}</div>
       <div class="ekF__ryad"><span class="ekF__lbl">показать</span>${seg(VIDY.map(([k, t]) => [k, t]), "vid", sost.vid)}
         <span class="ekF__lbl">потери на позицию</span>${seg(POROGI.map(([v, t]) => [v, t]), "porog", sost.porog)}
-        <label class="ekSel ekSel--mal"><span>модель учёта</span><select id="ekTip"><option value="">все</option>${tipy}</select></label></div>
+        <label class="ekSel ekSel--mal"><span>модель учёта</span><select id="ekTip"><option value="">все</option>${tipy}</select></label>
+        <button type="button" class="ekBtn" id="ekVygr" data-vygr>Выгрузить в Excel</button></div>
       ${aktiv.length ? `<div class="ekF__aktiv">${aktiv.map(([k, t]) => `<button type="button" class="ekF__chip" data-snyat="${k}">${esc(t)} ×</button>`).join("")}
         <button type="button" class="ekF__sbros" data-snyat="vse">сбросить всё</button></div>` : ""}`;
   }
@@ -487,6 +488,38 @@
     const dalshe = () => { risovat(); $("ekPozicii").scrollIntoView({ behavior: "smooth", block: "start" }); };
     if (razrez === "r1") vybratRubriku(id).then(() => $("ekPozicii").scrollIntoView({ behavior: "smooth", block: "start" })).catch(oshibka);
     else dalshe();
+  }
+
+  // 07.10 Степан («сделай, чтоб я мог выгружать»): коллега попросил объём в штуках по «хранится долго».
+  // Выгрузка — ровно текущая выборка страницы (все фильтры), файл CSV для Excel: «;», запятая в дробях, BOM.
+  async function vygruzit() {
+    const kn = $("ekVygr");
+    if (kn) { kn.disabled = true; kn.textContent = "Готовлю…"; }
+    try {
+      if (sost.r1 !== "") await rubrika(Number(sost.r1));
+      else if (!vseZagruzheny()) await zagruzitVse();
+      const sp = poVidu(vybor());
+      if (sp.length > 100000 && !confirm(`В выборке ${chislo(sp.length)} позиций — файл будет большой. Выгрузить?`)) return;
+      const ch = (v, z = 0) => (v == null || !isFinite(v) ? "" : Number(v).toFixed(z).replace(".", ","));
+      const kl = (v) => { const s = String(v ?? ""); return /[;"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+      const shapka = ["рубрика", "категория", "код", "товар", "модель (тип)", "причина минуса", "продано за год, шт", "средний остаток, шт",
+        "литров на штуку", "объём остатка, м³", "запас, дней продаж", "актов брака", "выручка, ₽", "маржа, ₽", "работа склада, ₽",
+        "хранение, ₽", "брак, ₽", "остаётся за год, ₽", "остаётся со штуки, ₽"];
+      const stroki = sp.map(({ k, i, r }) => [idx.slov.r1[k.r1[i]] || "", idx.slov.r2[k.r2[i]] || "", k.art[i] || "", k.imya[i], r.tip,
+        r.itog < 0 ? prichina(r) : "", ch(r.sht), ch(k.ost[i], 1), ch(k.l[i], 2), ch(k.ost[i] * k.l[i] / 1000, 3), ch(r.dney),
+        ch(r.ak), ch(r.vyr), ch(r.marzha), ch(r.rabota), ch(r.hran), ch(r.brak), ch(r.itog), r.sht ? ch(r.itog / r.sht, 2) : ""].map(kl).join(";"));
+      const opis = [sost.gr, VIDY.find((v) => v[0] === sost.vid)[1], sost.r1 !== "" ? idx.slov.r1[Number(sost.r1)] : "",
+        sost.r2 !== "" ? idx.slov.r2[Number(sost.r2)] : "", sost.brend, sost.q.trim()].filter(Boolean).join(" · ");
+      const blob = new Blob([String.fromCharCode(0xFEFF) + [shapka.map(kl).join(";"), ...stroki].join("\r\n")], { type: "text/csv;charset=utf-8" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `Экономика позиций — ${opis.replace(/[\\/:*?"<>|]/g, " ") || "выборка"} — ${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.append(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    } finally {
+      const k2 = $("ekVygr");
+      if (k2) { k2.disabled = false; k2.textContent = "Выгрузить в Excel"; }
+    }
   }
 
   function snyat(chto) {
@@ -719,6 +752,7 @@
     if (pg) { sost.porog = Number(pg.dataset.porog) || 0; sost.pokazano = 50; risovat(); return; }
     const sn = t.closest("[data-snyat]");
     if (sn) { snyat(sn.dataset.snyat); return; }
+    if (t.closest("[data-vygr]")) { vygruzit().catch(oshibka); return; }
     const ga = t.closest("[data-grag]");
     if (ga) {
       // из фильтров — выбор (повторный клик снимает), с карточки направления — тоже переключатель
