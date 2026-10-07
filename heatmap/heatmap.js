@@ -1284,6 +1284,58 @@
     return box;
   }
 
+  // 07.10 (Белитов/Степан: «надо ответить, из-за чего растёт бэклог — не успеваем обрабатывать, или сидит то,
+  // что к нам не приходит, но мы принимаем, или ещё что-то, и сколько этого»): потоки за 14 дней по документам,
+  // пересёкшим границу бэклога. Готовит task_backlog.py (backlog_potoki.sql) в тот же backlog.json.
+  function backlogPotokiBlock() {
+    const box = document.createElement("section");
+    box.className = "how zones potoki";
+    const title = document.createElement("h4");
+    title.className = "how__title";
+    title.textContent = "Почему растёт";
+    box.append(title);
+    backlogPull().then((data) => {
+      const p = data && data.потоки;
+      if (!p || !p.итого) { box.remove(); return; }
+      const sum = (k) => (p.итого[k] || []).reduce((a, x) => a + x[1], 0);
+      const prishlo = sum("пришло"), ushlo = sum("ушло");
+      const tr = p.итого.транзит || [];
+      const trV = (s) => (tr.find((x) => x[0].includes(s)) || [0, 0])[1];
+      const trIn = trV("пришло на ДМД"), trOut = trV("ушло с СЦ");
+      const raz = prishlo - ushlo;
+      const lead = document.createElement("p");
+      lead.className = "how__lead";
+      lead.textContent = `За ${p.дней} дней пришло ${shtuki(prishlo)}, ушло ${shtuki(ushlo)} — по живым потокам бэклог `
+        + `${raz >= 0 ? "прибавил" : "убавил"} ${shtuki(Math.abs(raz))} шт. Перекладка СЦ→ДМД внутри ФБ — не рост, а транзит: `
+        + `с СЦ ушло ${shtuki(trOut)}, на ДМД пришло ${shtuki(trIn)} (разница ${trIn - trOut >= 0 ? "+" : "−"}${shtuki(Math.abs(trIn - trOut))} — едет или вернули назад).`;
+      const kolonka = (zag, spisok, klass) => {
+        const maks = Math.max(...spisok.map((x) => x[1]), 1);
+        return `<div class="potoki__kol ${klass}"><p class="potoki__zag">${zag}</p>${spisok.map(([g, v]) =>
+          `<div class="potoki__r"><span>${g}</span><b>${shtuki(v)}</b><i style="width:${(v / maks * 100).toFixed(1)}%"></i></div>`).join("")}</div>`;
+      };
+      const setka = document.createElement("div");
+      setka.className = "potoki__setka";
+      setka.innerHTML = kolonka(`Пришло · ${shtuki(prishlo)}`, p.итого.пришло || [], "is-in")
+        + kolonka(`Ушло · ${shtuki(ushlo)}`, p.итого.ушло || [], "is-out");
+      const lezhit = document.createElement("p");
+      lezhit.className = "how__caveat";
+      lezhit.textContent = `Сейчас в зонах ФБ ещё лежит: на паллетах продаж ${shtuki(p.в_паллетах_продаж_штук || 0)} шт (обработано, `
+        + `${(p.в_паллетах_продаж || []).slice(0, 4).map((x) => `${x.тара} ${shtuki(x.штук)}`).join(", ")}) и в некомплектах `
+        + `${shtuki(p.в_некомплектах_штук || 0)} шт (другой контур: ${(p.в_некомплектах || []).slice(0, 4).map((x) => `${x.тара} ${shtuki(x.штук)}`).join(", ")}). `
+        + `В бэклог плитки они не входят. Посчитано ${p.посчитано}; хранилище отстаёт от склада на часы.`;
+      const dni = document.createElement("details");
+      dni.className = "zones__method";
+      dni.innerHTML = "<summary>По дням</summary><table class=\"zones__table\"><thead><tr><th>День</th><th>Пришло</th><th>Ушло</th>"
+        + "<th>Итог</th><th>Транзит СЦ→ДМД</th></tr></thead><tbody>"
+        + (p.по_дням || []).slice().reverse().map((d) => `<tr><td>${d.день.slice(8, 10)}.${d.день.slice(5, 7)}</td><td>${shtuki(d.пришло)}</td>`
+          + `<td>${shtuki(d.ушло)}</td><td>${d.пришло - d.ушло >= 0 ? "+" : "−"}${shtuki(Math.abs(d.пришло - d.ушло))}</td>`
+          + `<td>${d.транзит >= 0 ? "+" : "−"}${shtuki(Math.abs(d.транзит))}</td></tr>`).join("") + "</tbody></table>";
+      dni.addEventListener("click", (event) => event.stopPropagation());
+      box.append(lead, setka, lezhit, dni);
+    });
+    return box;
+  }
+
   function backlogBlock() {
     const box = document.createElement("section");
     box.className = "how zones";
@@ -1763,7 +1815,7 @@
       bare.append(bareHead);
       const how = methodBlock(metricKey);
       if (how) bare.append(how);
-      if (metricKey === "backlog") bare.append(backlogBlock());
+      if (metricKey === "backlog") bare.append(backlogPotokiBlock(), backlogBlock());
       if (metricKey === "reserve_now") bare.append(rezervBlock());
       const bareGoal = goalBox(metricKey);
       if (bareGoal) bare.append(bareGoal);
@@ -1963,7 +2015,7 @@
     box.append(head, graph, facts);
     const how = methodBlock(metricKey);
     if (how) box.append(how);
-    if (metricKey === "backlog") box.append(backlogBlock());
+    if (metricKey === "backlog") box.append(backlogPotokiBlock(), backlogBlock());
     if (metricKey === "reserve_now") box.append(rezervBlock());
     const goal = goalBox(metricKey);
     if (goal) box.append(goal);
