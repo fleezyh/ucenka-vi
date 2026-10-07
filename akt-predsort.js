@@ -227,6 +227,8 @@
   // паллеты, а отмечает штуку. sverka: { pid, imya, nashli: Map(ключ строки → штук), lishnie: [], kat: Map(акт →
   // {…}), zhdut, posl, itog }.
   let palTab = "";
+  let palNetZapisano = new Set();   // строки, по которым уже записали «нет в паллете»
+  let palNetItog = null;            // { zag, str[] } — что записали и кто виноват
   let zhdemSverku = false;   // 07.10 «а где сверка»: нажали «Сверка» в меню — следующая паллета открывается на ней
   let sverka = null;
   let sverkaPosl = null;   // прошлая сверка этой паллеты — с сервера
@@ -280,7 +282,7 @@
     pal = null; palKrit = ""; palDefekt = ""; palRabota = null; palOshibka = ""; palPer = null; yach = null;
     aktK = null; istP = null; palVybor = null; palSvoy = ""; palDb = null; palPoisk = ""; palPosledniy = null;
     tovar = null; gotovo = null; zhdemPalletu = null; perItog = null;
-    palTab = ""; sverka = null; sverkaPosl = null;
+    palTab = ""; sverka = null; sverkaPosl = null; palNetZapisano = new Set(); palNetItog = null;
     vRezhimPalety(true);
     box.hidden = false;
     vyvesti('<p class="aktPs__chto">Смотрю паллету…</p>', shapkaDey("Паллета", kod));
@@ -352,6 +354,7 @@
         <span class="palStroka__kat">${katPal(x)}</span>
         <span class="palStroka__sht">${x.штук} шт</span>
         <span class="palStroka__akt">${x.акт ? `акт №${x.акт}` : x.уже_нами && !x.без_акта ? "заактировано нами" : "без акта"}</span>
+        <button type="button" class="palNet${palNetZapisano.has(x.ключ) ? " is-on" : ""}" data-pal-net="${esc(x.ключ)}" title="Физически на паллете нет — записать ошибку «Недостача»">${palNetZapisano.has(x.ключ) ? "записано: нет" : "нет в паллете"}</button>
       </label>`).join("");
     const shtVybr = vybrano().reduce((n, x) => n + x.штук, 0);
     const bezVybr = bezAktaVybrano();
@@ -397,7 +400,8 @@
       niz = `<p class="aktPs__chto">На паллете нет штук без акта.</p>`;
     }
     const est = Boolean(deyEl());
-    const glav = `<header class="aktPs__shapka">
+    const glav = `${palNetItog ? `<div class="aktPs__gotovo palNetItog"><b>${esc(palNetItog.zag)}</b>${palNetItog.str.map((t) => `<span>${esc(t)}</span>`).join("")}</div>` : ""}
+      <header class="aktPs__shapka">
         <div><p class="aktPs__nad">${esc(pal.паллета)}</p>
           <p class="aktPs__rezhim">${esc(pal.ячейка || "")}${vsego ? ` · без акта ${pal.без_акта} шт из ${vsego}` : ""}</p></div>
         ${est ? "" : plashkaVms()}
@@ -413,8 +417,8 @@
     // 06.10 Бершацкая: «в пикалке удалилась кнопка принять» — «Принять» было только у списка паллет (масс. пик);
     // у одной паллеты — та же кнопка, ведёт в тот же приём с этой паллетой.
     // 07.10: «Сверка» — пятой вкладкой, остальные четыре не меняются.
-    const vkladki = [["akt", `Акт${bezVybr ? ` · <em>${bezVybr}</em>` : ""}`], ["per", "Переместить"], ["db", "На склад"], ["priyom", "Принять"],
-      ["sverka", `Сверка${sverka ? ` · <em>${Math.min(sverkaNashli(), vsego)}/${vsego}</em>` : ""}`]];
+    // 07.10 ночь Степан: «сверка не нужна — должно быть "этого товара нет в паллете"» — вкладку убрали, у строк кнопка
+    const vkladki = [["akt", `Акт${bezVybr ? ` · <em>${bezVybr}</em>` : ""}`], ["per", "Переместить"], ["db", "На склад"], ["priyom", "Принять"]];
     vyvesti(glav, `${shapkaDey("Паллета", pal.паллета, `<span class="cDey__pod">${vseVybrany() ? `${vsego} шт` : `выбрано ${shtVybr} из ${vsego} шт`}</span>`)}
       ${plashkaVms()}${formaVms()}
       <div class="cSeg">${vkladki.map(([k, t]) => `<button type="button" class="${k === tab ? "is-on" : ""}" data-ptab="${k}"${zanyato && k !== tab ? " disabled" : ""}>${t}</button>`).join("")}</div>
@@ -782,6 +786,34 @@
         <button type="button" class="aktPs__kn" data-sverka="sbros">Сначала</button></div>
       ${posl}
     </div>`;
+  }
+
+  // 07.10 ночь: «этого товара нет в паллете» — ошибка «Недостача» по строке состава. Сервер дописывает виновного
+  // (кто клал пикалкой, когда, откуда → куда) и шлёт ему уведомление; здесь — сразу показываем, кто и почему.
+  function vinovnyStroki(r) {
+    if (!r || !r.Виновный) return ["виновный не определён — штуку клали не через пикалку (руками в WMS)"];
+    return [`виновный: ${r.Виновный}`, r.Основание || "", r.Виновный_логин ? "ему отправлено уведомление в мессенджер" : ""].filter(Boolean);
+  }
+  async function palNet(kluch) {
+    const x = pal && pal.строки.find((z) => z.ключ === kluch);
+    if (!x || palNetZapisano.has(kluch)) return;
+    if (!confirm(`Записать ошибку «Недостача»: на паллете ${pal.паллета} нет «${x.товар}»${x.акт ? ` (акт ${x.акт})` : ""}?`)) return;
+    const stroka = { "Дата нарушения": new Date().toLocaleDateString("ru-RU"), "Номер контейнера": pal.паллета, "Номер акта": x.акт || "",
+      "Товар": x.товар, "Стоимость сайт": x.цена || "", "Программное размещение": pal.паллета, "Вид ошибки": "Недостача",
+      "ДВК ГРУ": "", "Виновный": "", "Комментарий": x.акт ? "" : `без акта, ${x.штук} шт` };
+    try {
+      const o = await fetch("/__akt/sverka", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ паллета: pal.паллета, паллета_id: pal.паллета_id || null, всего: 1, совпало: 0, строки: [stroka] }) });
+      const d = await o.json().catch(() => ({}));
+      if (!o.ok) throw new Error(d.ошибка || `сервер ответил ${o.status}`);
+      const r = (d.строки || [stroka])[0];
+      palNetZapisano.add(kluch);
+      palNetItog = { zag: `Записано: недостача — ${x.товар}${x.акт ? ` · акт ${x.акт}` : ""}`, str: vinovnyStroki(r) };
+      zvukPik("ok");
+    } catch (e) {
+      palNetItog = { zag: "Не записалось", str: [e.message || String(e)] };
+    }
+    risovat();
   }
 
   async function palStart() {
@@ -1175,7 +1207,8 @@
     if (o.gotovo) {
       return `<details class="oshDvk" open><summary>Ошибка ДВК</summary>
         <div class="aktPs__gotovo"><b>Записано: ${esc(o.vid)}${o.kont ? ` · ${esc(o.kont)}` : ""}</b>
-          <span>в журнале ошибок за сегодня (меню слева → «Ошибки»)${o.gotovo.Виновный ? ` · кандидат: ${esc(o.gotovo.Виновный)}` : ""}</span></div>
+          ${vinovnyStroki(o.gotovo).map((t) => `<span>${esc(t)}</span>`).join("")}
+          <span>в журнале ошибок за сегодня — меню слева, «Ошибки»</span></div>
         <button type="button" class="aktPs__kn" data-osh="eshche">Записать ещё одну по этому акту</button></details>`;
     }
     return `<details class="oshDvk"${o.vid ? " open" : ""}><summary>Ошибка ДВК — записать</summary>
@@ -1515,6 +1548,36 @@
   // Строка состояния площадки (27.09, «где сам тест и где вход в WMS»): вход в
   // WMS, стол и включена ли актировка — видно сразу, до первого пика.
   let formaPolosy = false;
+  // 07.10 ночь: «у каждого, кому выставлена ошибка, это должно светиться — кто, когда, почему»
+  let moiOsh = null;
+  async function zagruzitMoiOsh() {
+    try {
+      const o = await fetch("/__akt/oshibki/moi", { cache: "no-store" });
+      if (!o.ok) return;
+      const n = (await o.json()).строки || [];
+      const bylo = JSON.stringify(moiOsh);
+      moiOsh = n;
+      if (bylo !== JSON.stringify(n)) risovatPolosu();
+    } catch { /* следующая попытка через 5 минут */ }
+  }
+  setTimeout(zagruzitMoiOsh, 2500);
+  setInterval(zagruzitMoiOsh, 300000);
+  function pokazatMoiOsh() {
+    let m = document.getElementById("moiOshModal");
+    if (!m) { m = document.createElement("div"); m.id = "moiOshModal"; m.className = "cModal"; document.body.appendChild(m); }
+    const st = moiOsh || [];
+    m.innerHTML = `<div class="cModal__fon" data-moi-osh-zakryt="1"></div><section class="cModal__okno cModal__okno--shir" role="dialog" aria-label="Ошибки на мне">
+      <header class="cModal__sh"><div><b>Ошибки на мне — ${st.length} за 30 дней</b><span>кто записал, когда и почему</span></div>
+        <button type="button" class="cBtn cBtn--sm" data-moi-osh-zakryt="1">закрыть</button></header>
+      <div class="oshZh__tab"><table><thead><tr><th>Когда</th><th>Вид</th><th>Акт</th><th>Товар</th><th>Контейнер</th><th>Основание</th><th>Записал</th><th>Комментарий</th></tr></thead><tbody>
+      ${st.map((x) => `<tr><td>${esc(x._когда)}</td><td><b>${esc(x["Вид ошибки"])}</b></td><td>${esc(x["Номер акта"])}</td><td>${esc(String(x["Товар"] || "").slice(0, 60))}</td>
+        <td>${esc(x["Номер контейнера"])}</td><td>${esc(x.Основание || "")}</td><td>${esc(x._кто_записал)}</td><td>${esc(x["Комментарий"])}</td></tr>`).join("")}</tbody></table></div></section>`;
+    m.hidden = false;
+  }
+  document.addEventListener("click", (e) => {
+    if (e.target.closest("[data-moi-osh]")) { pokazatMoiOsh(); return; }
+    if (e.target.closest("[data-moi-osh-zakryt]")) { const m = document.getElementById("moiOshModal"); if (m) m.hidden = true; }
+  });
   function risovatPolosu() {
     const u = document.getElementById("vmsPolosa");
     if (!u) return;
@@ -1528,6 +1591,7 @@
         : `<span class="aDot is-net"></span><span>без входа — только смотреть</span>
            <button type="button" class="aBtn aBtn--sm aBtn--vio" data-polosa="voyti">войти в WMS</button>`;
     u.innerHTML = `${kto}
+      ${moiOsh && moiOsh.length ? `<button type="button" class="aBtn aBtn--sm moiOsh" data-moi-osh="1" title="Ошибки, записанные на вас за 30 дней">ошибки на мне: <b>${moiOsh.length}</b></button>` : ""}
       <button type="button" class="aBtn aBtn--sm vmsMass${massPik ? " is-on" : ""}" data-polosa="mass">массовый пик${massPik ? ` · <b>${korzina.length}</b>` : ""}</button>`;
     const f = document.getElementById("vmsVhod");
     if (f) f.innerHTML = formaPolosy && !vms.подключено ? `<form class="aktPs__vhod" id="vmsPolosaForma" autocomplete="off">
@@ -2556,6 +2620,8 @@
       stol = null; reshenie = ""; localStorage.removeItem(KLYUCH_STOLA);
       return risovat();
     }
+    const palNetKn = e.target.closest("[data-pal-net]");
+    if (palNetKn && pal) { e.preventDefault(); palNet(palNetKn.dataset.palNet); return; }
     const ov = e.target.closest("[data-osh-vid]");
     if (ov && oshAkt) { oshAkt.vid = ov.dataset.oshVid; oshAkt.oshibka = ""; risovat(); return; }
     const oz = e.target.closest("[data-osh]");

@@ -663,3 +663,13 @@ body.cSkin.is-svetlo .cKuda__forma input { background: #fff; }
 .oshZh__tab table{width:100%;border-collapse:collapse;font-size:13px}
 .oshZh__tab th{position:sticky;top:0;background:#111924;text-align:left;padding:6px 8px;color:var(--muted);font-weight:600}
 .oshZh__tab td{padding:6px 8px;border-top:1px solid var(--cLine2,#2c3a4e);vertical-align:top}
+
+/* 07.10 ночь: «нет в паллете» у строки состава, итог записи, «ошибки на мне», масс. пик в строке штрихкода */
+.palNet{margin-left:auto;flex:0 0 auto;padding:4px 10px;border-radius:9px;border:1px solid rgba(240,93,114,.5);background:transparent;color:#ff8a9a;font:inherit;font-size:12px;cursor:pointer;white-space:nowrap}
+.palNet:hover{background:rgba(240,93,114,.12)}
+.palNet.is-on{background:rgba(240,93,114,.18);border-color:#f05d72;cursor:default}
+.palNetItog{margin-bottom:10px}
+.moiOsh{background:rgba(240,93,114,.16)!important;border-color:rgba(240,93,114,.55)!important;color:#ff9aa8!important}
+.cRezh{margin-left:6px;padding:6px 12px;border-radius:10px;border:1px solid var(--cLine2,#2c3a4e);background:#141c28;color:var(--muted);font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+.cRezh.is-on{background:#7b5cf0;border-color:#7b5cf0;color:#fff}
+.cRezh .cBadge{margin-left:6px}

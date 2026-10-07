@@ -69,13 +69,11 @@
         <nav class="cRail__gr cRail__wms" aria-label="WMS">
           <span class="cRail__lbl">WMS</span>
           <button type="button" class="cRi" id="cNovPal">${ikonka("pal")}Нов. паллета</button>
-          <button type="button" class="cRi" id="cMass" data-polosa="mass">${ikonka("stack")}Масс. пик<span class="cBadge" id="cMassN" hidden></span></button>
           <button type="button" class="cRi" id="aTsdBtn">${ikonka("phone")}ТСД</button>
         </nav>
         <!-- 07.10 Степан: «а где я вижу, где ошибка, и как выставить ошибку», «а где сверка» -->
         <nav class="cRail__gr" aria-label="Контроль">
           <span class="cRail__lbl">Контроль</span>
-          <button type="button" class="cRi" id="cSverka" title="Сверка паллеты с ВМС: пикните паллету">${ikonka("stack")}Сверка</button>
           <button type="button" class="cRi" id="cOshibki" title="Журнал ошибок за день">${ikonka("ekran")}Ошибки</button>
         </nav>
       </aside>
@@ -98,7 +96,7 @@
     golova.appendChild(ryad);
     ryad.classList.add("cField");
     ryad.insertAdjacentHTML("afterbegin", `<svg class="cField__ico" viewBox="0 0 24 24" aria-hidden="true">${IKONKI.bar}</svg>`);
-    $("#kamera")?.insertAdjacentHTML("beforebegin", `<span class="cPref"><i data-primer="CON 0163233250"><b>CON</b>паллета</i><i data-primer="CEL 3923168"><b>CEL</b>ячейка</i><i data-primer="ACT 0005263917"><b>ACT</b>акт</i></span>`);
+    $("#kamera")?.insertAdjacentHTML("beforebegin", `<span class="cPref"><i data-primer="CON 0163233250"><b>CON</b>паллета</i><i data-primer="CEL 3923168"><b>CEL</b>ячейка</i><i data-primer="ACT 0005263917"><b>ACT</b>акт</i></span><button type="button" class="cRezh" id="cMass" data-polosa="mass" title="Массовый пик: пикать паллеты и акты списком">Масс. пик<span class="cBadge" id="cMassN" hidden></span></button>`);
     const scan = $("#scan");
     if (scan) scan.setAttribute("inputmode", "text");
 
