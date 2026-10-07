@@ -1363,6 +1363,22 @@
           + `<td>${shtuki(d.ушло)}</td><td>${d.пришло - d.ушло >= 0 ? "+" : "−"}${shtuki(Math.abs(d.пришло - d.ушло))}</td>`
           + `<td>${d.транзит >= 0 ? "+" : "−"}${shtuki(Math.abs(d.транзит))}</td></tr>`).join("") + "</tbody></table>";
       dni.addEventListener("click", (event) => event.stopPropagation());
+      // 07.10, встреча: «23.09 заход 1500 — сколько из этого осталось лежать в ячейке? это потери, которые мы не
+      // должны были принимать» — по дням захода в «ФБ (ДМД) Зависшие перемещения»
+      const zav = p.зависшие || [];
+      if (zav.length) {
+        const vsZ = zav.reduce((a, x) => a + x.зашло, 0), vsL = zav.reduce((a, x) => a + x.лежит, 0);
+        const zb = document.createElement("div");
+        zb.className = "potoki__blok";
+        zb.innerHTML = `<p class="potoki__zag">«ФБ (ДМД) Зависшие перемещения» — недостачи внутренних поступлений: сколько зашло и сколько лежит до сих пор</p>
+          <p class="how__caveat">Из ${shtuki(vsZ)} шт, зашедших с ${zav[0].день.slice(8, 10)}.${zav[0].день.slice(5, 7)}, до сих пор лежат ${shtuki(vsL)} (${Math.round(vsL / Math.max(vsZ, 1) * 100)}%) — `
+          + `их никто не обрабатывает, физически товара нет. Плюс ${shtuki(p.зависшие_раньше || 0)} шт, зашедших раньше (регистр ВМС глубже не помнит).</p>
+          <div class="zones__wrap"><table class="zones__table potoki__t"><thead><tr><th>день захода</th>${zav.map((x) => `<th>${x.день.slice(8, 10)}.${x.день.slice(5, 7)}</th>`).join("")}<th>всего</th></tr></thead>
+          <tbody><tr><td>зашло</td>${zav.map((x) => `<td>${shtuki(x.зашло)}</td>`).join("")}<td><b>${shtuki(vsZ)}</b></td></tr>
+          <tr><td>лежит до сих пор</td>${zav.map((x) => `<td style="background:rgba(240,93,114,${(0.08 + 0.7 * (x.лежит / Math.max(x.зашло, 1))).toFixed(2)})">${shtuki(x.лежит)}</td>`).join("")}<td><b>${shtuki(vsL)}</b></td></tr>
+          <tr><td>доля</td>${zav.map((x) => `<td>${Math.round(x.лежит / Math.max(x.зашло, 1) * 100)}%</td>`).join("")}<td>${Math.round(vsL / Math.max(vsZ, 1) * 100)}%</td></tr></tbody></table></div>`;
+        setka.append(zb);
+      }
       box.append(lead, setka, lezhit, dni);
     });
     return box;
