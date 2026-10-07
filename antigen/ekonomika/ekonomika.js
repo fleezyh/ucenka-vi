@@ -37,7 +37,11 @@
   let idx = null;                 // общий файл
   const rubriki = new Map();      // r1 → колонки
   let stavki = null;              // текущие ставки
-  const sost = { r1: "", r2: "", tip: "", q: "", gr: "", vid: "minus", pokazano: 50, vseGrupp: false };
+  // 07.10: + порог потерь на позицию, бренд и разрез матрицы «Где теряем больше» (фильтрация «как в антигенерации»)
+  const sost = { r1: "", r2: "", tip: "", q: "", gr: "", vid: "minus", pokazano: 50, vseGrupp: false,
+                 porog: 0, brend: "", razrez: "r1", mxVse: false };
+  // бренд — первое слово названия («PROFFIT Профиль…», «Тара.ру Ведро…»): отдельной колонки в данных нет
+  const brendOf = (k, i) => (String(k.imya[i] || "").trim().split(/\s+/)[0] || "—").toLocaleUpperCase("ru-RU");
 
   // 06.10 Степан: «было задание сделать конкретно по длинномерам и светильникам из антигенерации, только
   // рубрика слишком неточно — я никак их не найду». Первая версия брала словарь групп страницы брака
@@ -264,6 +268,7 @@
         if (sost.r2 !== "" && k.r2[i] !== Number(sost.r2)) continue;
         if (sost.tip !== "" && k.tip[i] !== Number(sost.tip)) continue;
         if (g && !vGruppe(g, k, i)) continue;
+        if (sost.brend && brendOf(k, i) !== sost.brend) continue;
         if (q) {
           if (art != null) { if (k.art[i] !== art) continue; }
           else { const im = k.imya[i].toLowerCase(); if (!slova.every((s) => im.includes(s))) continue; }
@@ -279,6 +284,7 @@
     let out = sp;
     if (v === "minus") out = sp.filter(({ r }) => r.itog < 0);
     else if (VID_PRICHINA[v]) out = sp.filter(({ r }) => r.itog < 0 && prichina(r) === VID_PRICHINA[v]);
+    if (sost.porog > 0) out = out.filter(({ r }) => -r.itog >= sost.porog);
     return out.slice().sort((a, b) => a.r.itog - b.r.itog);
   }
 
@@ -383,11 +389,9 @@
   function pozicii(sp, primech) {
     const vid = sp.slice(0, sost.pokazano);
     const opis = VIDY.find((v) => v[0] === sost.vid)[2];
-    const tipy = idx.slov.tip.map((t, n) => (t ? `<option value="${n}"${String(n) === sost.tip ? " selected" : ""}>${esc(t)}</option>` : "")).join("");
+    // «показать» и модель учёта — в фильтрах наверху (07.10), здесь только заголовок
     $("ekPozicii").innerHTML = `<div class="ekPoz__verh">
         <h2>Позиции <small>${chislo(sp.length)} · ${opis}${primech ? ` · ${primech}` : ""}</small></h2>
-        <div class="ekVidy" role="tablist">${VIDY.map(([k, imya]) => `<button type="button" role="tab" data-vid="${k}" aria-selected="${k === sost.vid}">${imya}</button>`).join("")}</div>
-        <label class="ekSel ekSel--mal"><span>Модель учёта</span><select id="ekTip"><option value="">все</option>${tipy}</select></label>
       </div>
       ${sp.length ? `<div class="ekPoz__shapka"><span>товар</span><span>продано</span><span>куда уходит маржа штуки</span><span>остаётся со штуки</span></div>` : `<p class="ekPusto">Ничего не нашлось.</p>`}
       ${vid.map(({ k, i, r }) => { const na = (v) => (r.sht ? v / r.sht : null); return `<button type="button" class="ekPoz" data-k="${k === idx.топKol ? "top" : k.r1[i]}" data-i="${i}">
@@ -398,8 +402,114 @@
       ${sp.length > vid.length ? `<button type="button" class="ekBtn ekEshche" data-eshche>Показать ещё 50 из ${chislo(sp.length - vid.length)}</button>` : ""}`;
   }
 
+  // ------------------------------------------------------------ фильтры и матрица (07.10)
+  // Степан: «фильтрацию так и не прокачал и не сделал удобный вид как примерно в антигенерации — что сразу
+  // видно, что куда бить». Как на странице брака: фильтры кнопками над всем, матрица «где больше» с
+  // переключением разреза, клик по ячейке — фильтр и список позиций.
+
+  const POROGI = [[0, "любые"], [10000, "от 10 тыс"], [100000, "от 100 тыс"], [1000000, "от 1 млн"]];
+  const RAZREZY = [["napr", "направление"], ["r1", "рубрика"], ["r2", "категория"], ["tip", "модель учёта"], ["brend", "бренд"]];
+  const KOLONKI = [["цена", "cena"], ["хранение", "hran"], ["брак", "brak"], ["работа", "rab"]];
+
+  function risovatFiltr() {
+    const seg = (spisok, attr, tek) => `<div class="ekSeg">${spisok.map(([v, t]) =>
+      `<button type="button" data-${attr}="${esc(v)}" class="${String(tek) === String(v) ? "is-on" : ""}">${esc(t)}</button>`).join("")}</div>`;
+    const tipy = idx.slov.tip.map((t, n) => (t ? `<option value="${n}"${String(n) === sost.tip ? " selected" : ""}>${esc(t)}</option>` : "")).join("");
+    const aktiv = [];
+    if (sost.gr) aktiv.push(["gr", `направление: ${sost.gr}`]);
+    if (sost.vid !== "minus") aktiv.push(["vid", `показ: ${VIDY.find((v) => v[0] === sost.vid)[1]}`]);
+    if (sost.r1 !== "") aktiv.push(["r1", `рубрика: ${idx.slov.r1[Number(sost.r1)] || "—"}`]);
+    if (sost.r2 !== "") aktiv.push(["r2", `категория: ${idx.slov.r2[Number(sost.r2)] || "без категории"}`]);
+    if (sost.tip !== "") aktiv.push(["tip", `модель: ${idx.slov.tip[Number(sost.tip)]}`]);
+    if (sost.brend) aktiv.push(["brend", `бренд: ${sost.brend}`]);
+    if (sost.porog) aktiv.push(["porog", `потери ${POROGI.find((p) => p[0] === sost.porog)[1]}`]);
+    if (sost.q.trim()) aktiv.push(["q", `поиск: ${sost.q.trim()}`]);
+    $("ekFiltr").innerHTML = `
+      <div class="ekF__ryad"><span class="ekF__lbl">направление</span>
+        ${seg([["", "все товары"], ...NAPRAVLENIYA.map((g) => [g.имя, g.имя])], "grag", sost.gr)}</div>
+      <div class="ekF__ryad"><span class="ekF__lbl">показать</span>${seg(VIDY.map(([k, t]) => [k, t]), "vid", sost.vid)}
+        <span class="ekF__lbl">потери на позицию</span>${seg(POROGI.map(([v, t]) => [v, t]), "porog", sost.porog)}
+        <label class="ekSel ekSel--mal"><span>модель учёта</span><select id="ekTip"><option value="">все</option>${tipy}</select></label></div>
+      ${aktiv.length ? `<div class="ekF__aktiv">${aktiv.map(([k, t]) => `<button type="button" class="ekF__chip" data-snyat="${k}">${esc(t)} ×</button>`).join("")}
+        <button type="button" class="ekF__sbros" data-snyat="vse">сбросить всё</button></div>` : ""}`;
+  }
+
+  function risovatMatr(sp) {
+    const box = $("ekMatr");
+    if (!sp) { box.innerHTML = `<h2>Где теряем больше <small>считаю по всем позициям…</small></h2>`; return; }
+    const klyuch = {
+      napr: (k, i) => { const g = gruppyAg.find((x) => vGruppe(x, k, i)); return g ? [g.имя, g.имя] : ["", "прочие товары"]; },
+      r1: (k, i) => [k.r1[i], idx.slov.r1[k.r1[i]] || "без рубрики"],
+      r2: (k, i) => [k.r2[i], idx.slov.r2[k.r2[i]] || "без категории"],
+      tip: (k, i) => [k.tip[i], idx.slov.tip[k.tip[i]] || "—"],
+      brend: (k, i) => { const b = brendOf(k, i); return [b, b]; },
+    }[sost.razrez];
+    const ryady = new Map();
+    let n = 0;
+    for (const { k, i, r } of sp) {
+      if (r.itog >= 0 || (sost.porog && -r.itog < sost.porog)) continue;
+      const [id, imya] = klyuch(k, i);
+      const z = ryady.get(id) || { id, imya, vsego: 0, poz: 0, kol: { цена: 0, хранение: 0, брак: 0, работа: 0 }, kpoz: { цена: 0, хранение: 0, брак: 0, работа: 0 } };
+      const p = prichina(r);
+      z.vsego -= r.itog; z.poz += 1; z.kol[p] -= r.itog; z.kpoz[p] += 1;
+      ryady.set(id, z); n += 1;
+    }
+    const vse = [...ryady.values()].sort((a, b) => b.vsego - a.vsego);
+    const pokaz = sost.mxVse ? vse : vse.slice(0, 15);
+    const maks = Math.max(...pokaz.flatMap((z) => Object.values(z.kol)), 1);
+    const cvet = (v) => (v ? `background:rgba(240,93,114,${(0.1 + 0.75 * Math.sqrt(v / maks)).toFixed(2)})` : "");
+    const itogo = KOLONKI.map(([p]) => vse.reduce((a, z) => a + z.kol[p], 0));
+    box.innerHTML = `<div class="ekMatr__verh"><h2>Где теряем больше <small>${chislo(n)} позиций в минусе по фильтру · клик по ячейке — позиции этой строки и причины</small></h2>
+        <div class="ekSeg">${RAZREZY.map(([v, t]) => `<button type="button" data-razrez="${v}" class="${sost.razrez === v ? "is-on" : ""}">${t}</button>`).join("")}</div></div>
+      <div class="ekMatr__setka">
+        <div class="ekMx ekMx--shapka"><span>${RAZREZY.find((x) => x[0] === sost.razrez)[1]}</span>${KOLONKI.map(([p, kl]) =>
+          `<span><i class="ekLeg is-${kl}"></i>${p === "цена" ? "цена ≤ себеса" : p}</span>`).join("")}<span>всего за год</span></div>
+        ${pokaz.map((z) => `<div class="ekMx">
+          <button type="button" class="ekMx__imya" data-mx="${esc(z.id)}" data-mx-vid="minus" title="${esc(z.imya)}"><b>${esc(z.imya)}</b><small>${chislo(z.poz)} поз.</small></button>
+          ${KOLONKI.map(([p, kl]) => `<button type="button" class="ekMx__ya" style="${cvet(z.kol[p])}" data-mx="${esc(z.id)}" data-mx-vid="${kl}"
+            title="${esc(z.imya)} · ${p}: −${dengi(z.kol[p])} ₽ · ${chislo(z.kpoz[p])} поз.">${z.kol[p] ? `−${dengi(z.kol[p])}` : "—"}<small>${z.kpoz[p] ? chislo(z.kpoz[p]) + " поз." : ""}</small></button>`).join("")}
+          <button type="button" class="ekMx__vsego" data-mx="${esc(z.id)}" data-mx-vid="minus">−${dengi(z.vsego)} ₽</button></div>`).join("")}
+        <div class="ekMx ekMx--itog"><span>итого</span>${itogo.map((v) => `<span>−${dengi(v)}</span>`).join("")}<span>−${dengi(itogo.reduce((a, v) => a + v, 0))} ₽</span></div>
+      </div>
+      ${vse.length > pokaz.length ? `<button type="button" class="ekBtn ekEshche" data-mx-vse>Показать все ${chislo(vse.length)}</button>` : ""}`;
+  }
+
+  function primenitYacheyku(razrez, id, vid) {
+    sost.pokazano = 50; sost.vid = vid;
+    if (razrez === "napr") sost.gr = id;
+    else if (razrez === "r1") { sost.r1 = String(id); sost.r2 = ""; }
+    else if (razrez === "r2") sost.r2 = String(id);
+    else if (razrez === "tip") sost.tip = String(id);
+    else if (razrez === "brend") sost.brend = id;
+    const u = new URL(location.href);
+    if (sost.gr) u.searchParams.set("gruppa", sost.gr); else u.searchParams.delete("gruppa");
+    history.replaceState(null, "", u);
+    const dalshe = () => { risovat(); $("ekPozicii").scrollIntoView({ behavior: "smooth", block: "start" }); };
+    if (razrez === "r1") vybratRubriku(id).then(() => $("ekPozicii").scrollIntoView({ behavior: "smooth", block: "start" })).catch(oshibka);
+    else dalshe();
+  }
+
+  function snyat(chto) {
+    sost.pokazano = 50; sost.vseGrupp = false;
+    const vse = chto === "vse";
+    if (vse || chto === "gr") sost.gr = "";
+    if (vse || chto === "vid") sost.vid = "minus";
+    if (vse || chto === "r2") sost.r2 = "";
+    if (vse || chto === "tip") sost.tip = "";
+    if (vse || chto === "brend") sost.brend = "";
+    if (vse || chto === "porog") sost.porog = 0;
+    if (vse || chto === "q") { sost.q = ""; $("ekPoisk").value = ""; }
+    const u = new URL(location.href);
+    if (!sost.gr) u.searchParams.delete("gruppa");
+    history.replaceState(null, "", u);
+    if (vse || chto === "r1") { sost.r1 = ""; vybratRubriku("").catch(oshibka); return; }
+    risovat();
+  }
+
   function risovat() {
     const q = zapros();
+    risovatFiltr();
+    if (sost.brend && !vseZagruzheny()) { zagruzitVse().then(risovat).catch(oshibka); return; }
     const imyaR1 = (n) => idx.slov.r1[n] || "без рубрики";
     risovatGruppyAg();
     risovatNapr();
@@ -410,6 +520,7 @@
       return;
     }
     if (sost.r1 === "" && !q && !g && !vseZagruzheny()) {
+      risovatMatr(null);
       // обзор без загрузки всех рубрик: сводка из index и топ-300 «маржу съели»
       const sv = idx.рубрики.filter((f) => f.свод).map((f) => ({ id: f.r1, imya: f.имя, s: izSvoda(f) }));
       const s = sv.reduce((a, { s: x }) => { for (const p in a) a[p] += x[p]; return a; }, { vyr: 0, marzha: 0, rabota: 0, hran: 0, brak: 0, itog: 0, minus: 0, n: 0 });
@@ -429,6 +540,7 @@
       return;
     }
     const sp = vybor();
+    risovatMatr(sp);
     const s = summa(sp);
     const grPref = g ? `Направление «${esc(g.имя)}» · ${esc(g.что)}` : "";
     const mesto = q ? `Поиск «${esc(sost.q.trim())}»`
@@ -598,11 +710,20 @@
     if (t.closest("[data-vsegrupp]")) { sost.vseGrupp = true; risovat(); return; }
     const nt = t.closest(".ekNk__tov[data-i]");
     if (nt) { const k = rubriki.get(Number(nt.dataset.k)); if (k) karta(k, Number(nt.dataset.i)); return; }
+    const mx = t.closest("[data-mx]");
+    if (mx) { primenitYacheyku(sost.razrez, mx.dataset.mx, mx.dataset.mxVid); return; }
+    if (t.closest("[data-mx-vse]")) { sost.mxVse = true; risovat(); return; }
+    const rz = t.closest("[data-razrez]");
+    if (rz) { sost.razrez = rz.dataset.razrez; sost.mxVse = false; risovat(); return; }
+    const pg = t.closest("[data-porog]");
+    if (pg) { sost.porog = Number(pg.dataset.porog) || 0; sost.pokazano = 50; risovat(); return; }
+    const sn = t.closest("[data-snyat]");
+    if (sn) { snyat(sn.dataset.snyat); return; }
     const ga = t.closest("[data-grag]");
     if (ga) {
+      // из фильтров — выбор (повторный клик снимает), с карточки направления — тоже переключатель
       sost.gr = ga.dataset.grag === sost.gr ? "" : ga.dataset.grag;
       sost.pokazano = 50; sost.vseGrupp = false;
-      if (sost.gr) sost.vid = "vse";   // по группе нужен весь её состав, худшие сверху
       const u = new URL(location.href);
       if (sost.gr) u.searchParams.set("gruppa", sost.gr); else u.searchParams.delete("gruppa");
       history.replaceState(null, "", u);

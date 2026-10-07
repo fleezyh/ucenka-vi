@@ -268,3 +268,47 @@ body.ekZamok { overflow: hidden; }
 @media (max-width: 1200px) { .ekNapr__setka { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 900px) { .ekTopy__setka { grid-template-columns: 1fr; } }
 @media (max-width: 620px) { .ekNapr__setka { grid-template-columns: 1fr; } }
+
+/* 07.10 «половина блоков зачем-то прозрачная»: все панели сплошные, как кабинет и антигенерация
+   (#111924, рамка #263345), строки и ячейки внутри — #0d141e. Красный фон страницы не просвечивает. */
+.ekBar, .ekFiltr, .ekBit, .ekMatr, .ekGlav, .ekKak, .ekStavki, .ekNk, .ekTop, .ekGruppy, .ekPozicii, .ekKarta {
+  background: #111924 !important; border: 1px solid #263345; }
+.ekGruppy:empty, .ekPozicii:empty { display: none; }
+.ekGruppy, .ekPozicii, .ekMatr, .ekFiltr { margin: 0 0 18px; padding: 18px 20px; border-radius: 20px; }
+.ekNk { background-image: none !important; }
+.ekNk:hover, .ekNk.is-on { background: #16213a !important; border-color: rgba(185,162,255,.55); }
+.ekGr, .ekPoz, .ekNk__tov, .ekRychag { background: #0d141e !important; }
+.ekGr:hover, .ekPoz:hover, .ekNk__tov:hover, .ekRychag:hover { background: #16213a !important; }
+.ekTop table td { background: transparent; }
+
+/* фильтры кнопками, как на странице брака */
+.ekFiltr { display: grid; gap: 10px; }
+.ekF__ryad { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.ekF__lbl { font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.ekSeg { display: inline-flex; flex-wrap: wrap; gap: 2px; padding: 3px; border: 1px solid #263345; border-radius: 12px; background: #0d141e; }
+.ekSeg button { padding: 6px 12px; border: 0; border-radius: 9px; background: transparent; color: var(--muted); font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; }
+.ekSeg button:hover { color: var(--text); background: #16213a; }
+.ekSeg button.is-on { color: var(--text); background: #243149; box-shadow: inset 0 0 0 1px rgba(185,162,255,.35); }
+.ekF__aktiv { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,.07); }
+.ekF__chip { padding: 5px 10px; border: 1px solid rgba(185,162,255,.4); border-radius: 999px; background: rgba(123,92,240,.14); color: var(--text); font: inherit; font-size: 13px; cursor: pointer; }
+.ekF__chip:hover { background: rgba(123,92,240,.28); }
+.ekF__sbros { padding: 5px 10px; border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 13px; text-decoration: underline; cursor: pointer; }
+
+/* матрица «Где теряем больше»: строка — разрез, колонка — причина, цвет — рубли */
+.ekMatr__verh { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.ekMatr__verh h2 { margin: 0; }
+.ekMatr__setka { display: grid; gap: 4px; overflow-x: auto; }
+.ekMx { display: grid; grid-template-columns: minmax(200px, 1.7fr) repeat(4, minmax(96px, 1fr)) minmax(110px, 1fr); gap: 4px; min-width: 760px; }
+.ekMx > * { min-width: 0; }
+.ekMx--shapka span, .ekMx--itog span { padding: 4px 8px; font-size: 12px; color: var(--muted); }
+.ekMx--shapka span:not(:first-child), .ekMx--itog span:not(:first-child) { text-align: center; }
+.ekMx--itog span { font-weight: 600; color: var(--text); border-top: 1px solid rgba(255,255,255,.08); padding-top: 8px; }
+.ekMx--shapka .ekLeg { display: inline-block; margin-right: 6px; vertical-align: middle; }
+.ekMx button { display: grid; align-content: center; gap: 1px; min-height: 40px; padding: 5px 8px; border: 0; border-radius: 8px; background: #0d141e;
+  color: var(--text); font: inherit; font-size: 13.5px; font-weight: 600; text-align: center; cursor: pointer; }
+.ekMx button small { font-size: 11px; font-weight: 400; color: rgba(255,255,255,.7); }
+.ekMx button:hover { outline: 2px solid rgba(185,162,255,.7); outline-offset: -2px; }
+.ekMx__imya { text-align: left !important; }
+.ekMx__imya b { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-weight: 600; }
+.ekMx__vsego { background: #1a2436 !important; color: #ff8f9f !important; }
+.ekMatr h2 small { margin-left: 8px; font-size: 13px; font-weight: 400; color: var(--muted); }
