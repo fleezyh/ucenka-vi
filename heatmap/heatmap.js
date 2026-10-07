@@ -2311,6 +2311,26 @@
   }
   document.getElementById("prostynyaBtn")?.addEventListener("click", vygruzitProstynyu);
 
+  // ФС-отчёт по браку: готовые книги по месяцам (data/fs/fs_brak.json), по умолчанию — последний месяц.
+  (async () => {
+    const box = document.getElementById("fsVybor");
+    if (!box) return;
+    const d = await fetch("../data/fs/fs_brak.json", { cache: "no-cache" }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+    const spisok = (d && d.отчёты) || [];
+    if (!spisok.length) return;
+    const btn = document.getElementById("fsBtn");
+    const sel = document.getElementById("fsMes");
+    sel.innerHTML = spisok.map((x, i) => `<option value="${i}">${x.название}</option>`).join("");
+    const vybrat = () => {
+      const x = spisok[Number(sel.value) || 0];
+      btn.href = `${x.файл}?v=${encodeURIComponent(x.собрано)}`;
+      btn.title = `Сводка, списание, уценка, переупаковка, вход по городам и типу, продажи уценки · собрано ${x.собрано}`;
+    };
+    sel.addEventListener("change", vybrat);
+    vybrat();
+    box.hidden = false;
+  })();
+
   // Escape закрывает раскрытый график: кнопка «Закрыть» уезжает вверх, когда
   // смотришь длинный ряд, и до неё приходится возвращаться прокруткой.
   document.addEventListener("keydown", (event) => {
