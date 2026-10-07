@@ -1114,7 +1114,9 @@
       : a.живьём ? `<div class="aktKat"><span class="aktKat__nad">категория уценки${a.цена ? ` <b class="aktKat__cena">${esc(Number(a.цена).toLocaleString("ru-RU"))} ₽${a.цена_откуда === "сайт" ? " · цена сайта" : ""}</b>` : ""}</span>
         <b class="aktKat__imya">${esc(a.категория || "не определилась")}</b>${a.спорно ? ' <span class="aTag aTag--spor">спорно</span>' : ""}
         <span class="aktKat__rub">${a.мисбокс ? "цена до 1 000 ₽ — мистери бокс · " : ""}рубрика «${esc(a.рубрика || "—")}»${a.рубрика_вмс ? ` · ${esc(a.рубрика_вмс)}` : ""}</span></div>` : "";
-    const vWms = `<div class="palKartaAkt__knopki"><a class="aktPs__kn" href="${esc(a.вмс || a.WMS)}" target="_blank" rel="noopener">Открыть акт в WMS</a></div>`;
+    // 07.10 столы: «когда пикаешь акт — чтобы можно было его прямо там распечатать, как у контейнера»
+    const vWms = `<div class="palKartaAkt__knopki"><a class="aktPs__kn" href="${esc(a.вмс || a.WMS)}" target="_blank" rel="noopener">Открыть акт в WMS</a>${
+      window.ShkPechat && a.акт ? '<button type="button" class="aktPs__kn" data-akt-pechat="1">Печать наклейки акта</button>' : ""}</div>`;
     const otkuda = `<p class="aktPs__chto">${a.живьём ? `живьём из WMS · ${esc(a.за_с)} с` : `Данные хранилища — WMS не ответила${a.почему_не_живьём ? ` (${esc(a.почему_не_живьём)})` : ""}.`}</p>`;
     const glav = `<header class="aktPs__shapka"><div><p class="aktPs__nad">Акт №${esc(a.акт)}</p>
         <p class="aktPs__rezhim">${esc(a.вид)} · ${esc(a.когда)} · ${esc(a.автор)}${a.статус ? ` · ${esc(a.статус.toLowerCase())}` : ""}</p></div></header>
@@ -2628,6 +2630,11 @@
     if (e.target.closest("[data-akt-vsyo]")) { aktVsyo = true; return risovat(); }
     const nk = e.target.closest("[data-nov-kat]");
     if (nk) { novayaPalleta(nk.dataset.novKat); return; }
+    if (e.target.closest("[data-akt-pechat]") && aktK && aktK.акт && window.ShkPechat) {
+      window.ShkPechat.pechat({ shk: aktK.наклейка || `ACT ${String(aktK.акт).padStart(10, "0")}`,
+        imya: String(aktK.товар || "").slice(0, 60), kategoriya: `Акт №${aktK.акт}${aktK.категория ? " · " + aktK.категория : ""}` });
+      return;
+    }
     if (e.target.closest("[data-nov-pechat]") && novP && novP.gotovo && window.ShkPechat) {
       const g = novP.gotovo; window.ShkPechat.pechat({ shk: g.штрихкод, imya: g.имя, kategoriya: g.категория }); return;
     }
