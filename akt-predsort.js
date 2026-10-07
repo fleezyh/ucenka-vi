@@ -806,7 +806,7 @@
     const kn = document.querySelector("#aktStop [data-stop-snova]");
     if (kn) { kn.disabled = true; kn.textContent = "смотрю в WMS…"; }
     let svezh = null;
-    try { svezh = await chitat(`/__vms/akt?kod=${encodeURIComponent(a.наклейка || a.акт)}`); } catch { svezh = null; }
+    try { svezh = await chitat(`/__vms/akt?kod=${encodeURIComponent(a.наклейка || `ACT ${String(a.акт).padStart(10, "0")}`)}`); } catch { svezh = null; }
     if (svezh && !neprinyat(svezh)) { aktK = svezh; stopSnyat(); risovat(); return; }
     if (kn) { kn.disabled = false; kn.textContent = "всё ещё не принят — проверить ещё раз"; }
     window.pikalkaZvuk && window.pikalkaZvuk("oshibka");
@@ -1264,6 +1264,13 @@
     korzAkty.push(z); aktyKuda = null; risovat();
     try {
       const d = await chitat(`/__vms/akt?kod=${encodeURIComponent(`ACT ${String(akt).padStart(10, "0")}`)}`);
+      // 07.10 «ну конечно делай в массовом»: непринятый в вмс акт в список не берём — стоп до «отложил в сторону»
+      if (neprinyat(d)) {
+        korzAkty.splice(korzAkty.indexOf(z), 1);
+        risovat();
+        stopPokazat(d);
+        return;
+      }
       const g = (d.где || [])[0] || {};
       Object.assign(z, { товар: d.товар || "", ячейка: g.ячейка || "", паллета: g.паллета || "", zhdu: false,
         категория: d.категория || "", спорно: !!d.спорно, product_id: d.product_id,
