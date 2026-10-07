@@ -1881,6 +1881,8 @@
       if (!o.ok) throw new Error(d.ошибка || `сервер ответил ${o.status}`);
       scQueue = d.очередь;
       if (action === "create") scQueueToken = "";
+      // 07.10 «сбросить, чтоб заново начинать»: очередь закрыта — и список паллет масс. пика пустой
+      if (action === "reset") { korzina = []; korzAkty = []; korzLog = []; aktyKuda = null; signal("Очередь сброшена — пикайте паллеты заново"); }
     } catch (e) { scQueueError = e.message || String(e); }
     finally { scQueueBusy = false; risovat(); }
   }
@@ -1899,12 +1901,14 @@
         ${q.состояние === "running" ? `<button type="button" class="aktPs__kn" data-sc-queue="pause"${scQueueBusy ? " disabled" : ""}>Пауза после текущей паллеты</button>` : ""}
         ${["prepared", "running", "paused"].includes(q.состояние) ? `<button type="button" class="aktPs__kn" data-sc-queue="cancel"${scQueueBusy ? " disabled" : ""}>Отменить оставшиеся</button>` : ""}
         ${(q.проблемы || []).map(row).join("")}${(counts.skipped || 0) + (counts.review || 0) > 50 ? "<p>Показаны первые 50 проблемных паллет.</p>" : ""}
-        ${(counts.skipped || 0) + (counts.review || 0) ? '<button type="button" class="aktPs__kn" data-sc-queue="report">Скачать список проблем</button>' : ""}` : ""}
+        ${(counts.skipped || 0) + (counts.review || 0) ? '<button type="button" class="aktPs__kn" data-sc-queue="report">Скачать список проблем</button>' : ""}
+        ${q.состояние !== "running" ? `<button type="button" class="aktPs__kn" data-sc-queue="reset"${scQueueBusy ? " disabled" : ""} title="Закрыть очередь и очистить список — начать заново">Сбросить очередь</button>` : ""}` : ""}
       ${scQueueError ? `<p class="aktPs__net">${esc(scQueueError)}</p>` : ""}</div>`;
   }
   document.addEventListener("click", (e) => {
     const k = e.target.closest("[data-sc-queue]");
     if (k && vPaneli(e)) {
+      if (k.dataset.scQueue === "reset" && !confirm("Сбросить очередь? Необработанные паллеты будут сняты, список очистится.")) return;
       if (k.dataset.scQueue === "report") scQueueReport(); else scQueueAction(k.dataset.scQueue);
     }
   });
