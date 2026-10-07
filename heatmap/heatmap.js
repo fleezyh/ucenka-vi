@@ -392,7 +392,32 @@
       foot.textContent = tile.meta_txt || "";
     }
 
-    cell.append(head, value, chart, foot);
+    // 07.10 «детализация по ошибкам внутри блока»: у «Ошибок ФБ» — по видам за период,
+    // одной строкой под числом: «Излишек 160 · Недостача 20 · …», рубли — в подсказке.
+    const detali = Array.isArray(tile["детали"]) ? tile["детали"] : [];
+    if (detali.length) {
+      const box = document.createElement("p");
+      box.className = "tile__detal";
+      // Внутри помещаются две строки: три главных вида и «ещё N», весь список — в подсказке.
+      const vse = detali.map((d) => `${d["вид"]}: ${Number(d["шт"]).toLocaleString("ru-RU")} шт на ${Number(d["руб"]).toLocaleString("ru-RU")} ₽`).join("\n");
+      const pokaz = detali.length > 4 ? detali.slice(0, 3) : detali;
+      pokaz.forEach((d) => {
+        const item = document.createElement("span");
+        item.textContent = `${d["вид"]} ${Number(d["шт"]).toLocaleString("ru-RU")}`;
+        box.append(item);
+      });
+      if (detali.length > 4) {
+        const eshche = document.createElement("span");
+        const ost = detali.slice(3).reduce((sum, d) => sum + Number(d["шт"]), 0);
+        eshche.textContent = `ещё ${detali.length - 3} вида · ${ost.toLocaleString("ru-RU")}`;
+        box.append(eshche);
+      }
+      box.title = vse;
+      cell.classList.add("tile--detal");
+      cell.append(head, value, box, chart, foot);
+    } else {
+      cell.append(head, value, chart, foot);
+    }
 
     // Клик раскрывает панель: дневную историю, а под ней — откуда взялось
     // число. Раскрытие даём всегда, даже когда дневного ряда нет: вопрос

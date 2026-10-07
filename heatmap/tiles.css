@@ -242,3 +242,10 @@
 .tile__value--pair { font-size: 25px; letter-spacing: -0.025em; }
 .tile__value--pair .tile__slash { margin: 0 5px; }
 @media (max-width: 1180px) { .tile__value--pair { font-size: 22px; } }
+
+/* 07.10: детализация внутри плитки (ошибки по видам) — две колонки мелким шрифтом между числом и
+   графиком; пустой подвал (цели у ошибок нет) уступает ей место, высота плитки как у соседей */
+.tile--detal { grid-template-rows: 40px 33px auto minmax(0, 1fr); }
+.tile--detal .tile__foot--empty { display: none; }
+.tile__detal { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 10px; margin: 1px 0 2px; color: rgba(255, 255, 255, .85); font-size: 10.5px; line-height: 1.3; }
+.tile__detal span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
