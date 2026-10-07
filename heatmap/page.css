@@ -855,14 +855,15 @@ body.is-svetlo .dtip { background: rgba(255, 255, 255, 0.98); }
 .potoki__zona td:first-child { padding-left: 22px; color: var(--text); }
 .potoki__zona small { color: var(--muted); }
 
-/* 07.10 ФС-отчёт по браку: подпись как у «Периода», ниже одна строка — месяц и «Скачать Excel»
-   одной высоты, в тон кнопке «Выгрузить цели и факт». */
-.fsBlok { margin-top: 14px; }
+/* 07.10 Выгрузки одной строкой: «Выгрузить цели и факт», месяц ФС-отчёта и «Скачать ФС-отчёт» —
+   одной высоты и в одной рамке. Отдельными строками блок ФС вытягивал правую колонку, и над заголовком
+   слева появлялась пустота. */
+.vygruzki { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.vygruzki .pokazBtn { margin-top: 0; height: 36px; }
+.fsBlok { display: flex; gap: 8px; }
 .fsBlok[hidden] { display: none; }
-.fsBlok__nad { margin-bottom: 7px; }
-.fsBlok__ryad { display: flex; gap: 8px; }
 .periodBox .fsMes {
-  flex: 1; min-width: 0; height: 36px; padding: 0 34px 0 12px; border-radius: 10px;
+  height: 36px; padding: 0 32px 0 12px; border-radius: 10px;
   border: 1px solid var(--line-strong); box-shadow: none; backdrop-filter: none;
   background:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 6 6.5l5-5' stroke='%238f9cad' stroke-width='1.8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
