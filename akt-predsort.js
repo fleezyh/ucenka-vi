@@ -1340,7 +1340,7 @@
       ${a.где.length ? `<div class="yachPallety">${a.где.map((g) => `
         <button type="button" class="yachPalleta yachPalleta--stolb" data-pal-otkryt="${esc(g.паллета)}"${g.паллета ? "" : " disabled"}>
           <span class="yachPalleta__imya">${esc(g.паллета || "без паллеты")}</span>
-          <span>${esc(g.ячейка)}${g.зона ? ` <span class="yachPalleta__zak">· ${esc(g.зона)}</span>` : ""}${g.база ? ` <span class="yachPalleta__zak">· база ${esc(g.база)}</span>` : ""}</span>
+          <span>${skladTip(g.база) ? `<em class="cGde__tip cGde__tip--${skladTip(g.база) === "СЦ" ? "sc" : "fb"}">${skladTip(g.база)}</em> ` : ""}${esc(g.ячейка)}${g.зона ? ` <span class="yachPalleta__zak">· ${esc(g.зона)}</span>` : ""}${g.база ? ` <span class="yachPalleta__zak">· ${esc(g.база)}</span>` : ""}</span>
           ${g.заказ ? `<span class="yachPalleta__zak">заказ ${esc(g.заказ)}</span>` : ""}
         </button>`).join("")}</div>` : '<p class="aktPs__chto">По WMS штука нигде не числится — не принята, в перемещении, продана или списана.</p>'}
       ${panel ? "" : nelzyaPerelozhit(a) + (est ? blokAktPer(a) : "") + vWms + otkuda}
@@ -1418,6 +1418,32 @@
     window.sebesPoImeni(a.товар).then((x) => { a.sebes = x || false; }).catch(() => { a.sebes = false; })
       .finally(() => { if (aktK === a) risovat(); });
   }
+  /* 08.10 Степан: «где сейчас» не бросается в глаза — «у них в терминале понятнее». Как строка отчёта
+     остатков: склад (СЦ или ФБ — с верхов Х(…) иначе не понять), ячейка, контейнер, качество; мест несколько —
+     строками той же таблицы. Имя паллеты делим на тип и номер — длинное «ФБ-Утилизация-0139810414» рвалось. */
+  const skladTip = (baza) => (/^СЦ/i.test(baza || "") ? "СЦ" : baza ? "ФБ" : "");
+  const skladImya = (baza) => String(baza || "").replace(/^СЦ\s*-\s*/i, "");
+  function kontRazbor(imya) {
+    const m = String(imya || "").match(/^(.*?)[\s-]*(\d{6,12})$/);
+    return m ? { tip: m[1], nomer: m[2] } : { tip: "", nomer: String(imya || "") };
+  }
+  function blokGdeAkta(a) {
+    const gde = a.где || [];
+    if (!gde.length) return `<div class="cT cT--gde"><div class="cT__l">Где сейчас</div>
+      <div class="cT__v"><span class="aNet" style="display:inline">на складе уже нет — продана, списана или уехала</span></div></div>`;
+    const stroka = (g) => {
+      const k = kontRazbor(g.паллета);
+      const tip = skladTip(g.база);
+      return `<button type="button" class="cGde__r" data-pal-otkryt="${esc(g.паллета || "")}"${g.паллета ? "" : " disabled"}>
+        <span class="cGde__c"><i>склад</i><b>${tip ? `<em class="cGde__tip cGde__tip--${tip === "СЦ" ? "sc" : "fb"}">${tip}</em>` : ""}${esc(skladImya(g.база) || "—")}</b></span>
+        <span class="cGde__c"><i>ячейка</i><b class="cGde__kod${/\s/.test(g.ячейка || "") ? " cGde__kod--dl" : ""}" title="${esc(g.ячейка || "")}">${esc(g.ячейка || "—")}</b>${g.зона ? `<small>${esc(g.зона)}</small>` : ""}</span>
+        <span class="cGde__c"><i>${esc(k.tip || "контейнер")}</i><b class="cGde__kod">${esc(k.nomer || "без паллеты")}</b></span>
+        <span class="cGde__c"><i>качество</i><b>${esc(g.качество || "—")} · ${esc(String(g.штук ?? 1).replace(/\.0$/, ""))} шт</b>${g.заказ ? `<small>заказ ${esc(g.заказ)}</small>` : ""}</span>
+      </button>`;
+    };
+    return `<div class="cT cT--gde"><div class="cT__l">Где сейчас${gde.length > 1 ? ` · ${gde.length} места` : ""}</div>
+      <div class="cGde">${gde.map(stroka).join("")}</div></div>`;
+  }
   function glavAkta(a) {
     sebesAkta(a);
     const sb = a.sebes;
@@ -1433,20 +1459,16 @@
         <div class="cSub">${sb && sb.code ? `<span class="cChip">код ${esc(sb.code)}</span>` : ""}<span class="cChip">${esc(a.наклейка || "")}</span></div></div></div>
       ${a.особый ? `<div class="aktOsob"><b>${esc(a.особый)}</b><span>товар клиента, не уценка — отдельно</span></div>` : ""}
       <div class="cTiles cTiles--akt">
-        <div class="cT cT--big"><div class="cT__l">Себестоимость</div><div class="cT__v">${sebes}</div></div>
-        <div class="cT cT--big"><div class="cT__l">${a.цена_откуда === "сайт" ? "Цена на сайте" : "Цена в акте"}</div><div class="cT__v">${a.цена ? `<b class="cBig">${esc(rub(a.цена))}</b>` : '<span class="aNet" style="display:inline">—</span>'}${
+        <div class="cT cT--big cT--pol"><div class="cT__l">Себестоимость</div><div class="cT__v">${sebes}</div></div>
+        <div class="cT cT--big cT--pol"><div class="cT__l">${a.цена_откуда === "сайт" ? "Цена на сайте" : "Цена в акте"}</div><div class="cT__v">${a.цена ? `<b class="cBig">${esc(rub(a.цена))}</b>` : '<span class="aNet" style="display:inline">—</span>'}${
           sb && Number.isFinite(sb.unitCost) && a.цена ? `<small>в ${(a.цена / sb.unitCost).toLocaleString("ru-RU", { maximumFractionDigits: 1 })} раза к себесу</small>` : ""}</div></div>
-        <div class="cT cT--big cT--gde"><div class="cT__l">Где сейчас</div><div class="cT__v">${g
-          ? `<b class="cBig cBig--s">${esc(g.паллета || "без паллеты")}</b><small>${esc(g.ячейка)}${g.база ? ` · ${esc(g.база)}` : ""}${g.заказ ? ` · заказ ${esc(g.заказ)}` : ""}</small>`
-          : '<span class="aNet" style="display:inline">на складе уже нет — продана, списана или уехала</span>'}</div></div>
-        <div class="cT cT--def">${a.живьём ? blokDefekta(a) : `<div class="aktDef"><span>заявленный дефект</span><b>${esc(a.дефект || "—")}</b></div>`}</div>
-        <div class="cT cT--vid"><div class="cT__l">Вид обращения</div><div class="cT__v">${esc(a.вид || "—")}</div></div>
+        ${blokGdeAkta(a)}
+        <div class="cT cT--def cT--pol">${a.живьём ? blokDefekta(a) : `<div class="aktDef"><span>заявленный дефект</span><b>${esc(a.дефект || "—")}</b></div>`}</div>
+        <div class="cT cT--vid cT--pol"><div class="cT__l">Вид обращения</div><div class="cT__v">${esc(a.вид || "—")}</div></div>
         ${polya.length ? `<div class="cT cT--opis"><div class="cT__l">Описание акта</div>
-          <dl class="cOpis">${polya.map((x) => `<div><dt>${esc(x.что)}</dt><dd>${esc(x.значение)}</dd></div>`).join("")}</dl></div>` : ""}
+          <dl class="cOpis">${polya.map((x) => `<div><dt>${esc(x.что)}</dt><dd>${esc(x.значение)}</dd></div>`).join("")}${
+            "<div class=\"cOpis__pus\"></div>".repeat((3 - (polya.length % 3)) % 3)}</dl></div>` : ""}
       </div>
-      ${(a.где || []).length > 1 ? `<p class="aktPs__zag">Где ещё</p><div class="yachPallety">${a.где.slice(1).map((x) => `
-        <button type="button" class="yachPalleta yachPalleta--stolb" data-pal-otkryt="${esc(x.паллета)}"${x.паллета ? "" : " disabled"}>
-          <span class="yachPalleta__imya">${esc(x.паллета || "без паллеты")}</span><span>${esc(x.ячейка)}</span></button>`).join("")}</div>` : ""}
       ${a.комментарии && a.комментарии.length ? `<p class="aktPs__zag">Комментарии</p><div class="aktKom cT">${a.комментарии.map((k) => `<p><span>${esc(k.когда)} · ${esc(k.кто)}</span>${esc(k.текст)}</p>`).join("")}</div>` : ""}
       ${window.AktDetal && a.акт ? window.AktDetal.blok(a.акт) : ""}`;
   }
@@ -2416,7 +2438,7 @@
         <div class="aktPs__defekty">${DEFEKTY.map((d) => `<button type="button" class="aktPs__kn aktPs__kn--def${d.k === defekt && !svoyDefekt ? " is-on" : ""}" data-def="${esc(d.k)}">${esc(d.имя)}</button>`).join("")}</div>
         <input class="aktPs__svoy" id="aktSvoy" maxlength="80" autocomplete="off" placeholder="или свой дефект — напишите" value="${esc(svoyDefekt)}">
         <button type="button" class="aktPs__akt" id="aktPsGo" data-gotov="${esc(nadpisAkta)}"${gotovKnopka ? "" : " disabled"}>${gotovKnopka ? esc(nadpisAkta) : otkNado() || (!krit ? "Выберите крит или косм" : !defekt ? "Выберите дефект" : "Войдите в WMS")}</button>
-        <p class="aktPs__chto">Внутренний брак · качество брак · «${/^некомплект/.test(defekt) ? "" : "мех. повреждения, "}${esc(defekt || "…")}${krit ? ", " + krit : ""}» · ${esc(stol.имя)}${r ? ` → ${esc(r.куда)}` : ""} · комплектность ${/^некомплект/.test(defekt) ? "неполная" : "полная"}</p>
+        <p class="aktPs__chto">Внутренний брак · качество брак · «мех. повреждения, ${esc(defekt || "…")}${krit ? ", " + krit : ""}» · ${esc(stol.имя)}${r ? ` → ${esc(r.куда)}` : ""} · комплектность ${/^некомплект/.test(defekt) ? "неполная" : "полная"}</p>
         ${oshibkaAkta ? `<p class="aktPs__net"><b class="aktPs__oshibka">Акт не создан:</b> ${esc(oshibkaAkta)}</p>` : ""}
         `;
     vyvestiTovar(`${shapka}
