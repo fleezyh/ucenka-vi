@@ -753,3 +753,26 @@ body.cNeNayden #answer > .cCardHead::after { content: "Проверьте штр
 #cLenta .istPik__sp { max-height: none; padding: 0; }
 body.cNeNayden #answer > .cCardHead { flex-wrap: wrap; }
 body.cNeNayden #answer > .cCardHead::after { flex-basis: 100%; }
+
+/* Камера подряд (08.10, kamera.js): шторка снизу, итог над ней и в ней самой. */
+.kamera.kamera--niz { inset: auto 0 0 0; justify-content: flex-start; gap: 8px; padding: 10px 10px calc(10px + env(safe-area-inset-bottom));
+  border-radius: 18px 18px 0 0; background: rgba(5, 9, 15, .96); box-shadow: 0 -8px 30px rgba(0, 0, 0, .45); }
+.kamera--niz .kamera__ramka { width: min(100%, 640px); aspect-ratio: auto; height: 26vh; border-radius: 14px; }
+.kamera--niz .kamera__pritsel { top: 30%; bottom: 30%; }
+.kamera__niz { width: min(100%, 640px); display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; }
+.kamera--niz .kamera__tekst { min-width: 0; display: grid; gap: 4px; }
+.kamera--niz .kamera__zakryt { min-width: 0; padding: 12px 16px; }
+.kamera__kod { margin: 0; color: #9fb3cc; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kamera__kod:empty { display: none; }
+.kamera__itog { margin: 0; padding: 8px 10px; border-radius: 10px; background: #1a2433; color: #e7eef8; font-size: 15px; line-height: 1.3; }
+.kamera__itog b { display: block; font-size: 18px; font-weight: 600; }
+.kamera__itog span, .kamera__itog i { display: block; font-size: 13px; color: #b9c6d8; font-style: normal; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kamera__itog.is-ok { background: #13502f; color: #fff; }
+.kamera__itog.is-err { background: #6b1d24; color: #fff; }
+body.kameraOtkryta { padding-bottom: calc(26vh + 150px); }
+.kameraPole { position: relative; display: block; min-width: 0; }
+.kameraPole > input { width: 100%; box-sizing: border-box; padding-right: 54px; }
+.kameraMini { position: absolute; right: 5px; top: 50%; transform: translateY(-50%); width: 44px; height: 40px; display: inline-flex;
+  align-items: center; justify-content: center; padding: 0; border: 0; border-radius: 10px; background: rgba(91, 149, 242, .16);
+  color: inherit; cursor: pointer; }
+.kameraMini svg { width: 20px; height: 20px; }
