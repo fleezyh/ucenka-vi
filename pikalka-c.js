@@ -358,6 +358,10 @@
   const htmlPallety = (p) => (p ? `${esc(p.imya)}${p.sporno ? ' <span class="aTag aTag--spor">спорно</span>' : ""}` : "—");
   const rubli = (s) => { const n = parseFloat(String(s || "").replace(/[^\d,.-]/g, "").replace(",", ".")); return Number.isFinite(n) ? n : 0; };
 
+  // 08.10 Степан: «когда не найдено — всё едет»: огромное «НЕ НАЙДЕН» вылезало из плитки, остальные плитки пустые.
+  // Не найден — плитки прячем, остаётся заголовок с кодом и подсказка, что делать.
+  document.addEventListener("picker:miss", () => B.classList.add("cNeNayden"));
+  document.addEventListener("picker:hit", () => B.classList.remove("cNeNayden"));
   document.addEventListener("picker:hit", (e) => {
     const d = e.detail || {};
     posledniyKod = d.barcode || "";
@@ -385,12 +389,26 @@
     poslednie = [{ t: vremya, n: d.name || "", c: d.price || "", r: d.rubric || "", k: d.cluster || "", b: d.barcode || "", rr: d.rrc || "" },
       ...poslednie.filter((x) => x.b !== d.barcode)].slice(0, 40);
     try { localStorage.setItem(KLYUCH, JSON.stringify(poslednie)); } catch (err) { /* не влезло — не страшно */ }
+    if (window.PikIst) window.PikIst.dobavit({ vid: "товар", kod: d.barcode || "", n: d.name || "", itog: d.price ? `себес ${d.price}` : "" });
     risovatLentu();
   });
 
+  // 08.10: лента = история всех пиков за смену (акты, товары, паллеты) — общая с панелью акта (window.PikIst)
+  document.addEventListener("pikalka:istoriya", () => risovatLentu());
   function risovatLentu() {
     const box = $("#cLenta");
     if (!box) return;
+    if (window.PikIst) {
+      const sp = window.PikIst.spisok();
+      const akty = sp.filter((x) => x.vid === "акт").length, tov = sp.filter((x) => x.vid === "товар").length;
+      const tek0 = posledniyKod;
+      box.innerHTML = `<div class="cSideHead"><div class="cLh"><b>История пиков</b><span>${sp.length ? `за смену: актов ${akty} · товаров ${tov} · паллет ${sp.length - akty - tov}` : "за смену пусто"}</span></div>
+          <div class="cLh__btns"><button type="button" class="cBtn cBtn--sm" data-a="lenta-excel"${sp.length ? "" : " disabled"}>Excel</button>
+            <button type="button" class="cBtn cBtn--sm" data-a="ochistit"${sp.length ? "" : " disabled"}>очистить</button></div></div>
+        ${tek0 && !vklWms ? `<button type="button" class="cDeyStart" data-a="zaaktirovat"><b>Заактировать эту штуку</b><span>включит WMS — стол, решение, дефект, паллета</span></button>` : ""}
+        <div class="cLenta__telo istPik__sp">${sp.length ? window.PikIst.html(sp) : '<p class="cLenta__pusto">Здесь будет всё, что вы пикнули за смену: акты — с тем, куда переложили, товары, паллеты. Нажмите строку — откроется снова.</p>'}</div>`;
+      return;
+    }
     const summa = poslednie.reduce((n, x) => n + rubli(x.c), 0);
     const tek = posledniyKod;
     box.innerHTML = `<div class="cSideHead"><div class="cLh"><b>Лента</b><span>${poslednie.length} шт${summa ? ` · себес ${summa.toLocaleString("ru-RU", { maximumFractionDigits: 0 })} ₽` : ""}</span></div>
@@ -406,6 +424,16 @@
       ${poslednie.length ? `<div class="cLfoot"><span>за смену</span><b>${poslednie.length} шт · ${summa.toLocaleString("ru-RU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽</b></div>` : ""}`;
   }
   function lentaVExcel() {
+    if (window.PikIst) {   // 08.10: выгрузка истории пиков
+      const st = [["Время", "Что", "Акт", "Код", "Название", "Итог"]].concat(window.PikIst.spisok().map((x) => [x.t, x.vid, x.akt || "", x.kod, x.n || "", x.itog || ""]));
+      const csv0 = "﻿" + st.map((r) => r.map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`).join(";")).join("\r\n");
+      const a0 = document.createElement("a");
+      a0.href = URL.createObjectURL(new Blob([csv0], { type: "text/csv;charset=utf-8" }));
+      a0.download = `история_пиков_${new Date().toISOString().slice(0, 10)}.csv`;
+      a0.click();
+      setTimeout(() => URL.revokeObjectURL(a0.href), 2000);
+      return;
+    }
     const stroki = [["Время", "Товар", "Штрихкод", "Себес", "Категория", "Паллета для продаж"]].concat(poslednie.map((x) => {
       const p = palletaDlya(x.r, x.k, x.rr, x.n);
       return [x.t, x.n, x.b, x.c, x.r, p ? p.imya + (p.sporno ? " (спорно)" : "") : ""];
@@ -418,7 +446,7 @@
     setTimeout(() => URL.revokeObjectURL(a.href), 2000);
   }
   document.addEventListener("click", (e) => {
-    if (e.target.closest("[data-a=ochistit]")) { poslednie = []; localStorage.removeItem(KLYUCH); risovatLentu(); return; }
+    if (e.target.closest("[data-a=ochistit]")) { poslednie = []; localStorage.removeItem(KLYUCH); if (window.PikIst) window.PikIst.ochistit(); risovatLentu(); return; }
     if (e.target.closest("[data-a=lenta-excel]")) { lentaVExcel(); return; }
     if (e.target.closest("[data-a=zaaktirovat]")) { vklyuchitWms(true); return; }
     const r = e.target.closest(".cLr[data-b]");

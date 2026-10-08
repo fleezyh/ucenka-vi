@@ -37,6 +37,14 @@
   // Обработчики — на документе, но только для кликов внутри центра или панели.
   const vPaneli = (e) => e.target && e.target.closest && e.target.closest("#aktPs, #aktDey");
   const naPaneli = (tip, fn) => document.addEventListener(tip, (e) => { if (vPaneli(e)) fn(e); });
+  // 08.10: строки истории в ленте на главной (#cLenta, вне панели) — открыть акт или паллету
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest || !e.target.closest("#cLenta")) return;
+    const ao = e.target.closest("[data-akt-otkryt]");
+    if (ao) { otkrytAkt(ao.dataset.aktOtkryt); return; }
+    const po = e.target.closest("[data-pal-otkryt]");
+    if (po) otkrytPalletu(po.dataset.palOtkryt);
+  });
   const vPanelyah = (sel) => [...document.querySelectorAll(sel)].filter((x) => x.closest("#aktPs, #aktDey"));
   const shapkaDey = (chto, imya, dop = "") => `<div class="cDey__shapka"><span class="cDey__chto">${chto}</span>
     <b class="cDey__imya">${esc(imya)}</b>${dop}</div>`;
@@ -298,6 +306,7 @@
       const d = await o.json().catch(() => ({}));
       if (!o.ok) throw new Error(d.ошибка || `сервер ответил ${o.status}`);
       pal = d;
+      PikIst.dobavit({ vid: "паллета", kod: pal.паллета || kod, n: `${pal.паллета || kod} · ${(pal.строки || []).length} строк${pal.ячейка ? " · " + pal.ячейка : ""}` });
       palVybor = new Set((pal.строки || []).map((x) => x.ключ));
       posledPal = pal.паллета || posledPal;
       if (zhdemSverku) { zhdemSverku = false; palTab = "sverka"; sverkaNachat(); }
@@ -1039,6 +1048,8 @@
     try { aktK = await chitat(`/__vms/akt?kod=${encodeURIComponent(kod)}`); } catch (e) { aktK = { oshibka: e.message || String(e) }; }
     // переоткрыли акт из списка «не переложены», а он уже не на столе — убрать из списка
     if (aktK && aktK.акт && aktK.живьём && !naStole(aktK)) nePerUbrat(aktK.акт);
+    if (aktK && aktK.акт) PikIst.dobavit({ vid: "акт", kod: aktK.наклейка || String(aktK.акт), akt: aktK.акт, n: aktK.товар,
+      itog: neprinyat(aktK) ? "не принят в WMS" : (aktK.категория || ""), ok: neprinyat(aktK) ? false : null });
     risovat();
     if (neprinyat(aktK)) stopPokazat(aktK);
   }
@@ -1058,6 +1069,55 @@
   }
   function nePerZapisat(akty) { localStorage.setItem(KL_NEPER, JSON.stringify({ den: new Date().toDateString(), akty: akty.slice(-50) })); }
   function nePerUbrat(akt) { const sp = nePerSpisok(); const ost = sp.filter((x) => String(x.акт) !== String(akt)); if (ost.length !== sp.length) nePerZapisat(ost); }
+  /* 08.10 Степан: «лента не даёт понимания, что ты пикал из актов — сделать там историю всех пиков твоих
+     и спрятать ниже выпадающим окном, сейчас она видна только с главной». История пиков за смену — одна на
+     пикалку: акты (с итогом — перемещено, не принят), товары по ШК, паллеты. На главной — лента (pikalka-c.js),
+     в панели акта — выпадающий список. Строка открывает тот же акт, товар или паллету. */
+  const IST_KL = "pikalka-istoriya-v1";
+  const PikIst = {
+    den: () => new Date().toLocaleDateString("ru-RU"),
+    spisok() {
+      try { const d = JSON.parse(localStorage.getItem(IST_KL) || "{}"); return d.den === this.den() ? (d.sp || []) : []; }
+      catch { return []; }
+    },
+    dobavit(z) {
+      if (!z || !z.kod) return;
+      const sp = this.spisok();
+      const i = sp.findIndex((x) => x.vid === z.vid && String(x.kod) === String(z.kod));
+      const bylo = i >= 0 ? sp.splice(i, 1)[0] : {};
+      sp.unshift({ ...bylo, ...Object.fromEntries(Object.entries(z).filter(([, v]) => v !== undefined && v !== "")),
+        t: new Date().toTimeString().slice(0, 5) });
+      try { localStorage.setItem(IST_KL, JSON.stringify({ den: this.den(), sp: sp.slice(0, 300) })); } catch { /* не влезло */ }
+      document.dispatchEvent(new CustomEvent("pikalka:istoriya"));
+    },
+    ochistit() { localStorage.removeItem(IST_KL); document.dispatchEvent(new CustomEvent("pikalka:istoriya")); },
+    html(sp) {
+      return sp.map((x) => {
+        const atr = x.vid === "акт" ? `data-akt-otkryt="${esc(x.kod)}"` : x.vid === "паллета" ? `data-pal-otkryt="${esc(x.kod)}"`
+          : `data-b="${esc(x.kod)}"`;
+        return `<button type="button" class="istR${x.vid === "товар" ? " cLr" : ""}" ${atr}>
+          <span class="istR__t">${esc(x.t)}</span><span class="istR__vid istR__vid--${esc(x.vid)}">${esc(x.vid)}${x.akt ? ` ${esc(x.akt)}` : ""}</span>
+          <span class="istR__n">${esc(x.n || x.kod)}</span>
+          ${x.itog ? `<span class="istR__itog${x.ok === true ? " is-ok" : x.ok === false ? " is-err" : ""}">${esc(x.itog)}</span>` : ""}</button>`;
+      }).join("");
+    },
+  };
+  window.PikIst = PikIst;
+  function istoriyaBlok() {
+    const sp = PikIst.spisok();
+    if (!sp.length) return "";
+    return `<details class="istPik"><summary>История пиков за смену · ${sp.length}</summary><div class="istPik__sp">${PikIst.html(sp)}</div></details>`;
+  }
+  // крупно наверху панели: чем кончилась перекладка — видно издалека, без прокрутки
+  function bolshoyItog() {
+    if (aktPer && aktPer.idet) return '<div class="bigIt is-idet"><b>Перекладываю…</b></div>';
+    if (aktPer && aktPer.itog) {
+      const r = aktPer.itog;
+      return `<div class="bigIt ${r.ok ? "is-ok" : "is-err"}"><b>${esc(r.zag)}</b><span>${esc(r.tekst)}</span></div>`;
+    }
+    return "";
+  }
+
   function nePerPolosa() {
     const sp = nePerSpisok();
     if (!sp.length) return "";
@@ -1276,11 +1336,12 @@
     if (!panel) { box.innerHTML = glav; return; }
     vyvesti(glavAkta(a), `${shapkaDey("Акт", "№" + a.акт, a.особый ? `<span class="cDey__osob">${esc(a.особый)}</span>` : "")}
       ${plashkaVms()}${formaVms()}
-      ${nePerPolosa()}
+      ${bolshoyItog()}
       ${shagiAkta(a)}
       ${kat}
       ${nelzyaPerelozhit(a)}
       ${est ? blokAktPer(a, true) : ""}
+      ${istoriyaBlok()}
       ${blokOshibki(a)}
       <div class="cDey__niz">${vWms}</div>
       ${otkuda}`);
@@ -1497,6 +1558,10 @@
     risovat(); vFokus();
   }
   function blokAktPer(a, krupno = false) {
+    if (aktPer && aktPer.itog && krupno) {   // 08.10: сам итог — крупно наверху панели (bolshoyItog)
+      const r = aktPer.itog;
+      return `${blokVtis(r)}<p class="aktPs__chto">${r.ok ? "Пикните следующий акт." : "Пикните паллету ещё раз или переместите руками в WMS."}</p>`;
+    }
     if (aktPer && aktPer.itog) {
       const r = aktPer.itog;
       return `<div class="aktPs__gotovo${r.ok ? "" : " is-oshibka"}"><b>${esc(r.zag)}</b><span>${esc(r.tekst)}</span></div>
@@ -1571,6 +1636,8 @@
       aktPer = { itog: { ok: false, zag: "Не переместилось", tekst: oshibka.message || String(oshibka), zakaz: oshibka.zakaz || "" } };
     } finally {
       if (aktPer && aktPer.idet) aktPer = null;
+      if (aktPer && aktPer.itog && aktK && aktK.акт) PikIst.dobavit({ vid: "акт", kod: aktK.наклейка || String(aktK.акт), akt: aktK.акт,
+        n: aktK.товар, itog: aktPer.itog.zag, ok: aktPer.itog.ok });
       risovat(); vFokus();
     }
   }
@@ -2691,6 +2758,7 @@
       await new Promise((ok) => setTimeout(ok, 400));
     }
     zaSmenu += 1;
+    if (boevoy) PikIst.dobavit({ vid: "акт", kod: String(nomerAkta), akt: nomerAkta, n: tovar.name || "", itog: "заактирован", ok: true });
     gotovo = { nomer: nomerAkta, zametka: zametkaAkta, tovar: tovar.name || "", reshenie: r ? `${r.имя} → ${r.куда}` : "без решения", defekt: `${defekt}, ${krit}` };
     zhdemPalletu = r ? { ishod: r, akt: nomerAkta } : null;
     perItog = null;

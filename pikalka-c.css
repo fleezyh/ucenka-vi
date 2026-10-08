@@ -721,3 +721,35 @@ body.aTsd .palStroka--vybor:has(.palNet){grid-template-columns:auto minmax(0,1fr
 .aktProval__sh{display:flex;justify-content:space-between;align-items:center;gap:10px}
 .aktProval h4{margin:0 0 8px;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .aktProval section{display:grid}
+/* 08.10: «не найден» — без пустых плиток и вылезающего «НЕ НАЙДЕН» */
+body.cNeNayden #answer > .cTiles { display: none; }
+body.cNeNayden #answer > .cCardHead::after { content: "Проверьте штрихкод или наберите название товара в то же поле"; display: block; margin-top: 10px; font-size: 15px; color: var(--muted); }
+
+/* 08.10: итог перекладки — крупно наверху панели акта, видно издалека */
+.bigIt { margin: 0 0 14px; padding: 18px 20px; border-radius: 18px; border: 2px solid transparent; }
+.bigIt b { display: block; font-size: clamp(26px, 2.6vw, 38px); font-weight: 600; line-height: 1.15; }
+.bigIt span { display: block; margin-top: 8px; font-size: 15px; line-height: 1.4; color: var(--muted); }
+.bigIt.is-ok { border-color: rgba(39,196,107,.75); background: rgba(39,196,107,.16); }
+.bigIt.is-ok b { color: #5ee08f; }
+.bigIt.is-err { border-color: rgba(240,93,114,.8); background: rgba(240,93,114,.16); }
+.bigIt.is-err b { color: #ff8a9b; }
+.bigIt.is-idet { border-color: rgba(185,162,255,.6); background: rgba(123,92,240,.14); }
+/* 08.10: история пиков за смену — лента на главной и выпадающий список в панели */
+.istPik { margin: 12px 0; border: 1px solid var(--cLine, rgba(255,255,255,.12)); border-radius: 14px; background: rgba(255,255,255,.02); }
+.istPik > summary { padding: 12px 14px; cursor: pointer; font-size: 15px; font-weight: 600; color: var(--muted); }
+.istPik[open] > summary { color: var(--text); }
+.istPik__sp { display: grid; gap: 4px; padding: 0 8px 8px; max-height: 420px; overflow: auto; }
+.istR { display: grid; grid-template-columns: 44px auto minmax(0, 1fr); grid-template-areas: "t vid n" ". itog itog"; gap: 2px 10px; align-items: baseline;
+  width: 100%; padding: 8px 10px; border: 0; border-radius: 10px; background: transparent; color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+.istR:hover { background: rgba(255,255,255,.06); }
+.istR__t { grid-area: t; font-size: 13px; color: var(--muted); }
+.istR__vid { grid-area: vid; font-size: 12px; font-weight: 600; padding: 1px 7px; border-radius: 6px; background: rgba(255,255,255,.08); color: var(--muted); white-space: nowrap; }
+.istR__vid--акт { background: rgba(123,92,240,.22); color: #c9b8ff; }
+.istR__vid--паллета { background: rgba(77,141,247,.2); color: #9cc0ff; }
+.istR__n { grid-area: n; font-size: 14px; font-weight: 600; line-height: 1.3; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.istR__itog { grid-area: itog; font-size: 13px; color: var(--muted); }
+.istR__itog.is-ok { color: #5ee08f; }
+.istR__itog.is-err { color: #ff8a9b; }
+#cLenta .istPik__sp { max-height: none; padding: 0; }
+body.cNeNayden #answer > .cCardHead { flex-wrap: wrap; }
+body.cNeNayden #answer > .cCardHead::after { flex-basis: 100%; }
