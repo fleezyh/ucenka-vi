@@ -1071,7 +1071,11 @@
      что-то числится — окно: доразобрать или «физически нет» (в журнал сверок недостачей). */
   let istKont = "";
   let ostatok = null;   // { imya, stroki } — окно открыто
+  // 08.10 Степан: «это бред, а не правило, непонятно зачем… надо выключить» — окно выключено (код оставлен:
+  // вернуть — OSTATOK_VKL = true)
+  const OSTATOK_VKL = false;
   async function proveritOstatok(imya) {
+    if (!OSTATOK_VKL) return;
     try {
       const d = await chitat(`/__akt/palleta?kod=${encodeURIComponent(imya)}`);
       const stroki = (d.строки || []).filter((x) => x.штук > 0);
