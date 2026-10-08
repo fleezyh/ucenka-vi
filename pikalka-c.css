@@ -824,3 +824,8 @@ body.cSkin.is-svetlo .cGde__tip--fb { color: #1f5bc4; }
 /* 08.10 «снизу дыра»: плитки «где сейчас», дефекта и вида обращения — по содержимому, без пустого низа */
 .cTiles--akt .cT--gk, .cTiles--akt .cT--def, .cTiles--akt .cT--vid { min-height: 0; }
 .cTiles--akt .cT--gk .cT__pod { margin-top: 0; }
+/* 08.10 «снизу дыра» (второй заход): ряд «где сейчас» тянется по самой длинной зоне — значение прижимаем к низу,
+   как у себеса и цены: подписи в линию сверху, значения в линию снизу; шрифт ряда 20, чтобы зона чаще влезала в строку */
+.cTiles--akt .cT--gk { gap: 8px; }
+.cTiles--akt .cT--gk .cT__v { margin-top: auto; font-size: 20px; }
+.cTiles--akt .cT--gk .cT__pod { margin-top: 0; }
