@@ -209,7 +209,8 @@
         </div>
       </div>`;
     }
-    const katT = tovar && window.PalletaProdazh ? (window.PalletaProdazh(tovar.rubric, tovar.cluster, tovar.rrc, tovar.name, krit) || {}).imya : "";
+    const katT = tovar && window.GSM && window.GSM.est(tovar.kod) ? window.GSM.palleta.imya
+      : tovar && window.PalletaProdazh ? (window.PalletaProdazh(tovar.rubric, tovar.cluster, tovar.rrc, tovar.name, krit) || {}).imya : "";
     return `<div class="aktPs__palleta">
       <p class="aktPs__zag">Куда положили</p>
       <p class="aktPs__podskaz">${perIdet ? "Создаю перемещение…" : `Пикните наклейку паллеты в «${esc(zhdemPalletu.ishod.куда)}» (CON …)`}</p>
@@ -1380,7 +1381,7 @@
     const kat = neprinyat(a) ? `<div class="aktKat aktKat--stop"><span class="aktKat__nad">категория уценки</span>
         <b class="aktKat__imya">не раскладывать</b>
         <span class="aktKat__rub">акт не принят в WMS — товар в сторону, в паллету не класть</span></div>`
-      : a.живьём ? `<div class="aktKat"><span class="aktKat__nad">категория уценки${a.цена ? ` <b class="aktKat__cena">${esc(Number(a.цена).toLocaleString("ru-RU"))} ₽${a.цена_откуда === "сайт" ? " · цена сайта" : ""}</b>` : ""}</span>
+      : a.живьём ? `<div class="aktKat${a.гсм ? " aktKat--stop" : ""}"><span class="aktKat__nad">категория уценки${a.цена ? ` <b class="aktKat__cena">${esc(Number(a.цена).toLocaleString("ru-RU"))} ₽${a.цена_откуда === "сайт" ? " · цена сайта" : ""}</b>` : ""}</span>
         <b class="aktKat__imya">${esc(a.категория || "не определилась")}</b>${a.спорно ? ' <span class="aTag aTag--spor">спорно</span>' : ""}
         <span class="aktKat__rub">${a.мисбокс ? "цена до 1 000 ₽ — мистери бокс · " : ""}рубрика «${esc(a.рубрика || "—")}»${a.рубрика_вмс ? ` · ${esc(a.рубрика_вмс)}` : ""}</span></div>` : "";
     // 07.10 столы: «когда пикаешь акт — чтобы можно было его прямо там распечатать, как у контейнера»
@@ -2879,8 +2880,8 @@
       ${v.length > vidno.length ? `<p class="aktPs__chto">и ещё ${v.length - vidno.length} мест — пикните ячейку или паллету, откуда взяли</p>` : ""}`;
   }
   const pechatSvezhego = (n) => `<div class="aktPs__vopros svezhPechat">
-      <a class="aktPs__kn is-on" target="_blank" rel="noopener" href="/__akt/pechat?forma=akt&akty=${encodeURIComponent(n)}">Печать акта</a>
-      <a class="aktPs__kn" target="_blank" rel="noopener" href="/__akt/pechat?forma=nakleyka&akty=${encodeURIComponent(n)}">Наклейка 70×70</a></div>`;
+      <button type="button" class="aktPs__kn is-on" data-akt-pechat="1">Наклейка акта${window.ShkPechat ? ` ${window.ShkPechat.format().replace("x", "×")}` : ""}</button>
+      <a class="aktPs__kn" target="_blank" rel="noopener" href="/__akt/pechat?forma=akt&akty=${encodeURIComponent(n)}">Акт A4</a></div>`;
   async function aktirovat(otkuda) {
     otkudaVar = [];
     const kn = document.getElementById("aktPsGo");
@@ -3141,8 +3142,7 @@
     const nk = e.target.closest("[data-nov-kat]");
     if (nk) { novayaPalleta(nk.dataset.novKat); return; }
     if (e.target.closest("[data-akt-pechat]") && aktK && aktK.акт && window.ShkPechat) {
-      window.ShkPechat.pechat({ shk: aktK.наклейка || `ACT ${String(aktK.акт).padStart(10, "0")}`,
-        imya: String(aktK.товар || "").slice(0, 60), kategoriya: `Акт №${aktK.акт}${aktK.категория ? " · " + aktK.категория : ""}` });
+      window.ShkPechat.pechatAkta(aktK.акт, aktK.товар, aktK.категория);
       return;
     }
     if (e.target.closest("[data-nov-pechat]") && novP && novP.gotovo && window.ShkPechat) {

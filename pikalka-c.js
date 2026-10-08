@@ -69,6 +69,7 @@
         <nav class="cRail__gr cRail__wms" aria-label="WMS">
           <span class="cRail__lbl">WMS</span>
           <button type="button" class="cRi" id="cNovPal">${ikonka("pal")}Нов. паллета</button>
+          <button type="button" class="cRi" id="cPechAkt" title="Печать наклейки или бланка акта по номеру">${ikonka("list")}Печать акта</button>
           <button type="button" class="cRi" id="aTsdBtn">${ikonka("phone")}ТСД</button>
         </nav>
         <!-- 07.10 Степан: «а где я вижу, где ошибка, и как выставить ошибку», «а где сверка» -->
@@ -365,7 +366,10 @@
   document.addEventListener("picker:hit", (e) => {
     const d = e.detail || {};
     posledniyKod = d.barcode || "";
-    const p = palletaDlya(d.rubric, d.cluster, d.rrc, d.name);
+    // 08.10: ГСМ не продаём — вместо паллеты для продаж
+    const gsm = window.GSM && window.GSM.est(d.kod);
+    B.classList.toggle("cGsm", Boolean(gsm));
+    const p = gsm ? window.GSM.palleta : palletaDlya(d.rubric, d.cluster, d.rrc, d.name);
     const pal = $("#aPal");
     if (pal) { pal.innerHTML = p ? `<b>${esc(p.imya)}</b>${p.sporno ? ' <span class="aTag aTag--spor">спорно</span>' : ""}${p.pochemu ? `<small>${esc(p.pochemu)}</small>` : ""}` : ""; pal.hidden = !p; }
     const presort = d.mode === "presort";
@@ -630,6 +634,73 @@
     novIdet = "";
     risovatNovPal();
   }
+  /* 08.10 Прошин: «добавь печать акта, чтобы можно было набирать вручную номер акта». Номер или пик ACT —
+     наклейка нашей этикеткой (формат ленты стола) или бланк A4 формой WMS. Товар на наклейку — из карточки
+     акта, если WMS ответит быстро; нет — печатаем без него. */
+  let pechAkt = { nomer: "", idet: false, oshibka: "", bylo: [] };
+  function risovatPechAkt() {
+    let m = $("#cPechModal");
+    if (!m) { m = document.createElement("div"); m.id = "cPechModal"; m.className = "cModal"; B.appendChild(m); }
+    const sp = window.ShkPechat;
+    m.innerHTML = `<div class="cModal__fon" data-pech-zakryt="1"></div><section class="cModal__okno" role="dialog" aria-label="Печать акта">
+      <header class="cModal__sh"><div><b>Печать акта</b><span>наберите номер или пикните наклейку ACT</span></div>
+        <button type="button" class="cBtn cBtn--sm" data-pech-zakryt="1">закрыть</button></header>
+      <form class="cPech" id="cPechForma" autocomplete="off">
+        <input name="nomer" id="cPechNomer" inputmode="numeric" placeholder="номер акта, например 5329149" value="${esc(pechAkt.nomer)}">
+        <button type="submit" class="cBtn cPech__da"${pechAkt.idet ? " disabled" : ""}>${pechAkt.idet ? "смотрю акт…" : `Наклейка${sp ? " " + sp.format().replace("x", "×") : ""}`}</button>
+        <button type="button" class="cBtn" data-pech-a4="1">Акт A4</button>
+      </form>
+      ${pechAkt.oshibka ? `<p class="aktPs__net"><b class="aktPs__oshibka">${esc(pechAkt.oshibka)}</b></p>` : ""}
+      ${sp ? `<label class="cNov__fmt">формат этикетки <select data-nov-fmt>${sp.formaty.map((x) => `<option${x === sp.format() ? " selected" : ""}>${x}</option>`).join("")}</select> мм</label>
+        <label class="cNov__fmt"><input type="checkbox" data-nov-pov${sp.povorot && sp.povorot(sp.format()) ? " checked" : ""}> печатает боком — повернуть</label>
+        <p class="cPech__sovet">в окне печати: принтер этикеток, поля «нет», масштаб «по умолчанию» — браузер запомнит</p>` : ""}
+      ${pechAkt.bylo.length ? `<div class="cModal__spisok"><p class="aktPs__zag">Напечатано сейчас</p>${pechAkt.bylo.map((x) => `<div class="cModal__str">
+        <b>Акт №${esc(x.nomer)}</b><span>${esc(x.tovar || "")}</span><button type="button" class="cBtn cBtn--sm" data-pech-snova="${esc(x.nomer)}">ещё раз</button></div>`).join("")}</div>` : ""}
+    </section>`;
+    m.hidden = false;
+    setTimeout(() => { const i = $("#cPechNomer"); if (i) { i.focus(); i.select(); } }, 30);
+  }
+  const nomerAkta = (v) => { const m = String((window.latinica || String)(v || "")).match(/(\d{5,12})\s*$/); return m ? String(Number(m[1])) : ""; };
+  async function pechatatAkt(v) {
+    const n = nomerAkta(v);
+    pechAkt.nomer = String(v || "").trim();
+    if (!n) { pechAkt.oshibka = "нужен номер акта — цифрами или наклейкой ACT"; risovatPechAkt(); return; }
+    pechAkt.idet = true; pechAkt.oshibka = ""; risovatPechAkt();
+    let tovar = "", kat = "";
+    try {
+      const ctl = new AbortController();
+      const t = setTimeout(() => ctl.abort(), 5000);
+      const o = await fetch(`/__vms/akt?kod=${encodeURIComponent("ACT " + n.padStart(10, "0"))}`, { cache: "no-store", signal: ctl.signal });
+      clearTimeout(t);
+      const d = await o.json().catch(() => ({}));
+      if (o.ok && d.акт) { tovar = d.товар || ""; kat = d.категория || ""; }
+      else if (d.ошибка) pechAkt.oshibka = `WMS: ${d.ошибка} — печатаю без названия товара`;
+    } catch (e) { /* WMS не успела — печатаем без товара */ }
+    pechAkt.idet = false;
+    if (window.ShkPechat) window.ShkPechat.pechatAkta(n, tovar, kat);
+    pechAkt.bylo = [{ nomer: n, tovar }, ...pechAkt.bylo.filter((x) => x.nomer !== n)].slice(0, 8);
+    pechAkt.nomer = "";
+    risovatPechAkt();
+  }
+  document.addEventListener("submit", (e) => {
+    if (e.target.id !== "cPechForma") return;
+    e.preventDefault();
+    pechatatAkt(e.target.nomer.value);
+  });
+  document.addEventListener("click", (e) => {
+    if (e.target.closest("#cPechAkt")) { pechAkt.oshibka = ""; risovatPechAkt(); return; }
+    if (e.target.closest("[data-pech-zakryt]")) { const m = $("#cPechModal"); if (m) m.hidden = true; $("#scan")?.focus(); return; }
+    if (e.target.closest("[data-pech-a4]")) {
+      const n = nomerAkta($("#cPechNomer")?.value);
+      if (!n) { pechAkt.oshibka = "нужен номер акта"; risovatPechAkt(); return; }
+      window.open(`/__akt/pechat?forma=akt&akty=${n}`, "_blank", "noopener");
+      return;
+    }
+    const ps = e.target.closest("[data-pech-snova]");
+    if (ps) { pechatatAkt(ps.dataset.pechSnova); return; }
+  });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") { const m = $("#cPechModal"); if (m && !m.hidden) m.hidden = true; } });
+
   document.addEventListener("click", (e) => {
     if (e.target.closest("#cNovPal")) { novOshibka = ""; risovatNovPal(); return; }
     if (e.target.closest("#cSverka")) { document.dispatchEvent(new CustomEvent("pikalka:sverka")); $("#scan")?.focus(); return; }

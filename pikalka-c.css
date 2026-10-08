@@ -841,3 +841,14 @@ body.cSkin.is-svetlo .cGde__tip--fb { color: #1f5bc4; }
 .aktStop__vpOsh{margin:8px 0 0;font-size:15px;line-height:1.35;color:#ffd0d7;text-align:left}
 .aktStop__okno.is-mozhno{border-color:#22a85f;box-shadow:0 0 0 6px rgba(34,168,95,.18),0 24px 60px rgba(0,0,0,.6)}
 .aktStop__okno.is-mozhno .aktStop__da{min-height:46px;font-size:16px;background:transparent;color:#ffb3bf;border:1px solid rgba(240,93,114,.5)}
+/* 08.10 «Печать акта» по номеру (Прошин) */
+.cPech { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; margin: 6px 0 10px; }
+.cPech input { min-width: 0; height: 52px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--cLine); background: rgba(0,0,0,.25); color: var(--text); font: inherit; font-size: 18px; }
+body.cSkin.is-svetlo .cPech input { background: #fff; }
+.cPech .cBtn { min-height: 52px; padding: 0 18px; }
+.cPech__da { background: var(--cVio); color: #fff; border-color: transparent; }
+.cPech__sovet { margin: 4px 0 0; font-size: 13px; color: var(--muted); }
+@media (max-width: 760px) { .cPech { grid-template-columns: 1fr 1fr; } .cPech input { grid-column: 1 / -1; } }
+/* 08.10 ГСМ — не продаём: плитка паллеты красная */
+body.cGsm .cT--pal { background: linear-gradient(135deg, rgba(240,93,114,.18), var(--cTile) 65%); border-color: rgba(240,93,114,.6); }
+body.cGsm .cT--pal #aPal b { color: #ff6f82; }

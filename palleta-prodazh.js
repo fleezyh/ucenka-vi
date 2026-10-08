@@ -91,4 +91,15 @@
     if (SPORNO[r]) return { imya: SPORNO[r].imya, sporno: false, pochemu: SPORNO[r].pochemu };
     return r ? { imya: "нет своей паллеты", sporno: true, pochemu: `для рубрики «${r}» паллеты в ДМД не нашлось` } : null;
   }
+
+  /* 08.10 Степан: «ГСМ надо как-то отделить (мы их не продаём) и подсвечивать». Список — коды сайта
+     товаров из категорий масел, смазок и технических жидкостей (gsm_spisok.py на сервере, раз в сутки). */
+  let gsm = null;
+  fetch("/data/gsm.json", { cache: "default" }).then((o) => (o.ok ? o.json() : null))
+    .then((d) => { gsm = new Set(((d && d.kod) || []).map(String)); document.dispatchEvent(new CustomEvent("gsm:gotov")); })
+    .catch(() => { gsm = new Set(); });
+  window.GSM = {
+    est: (kod) => Boolean(gsm && kod && gsm.has(String(kod).trim())),
+    palleta: { imya: "ГСМ — не продаём", sporno: false, pochemu: "масла, смазки, техжидкости — в паллету продаж не класть", gsm: true },
+  };
 })();

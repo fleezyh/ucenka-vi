@@ -62,7 +62,8 @@
   const KL_POV = "shk-povorot";
   const povorot = (f) => { try { return (JSON.parse(localStorage.getItem(KL_POV) || "{}"))[f] === true; } catch (e) { return false; } };
   const zadatPovorot = (f, da) => { try { const o = JSON.parse(localStorage.getItem(KL_POV) || "{}"); o[f] = !!da; localStorage.setItem(KL_POV, JSON.stringify(o)); } catch (e) { /* не страшно */ } };
-  const format = () => { try { const f = localStorage.getItem(KLYUCH); return FORMATY[f] ? f : "70x50"; } catch (e) { return "70x50"; } };
+  // 08.10 Степан: «надо 60x30, а печатается по-разному» — по умолчанию 60×30 (на ленте столов)
+  const format = () => { try { const f = localStorage.getItem(KLYUCH); return FORMATY[f] ? f : "60x30"; } catch (e) { return "60x30"; } };
   const zadatFormat = (f) => { if (FORMATY[f]) try { localStorage.setItem(KLYUCH, f); } catch (e) { /* не сохранилось — не страшно */ } };
 
   function etiketka({ shk, imya, kategoriya }, f, pov = povorot(f)) {
@@ -92,18 +93,34 @@
     </div></body></html>`;
   }
 
-  /** Печать: скрытый фрейм с этикеткой → окно печати браузера (принтер стола). */
+  /** Печать: скрытый фрейм с этикеткой → окно печати браузера (принтер стола).
+      08.10 «печатается через раз по-разному»: фрейм был 0×0 и печать звалась через 150 мс, не дожидаясь
+      отрисовки. Теперь фрейм размером с этикетку (за экраном), печать — после загрузки и двух кадров. */
   function pechat(dannye, f = format()) {
     let fr = document.getElementById("shkPechatFrame");
     if (fr) fr.remove();
+    const [w, h] = FORMATY[f] || FORMATY["60x30"];
+    const [pw, ph] = povorot(f) ? [h, w] : [w, h];
     fr = document.createElement("iframe");
     fr.id = "shkPechatFrame";
-    fr.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden";
+    fr.style.cssText = `position:fixed;left:-2000px;top:0;width:${pw}mm;height:${ph}mm;border:0;opacity:0;pointer-events:none`;
     document.body.appendChild(fr);
     const d = fr.contentWindow.document;
     d.open(); d.write(etiketka(dannye, f)); d.close();
-    setTimeout(() => { fr.contentWindow.focus(); fr.contentWindow.print(); }, 150);
+    const pusk = () => {
+      const win = fr.contentWindow;
+      const shrifty = win.document.fonts && win.document.fonts.ready ? win.document.fonts.ready : Promise.resolve();
+      // кадры фрейма за экраном Chrome не рисует (rAF там не срабатывает) — ждём таймером главного окна
+      shrifty.then(() => setTimeout(() => { win.focus(); win.print(); }, 120));
+    };
+    if (d.readyState === "complete") setTimeout(pusk, 50); else fr.addEventListener("load", pusk, { once: true });
+  }
+  /** Наклейка акта — та же этикетка, что у паллет: «Акт №…» крупно, ШК ACT, товар. */
+  function pechatAkta(nomer, tovar = "", kategoriya = "") {
+    const n = String(nomer).replace(/\D/g, "").replace(/^0+/, "");
+    if (!n) return;
+    pechat({ shk: `ACT ${n.padStart(10, "0")}`, imya: String(tovar || "").slice(0, 60), kategoriya: `Акт №${n}${kategoriya ? " · " + kategoriya : ""}` });
   }
 
-  window.ShkPechat = { svg, pechat, etiketka, formaty: Object.keys(FORMATY), format, zadatFormat, povorot, zadatPovorot };
+  window.ShkPechat = { svg, pechat, pechatAkta, etiketka, formaty: Object.keys(FORMATY), format, zadatFormat, povorot, zadatPovorot };
 })();
