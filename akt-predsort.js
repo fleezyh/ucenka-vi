@@ -1438,11 +1438,11 @@
       const tip = skladTip(g.база);
       const nad = i === 0 ? "Где сейчас" : `Ещё место ${i + 1}`;
       return plitka(`${nad} · склад`, `${tip ? `<em class="cGde__tip cGde__tip--${tip === "СЦ" ? "sc" : "fb"}">${tip}</em>` : ""}${esc(skladImya(g.база) || "—")}`)
-        + plitka("Ячейка", esc(g.ячейка || "—"), g.зона ? esc(g.зона) : "")
+        + plitka("Зона", esc(g.зона || "—"))
+        + plitka("Ячейка", esc(g.ячейка || "—"))
         + (g.паллета
-          ? `<button type="button" class="cT cT--gk cT--gkPal" data-pal-otkryt="${esc(g.паллета)}"><div class="cT__l">${esc(k.tip || "Паллета")}</div><div class="cT__v">${esc(k.nomer)}</div><div class="cT__pod">открыть паллету →</div></button>`
-          : plitka("Паллета", "без паллеты"))
-        + plitka("Качество", `${esc(g.качество || "—")} · ${esc(String(g.штук ?? 1).replace(/\.0$/, ""))} шт`, g.заказ ? `заказ ${esc(g.заказ)}` : "");
+          ? `<button type="button" class="cT cT--gk cT--gkPal" data-pal-otkryt="${esc(g.паллета)}"><div class="cT__l">${esc(k.tip || "Паллета")} · открыть →</div><div class="cT__v">${esc(k.nomer)}</div>${g.заказ ? `<div class="cT__pod">заказ ${esc(g.заказ)}</div>` : ""}</button>`
+          : plitka("Паллета", "без паллеты", g.заказ ? `заказ ${esc(g.заказ)}` : ""));
     }).join("");
   }
   function glavAkta(a) {

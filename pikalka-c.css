@@ -821,3 +821,6 @@ body.cSkin.is-svetlo .cGde__tip--fb { color: #1f5bc4; }
   .cOpis__pus { display: none; }
 }
 .cOpis > div { align-content: start; }
+/* 08.10 «снизу дыра»: плитки «где сейчас», дефекта и вида обращения — по содержимому, без пустого низа */
+.cTiles--akt .cT--gk, .cTiles--akt .cT--def, .cTiles--akt .cT--vid { min-height: 0; }
+.cTiles--akt .cT--gk .cT__pod { margin-top: 0; }
