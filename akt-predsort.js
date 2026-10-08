@@ -2338,7 +2338,8 @@
         <input class="aktPs__svoy" id="aktSvoy" maxlength="80" autocomplete="off" placeholder="или свой дефект — напишите" value="${esc(svoyDefekt)}">
         <button type="button" class="aktPs__akt" id="aktPsGo" data-gotov="${esc(nadpisAkta)}"${gotovKnopka ? "" : " disabled"}>${gotovKnopka ? esc(nadpisAkta) : !krit ? "Выберите крит или косм" : !defekt ? "Выберите дефект" : "Войдите в WMS"}</button>
         <p class="aktPs__chto">Внутренний брак · качество брак · «мех. повреждения, ${esc(defekt || "…")}${krit ? ", " + krit : ""}» · ${esc(stol.имя)}${r ? ` → ${esc(r.куда)}` : ""} · комплектность полная</p>
-        ${oshibkaAkta ? `<p class="aktPs__net"><b class="aktPs__oshibka">Акт не создан:</b> ${esc(oshibkaAkta)}</p>` : ""}`;
+        ${oshibkaAkta ? `<p class="aktPs__net"><b class="aktPs__oshibka">${otkudaVar.length ? "Откуда взяли?" : "Акт не создан:"}</b> ${esc(oshibkaAkta)}</p>` : ""}
+        ${otkudaVar.length ? `<div class="palKartaAkt__glav">${otkudaVar.map((v) => `<button type="button" class="aktPs__kn" data-otkuda="${esc(v.ячейка_id)}">${esc(v.ячейка)}${v.контейнер ? ` · ${esc(v.контейнер)}` : ""} · ${esc(v.штук)} шт</button>`).join("")}</div>` : ""}`;
     vyvestiTovar(`${shapka}
       <p class="aktPs__zag">Решение</p>
       <div class="aktPs__resheniya" style="grid-template-columns:repeat(${kolonok},minmax(0,1fr))">${RESHENIYA().map((x) => `<button type="button" class="aktPs__kn${String(x.id) === String(reshenie) ? " is-on" : ""}" data-resh="${x.id}" title="${esc(x.куда)}">${esc(x.имя)}</button>`).join("")}</div>
@@ -2651,7 +2652,10 @@
     }
   });
 
-  async function aktirovat() {
+  // 08.10: штука свободна в нескольких ячейках — человек выбирает, откуда взял; пикалка переносит её на стол и актирует
+  let otkudaVar = [];
+  async function aktirovat(otkuda) {
+    otkudaVar = [];
     const kn = document.getElementById("aktPsGo");
     kn.disabled = true;
     kn.textContent = "Создаю акт…";
@@ -2664,21 +2668,22 @@
         const otvet = await fetch("/__akt/sozdat", {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify(r && r.акт
-            ? { товар: tovar.name, код: tovar.kod || "", дефект: `${defekt}, ${krit}`, решение: r.имя, исход: r.id }
+            ? { товар: tovar.name, код: tovar.kod || "", дефект: `${defekt}, ${krit}`, решение: r.имя, исход: r.id, откуда_ячейка: otkuda || null }
             : { товар: tovar.name, код: tovar.kod || "", дефект: `${defekt}, ${krit}`, решение: r ? r.имя : "без решения",
-                стол_id: stol ? stol.id : null }),
+                стол_id: stol ? stol.id : null, откуда_ячейка: otkuda || null }),
         });
         const d = await otvet.json().catch(() => ({}));
         if (d.нужен_вход || /сессия вмс закончилась/.test(d.ошибка || "")) {
           vms = { подключено: false }; formaVhoda = true; oshibkaVhoda = "войдите в WMS, потом снова «Заактировать»";
           risovat(); return;
         }
-        if (!otvet.ok || !d.акт) throw Object.assign(new Error(d.ошибка || `сервер ответил ${otvet.status}`), { ponyatno: !!d.понятно });
+        if (!otvet.ok || !d.акт) throw Object.assign(new Error(d.ошибка || `сервер ответил ${otvet.status}`), { ponyatno: !!d.понятно, varianty: d.варианты || [] });
         nomerAkta = d.акт;
         zametkaAkta = d.заметка || "";
       } catch (oshibka) {
         // 06.10: свой текст сервера («уже заактирована: акт …», «нет на столе — числится в …») — как есть
         oshibkaAkta = oshibka.ponyatno ? `${oshibka.message}.` : `${oshibka.message || oshibka}. Заактируйте руками в WMS.`;
+        otkudaVar = oshibka.varianty || [];
         risovat();
         return;
       }
@@ -2915,6 +2920,8 @@
     const d = e.target.closest("[data-def]");
     if (d) { defekt = d.dataset.def; svoyDefekt = ""; oshibkaAkta = ""; return risovat(); }
     if (e.target.closest("#aktPsGo")) aktirovat();
+    const otk = e.target.closest("[data-otkuda]");
+    if (otk) { aktirovat(otk.dataset.otkuda); return; }
   });
   // ── Включение и выключение режима (29.09 ночь) ─────────────────────────
   function vklyuchit() {
