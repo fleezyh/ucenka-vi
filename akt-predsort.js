@@ -123,8 +123,14 @@
     { k: "погнут", имя: "Погнут" }, { k: "порвана упаковка", имя: "Порвана упаковка" },
     { k: "надорван", имя: "Надорван" }, { k: "потёртости", имя: "Потёртости" },
     { k: "следы загрязнения, нетоварный вид", имя: "Загрязнение" }, { k: "не работает", имя: "Не работает" },
+    { k: "некомплект", имя: "Некомплект" },   // 08.10 Шелехов: в акте — комплектность неполная, без «мех. повреждения»
   ];
   let tovar = null;
+  // 08.10 Шелехов: «сначала выбрать ячейку, откуда дёргать, потом дефект — а сейчас в конце и как ошибка, и долго».
+  // При пике товара сразу спрашиваем вмс, где он на складе стола, пока человек выбирает крит и дефект.
+  let otk = null;        // {zhdu} | ответ /__akt/otkuda: на_столе | сам | варианты | уже_акт | нет | ошибка
+  let otkVybor = null;   // откуда взял: вариант (кнопка), {id} (пикнул CEL) или {контейнер} (пикнул CON)
+  let svezhiy = null;    // только что созданный акт — крупно наверху его карточки, с печатью
   let reshenie = "";
   let aktVsyo = false;        // акт по штуке, даже если решение его не требует (30.09)
   let defekt = "";
@@ -1005,6 +1011,7 @@
   function postavitStol(d) {
     stol = d; vyborStola = false; reshenie = ""; defekt = ""; krit = ""; gotovo = null; oshibkaStola = "";
     localStorage.setItem(KLYUCH_STOLA, JSON.stringify({ день: segodnya(), стол: d }));
+    if (tovar) zagruzitOtkuda();
     risovat();
   }
   function blokAktyTovara() {
@@ -1035,6 +1042,7 @@
   async function otkrytAkt(kod) {
     if (kod === aktPosl.kod && Date.now() - aktPosl.t < 2000) return;
     aktPosl = { kod, t: Date.now() };
+    if (svezhiy && nomerAkta(kod) !== svezhiy.nomer) svezhiy = null;
     // 07.10 (руководитель контроля: «сотрудник отсканировал акт, идёт на контейнер, но не пикнул перемещение, —
     // чтобы пикалка запомнила»): прошлый акт так и лежит на столе, а пикнули следующий — в список и звук.
     const byl = aktK && aktK.акт ? aktK : null;
@@ -1111,6 +1119,10 @@
   // крупно наверху панели: чем кончилась перекладка — видно издалека, без прокрутки
   function bolshoyItog() {
     if (aktPer && aktPer.idet) return '<div class="bigIt is-idet"><b>Перекладываю…</b></div>';
+    if (svezhiy && !(aktPer && aktPer.itog) && aktK && (aktK.zhdu || String(aktK.акт) === svezhiy.nomer)) {
+      const pod = [svezhiy.reshenie, svezhiy.zametka, aktK.zhdu ? "открываю карточку…" : "пикните паллету — переложу"].filter(Boolean).join(" · ");
+      return `<div class="bigIt is-ok"><b>Акт №${esc(svezhiy.nomer)} создан</b><span>${esc(pod)}</span></div>${pechatSvezhego(svezhiy.nomer)}`;
+    }
     if (aktPer && aktPer.itog) {
       const r = aktPer.itog;
       return `<div class="bigIt ${r.ok ? "is-ok" : "is-err"}"><b>${esc(r.zag)}</b><span>${esc(r.tekst)}</span></div>`;
@@ -1300,7 +1312,7 @@
 
   function risovatAkt() {
     const a = aktK;
-    if (a.zhdu) { vyvesti('<p class="aktPs__chto">Смотрю акт в WMS…</p>', shapkaDey("Акт", "смотрю в WMS…")); return; }
+    if (a.zhdu) { vyvesti('<p class="aktPs__chto">Смотрю акт в WMS…</p>', shapkaDey("Акт", "смотрю в WMS…") + bolshoyItog()); return; }
     if (a.oshibka) { vyvesti(`<p class="aktPs__net"><b class="aktPs__oshibka">${esc(a.oshibka)}</b></p>`, ""); return; }
     const est = a.живьём && a.где && a.где.length;
     const panel = Boolean(deyEl());
@@ -2394,19 +2406,19 @@
 
     const n = RESHENIYA().length;
     const kolonok = n <= 5 ? n : 4;
-    const gotovKnopka = defekt && krit && (!boevoy || vhod());
+    const gotovKnopka = defekt && krit && (!boevoy || vhod()) && !otkNado();
     // надпись готовой кнопки: с решением — «Заактировать», без решения или решение без акта — по-своему
     const nadpisAkta = r ? (r.акт ? "Заактировать" : "Всё равно заактировать") : "Заактировать без решения";
-    const aktBlok = (zag) => `
+    const aktBlok = (zag) => `${blokOtkuda()}
         <p class="aktPs__zag">${zag}</p>
         <div class="aktPs__krit">${KRIT.map((x) => `<button type="button" class="aktPs__kn${x.k === krit ? " is-on" : ""}" data-krit="${x.k}">${x.имя}</button>`).join("")}</div>
         <p class="aktPs__zag">Дефект</p>
         <div class="aktPs__defekty">${DEFEKTY.map((d) => `<button type="button" class="aktPs__kn aktPs__kn--def${d.k === defekt && !svoyDefekt ? " is-on" : ""}" data-def="${esc(d.k)}">${esc(d.имя)}</button>`).join("")}</div>
         <input class="aktPs__svoy" id="aktSvoy" maxlength="80" autocomplete="off" placeholder="или свой дефект — напишите" value="${esc(svoyDefekt)}">
-        <button type="button" class="aktPs__akt" id="aktPsGo" data-gotov="${esc(nadpisAkta)}"${gotovKnopka ? "" : " disabled"}>${gotovKnopka ? esc(nadpisAkta) : !krit ? "Выберите крит или косм" : !defekt ? "Выберите дефект" : "Войдите в WMS"}</button>
-        <p class="aktPs__chto">Внутренний брак · качество брак · «мех. повреждения, ${esc(defekt || "…")}${krit ? ", " + krit : ""}» · ${esc(stol.имя)}${r ? ` → ${esc(r.куда)}` : ""} · комплектность полная</p>
-        ${oshibkaAkta ? `<p class="aktPs__net"><b class="aktPs__oshibka">${otkudaVar.length ? "Откуда взяли?" : "Акт не создан:"}</b> ${esc(oshibkaAkta)}</p>` : ""}
-        ${otkudaVar.length ? `<div class="palKartaAkt__glav">${otkudaVar.map((v) => `<button type="button" class="aktPs__kn" data-otkuda="${esc(v.ячейка_id)}">${esc(v.ячейка)}${v.контейнер ? ` · ${esc(v.контейнер)}` : ""} · ${esc(v.штук)} шт</button>`).join("")}</div>` : ""}`;
+        <button type="button" class="aktPs__akt" id="aktPsGo" data-gotov="${esc(nadpisAkta)}"${gotovKnopka ? "" : " disabled"}>${gotovKnopka ? esc(nadpisAkta) : otkNado() || (!krit ? "Выберите крит или косм" : !defekt ? "Выберите дефект" : "Войдите в WMS")}</button>
+        <p class="aktPs__chto">Внутренний брак · качество брак · «${/^некомплект/.test(defekt) ? "" : "мех. повреждения, "}${esc(defekt || "…")}${krit ? ", " + krit : ""}» · ${esc(stol.имя)}${r ? ` → ${esc(r.куда)}` : ""} · комплектность ${/^некомплект/.test(defekt) ? "неполная" : "полная"}</p>
+        ${oshibkaAkta ? `<p class="aktPs__net"><b class="aktPs__oshibka">Акт не создан:</b> ${esc(oshibkaAkta)}</p>` : ""}
+        `;
     vyvestiTovar(`${shapka}
       <p class="aktPs__zag">Решение</p>
       <div class="aktPs__resheniya" style="grid-template-columns:repeat(${kolonok},minmax(0,1fr))">${RESHENIYA().map((x) => `<button type="button" class="aktPs__kn${String(x.id) === String(reshenie) ? " is-on" : ""}" data-resh="${x.id}" title="${esc(x.куда)}">${esc(x.имя)}</button>`).join("")}</div>
@@ -2430,7 +2442,8 @@
     tovar = e.detail; reshenie = ""; defekt = ""; krit = ""; gotovo = null; oshibkaAkta = ""; aktVsyo = false; novP = null;
     aktK = null; gdeT = null; yach = null; vozvrat = null; vyborStola = false;
     zagruzitTovar(tovar);
-    zhdemPalletu = null; perItog = null;
+    zhdemPalletu = null; perItog = null; svezhiy = null;
+    zagruzitOtkuda();
     if (pal && !(palRabota && palRabota.идёт)) { pal = null; vRezhimPalety(false); }
     risovat();
   });
@@ -2449,6 +2462,7 @@
     // После решения по товару — «куда положили» (перемещение);
     // просто так — актировка целой паллеты.
     if (zhdemPalletu) { peremestit(e.detail.kod); return; }
+    if (zhdemOtkuda()) { otkudaPoPallete(e.detail.kod); return; }
     if (massPik && korzAkty.length && !korzina.length) { aktyCel({ palleta: e.detail.kod, yacheyka: "" }); return; }
     if (massPik) { vKorzinu(e.detail.kod); return; }
     if (aktK && aktK.живьём && aktK.где && aktK.где.length && !(aktPer && aktPer.itog && aktPer.itog.ok)) { aktVPalletu(e.detail.kod); return; }
@@ -2516,7 +2530,10 @@
       const otvet = await fetch(`/__akt/stol?kod=${encodeURIComponent(e.detail.kod)}`, { cache: "no-store" });
       const d = await otvet.json().catch(() => ({}));
       // Не стол — значит, просто ячейка: показываем, что в ней лежит (площадка WMS).
-      if (otvet.status === 404) { otkrytYacheyku(e.detail.kod); return; }
+      if (otvet.status === 404) {
+        if (zhdemOtkuda()) { otkVybor = { id: String(e.detail.kod).replace(/\D/g, "") }; oshibkaAkta = ""; risovat(); return; }
+        otkrytYacheyku(e.detail.kod); return;
+      }
       if (!otvet.ok) throw new Error(d.ошибка || "стол не найден");
       stol = d;
       localStorage.setItem(KLYUCH_STOLA, JSON.stringify({ день: segodnya(), стол: d }));
@@ -2592,8 +2609,8 @@
       defekt = svoyDefekt.trim();
       vPanelyah("[data-def]").forEach((b) => b.classList.toggle("is-on", !svoyDefekt && b.dataset.def === defekt));
       const kn = document.getElementById("aktPsGo");
-      const gotov = defekt && krit && (!boevoy || vhod());
-      if (kn) { kn.disabled = !gotov; kn.textContent = gotov ? (kn.dataset.gotov || "Заактировать") : !krit ? "Выберите крит или косм" : !defekt ? "Выберите дефект" : "Войдите в WMS"; }
+      const gotov = defekt && krit && (!boevoy || vhod()) && !otkNado();
+      if (kn) { kn.disabled = !gotov; kn.textContent = gotov ? (kn.dataset.gotov || "Заактировать") : otkNado() || (!krit ? "Выберите крит или косм" : !defekt ? "Выберите дефект" : "Войдите в WMS"); }
     }
   });
 
@@ -2721,6 +2738,65 @@
 
   // 08.10: штука свободна в нескольких ячейках — человек выбирает, откуда взял; пикалка переносит её на стол и актирует
   let otkudaVar = [];
+  async function zagruzitOtkuda() {
+    otk = null; otkVybor = null;
+    if (!boevoy || !tovar || !stol || !stol.id) return;
+    const t = tovar, s = stol;
+    otk = { zhdu: true };
+    try {
+      const o = await fetch("/__akt/otkuda", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ товар: t.name, код: t.kod || "", стол_id: s.id }) });
+      const d = await o.json().catch(() => ({}));
+      if (tovar !== t) return;
+      otk = o.ok ? d : { ошибка: d.ошибка || `сервер ответил ${o.status}` };
+      if (otk.сам) otkVybor = otk.сам;
+    } catch (oshibka) { if (tovar === t) otk = { ошибка: oshibka.message || String(oshibka) }; }
+    if (tovar === t && !gotovo && !aktK && !pal) risovat();
+  }
+  // что мешает «Заактировать» со стороны «откуда»: пусто — ничего
+  function otkNado() {
+    if (!boevoy || !otk || otk.zhdu) return "";
+    if (otk.уже_акт) return "Уже заактирована — откройте акт";
+    if ((otk.варианты || []).length && !otkVybor) return "Выберите, откуда взяли";
+    return "";
+  }
+  function otkudaTelo(otkuda) {
+    if (otkuda) return { откуда_ячейка: otkuda };
+    if (!otkVybor) return {};
+    return otkVybor.id ? { откуда_ячейка: otkVybor.id } : { откуда: otkVybor };
+  }
+  // ждём «откуда»: тогда пик ячейки (не стола) или паллеты — это ответ, а не переход
+  const zhdemOtkuda = () => aktivno && tovar && !gotovo && !aktK && !pal && !massPik && otk && (otk.варианты || []).length > 0;
+  const cifry = (x) => String(x || "").replace(/\D/g, "").slice(-10).replace(/^0+/, "");
+  function otkudaPoPallete(kod) {
+    const c = cifry(kod);
+    otkVybor = (otk.варианты || []).find((x) => cifry(x.контейнер) === c) || { контейнер: kod };
+    oshibkaAkta = "";
+    risovat();
+  }
+  function blokOtkuda() {
+    if (!boevoy || !otk) return "";
+    const zag = '<p class="aktPs__zag">Откуда взяли</p>';
+    const mesto = (x) => `${esc(x.ячейка)}${x.контейнер ? ` · ${esc(x.контейнер)}` : ""}`;
+    if (otk.zhdu) return `${zag}<p class="aktPs__chto">Смотрю в WMS, где штука…</p>`;
+    if (otk.ошибка) return `${zag}<p class="aktPs__chto">WMS не ответила (${esc(otk.ошибка)}) — проверю при «Заактировать»</p>`;
+    if (otk.на_столе) return `${zag}<p class="otkOk">✓ по WMS уже на столе</p>`;
+    if (otk.уже_акт) return `${zag}<p class="aktPs__net"><b class="aktPs__oshibka">${esc(otk.уже_акт.текст)}</b></p>
+      <div class="aktPs__vopros"><button type="button" class="aktPs__kn is-on" data-otk-akt="${esc(otk.уже_акт.акт)}">Открыть акт ${esc(otk.уже_акт.акт)}</button></div>`;
+    if (otk.нет) return `${zag}<p class="aktPs__net"><b class="aktPs__oshibka">${esc(otk.нет)}</b></p>`;
+    if (otk.буфер && otk.сам) return `${zag}<p class="otkOk">✓ возьму из «${mesto(otk.сам)}» на стол</p>`;
+    const v = otk.варианты || [];
+    const vy = otkVybor;
+    const eto = (x) => vy && x.ячейка === vy.ячейка && (x.зона || "") === (vy.зона || "") && (x.контейнер || "") === (vy.контейнер || "");
+    const vidno = v.slice(0, 8);
+    const vybrano = vy ? `<p class="otkOk">✓ ${vy.ячейка ? mesto(vy) : vy.id ? `ячейка CEL ${esc(vy.id)}` : `паллета ${esc(vy.контейнер)}`} → перенесу на стол</p>` : "";
+    return `${zag}${vybrano || '<p class="aktPs__podskaz">Пикните ячейку (CEL) или паллету (CON), откуда взяли, — или нажмите:</p>'}
+      <div class="otkVar">${vidno.map((x, i) => `<button type="button" class="aktPs__kn${eto(x) ? " is-on" : ""}" data-otk="${i}">${mesto(x)} · ${esc(x.штук)} шт</button>`).join("")}</div>
+      ${v.length > vidno.length ? `<p class="aktPs__chto">и ещё ${v.length - vidno.length} мест — пикните ячейку или паллету, откуда взяли</p>` : ""}`;
+  }
+  const pechatSvezhego = (n) => `<div class="aktPs__vopros svezhPechat">
+      <a class="aktPs__kn is-on" target="_blank" rel="noopener" href="/__akt/pechat?forma=akt&akty=${encodeURIComponent(n)}">Печать акта</a>
+      <a class="aktPs__kn" target="_blank" rel="noopener" href="/__akt/pechat?forma=nakleyka&akty=${encodeURIComponent(n)}">Наклейка 70×70</a></div>`;
   async function aktirovat(otkuda) {
     otkudaVar = [];
     const kn = document.getElementById("aktPsGo");
@@ -2735,9 +2811,9 @@
         const otvet = await fetch("/__akt/sozdat", {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify(r && r.акт
-            ? { товар: tovar.name, код: tovar.kod || "", дефект: `${defekt}, ${krit}`, решение: r.имя, исход: r.id, откуда_ячейка: otkuda || null }
+            ? { товар: tovar.name, код: tovar.kod || "", дефект: `${defekt}, ${krit}`, решение: r.имя, исход: r.id, ...otkudaTelo(otkuda) }
             : { товар: tovar.name, код: tovar.kod || "", дефект: `${defekt}, ${krit}`, решение: r ? r.имя : "без решения",
-                стол_id: stol ? stol.id : null, откуда_ячейка: otkuda || null }),
+                стол_id: stol ? stol.id : null, ...otkudaTelo(otkuda) }),
         });
         const d = await otvet.json().catch(() => ({}));
         if (d.нужен_вход || /сессия вмс закончилась/.test(d.ошибка || "")) {
@@ -2750,7 +2826,8 @@
       } catch (oshibka) {
         // 06.10: свой текст сервера («уже заактирована: акт …», «нет на столе — числится в …») — как есть
         oshibkaAkta = oshibka.ponyatno ? `${oshibka.message}.` : `${oshibka.message || oshibka}. Заактируйте руками в WMS.`;
-        otkudaVar = oshibka.varianty || [];
+        // сервер всё же спросил «откуда» (вмс за это время поменялась) — те же кнопки наверху, не ошибкой внизу
+        if ((oshibka.varianty || []).length) { otk = { варианты: oshibka.varianty }; otkVybor = null; oshibkaAkta = ""; }
         risovat();
         return;
       }
@@ -2759,6 +2836,16 @@
     }
     zaSmenu += 1;
     if (boevoy) PikIst.dobavit({ vid: "акт", kod: String(nomerAkta), akt: nomerAkta, n: tovar.name || "", itog: "заактирован", ok: true });
+    if (boevoy) {
+      // 08.10 Степан: «сразу после актирования ничего нельзя сделать — провалиться в меню работы заактированного
+      // товара»: открываем карточку нового акта — там «куда положить», перекладка в паллету и печать акта
+      svezhiy = { nomer: String(nomerAkta), zametka: zametkaAkta, reshenie: r ? `${r.имя} → ${r.куда}` : "" };
+      otk = null; otkVybor = null; zhdemPalletu = null; perItog = null;
+      if (navigator.vibrate) navigator.vibrate(120);
+      otkrytAkt("ACT " + String(nomerAkta).padStart(10, "0"));
+      vFokus();
+      return;
+    }
     gotovo = { nomer: nomerAkta, zametka: zametkaAkta, tovar: tovar.name || "", reshenie: r ? `${r.имя} → ${r.куда}` : "без решения", defekt: `${defekt}, ${krit}` };
     zhdemPalletu = r ? { ishod: r, akt: nomerAkta } : null;
     perItog = null;
@@ -2987,9 +3074,13 @@
     if (kr) { krit = kr.dataset.krit; oshibkaAkta = ""; return risovat(); }
     const d = e.target.closest("[data-def]");
     if (d) { defekt = d.dataset.def; svoyDefekt = ""; oshibkaAkta = ""; return risovat(); }
+    const otkKn = e.target.closest("[data-otk]");
+    if (otkKn && otk && otk.варианты) { otkVybor = otk.варианты[Number(otkKn.dataset.otk)] || null; oshibkaAkta = ""; return risovat(); }
+    const otkAkt = e.target.closest("[data-otk-akt]");
+    if (otkAkt) { otkrytAkt("ACT " + String(otkAkt.dataset.otkAkt).padStart(10, "0")); return; }
     if (e.target.closest("#aktPsGo")) aktirovat();
-    const otk = e.target.closest("[data-otkuda]");
-    if (otk) { aktirovat(otk.dataset.otkuda); return; }
+    const otkStar = e.target.closest("[data-otkuda]");
+    if (otkStar) { aktirovat(otkStar.dataset.otkuda); return; }
   });
   // ── Включение и выключение режима (29.09 ночь) ─────────────────────────
   function vklyuchit() {
