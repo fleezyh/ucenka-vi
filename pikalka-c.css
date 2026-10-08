@@ -829,3 +829,15 @@ body.cSkin.is-svetlo .cGde__tip--fb { color: #1f5bc4; }
 .cTiles--akt .cT--gk { gap: 8px; }
 .cTiles--akt .cT--gk .cT__v { margin-top: auto; font-size: 20px; }
 .cTiles--akt .cT--gk .cT__pod { margin-top: 0; }
+/* 08.10 стоп-экран: «принять в WMS прямо здесь» — внутреннее поступление со стола (wms_vnutr_post) */
+.aktStop__vp{margin:0 0 16px}
+.aktStop__vp:empty{display:none}
+.aktStop__vpChto{margin:0;font-size:15px;color:#ffb3bf}
+.aktStop__vpKarta{display:grid;gap:4px;margin:0 0 12px;padding:12px 14px;border-radius:14px;background:rgba(40,167,96,.14);border:1px solid rgba(40,167,96,.45);text-align:left}
+.aktStop__vpKarta b{font-size:18px;color:#7be0a6}
+.aktStop__vpKarta span{font-size:14px;color:#e8f3ec}
+.aktStop__vpDa{width:100%;min-height:62px;border:0;border-radius:14px;background:#22a85f;color:#fff;font:inherit;font-size:21px;font-weight:600;cursor:pointer}
+.aktStop__vpDa:hover{background:#28bd6b}
+.aktStop__vpOsh{margin:8px 0 0;font-size:15px;line-height:1.35;color:#ffd0d7;text-align:left}
+.aktStop__okno.is-mozhno{border-color:#22a85f;box-shadow:0 0 0 6px rgba(34,168,95,.18),0 24px 60px rgba(0,0,0,.6)}
+.aktStop__okno.is-mozhno .aktStop__da{min-height:46px;font-size:16px;background:transparent;color:#ffb3bf;border:1px solid rgba(240,93,114,.5)}

@@ -1217,6 +1217,7 @@
       el.addEventListener("click", (e) => {
         if (e.target.closest("[data-stop-otlozhil]")) stopOtlozhil();
         else if (e.target.closest("[data-stop-snova]")) stopProverit();
+        else if (e.target.closest("[data-stop-prinyat]")) stopPrinyat();
       });
     }
     el.innerHTML = `<div class="aktStop__okno">
@@ -1225,6 +1226,7 @@
         <p class="aktStop__tovar">${esc(a.товар || "")}</p>
         <p class="aktStop__chto">В паллету <b>не класть</b> — получится излишек. Отложите товар в сторону, к непринятым.
           Когда его примут, пикните акт снова.</p>
+        <div class="aktStop__vp" id="aktStopVp"><p class="aktStop__vpChto">смотрю, можно ли принять его прямо здесь…</p></div>
         <div class="aktStop__knopki">
           <button type="button" class="aktStop__da" data-stop-otlozhil="1">Отложил(а) в сторону</button>
           <button type="button" class="aktStop__snova" data-stop-snova="1">Проверить ещё раз</button>
@@ -1233,8 +1235,67 @@
       </div>`;
     el.hidden = false;
     document.body.classList.add("is-aktStop");
+    vpZagruzit(a);
     setTimeout(() => window.pikalkaZvuk && window.pikalkaZvuk("oshibka"), 300);
     setTimeout(() => el.querySelector("[data-stop-otlozhil]")?.focus(), 50);
+  }
+  /* 08.10 встреча 07.10: «на столах делать внутренние поступления, без того чтобы акты расхождения всё принимали».
+     Штука в руках, акт не принят — принимаем её по заданию акта (/__akt/vnutr_post, wms_vnutr_post.py),
+     потом обычная карточка: пикнули паллету — переложилась (с СЦ на ДМД — через транзит). */
+  let vp = null;   // {zhdu} | ответ сервера | {idet} | {oshibka}
+  function vpRisovat() {
+    const el = document.getElementById("aktStopVp");
+    if (!el) return;
+    const d = vp || {};
+    let h = "";
+    if (d.zhdu) h = '<p class="aktStop__vpChto">смотрю, можно ли принять его прямо здесь…</p>';
+    else if (d.idet) h = '<p class="aktStop__vpChto">принимаю в WMS…</p>';
+    else if (d.можно) {
+      h = `<div class="aktStop__vpKarta"><b>Можно принять прямо здесь</b>
+          <span>задание на внутреннее поступление №${esc(d.задание)} · ${esc(d.откуда)} → ${esc(d.куда)}${d.втис ? ` · ВТИС ${esc(d.втис)}` : ""}</span>
+          <span>примется в «${esc(d.ячейка)}»${/^СЦ/.test(d.куда || "") ? " (СЦ) — дальше паллета на ДМД через транзит, сама" : ""}</span></div>
+        <button type="button" class="aktStop__vpDa" data-stop-prinyat="1">Принять в WMS — штука у меня</button>
+        ${d.ошибка ? `<p class="aktStop__vpOsh">${esc(d.ошибка)}</p>` : ""}`;
+    } else if (d.шаг === "принят") h = `<p class="aktStop__vpChto">${esc(d.текст)}</p>`;
+    else if (d.текст || d.ошибка) h = `<p class="aktStop__vpOsh">${esc(d.ошибка || d.текст)}</p>`;
+    el.innerHTML = h;
+    // можно принять — главная кнопка «принять», «отложил» становится запасной
+    el.closest(".aktStop__okno")?.classList.toggle("is-mozhno", Boolean(d.можно));
+  }
+  async function vpZagruzit(a) {
+    vp = { zhdu: true, akt: a.акт }; vpRisovat();
+    try {
+      const o = await fetch("/__akt/vnutr_post", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ акт: a.акт, сохранить: false }) });
+      const d = await o.json().catch(() => ({}));
+      if (!stopAkt || stopAkt.акт !== a.акт) return;
+      vp = o.ok ? { ...d, akt: a.акт } : { ошибка: d.ошибка || `сервер ответил ${o.status}`, akt: a.акт };
+      if (vp.шаг === "принят") { stopProverit(); }
+    } catch (e) { if (stopAkt && stopAkt.акт === a.акт) vp = { ошибка: e.message || String(e), akt: a.акт }; }
+    vpRisovat();
+  }
+  async function stopPrinyat() {
+    const a = stopAkt;
+    if (!a || !vp || !vp.можно || vp.idet) return;
+    const bylo = vp;
+    vp = { ...bylo, idet: true }; vpRisovat();
+    try {
+      const o = await fetch("/__akt/vnutr_post", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ акт: a.акт, сохранить: true }) });
+      const d = await o.json().catch(() => ({}));
+      if (d.нужен_вход) { vp = { ...bylo, ошибка: "войдите в WMS (кнопка вверху) — поступление пойдёт от вашего имени" }; vpRisovat(); return; }
+      if (!o.ok || !d.готово) throw new Error(d.ошибка || d.текст || `сервер ответил ${o.status}`);
+      PikIst.dobavit({ vid: "акт", kod: a.наклейка || String(a.акт), akt: a.акт, n: a.товар || "", itog: `принят: ${d.ячейка || "WMS"}`, ok: true });
+      signal(`Акт ${a.акт} принят в WMS — ${d.ячейка || ""}. Пикните паллету, куда кладёте.`);
+      window.pikalkaZvuk && window.pikalkaZvuk("ok");
+      stopSnyat();
+      aktPosl = { kod: "", t: 0 };
+      otkrytAkt(a.наклейка || `ACT ${String(a.акт).padStart(10, "0")}`);
+    } catch (e) {
+      vp = { ...bylo, ошибка: `не принялось: ${e.message || e}. Записано в реестр ошибок — отложите штуку` };
+      vpRisovat();
+      window.pikalkaZvuk && window.pikalkaZvuk("oshibka");
+    }
   }
   function stopSnyat() {
     stopAkt = null;
