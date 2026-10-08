@@ -1429,20 +1429,21 @@
   }
   function blokGdeAkta(a) {
     const gde = a.где || [];
-    if (!gde.length) return `<div class="cT cT--gde"><div class="cT__l">Где сейчас</div>
+    if (!gde.length) return `<div class="cT cT--gk cT--gkNet"><div class="cT__l">Где сейчас</div>
       <div class="cT__v"><span class="aNet" style="display:inline">на складе уже нет — продана, списана или уехала</span></div></div>`;
-    const stroka = (g) => {
+    // 08.10 «сам видишь, чем криво»: не таблица в плитке, а четыре плитки той же сетки — стыки совпадают с плитками ниже
+    const plitka = (l, v, pod = "", kl = "") => `<div class="cT cT--gk${kl}"><div class="cT__l">${l}</div><div class="cT__v">${v}</div>${pod ? `<div class="cT__pod">${pod}</div>` : ""}</div>`;
+    return gde.map((g, i) => {
       const k = kontRazbor(g.паллета);
       const tip = skladTip(g.база);
-      return `<button type="button" class="cGde__r" data-pal-otkryt="${esc(g.паллета || "")}"${g.паллета ? "" : " disabled"}>
-        <span class="cGde__c"><i>склад</i><b>${tip ? `<em class="cGde__tip cGde__tip--${tip === "СЦ" ? "sc" : "fb"}">${tip}</em>` : ""}${esc(skladImya(g.база) || "—")}</b></span>
-        <span class="cGde__c"><i>ячейка</i><b class="cGde__kod${/\s/.test(g.ячейка || "") ? " cGde__kod--dl" : ""}" title="${esc(g.ячейка || "")}">${esc(g.ячейка || "—")}</b>${g.зона ? `<small>${esc(g.зона)}</small>` : ""}</span>
-        <span class="cGde__c"><i>${esc(k.tip || "контейнер")}</i><b class="cGde__kod">${esc(k.nomer || "без паллеты")}</b></span>
-        <span class="cGde__c"><i>качество</i><b>${esc(g.качество || "—")} · ${esc(String(g.штук ?? 1).replace(/\.0$/, ""))} шт</b>${g.заказ ? `<small>заказ ${esc(g.заказ)}</small>` : ""}</span>
-      </button>`;
-    };
-    return `<div class="cT cT--gde"><div class="cT__l">Где сейчас${gde.length > 1 ? ` · ${gde.length} места` : ""}</div>
-      <div class="cGde">${gde.map(stroka).join("")}</div></div>`;
+      const nad = i === 0 ? "Где сейчас" : `Ещё место ${i + 1}`;
+      return plitka(`${nad} · склад`, `${tip ? `<em class="cGde__tip cGde__tip--${tip === "СЦ" ? "sc" : "fb"}">${tip}</em>` : ""}${esc(skladImya(g.база) || "—")}`)
+        + plitka("Ячейка", esc(g.ячейка || "—"), g.зона ? esc(g.зона) : "")
+        + (g.паллета
+          ? `<button type="button" class="cT cT--gk cT--gkPal" data-pal-otkryt="${esc(g.паллета)}"><div class="cT__l">${esc(k.tip || "Паллета")}</div><div class="cT__v">${esc(k.nomer)}</div><div class="cT__pod">открыть паллету →</div></button>`
+          : plitka("Паллета", "без паллеты"))
+        + plitka("Качество", `${esc(g.качество || "—")} · ${esc(String(g.штук ?? 1).replace(/\.0$/, ""))} шт`, g.заказ ? `заказ ${esc(g.заказ)}` : "");
+    }).join("");
   }
   function glavAkta(a) {
     sebesAkta(a);
@@ -1463,11 +1464,11 @@
         <div class="cT cT--big cT--pol"><div class="cT__l">${a.цена_откуда === "сайт" ? "Цена на сайте" : "Цена в акте"}</div><div class="cT__v">${a.цена ? `<b class="cBig">${esc(rub(a.цена))}</b>` : '<span class="aNet" style="display:inline">—</span>'}${
           sb && Number.isFinite(sb.unitCost) && a.цена ? `<small>в ${(a.цена / sb.unitCost).toLocaleString("ru-RU", { maximumFractionDigits: 1 })} раза к себесу</small>` : ""}</div></div>
         ${blokGdeAkta(a)}
-        <div class="cT cT--def cT--pol">${a.живьём ? blokDefekta(a) : `<div class="aktDef"><span>заявленный дефект</span><b>${esc(a.дефект || "—")}</b></div>`}</div>
+        <div class="cT cT--def cT--pol">${a.живьём ? blokDefekta(a) : `<div class="aktDef"><span>Заявленный дефект</span><b>${esc(a.дефект || "—")}</b></div>`}</div>
         <div class="cT cT--vid cT--pol"><div class="cT__l">Вид обращения</div><div class="cT__v">${esc(a.вид || "—")}</div></div>
         ${polya.length ? `<div class="cT cT--opis"><div class="cT__l">Описание акта</div>
           <dl class="cOpis">${polya.map((x) => `<div><dt>${esc(x.что)}</dt><dd>${esc(x.значение)}</dd></div>`).join("")}${
-            "<div class=\"cOpis__pus\"></div>".repeat((3 - (polya.length % 3)) % 3)}</dl></div>` : ""}
+            "<div class=\"cOpis__pus\"></div>".repeat((4 - (polya.length % 4)) % 4)}</dl></div>` : ""}
       </div>
       ${a.комментарии && a.комментарии.length ? `<p class="aktPs__zag">Комментарии</p><div class="aktKom cT">${a.комментарии.map((k) => `<p><span>${esc(k.когда)} · ${esc(k.кто)}</span>${esc(k.текст)}</p>`).join("")}</div>` : ""}
       ${window.AktDetal && a.акт ? window.AktDetal.blok(a.акт) : ""}`;
@@ -1477,14 +1478,14 @@
   let defRed = null;   // null | { tekst, idet, oshibka, gotovo }
   function blokDefekta(a) {
     if (defRed && !defRed.gotovo) {
-      return `<form class="aktDef aktDef--red" id="aktDefForma" autocomplete="off"><span>заявленный дефект — новый текст уйдёт в акт в WMS</span>
+      return `<form class="aktDef aktDef--red" id="aktDefForma" autocomplete="off"><span>Заявленный дефект — новый текст уйдёт в акт в WMS</span>
         <textarea name="defekt" rows="3">${esc(defRed.tekst)}</textarea>
         ${defRed.oshibka ? `<p class="aktPs__net"><b class="aktPs__oshibka">${esc(defRed.oshibka)}</b></p>` : ""}
         <div class="aktPs__vopros"><button class="aktPs__kn is-on" type="submit"${defRed.idet ? " disabled" : ""}>${defRed.idet ? "Сохраняю…" : "Сохранить в WMS"}</button>
           <button type="button" class="aktPs__kn" data-def-otmena${defRed.idet ? " disabled" : ""}>Отмена</button></div></form>`;
     }
     const mozhno = boevoy && vms.подключено;
-    return `<div class="aktDef"><span>заявленный дефект${defRed && defRed.gotovo ? " · изменён" : ""}</span><b>${esc(a.дефект || "—")}</b>
+    return `<div class="aktDef"><span>Заявленный дефект${defRed && defRed.gotovo ? " · изменён" : ""}</span><b>${esc(a.дефект || "—")}</b>
       ${mozhno ? '<button type="button" class="aLnk" data-def-red>изменить дефект</button>' : ""}</div>`;
   }
   async function sohranitDefekt(tekst) {

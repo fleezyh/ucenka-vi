@@ -785,45 +785,39 @@ body.cSkin.is-svetlo .otkOk { color: #13703c; }
 .svezhPechat { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 8px 0 4px; }
 .svezhPechat .aktPs__kn { min-height: 56px; font-size: 18px; display: flex; align-items: center; justify-content: center; text-decoration: none; }
 
-/* Плитки акта ровно (08.10, Степан: «симметрии не хватает, всё вразнобой»): по две равные половины,
-   «где сейчас» — строкой остатков на всю ширину, описание — сеткой 3 в ряд без дырок. */
-.cTiles--akt .cT--pol { grid-column: span 3; }
+/* Плитки акта ровно (08.10, Степан: «симметрии не хватает», «сам видишь, чем криво»): одна сетка на 4 колонки —
+   себес | цена и дефект | вид обращения по половине, «где сейчас» — четыре плитки той же сетки, стыки совпадают;
+   подписи одного вида, значения одного размера. */
+.cTiles--akt { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.cTiles--akt .cT--pol { grid-column: span 2; }
 .cTiles--akt .cT--big { min-height: 150px; }
-.cTiles--akt .cT--def, .cTiles--akt .cT--vid { min-height: 124px; }
-.cTiles--akt .cT--vid .cT__v { margin-top: 0; font-size: 24px; }
-.cTiles--akt .cT--def .aktDef b { font-size: 24px; }
-.cTiles--akt .cT--gde { grid-column: 1 / -1; min-height: 0; gap: 12px; }
-.cTiles--akt .cT--opis { grid-column: 1 / -1; }
+.cTiles--akt .cT--gk, .cTiles--akt .cT--def, .cTiles--akt .cT--vid { grid-column: span 1; min-height: 124px; }
+.cTiles--akt .cT--def, .cTiles--akt .cT--vid { grid-column: span 2; }
+.cTiles--akt .cT--gkNet, .cTiles--akt .cT--opis { grid-column: 1 / -1; }
+.cTiles--akt .cT__l, .cTiles--akt .cT--def .aktDef > span { font-size: 15px; color: var(--muted); line-height: 1.2; }
+.cTiles--akt .cT--gk .cT__v, .cTiles--akt .cT--vid .cT__v, .cTiles--akt .cT--def .aktDef b {
+  margin-top: 0; font-size: 24px; font-weight: 600; line-height: 1.2; overflow-wrap: break-word; word-break: normal; }
+.cTiles--akt .cT--gk .cT__v { align-items: center; }
+.cT__pod { font-size: 13px; color: var(--muted); margin-top: auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cT--gk { background: color-mix(in oklab, var(--cVio) 9%, var(--cTile)); border-color: rgba(185,162,255,.3); }
+button.cT--gkPal { appearance: none; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+button.cT--gkPal:hover { border-color: rgba(185,162,255,.65); }
+button.cT--gkPal .cT__pod { color: var(--cVio); }
+.cTiles--akt .cT--gk .cT__v { font-variant-numeric: tabular-nums; }
+.cOpis { grid-template-columns: repeat(4, minmax(0, 1fr)); column-gap: 28px; }
 .cOpis__pus { border-top: 1px solid var(--cLine); }
-.cGde { display: grid; gap: 8px; }
-.cGde__r { appearance: none; width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) minmax(0, 1.1fr) minmax(0, .9fr);
-  border: 1px solid rgba(185,162,255,.28); border-radius: 13px; background: rgba(0,0,0,.18); color: inherit; font: inherit; text-align: left;
-  padding: 0; cursor: pointer; overflow: hidden; }
-.cGde__r:disabled { cursor: default; }
-.cGde__r:not(:disabled):hover { border-color: rgba(185,162,255,.6); }
-.cGde__c { min-width: 0; display: flex; flex-direction: column; gap: 6px; padding: 14px 16px; }
-.cGde__c + .cGde__c { border-left: 1px solid var(--cLine); }
-.cGde__c i { font-style: normal; font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.cGde__c b { font-size: 22px; font-weight: 600; line-height: 1.15; overflow-wrap: break-word; word-break: normal; hyphens: none; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.cGde__c:first-child b { font-size: 19px; }
-.cGde__c b.cGde__kod { display: block; font-variant-numeric: tabular-nums; letter-spacing: .01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.cGde__c b.cGde__kod--dl { white-space: normal; }
-.cGde__c small { font-size: 13px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.cGde__tip { font-style: normal; display: inline-flex; align-items: center; height: 26px; padding: 0 9px; border-radius: 8px;
-  font-size: 15px; font-weight: 600; letter-spacing: .03em; }
+.cGde__tip { font-style: normal; display: inline-flex; align-items: center; height: 28px; padding: 0 9px; border-radius: 8px;
+  font-size: 16px; font-weight: 600; letter-spacing: .03em; }
 .cGde__tip--sc { background: rgba(245,173,50,.2); color: #ffc65c; }
 .cGde__tip--fb { background: rgba(77,141,247,.2); color: #8fb6ff; }
-body.cSkin.is-svetlo .cGde__r { background: #fff; }
 body.cSkin.is-svetlo .cGde__tip--sc { color: #9a5b00; }
 body.cSkin.is-svetlo .cGde__tip--fb { color: #1f5bc4; }
 @media (max-width: 760px) {
-  .cTiles--akt .cT--pol { grid-column: span 1 !important; }
-  .cTiles--akt .cT--gde, .cTiles--akt .cT--opis { grid-column: 1 / -1 !important; }
-  .cGde__r { grid-template-columns: 1fr 1fr; }
-  .cGde__c:nth-child(3) { border-left: 0; }
-  .cGde__c:nth-child(n+3) { border-top: 1px solid var(--cLine); }
-  .cGde__c b { font-size: 18px; }
+  .cTiles--akt { grid-template-columns: 1fr 1fr; }
+  .cTiles--akt .cT--pol, .cTiles--akt .cT--gk { grid-column: span 1 !important; }
+  .cTiles--akt .cT--def, .cTiles--akt .cT--vid, .cTiles--akt .cT--gkNet, .cTiles--akt .cT--opis { grid-column: 1 / -1 !important; }
+  .cTiles--akt .cT--gk .cT__v, .cTiles--akt .cT--vid .cT__v, .cTiles--akt .cT--def .aktDef b { font-size: 19px; }
   .cOpis { grid-template-columns: 1fr 1fr; }
   .cOpis__pus { display: none; }
 }
+.cOpis > div { align-content: start; }
