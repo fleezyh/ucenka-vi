@@ -1274,8 +1274,10 @@
     } else if (d.можно) {
       h = `<div class="aktStop__vpKarta"><b>Можно принять прямо здесь</b>
           <span>задание на внутреннее поступление №${esc(d.задание)} · ${esc(d.откуда)} → ${esc(d.куда)}${d.втис ? ` · ВТИС ${esc(d.втис)}` : ""}</span>
-          <span>примется в «${esc(d.ячейка)}»${/^СЦ/.test(d.куда || "") ? " (СЦ) — дальше паллета на ДМД через транзит, сама" : ""}</span></div>
-        <button type="button" class="aktStop__vpDa" data-stop-prinyat="1">Принять в WMS — штука у меня</button>
+          <span>примется в «${esc(d.ячейка)}»${/^СЦ/.test(d.куда || "") ? " (СЦ) — дальше паллета на ДМД через транзит, сама" : ""}</span>
+          ${d.части && d.части.length > 1 ? `<span><b>Товар из ${d.части.length} частей</b> — как в WMS, проверьте, что все у вас:</span>
+            ${d.части.map((x, i) => `<span>☐ ${esc(String(x).replace(/^.* - (\d+ часть)$/, "$1") || `часть ${i + 1}`)}</span>`).join("")}` : ""}</div>
+        <button type="button" class="aktStop__vpDa" data-stop-prinyat="1">${d.части && d.части.length > 1 ? `Все ${d.части.length} части у меня — принять в WMS` : "Принять в WMS — штука у меня"}</button>
         ${d.ошибка ? `<p class="aktStop__vpOsh">${esc(d.ошибка)}</p>` : ""}`;
     } else if (d.шаг === "принят") h = `<p class="aktStop__vpChto">${esc(d.текст)}</p>`;
     else if (d.текст || d.ошибка) h = `<p class="aktStop__vpOsh">${esc(d.ошибка || d.текст)}</p>`;
