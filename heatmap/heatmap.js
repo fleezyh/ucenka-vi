@@ -2280,9 +2280,8 @@
   /* «Простыня» (28.09.2026): шаблон «Цели: Направление по работе с браком» —
      показатели строками, месяцы года столбцами, в каждом месяце факт и план.
      Факт — плитка месяца (прошлое по финрезу и резерву — FFC), план — цель. */
-  function vygruzitProstynyu() {
-    if (!payload) return;
-    const god = String(payload.период || "").slice(0, 4) || String(new Date().getFullYear());
+  // 09.10 Степан: «выгрузить цели и факт — там только один год». Теперь все годы данных одной книгой, лист на год.
+  function listGoda(god) {
     const MES = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август",
       "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
     const EDIN = { mln_rub: "млн ₽", thousand_pcs: "тыс шт", percent: "%", ratio: "коэф.", count: "шт" };
@@ -2307,28 +2306,52 @@
     });
     rows.push([]);
     rows.push([`Факт — хитмап уценки на ${payload.обновлено || ""}. Финрез и резерв по ${payload.ffc_правда_до || "—"} включительно — из FFC финконтроллеров, дальше — наш расчёт. План — цели хитмапа.`]);
-    saveXlsx(rows, `Цели ${god}`, `Цели и факт направления брака ${god}`);
+    return { imya: `Цели и факт ${god}`, rows };
   }
-  document.getElementById("prostynyaBtn")?.addEventListener("click", vygruzitProstynyu);
+  function vygruzitProstynyu() {
+    if (!payload) return;
+    const gody = [...new Set(Object.keys(payload.поПериодам || {}).map((k) => k.slice(0, 4)).filter((g) => /^\d{4}$/.test(g)))]
+      .sort().reverse();
+    if (!gody.length) gody.push(String(new Date().getFullYear()));
+    window.saveXlsxKniga(gody.map(listGoda), `Цели и факт направления брака ${gody.slice().reverse().join("–")}`);
+  }
 
-  // ФС-отчёт по браку: готовые книги по месяцам (data/fs/fs_brak.json), по умолчанию — последний месяц.
+  // Меню «Выгрузки»: цели и факт + ФС-отчёты по браку (готовые книги по месяцам, data/fs/fs_brak.json)
   (async () => {
-    const box = document.getElementById("fsVybor");
-    if (!box) return;
+    const btn = document.getElementById("vygruzkiBtn");
+    const menu = document.getElementById("vygruzkiMenu");
+    if (!btn || !menu) return;
     const d = await fetch("../data/fs/fs_brak.json", { cache: "no-cache" }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
-    const spisok = (d && d.отчёты) || [];
-    if (!spisok.length) return;
-    const btn = document.getElementById("fsBtn");
-    const sel = document.getElementById("fsMes");
-    sel.innerHTML = spisok.map((x, i) => `<option value="${i}">${x.название}</option>`).join("");
-    const vybrat = () => {
-      const x = spisok[Number(sel.value) || 0];
-      btn.href = `${x.файл}?v=${encodeURIComponent(x.собрано)}`;
-      btn.title = `Сводка, списание, уценка, переупаковка, вход по городам и типу, продажи уценки · собрано ${x.собрано}`;
+    const fs = (d && d.отчёты) || [];
+    const MES_R = ["январь", "февраль", "март", "апрель", "май", "июнь", "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь"];
+    const MES_D = ["январю", "февралю", "марту", "апрелю", "маю", "июню", "июлю", "августу", "сентябрю", "октябрю", "ноябрю", "декабрю"];
+    const tys = (v) => (Number(v) / 1000).toLocaleString("ru-RU", { maximumFractionDigits: 1 });
+    const stroka = (x) => {
+      const [g, m] = String(x.месяц || "").split("-");
+      const it = x.итоги || {};
+      const kl = Object.keys(it);
+      const tek = it[kl.find((k) => k.endsWith(g))] || {};
+      const bylo = it[kl.find((k) => !k.endsWith(g))] || {};
+      const vh = tek["ИТОГО ВХОД"], vh0 = bylo["ИТОГО ВХОД"];
+      const d2 = vh && vh0 ? Math.round((vh - vh0) / vh0 * 100) : null;
+      return `<a class="vygruzkiMenu__fs" href="${x.файл}?v=${encodeURIComponent(x.собрано)}" download>`
+        + `<b>${MES_R[Number(m) - 1] || ""} ${g}</b><span>к ${MES_D[Number(m) - 1] || ""} ${Number(g) - 1}</span>`
+        + (vh ? `<em>вход ${tys(vh)} тыс.${d2 === null ? "" : ` <i class="${d2 < 0 ? "isDown" : "isUp"}">${d2 > 0 ? "+" : "−"}${Math.abs(d2)}%</i>`}</em>` : "<em></em>")
+        + `<small>собрано ${String(x.собрано || "").slice(8, 10)}.${String(x.собрано || "").slice(5, 7)}</small></a>`;
     };
-    sel.addEventListener("change", vybrat);
-    vybrat();
-    box.hidden = false;
+    menu.innerHTML = `<div class="vygruzkiMenu__zag">Цели и факт</div>`
+      + `<button type="button" class="vygruzkiMenu__kn" id="prostynyaBtn">Все показатели по месяцам, факт и план — Excel, лист на год</button>`
+      + (fs.length ? `<div class="vygruzkiMenu__zag">ФС-отчёт по браку · месяц к тому же месяцу год назад</div>`
+        + `<div class="vygruzkiMenu__spisok">${fs.map(stroka).join("")}</div>` : "");
+    document.getElementById("prostynyaBtn").addEventListener("click", () => { vygruzitProstynyu(); zakryt(); });
+    const zakryt = () => { menu.hidden = true; btn.setAttribute("aria-expanded", "false"); };
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      menu.hidden = !menu.hidden;
+      btn.setAttribute("aria-expanded", String(!menu.hidden));
+    });
+    document.addEventListener("click", (e) => { if (!menu.hidden && !menu.contains(e.target)) zakryt(); });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") zakryt(); });
   })();
 
   // Escape закрывает раскрытый график: кнопка «Закрыть» уезжает вверх, когда
