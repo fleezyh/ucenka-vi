@@ -1249,19 +1249,25 @@
     const openNote = period.current.open ? " · период ещё идёт" : "";
 
     top.innerHTML =
-      `<article class="perfCard"><p class="perfCard__title">Штук за смену</p>` +
+      `<article class="perfCard perfCard--glav"><p class="perfCard__title">Штук за смену</p>` +
         `<b class="perfCard__value">${one(view.итог.на_смену)}</b>` +
         `<span class="perfCard__delta${deltaClass}">${deltaText}</span></article>` +
-      `<article class="perfCard"><p class="perfCard__title">Штук</p>` +
+      `<article class="perfCard perfCard--sin"><p class="perfCard__title">Штук</p>` +
         `<b class="perfCard__value">${count(view.итог.штук)}</b>` +
         `<span class="perfCard__note">${period.current.label}${openNote}</span></article>` +
-      `<article class="perfCard"><p class="perfCard__title">Смен</p>` +
+      `<article class="perfCard perfCard--zhel"><p class="perfCard__title">Смен</p>` +
         `<b class="perfCard__value">${count(view.итог.смен)}</b>` +
         `<span class="perfCard__note">человеко-дней в периоде</span></article>` +
-      `<article class="perfCard"><p class="perfCard__title">Человек</p>` +
+      `<article class="perfCard perfCard--fiol"><p class="perfCard__title">Человек</p>` +
         `<b class="perfCard__value">${count(view.итог.человек)}</b>` +
         `<span class="perfCard__note">выходили на стол</span></article>`;
     parts.push(top);
+    // 09.10 Степан: «контуры рядом — почему другое по смыслу»: сравнение контуров — это про весь отдел,
+    // поэтому только на «Весь отдел», сразу под карточками; у контура страница только про него
+    if (contour === "vse") {
+      parts.push(block("Контуры рядом", `${period.current.label} · одна шкала — где узкое место отдела · клик — открыть контур`,
+                       renderContours(payload.контуры, period.current.months)));
+    }
 
     // Одна динамика вместо двух графиков. Раньше «По неделям» и «По дням»
     // стояли друг под другом и показывали одно и то же в разной нарезке —
@@ -1415,9 +1421,7 @@
                          + (reached ? `до 90% нормы (${one(norm)}) доходят к ${reached.смена}-й смене` : "за первые смены норму не набирают"),
                          renderLine(rampAsBars(ramp), { label: (row) => row.подпись || row.ключ, legenda: "штук за смену по номеру смены" })));
     }
-    nizhniy.push(block("Контуры рядом", `${period.current.label} · одна шкала — где узкое место отдела`,
-                       renderContours(payload.контуры, period.current.months)));
-    parts.push(ryad(nizhniy));
+    if (nizhniy.length) parts.push(ryad(nizhniy));
 
     openPerson = null;
     box.replaceChildren(...parts);

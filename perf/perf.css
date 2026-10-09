@@ -664,3 +664,22 @@ body .heroPerf { display: flex; flex-wrap: wrap; justify-content: space-between;
 .prost__nav .action[disabled] { opacity: .35; cursor: default; }
 .prost__list { max-height: 520px; overflow: auto; padding-right: 4px; }
 .prost__row { grid-template-columns: minmax(200px, 30%) 1fr 64px 200px; }
+
+/* 09.10 Степан: «в суперсете виджет — навожусь, поднимается, цвета разные; тут сухо». Карточки с цветом и подъёмом. */
+.perfCard, .smenaKarta { transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+.perfCard:hover, .smenaKarta:hover { transform: translateY(-4px); box-shadow: 0 14px 30px rgba(0,0,0,.35); }
+.perfCard--glav { background: linear-gradient(160deg, #0f2a1d, #0b1a14); border-color: rgba(39,196,107,.55); }
+.perfCard--glav .perfCard__value { color: #7ee3b3; }
+.perfCard--sin { background: linear-gradient(160deg, #10203a, #0b1424); border-color: rgba(96,165,250,.5); }
+.perfCard--sin .perfCard__value { color: #9cc8ff; }
+.perfCard--zhel { background: linear-gradient(160deg, #2c2410, #1a150a); border-color: rgba(250,204,21,.45); }
+.perfCard--zhel .perfCard__value { color: #fcd56b; }
+.perfCard--fiol { background: linear-gradient(160deg, #241536, #160d22); border-color: rgba(192,132,252,.45); }
+.perfCard--fiol .perfCard__value { color: #d7b4ff; }
+.smenaKarta:nth-child(1) { background: linear-gradient(160deg, #10203a, #0b1424); border-color: rgba(96,165,250,.45); }
+.smenaKarta:nth-child(2) { background: linear-gradient(160deg, #241536, #160d22); border-color: rgba(192,132,252,.45); }
+.smenaKarta:nth-child(3) { background: linear-gradient(160deg, #2c2410, #1a150a); border-color: rgba(250,204,21,.4); }
+.smenaKarta.is-on { border-color: #27c46b; box-shadow: inset 0 0 0 1px #27c46b, 0 14px 30px rgba(0,0,0,.35); }
+.contourRow { transition: transform .15s ease; }
+.contourRow:hover { transform: translateX(4px); }
+@media (prefers-reduced-motion: reduce) { .perfCard, .smenaKarta, .contourRow { transition: none; } .perfCard:hover, .smenaKarta:hover { transform: none; } }
