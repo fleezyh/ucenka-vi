@@ -637,3 +637,30 @@ body .heroPerf { display: flex; flex-wrap: wrap; justify-content: space-between;
 .smeny td:first-child, .smeny th:first-child { text-align: left; }
 .smeny b.isUp { color: #7ee3b3; }
 .smeny__pod { color: var(--muted); font-size: 12px; }
+
+/* ---- 09.10 компоновка: смены карточками, ряды по два блока, простои в «Людях» ---- */
+.perfRyad { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 28px; }
+.perfRyad--odin { grid-template-columns: minmax(0, 1fr); }
+@media (max-width: 1100px) { .perfRyad { grid-template-columns: minmax(0, 1fr); } }
+.smenyKarty { display: grid; grid-template-columns: repeat(var(--n, 2), minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 760px) { .smenyKarty { grid-template-columns: minmax(0, 1fr); } }
+.smenaKarta { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 16px 18px 15px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.smenaKarta:hover { border-color: rgba(255,255,255,.22); }
+.smenaKarta.is-on { border-color: #27c46b; box-shadow: inset 0 0 0 1px #27c46b; }
+.smenaKarta__imya { color: var(--muted); font-size: 11.5px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; }
+.smenaKarta__zn { margin-top: 6px; font-size: 34px; font-weight: 600; line-height: 1; letter-spacing: -.03em; }
+.smenaKarta.isBest .smenaKarta__zn { color: #7ee3b3; }
+.smenaKarta__ed, .smenaKarta__pod { color: var(--muted); font-size: 12.5px; }
+.smenaKarta__pod { margin-top: 6px; }
+.smenaKarta__d { margin-top: 4px; font-size: 13px; font-weight: 600; }
+.smenaKarta__d.isUp { color: #7ee3b3; }
+.smenaKarta__d.isDown { color: #ffa3a3; }
+.smenyNedeli { grid-column: 1 / -1; }
+.smenyNedeli summary { cursor: pointer; color: var(--muted); font-size: 13px; padding: 4px 0; }
+.smenyNedeli[open] summary { margin-bottom: 8px; }
+.prost__nav { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 6px 0 12px; }
+.prost__nav b { font-weight: 600; }
+.prost__nav .perfLead { margin: 0 0 0 6px; }
+.prost__nav .action[disabled] { opacity: .35; cursor: default; }
+.prost__list { max-height: 520px; overflow: auto; padding-right: 4px; }
+.prost__row { grid-template-columns: minmax(200px, 30%) 1fr 64px 200px; }
