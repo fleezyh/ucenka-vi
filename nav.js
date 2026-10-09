@@ -270,11 +270,11 @@
       pod: [["Хитмап", "/heatmap/", "heatmap"], ["ФОТ", "/zp/fot", "salary_team"]] },
     { imya: "Операционный", razdel: ["/perf", "/people", "/launch", "/priyomka"],
       pod: [["Производительность", "/perf/", "perf"], ["Паноптикум", "/people/", "people"],
-            ["Данилово", "/launch/", "perf"], ["Приёмка ДМД", "/priyomka/", ""]] },
+            ["Данилово", "/launch/", "launch"], ["Приёмка ДМД", "/priyomka/", "priyomka"]] },
     { imya: "Проектный", razdel: ["/antigen"],
-      pod: [["Брак", "/antigen/", "antigen"], ["Отправка ОЛ с регионов", "/antigen/mashiny/", "mashiny"], ["Экономика позиций", "/antigen/ekonomika/", "antigen"]] },
+      pod: [["Брак", "/antigen/", "antigen"], ["Отправка ОЛ с регионов", "/antigen/mashiny/", "mashiny"], ["Экономика позиций", "/antigen/ekonomika/", "ekonomika"]] },
     { imya: "Коммерческий", razdel: ["/sales", "/crm", "/soglas"],
-      pod: [["Остатки и отгрузки", "/sales/", "sales"], ["Аналитика отгрузок", "/sales/analitika/", "sales"],
+      pod: [["Остатки и отгрузки", "/sales/", "sales"], ["Аналитика отгрузок", "/sales/analitika/", "sales_an"],
             ["CRM продаж", "/crm/", "crm"]] },
   ];
   (function perestroitShapku() {
