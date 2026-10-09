@@ -689,3 +689,32 @@ body .heroPerf { display: flex; flex-wrap: wrap; justify-content: space-between;
 .perfFiltr { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; }
 .perfPeriod > .action { margin-left: auto; }
 .stoly__itog { margin: 0 0 10px; }
+
+/* 09.10 «зачем они прозрачные, а всё остальное нет»: простои и карта столов — на такой же подложке, как графики */
+.prost, .stolyKarta { padding: 14px 16px; border: 1px solid var(--line); border-radius: 14px;
+  background: linear-gradient(180deg, rgba(15, 23, 35, 0.92), rgba(8, 13, 20, 0.92)); }
+.prost__row { background: rgba(255,255,255,.025); }
+
+/* Карта столов: строка — стол, клетка — день (неделя), цвет — штук за смену */
+.stolyKarta { display: grid; gap: 4px; }
+.stolyKarta__legenda { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 6px; color: var(--muted); font-size: 12.5px; }
+.stolyKarta__shkala { display: inline-flex; align-items: center; gap: 8px; }
+.stolyKarta__shkala i { display: block; width: 160px; height: 10px; border-radius: 5px; }
+.stolyKarta__shkala em { font-style: normal; font-variant-numeric: tabular-nums; }
+.stolyKarta__row { display: grid; grid-template-columns: minmax(170px, 230px) minmax(0, 1fr) 150px 150px; gap: 14px; align-items: center; padding: 3px 0; }
+.stolyKarta__row:not(.stolyKarta__row--golova):hover { background: rgba(255,255,255,.03); border-radius: 8px; }
+.stolyKarta__row--golova { color: var(--muted); font-size: 11px; padding-bottom: 2px; }
+.stolyKarta__row--niz { border-top: 1px solid rgba(255,255,255,.08); margin-top: 4px; padding-top: 8px; font-weight: 600; }
+.stolyKarta__imya { display: flex; flex-direction: column; font-size: 13.5px; line-height: 1.2; overflow: hidden; }
+.stolyKarta__imya small { color: var(--muted); font-size: 11px; }
+.stolyKarta__polosa { display: grid; grid-template-columns: repeat(var(--kol), minmax(0, 1fr)); gap: 2px; }
+.stolyKarta__polosa b { display: block; height: 24px; border-radius: 3px; transition: transform .1s ease; }
+.stolyKarta__polosa b.is-pusto { background: rgba(255,255,255,.035); }
+.stolyKarta__polosa b[data-k]:hover { transform: scaleY(1.25); outline: 1px solid rgba(255,255,255,.7); cursor: help; }
+.stolyKarta__row--golova .stolyKarta__polosa i { font-style: normal; white-space: nowrap; overflow: visible; font-size: 10.5px; }
+.stolyKarta__itog { position: relative; display: flex; flex-direction: column; font-variant-numeric: tabular-nums; }
+.stolyKarta__itog b { font-size: 16px; font-weight: 600; }
+.stolyKarta__itog i { display: block; height: 3px; margin: 3px 0 2px; border-radius: 2px; background: #4d8df7; }
+.stolyKarta__itog small, .stolyKarta__kto { color: var(--muted); font-size: 11.5px; }
+.stolyKarta__kto { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 900px) { .stolyKarta__row { grid-template-columns: 120px minmax(0, 1fr) 80px; } .stolyKarta__kto { display: none; } }

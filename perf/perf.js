@@ -1077,60 +1077,102 @@
   }
   const familiya = (kto) => (kto || "").split(/\s+/)[0];
 
+  /* 09.10 Степан: «таблицу можно заменить на что-то человеческое». Было: таблица стол × день с числами,
+     92 колонки на квартал, читать нельзя. Теперь тепловая карта, как календарь активности: строка — стол,
+     клетка — день (на длинных периодах — неделя), цвет — штук за смену; справа — итог стола за период
+     и кто на нём работал чаще всех. Наведи на клетку — день, штуки, смены и люди. */
   function renderStoly(data) {
-    const rows = stolyStroki(data);
-    if (!rows.length) return null;
-    // 09.10: дни — выбранный сверху период (общий фильтр страницы), своих дат у блока больше нет
     const mes = new Set(stolyPeriod || []);
-    const v = rows.filter((r) => mes.has(r.день.slice(0, 7)));
-    const dni = [...new Set(v.map((r) => r.день))].sort();
+    const v = stolyStroki(data).filter((r) => mes.has(r.день.slice(0, 7)));
+    if (!v.length) return null;
+    // ось: все календарные дни периода (пустые — тоже, иначе пропуски не видны); длинный период — по неделям
+    const dniVse = [];
+    [...mes].sort().forEach((m) => {
+      const d = new Date(Number(m.slice(0, 4)), Number(m.slice(5)) - 1, 1);
+      while (d.getMonth() === Number(m.slice(5)) - 1) { dniVse.push(isoDay(d)); d.setDate(d.getDate() + 1); }
+    });
+    const posl = v.reduce((a, r) => (r.день > a ? r.день : a), "");
+    const dni = dniVse.filter((d) => d <= posl);
+    const poNedelyam = dni.length > 120;
+    const klyuch = (den) => (poNedelyam ? isoDay(weekStart(den)) : den);
+    const kolonki = [...new Set(dni.map(klyuch))];
+    const nomer = new Map(kolonki.map((k, n) => [k, n]));
 
-    const stoly = {};
-    const poDnyam = {};
+    const stoly = new Map();
+    const vsego = kolonki.map(() => ({ штук: 0, смен: 0 }));
     for (const r of v) {
-      const x = stoly[r.стол] || (stoly[r.стол] = { стол: r.стол, площадка: r.площадка, дни: {}, штук: 0, смен: 0, кто: {} });
-      const c = x.дни[r.день] || (x.дни[r.день] = { штук: 0, смен: 0, кто: [] });
+      const x = stoly.get(r.стол) || { стол: r.стол, площадка: r.площадка, клетки: kolonki.map(() => ({ штук: 0, смен: 0, кто: new Map() })),
+                                       штук: 0, смен: 0, дни: new Set(), кто: new Map() };
+      const c = x.клетки[nomer.get(klyuch(r.день))];
+      if (!c) continue;
       c.штук += r.штук; c.смен += r.смен;
-      if (r.кто) c.кто.push([r.кто, r.штук]);
-      x.штук += r.штук; x.смен += r.смен;
-      if (r.кто) x.кто[r.кто] = (x.кто[r.кто] || 0) + r.штук;
-      const d = poDnyam[r.день] || (poDnyam[r.день] = { штук: 0, смен: 0 });
-      d.штук += r.штук; d.смен += r.смен;
+      if (r.кто) { c.кто.set(r.кто, (c.кто.get(r.кто) || 0) + r.штук); x.кто.set(r.кто, (x.кто.get(r.кто) || 0) + r.смен); }
+      x.штук += r.штук; x.смен += r.смен; x.дни.add(r.день);
+      vsego[nomer.get(klyuch(r.день))].штук += r.штук;
+      vsego[nomer.get(klyuch(r.день))].смен += r.смен;
+      stoly.set(r.стол, x);
     }
-    const spisok = Object.values(stoly).sort((a, b) =>
-      a.площадка.localeCompare(b.площадка) || a.стол.localeCompare(b.стол, "ru", { numeric: true }));
-    const znach = (c) => !c || !c.смен && !c.штук ? "" : stolVid === "смена" ? one(c.смен ? c.штук / c.смен : 0) : count(c.штук);
-    const podskaz = (c) => !c ? "" : `${count(c.штук)} шт · ${c.смен} ${shiftWord(c.смен)}`
-      + (c.кто && c.кто.length ? " — " + c.кто.map(([k, n]) => `${k}: ${count(n)}`).join(", ") : "");
-    const yacheyka = (c) => !c ? "<td></td>" : `<td title="${podskaz(c)}">${znach(c)}`
-      + (c.кто && c.кто.length ? `<small>${c.кто.map(([k]) => familiya(k)).join(", ")}</small>` : "") + "</td>";
+    const spisok = [...stoly.values()].sort((a, b) => b.штук - a.штук);
+    // шкала цвета: по 95-му перцентилю, чтобы один рекордный день не выбелил остальные
+    const zn = spisok.flatMap((x) => x.клетки.filter((c) => c.смен).map((c) => c.штук / c.смен)).sort((a, b) => a - b);
+    const verh = Math.max(1, quantile(zn, 0.95));
+    const cvet = (z) => {
+      const t = Math.min(1, z / verh);
+      return `hsl(${215 - t * 70} ${55 + t * 30}% ${16 + t * 52}%)`;
+    };
+    const maxStol = Math.max(1, ...spisok.map((x) => (x.смен ? x.штук / x.смен : 0)));
 
     const wrap = document.createElement("div");
-    wrap.className = "stoly";
-    const itogo = document.createElement("p");
-    itogo.className = "perfLead stoly__itog";
-    itogo.textContent = `${dni.length} ${dayWord(dni.length)} · ${spisok.length} столов · ${count(spisok.reduce((a, x) => a + x.штук, 0))} шт`;
-    wrap.appendChild(itogo);
+    wrap.className = "stolyKarta";
+    wrap.style.setProperty("--kol", kolonki.length);
+    const metka = (k, n) => {
+      const d = new Date(k + "T00:00:00");
+      if (poNedelyam) return d.getDate() <= 7 ? MONTHS_FULL[d.getMonth()].slice(0, 3) : "";
+      if (kolonki.length <= 35) return String(d.getDate());
+      return d.getDate() === 1 || n === 0 ? `${d.getDate()} ${MONTHS_FULL[d.getMonth()].slice(0, 3)}` : (d.getDay() === 1 ? String(d.getDate()) : "");
+    };
+    const golova = `<div class="stolyKarta__row stolyKarta__row--golova"><span class="stolyKarta__imya">${poNedelyam ? "недели" : "дни"}</span>`
+      + `<span class="stolyKarta__polosa">${kolonki.map((k, n) => `<i>${metka(k, n)}</i>`).join("")}</span>`
+      + `<span class="stolyKarta__itog">за смену</span><span class="stolyKarta__kto">чаще всех</span></div>`;
+    const kletki = (cells) => cells.map((c, n) => c.смен
+      ? `<b data-k="${n}" style="background:${cvet(c.штук / c.смен)}"></b>` : `<b class="is-pusto"></b>`).join("");
+    const stroka = (x, i) => {
+      const za = x.смен ? x.штук / x.смен : 0;
+      const top = [...x.кто.entries()].sort((a, b) => b[1] - a[1]).slice(0, 2).map(([k]) => familiya(k)).join(", ");
+      return `<div class="stolyKarta__row" data-i="${i}"><span class="stolyKarta__imya">${escapeHtml(x.стол)}<small>${escapeHtml(x.площадка || "")}</small></span>`
+        + `<span class="stolyKarta__polosa">${kletki(x.клетки)}</span>`
+        + `<span class="stolyKarta__itog"><b>${one(za)}</b><i style="width:${(100 * za / maxStol).toFixed(1)}%"></i>`
+        + `<small>${count(x.штук)} шт · ${x.дни.size} ${dayWord(x.дни.size)}</small></span>`
+        + `<span class="stolyKarta__kto">${escapeHtml(top || "—")}</span></div>`;
+    };
+    const vsegoZa = v.reduce((a, r) => a + r.штук, 0) / Math.max(1, v.reduce((a, r) => a + r.смен, 0));
+    const niz = `<div class="stolyKarta__row stolyKarta__row--niz"><span class="stolyKarta__imya">Все столы</span>`
+      + `<span class="stolyKarta__polosa">${kletki(vsego.map((c) => ({ ...c, кто: new Map() })))}</span>`
+      + `<span class="stolyKarta__itog"><b>${one(vsegoZa)}</b><small>${count(v.reduce((a, r) => a + r.штук, 0))} шт</small></span><span class="stolyKarta__kto"></span></div>`;
+    const legenda = `<div class="stolyKarta__legenda"><span>${spisok.length} столов · ${poNedelyam ? "клетка — неделя" : "клетка — день"} · цвет — штук за смену</span>`
+      + `<span class="stolyKarta__shkala"><em>0</em><i style="background:linear-gradient(90deg, ${cvet(0)}, ${cvet(verh / 2)}, ${cvet(verh)})"></i><em>${one(verh)}+</em></span></div>`;
+    wrap.innerHTML = legenda + golova + spisok.map(stroka).join("") + niz;
 
-    if (!dni.length) {
-      const p = document.createElement("p");
-      p.className = "perfLead";
-      p.textContent = "в эти дни на столах никто не работал";
-      wrap.appendChild(p);
-      return wrap;
-    }
-    const tab = document.createElement("div");
-    tab.className = "stoly__scroll";
-    const golova = `<tr><th class="stoly__stol">Стол</th>${dni.map((d) => `<th>${dayLabel(d)}</th>`).join("")}`
-      + `<th class="stoly__vsego">${dni.length > 1 ? "за период" : "итого"}</th></tr>`;
-    const telo = spisok.map((x) => `<tr><td class="stoly__stol">${x.стол}<small>${x.площадка}</small></td>`
-      + dni.map((d) => yacheyka(x.дни[d])).join("")
-      + `<td class="stoly__vsego" title="${podskaz(x)}">${znach(x)}</td></tr>`).join("");
-    const vsego = { штук: spisok.reduce((a, x) => a + x.штук, 0), смен: spisok.reduce((a, x) => a + x.смен, 0) };
-    const niz = `<tr><td class="stoly__stol">Все столы</td>${dni.map((d) => `<td title="${podskaz(poDnyam[d])}">${znach(poDnyam[d])}</td>`).join("")}`
-      + `<td class="stoly__vsego" title="${podskaz(vsego)}">${znach(vsego)}</td></tr>`;
-    tab.innerHTML = `<table><thead>${golova}</thead><tbody>${telo}</tbody><tfoot>${niz}</tfoot></table>`;
-    wrap.appendChild(tab);
+    // подсказка по клетке — одна на всю карту (делегирование), клеток бывает больше тысячи
+    const podpis = (k) => {
+      const d = new Date(kolonki[k] + "T00:00:00");
+      if (!poNedelyam) return dayLabel(kolonki[k]);
+      const kon = new Date(d); kon.setDate(kon.getDate() + 6);
+      return `неделя ${dayLabel(isoDay(d))}–${dayLabel(isoDay(kon))}`;
+    };
+    wrap.addEventListener("mousemove", (e) => {
+      const b = e.target.closest("b[data-k]");
+      if (!b) { hideTip(); return; }
+      const row = b.closest(".stolyKarta__row");
+      const k = Number(b.dataset.k);
+      const x = row.dataset.i !== undefined ? spisok[Number(row.dataset.i)] : null;
+      const c = x ? x.клетки[k] : vsego[k];
+      const lyudi = x ? [...c.кто.entries()].sort((a, b2) => b2[1] - a[1]).map(([kto, n]) => `${kto} — ${count(n)}`) : [];
+      showTip(`<b>${x ? escapeHtml(x.стол) : "Все столы"} · ${podpis(k)}</b>`
+        + `<span>${one(c.штук / c.смен)} штук за смену</span><span>${count(c.штук)} шт · ${c.смен} ${shiftWord(c.смен)}</span>`
+        + lyudi.slice(0, 6).map((t) => `<span>${escapeHtml(t)}</span>`).join(""), e);
+    });
+    wrap.addEventListener("mouseleave", hideTip);
     return wrap;
   }
 
@@ -1390,7 +1432,7 @@
     const stolyBlok = renderStoly(data);
     if (stolyBlok) {
       parts.push(block("По столам и дням",
-                       `${period.current.label} · штук за смену на каждом столе по дням · наведи на число — кто работал`,
+                       `${period.current.label} · чем ярче клетка, тем больше штук за смену в этот день · наведи — кто работал`,
                        stolyBlok));
     }
 
