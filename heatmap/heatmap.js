@@ -2134,8 +2134,9 @@
       box.appendChild(item);
     }
 
+    // 09.10 Степан: «сравнить с сентябрь — прям говно», «сравнить не убрал» — кнопки сравнения больше нет
     const progress = periodProgress(periodSelect.value);
-    if (progress.elapsed && list.some((tile) => compareOf(tile, periodSelect.value))) {
+    if (false && progress.elapsed && list.some((tile) => compareOf(tile, periodSelect.value))) {
       const toggle = document.createElement("button");
       toggle.type = "button";
       toggle.className = "summary__pace" + (compareMode ? " is-on" : "");
@@ -2317,12 +2318,10 @@
   }
 
   // Меню «Выгрузки»: цели и факт + ФС-отчёты по браку (готовые книги по месяцам, data/fs/fs_brak.json)
-  (async () => {
+  (() => {
     const btn = document.getElementById("vygruzkiBtn");
     const menu = document.getElementById("vygruzkiMenu");
     if (!btn || !menu) return;
-    const d = await fetch("../data/fs/fs_brak.json", { cache: "no-cache" }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
-    const fs = (d && d.отчёты) || [];
     const MES_R = ["январь", "февраль", "март", "апрель", "май", "июнь", "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь"];
     const MES_D = ["январю", "февралю", "марту", "апрелю", "маю", "июню", "июлю", "августу", "сентябрю", "октябрю", "ноябрю", "декабрю"];
     const tys = (v) => (Number(v) / 1000).toLocaleString("ru-RU", { maximumFractionDigits: 1 });
@@ -2339,12 +2338,17 @@
         + (vh ? `<em>вход ${tys(vh)} тыс.${d2 === null ? "" : ` <i class="${d2 < 0 ? "isDown" : "isUp"}">${d2 > 0 ? "+" : "−"}${Math.abs(d2)}%</i>`}</em>` : "<em></em>")
         + `<small>собрано ${String(x.собрано || "").slice(8, 10)}.${String(x.собрано || "").slice(5, 7)}</small></a>`;
     };
+    const zakryt = () => { menu.hidden = true; btn.setAttribute("aria-expanded", "false"); };
     menu.innerHTML = `<div class="vygruzkiMenu__zag">Цели и факт</div>`
       + `<button type="button" class="vygruzkiMenu__kn" id="prostynyaBtn">Все показатели по месяцам, факт и план — Excel, лист на год</button>`
-      + (fs.length ? `<div class="vygruzkiMenu__zag">ФС-отчёт по браку · месяц к тому же месяцу год назад</div>`
-        + `<div class="vygruzkiMenu__spisok">${fs.map(stroka).join("")}</div>` : "");
+      + `<div class="vygruzkiMenu__zag">ФС-отчёт по браку · месяц к тому же месяцу год назад</div>`
+      + `<div class="vygruzkiMenu__spisok" id="fsSpisok"><p class="vygruzkiMenu__zhdu">загружаю список…</p></div>`;
     document.getElementById("prostynyaBtn").addEventListener("click", () => { vygruzitProstynyu(); zakryt(); });
-    const zakryt = () => { menu.hidden = true; btn.setAttribute("aria-expanded", "false"); };
+    fetch("../data/fs/fs_brak.json", { cache: "no-cache" }).then((r) => (r.ok ? r.json() : null)).catch(() => null).then((d) => {
+      const fs = (d && d.отчёты) || [];
+      document.getElementById("fsSpisok").innerHTML = fs.length ? fs.map(stroka).join("")
+        : `<p class="vygruzkiMenu__zhdu">ФС-отчётов пока нет</p>`;
+    });
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
       menu.hidden = !menu.hidden;
