@@ -683,3 +683,9 @@ body .heroPerf { display: flex; flex-wrap: wrap; justify-content: space-between;
 .contourRow { transition: transform .15s ease; }
 .contourRow:hover { transform: translateX(4px); }
 @media (prefers-reduced-motion: reduce) { .perfCard, .smenaKarta, .contourRow { transition: none; } .perfCard:hover, .smenaKarta:hover { transform: none; } }
+
+/* 09.10 общая строка фильтров: период · сравнить с · смена · одна выгрузка */
+.perfPeriod { flex-wrap: wrap; row-gap: 10px; }
+.perfFiltr { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; }
+.perfPeriod > .action { margin-left: auto; }
+.stoly__itog { margin: 0 0 10px; }

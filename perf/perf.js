@@ -34,6 +34,9 @@
   ];
   let periodKey = "month";
   let periodValue = null;   // конкретный ключ выбранного периода
+  // 09.10 Степан: «как сравнивать от квартала к кварталу? фильтрация должна быть общая». Период сравнения —
+  // в общей строке фильтров; по умолчанию предыдущий такой же («» — подставить его, "нет" — не сравнивать).
+  let sravnenieKey = "";
   const MIN_SHIFTS = 5;     // порог смен для рейтинга людей
 
   const SHIFT_WORDS = ["смена", "смены", "смен"];
@@ -912,6 +915,7 @@
   let stolOt = null;
   let stolDo = null;
   let stolVid = "смена";
+  let stolyPeriod = null;   // месяцы выбранного периода — для блока столов
   // 05.10 («где деление на смены»): смена — фильтр всей страницы ниже карточек: таблица людей, ядро, простои
   let smenaFiltr = "";
 
@@ -959,7 +963,7 @@
         + `<span class="smenaKarta__imya">${escapeHtml(x.sm)}</span>`
         + `<b class="smenaKarta__zn">${one(x.на_смену)}</b><span class="smenaKarta__ed">штук за смену</span>`
         + `<span class="smenaKarta__pod">${count(x.штук)} шт · ${count(x.смен)} ${shiftWord(x.смен)} · ~${x.людей} чел. в неделю</span>`
-        + (d === null ? "" : `<span class="smenaKarta__d ${d < 0 ? "isDown" : "isUp"}">${d > 0 ? "+" : ""}${one(d)}% к прошлому периоду</span>`)
+        + (d === null ? "" : `<span class="smenaKarta__d ${d < 0 ? "isDown" : "isUp"}">${d > 0 ? "+" : ""}${one(d)}% к периоду «${escapeHtml(before.label)}»</span>`)
         + `</button>`;
     }).join("")
       + `<details class="smenyNedeli"><summary>по неделям</summary><div class="stoly smeny"><div class="stoly__scroll"><table><thead><tr><th>неделя</th>`
@@ -968,12 +972,6 @@
         const z = w.смены[x.sm];
         return z ? `<td class="num" title="${count(z.штук)} шт · ${z.смен} смен"><b>${one(z.на_смену)}</b><span class="smeny__pod"> · ${z.людей} чел.</span></td>` : `<td class="num">—</td>`;
       }).join("")}</tr>`).join("") + `</tbody></table></div></div></details>`;
-    wrap.addEventListener("click", (e) => {
-      const b = e.target.closest("[data-smena]");
-      if (!b) return;
-      smenaFiltr = smenaFiltr === b.dataset.smena ? "" : b.dataset.smena;
-      render();
-    });
     return wrap;
   }
 
@@ -1082,12 +1080,9 @@
   function renderStoly(data) {
     const rows = stolyStroki(data);
     if (!rows.length) return null;
-    const vseDni = [...new Set(rows.map((r) => r.день))].sort();
-    const posl = vseDni[vseDni.length - 1];
-    if (!stolDo || stolDo > posl || stolDo < vseDni[0]) stolDo = posl;
-    if (!stolOt || stolOt > posl || stolOt < vseDni[0]) stolOt = stolDo;
-    const [ot, po] = stolOt <= stolDo ? [stolOt, stolDo] : [stolDo, stolOt];
-    const v = rows.filter((r) => r.день >= ot && r.день <= po);
+    // 09.10: дни — выбранный сверху период (общий фильтр страницы), своих дат у блока больше нет
+    const mes = new Set(stolyPeriod || []);
+    const v = rows.filter((r) => mes.has(r.день.slice(0, 7)));
     const dni = [...new Set(v.map((r) => r.день))].sort();
 
     const stoly = {};
@@ -1112,23 +1107,10 @@
 
     const wrap = document.createElement("div");
     wrap.className = "stoly";
-    const ctrl = document.createElement("div");
-    ctrl.className = "stoly__ctrl";
-    ctrl.innerHTML = `<label>с <input type="date" class="perfSelect" id="stolOt" min="${vseDni[0]}" max="${posl}" value="${ot}"></label>`
-      + `<label>по <input type="date" class="perfSelect" id="stolDo" min="${vseDni[0]}" max="${posl}" value="${po}"></label>`
-      + `<button type="button" class="action action--secondary" data-stol-den="${posl}">последний день</button>`
-      + `<span class="stoly__itog">${dni.length} ${dayWord(dni.length)} · ${spisok.length} столов · `
-      + `${count(spisok.reduce((a, x) => a + x.штук, 0))} шт</span>`;
-    ctrl.addEventListener("change", (e) => {
-      if (e.target.id === "stolOt" && e.target.value) stolOt = e.target.value;
-      if (e.target.id === "stolDo" && e.target.value) stolDo = e.target.value;
-      render();
-    });
-    ctrl.addEventListener("click", (e) => {
-      const b = e.target.closest("[data-stol-den]");
-      if (b) { stolOt = stolDo = b.dataset.stolDen; render(); }
-    });
-    wrap.appendChild(ctrl);
+    const itogo = document.createElement("p");
+    itogo.className = "perfLead stoly__itog";
+    itogo.textContent = `${dni.length} ${dayWord(dni.length)} · ${spisok.length} столов · ${count(spisok.reduce((a, x) => a + x.штук, 0))} шт`;
+    wrap.appendChild(itogo);
 
     if (!dni.length) {
       const p = document.createElement("p");
@@ -1176,6 +1158,54 @@
     return box2;
   }
 
+  /** 09.10 Степан: «эксель только на все графики сразу» — одна книга, лист на каждый график и таблицу. */
+  function vygruzkaVsego(data, period, view, sravn, before) {
+    const lbl = period.current.label + (smenaFiltr ? " · " + smenaFiltr : "");
+    const listy = [];
+    const kpi = (v) => [v.итог.на_смену, v.итог.штук, v.итог.смен, v.итог.человек];
+    listy.push({ imya: "Сводка", rows: [["период", "штук за смену", "штук", "смен", "человек"],
+      [period.current.label, ...kpi(view)], ...(before ? [[sravn.label, ...kpi(before)]] : [])] });
+    listy.push({ imya: "По дням", rows: [["день", "штук", "смен", "человек", "штук за смену"],
+      ...view.дни.map((r) => [r.день, r.штук, r.смен, r.человек, r.на_смену])] });
+    listy.push({ imya: "По неделям", rows: [["неделя", "штук", "смен", "штук за смену"],
+      ...weeksFrom(view.недели, view.недели.length).map((r) => [r.ключ, r.штук, r.смен, Number(r.на_смену.toFixed(1))])] });
+    listy.push({ imya: "По месяцам", rows: [["месяц", "штук", "смен", "штук за смену"],
+      ...view.месяцы.map((r) => [r.месяц, r.штук, r.смен, r.на_смену])] });
+    const ps = data.поСменам;
+    if (ps && ps.недели) {
+      const mes = new Set(period.current.months);
+      listy.push({ imya: "Смены по неделям", rows: [["неделя", "смена", "штук", "смен", "людей", "штук за смену"],
+        ...ps.недели.filter((w) => mes.has(mesyacNedeli(w.неделя))).flatMap((w) =>
+          Object.entries(w.смены).map(([sm, z]) => [w.неделя, sm, z.штук, z.смен, z.людей, z.на_смену]))] });
+    }
+    const lyudi = view.сотрудники.filter((x) => !smenaFiltr || x.смена === smenaFiltr);
+    const bylo = new Map((before ? before.сотрудники : []).map((x) => [x.сотрудник, x.на_смену]));
+    listy.push({ imya: "Люди", rows: [["сотрудник", "смена", "тип", "площадка", "штук", "смен", "штук за смену",
+      ...(before ? [`штук за смену, ${sravn.label}`, "изменение, %"] : []), "первая смена"],
+      ...lyudi.map((x) => [x.сотрудник, x.смена || "", x.тип, x.площадка, x.штук, x.смен, x.на_смену,
+        ...(before ? [bylo.get(x.сотрудник) ?? "", bylo.get(x.сотрудник) ? Number(((x.на_смену - bylo.get(x.сотрудник)) / bylo.get(x.сотрудник) * 100).toFixed(1)) : ""] : []),
+        x.первая_смена || ""])] });
+    const pr = prostoiZa(data, period.current);
+    if (pr) {
+      listy.push({ imya: "Простои", rows: [["сотрудник", "столы", "часов простоя за смену", "часов всего", "пауз", "дней"],
+        ...pr.люди.map((x) => [x.сотрудник, x.столы.join(", "), +(x.за_смену / 60).toFixed(2), +(x.минут / 60).toFixed(2), x.пауз, x.дней])] });
+    }
+    const mesS = new Set(period.current.months);
+    listy.push({ imya: "Столы по дням", rows: [["день", "стол", "площадка", "сотрудник", "штук", "смен", "штук за смену"],
+      ...stolyStroki(data).filter((r) => mesS.has(r.день.slice(0, 7)))
+        .sort((a, b) => a.день.localeCompare(b.день) || a.стол.localeCompare(b.стол, "ru", { numeric: true }))
+        .map((r) => [r.день, r.стол, r.площадка, r.кто, r.штук, r.смен, r.смен ? Number((r.штук / r.смен).toFixed(1)) : 0])] });
+    listy.push({ imya: "По часам", rows: [["час", "штук", "человеко-часов", "штук за час"],
+      ...view.часы.map((r) => [r.час, r.штук, r.человекочасов, r.на_час])] });
+    listy.push({ imya: "По дням недели", rows: [["день недели", "штук", "смен", "штук за смену"],
+      ...view.дниНедели.map((r) => [r.день_недели || r.номер_дня, r.штук, r.смен, r.на_смену])] });
+    if (data.выходНаНорму?.length) {
+      listy.push({ imya: "Выход на норму", rows: [["смена по счёту", "штук (медиана)", "человек"],
+        ...data.выходНаНорму.map((r) => [r.смена, r.штук, r.человек])] });
+    }
+    window.saveXlsxKniga(listy, `${data.название} — производительность ${lbl}`);
+  }
+
   // --- Сборка -----------------------------------------------------------------
 
   function render() {
@@ -1193,7 +1223,10 @@
       return;
     }
     const view = slice(data, period.current.months);
-    const before = period.previous ? slice(data, period.previous.months) : null;
+    stolyPeriod = period.current.months;
+    const sravn = sravnenieKey === "нет" ? null
+      : (period.list.find((x) => x.key === sravnenieKey && x.key !== period.current.key) || period.previous);
+    const before = sravn ? slice(data, sravn.months) : null;
     const parts = [];
 
     // Переключатель периода: одна строка на всю страницу, чтобы по любой цифре
@@ -1215,6 +1248,7 @@
         if (periodKey === item.key) return;
         periodKey = item.key;
         periodValue = null;   // подставится последний закрытый период новой длины
+        sravnenieKey = "";
         try { navigator.vibrate?.(10); } catch { /* нет поддержки */ }
         render();
       });
@@ -1231,8 +1265,41 @@
       which.appendChild(option);
     });
     which.hidden = periodKey === "all";
-    which.addEventListener("change", () => { periodValue = which.value; render(); });
-    picker.append(kinds, which);
+    which.addEventListener("change", () => { periodValue = which.value; sravnenieKey = ""; render(); });
+
+    const podpis = (tekst, el) => { const l = document.createElement("label"); l.className = "perfFiltr"; l.append(tekst, el); return l; };
+    const sravnSel = document.createElement("select");
+    sravnSel.className = "perfSelect";
+    [["нет", "не сравнивать"], ...period.list.filter((x) => x.key !== period.current.key).map((x) => [x.key, x.label])]
+      .forEach(([k, imya]) => {
+        const o = document.createElement("option");
+        o.value = k; o.textContent = imya;
+        o.selected = sravn ? k === sravn.key : k === "нет";
+        sravnSel.appendChild(o);
+      });
+    sravnSel.addEventListener("change", () => { sravnenieKey = sravnSel.value; render(); });
+
+    const smenySpisok = (data.поСменам && data.поСменам.смены) || [];
+    if (smenaFiltr && !smenySpisok.includes(smenaFiltr)) smenaFiltr = "";
+    const smenaSel = document.createElement("select");
+    smenaSel.className = "perfSelect";
+    [["", "все смены"], ...smenySpisok.map((x) => [x, x])].forEach(([k, imya]) => {
+      const o = document.createElement("option");
+      o.value = k; o.textContent = imya; o.selected = k === smenaFiltr;
+      smenaSel.appendChild(o);
+    });
+    smenaSel.addEventListener("change", () => { smenaFiltr = smenaSel.value; render(); });
+
+    const vsyoExcel = document.createElement("button");
+    vsyoExcel.type = "button";
+    vsyoExcel.className = "action";
+    vsyoExcel.textContent = "Excel — все графики";
+    vsyoExcel.title = "Одна книга: каждый график и таблица страницы — своим листом, за выбранный период";
+    vsyoExcel.addEventListener("click", () => vygruzkaVsego(data, period, view, sravn, before));
+
+    picker.append(kinds, which, podpis("сравнить с", sravnSel));
+    if (smenySpisok.length > 1) picker.append(podpis("смена", smenaSel));
+    picker.append(vsyoExcel);
     parts.push(picker);
 
     // Сводка за период. Все четыре плитки одинаковые: раньше первая жила по
@@ -1244,8 +1311,8 @@
       ? +(((view.итог.на_смену - before.итог.на_смену) / before.итог.на_смену) * 100).toFixed(1)
       : null;
     const deltaClass = delta === null ? "" : delta < 0 ? " isDown" : " isUp";
-    const deltaText = delta === null ? "не с чем сравнить"
-      : `${delta > 0 ? "+" : ""}${one(delta)}% к прошлому периоду`;
+    const deltaText = delta === null ? (sravn ? "не с чем сравнить" : "без сравнения")
+      : `${delta > 0 ? "+" : ""}${one(delta)}% к периоду «${sravn.label}»`;
     const openNote = period.current.open ? " · период ещё идёт" : "";
 
     top.innerHTML =
@@ -1274,121 +1341,57 @@
     // читать приходилось дважды. Теперь это один блок с переключателем шага.
     // День по умолчанию на месяце (видно каждый провал), неделя — на периодах
     // длиннее: там дней под сотню и линия превращается в частокол.
-    if (!shagVybran) {
-      barStep = periodKey === "month" ? "дни" : "недели";
-      shagVybran = true;
-    }
-    const steps = document.createElement("div");
-    steps.className = "stepSwitch";
-    const shagi = view.дни.length
-      ? [["дни", "Дни"], ["недели", "Недели"], ["месяцы", "Месяцы"]]
-      : [["недели", "Недели"], ["месяцы", "Месяцы"]];
-    for (const [key, label] of shagi) {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "stepSwitch__item" + (barStep === key ? " is-on" : "");
-      button.textContent = label;
-      button.addEventListener("click", () => {
-        barStep = key;
-        shagVybran = true;
-        try { navigator.vibrate?.(8); } catch { /* нет поддержки */ }
-        render();
-      });
-      steps.appendChild(button);
-    }
-
+    barStep = periodKey === "month" ? "дни" : periodKey === "all" ? "месяцы" : "недели";
     const poDnyam = barStep === "дни" && view.дни.length;
-    const bars = barStep === "недели"
-      ? weeksFrom(view.недели, view.недели.length)
-      : monthsAsBars(view.месяцы);
-    const barTools = document.createElement("div");
-    barTools.className = "perfActions";
-    barTools.append(
-      poDnyam
-        ? excelButton([["день", "штук", "смен", "человек", "штук за смену"],
-                       ...view.дни.map((r) => [r.день, r.штук, r.смен, r.человек, r.на_смену])],
-                      `${data.название} по дням ${period.current.label}`)
-        : excelButton([[barStep === "недели" ? "неделя" : "месяц", "штук", "смен", "штук за смену"],
-                       ...bars.map((row) => [row.ключ, row.штук, row.смен, Number(row.на_смену.toFixed(1))])],
-                      `${data.название} по ${barStep === "недели" ? "неделям" : "месяцам"} ${period.current.label}`),
-      steps);
-
+    const bars = barStep === "месяцы" || (barStep === "дни" && !view.дни.length)
+      ? monthsAsBars(view.месяцы)
+      : weeksFrom(view.недели, view.недели.length);
     parts.push(block(
       "Динамика",
       poDnyam
         ? `${period.current.label} · ${view.дни.length} ${dayWord(view.дни.length)} с выходом`
-        : `${period.current.label} · штук за смену, по ${barStep === "недели" ? "неделям" : "месяцам"}`,
+          + (before ? ` · ${sravn.label}: ${one(before.итог.на_смену)} за смену` : "")
+        : `${period.current.label} · штук за смену, по ${barStep === "недели" ? "неделям" : "месяцам"}`
+          + (before ? ` · ${sravn.label}: ${one(before.итог.на_смену)}` : ""),
       poDnyam ? renderDaily(view.дни)
-              : renderLine(bars, { label: (row) => row.подпись || row.ключ }),
-      barTools));
+              : renderLine(bars, { label: (row) => row.подпись || row.ключ })));
 
     // 09.10 Степан: «странная компоновка — виджет, потом табличка, простои — визуальный ад». Порядок теперь
     // как читают: динамика → смены → люди (выработка | простои) → столы → ритм дня и недели → новички и контуры.
-    const smenyBlok = renderSmeny(data, period.current, period.previous);
+    const smenyBlok = renderSmeny(data, period.current, sravn);
     if (smenyBlok) {
       parts.push(block("Смены",
                        `${period.current.label} · смена — бригада человека в HR (ФБ1, переупаковки СМ1 → смена 1) · `
-                       + "клик по смене — люди и простои ниже только её",
+                       + "выбрать одну смену — в фильтре сверху",
                        smenyBlok));
     }
 
     const staff = { list: view.сотрудники.filter((x) => !smenaFiltr || x.смена === smenaFiltr),
                     label: period.current.label + (smenaFiltr ? " · " + smenaFiltr : ""),
                     скрыто: (data.сотрудники || []).length - view.сотрудники.length };
-    const prostoi = prostoiZa(data, period.current);
-    if (lyudiVid === "простои" && !prostoi) lyudiVid = "выработка";
-    const vidKn = document.createElement("div");
-    vidKn.className = "stepSwitch";
-    [["выработка", "Выработка"], ...(prostoi ? [["простои", "Простои"]] : [])].forEach(([k, imya]) => {
-      const b = document.createElement("button");
-      b.type = "button";
-      b.className = "stepSwitch__item" + (lyudiVid === k ? " is-on" : "");
-      b.textContent = imya;
-      b.addEventListener("click", () => { lyudiVid = k; render(); });
-      vidKn.appendChild(b);
+    // тренд человека — к периоду сравнения (было: последний месяц к предыдущему, при любом периоде)
+    const sravnLyudi = new Map((before ? before.сотрудники : []).map((x) => [x.сотрудник, x.на_смену]));
+    const lyudi = staff.list.map((x) => {
+      const bylo = sravnLyudi.get(x.сотрудник);
+      return { ...x, тренд: bylo ? (x.на_смену - bylo) / bylo * 100 : null };
     });
-    const lyudiTools = document.createElement("div");
-    lyudiTools.className = "perfActions";
-    if (lyudiVid === "простои") {
-      lyudiTools.append(
-        excelButton([["сотрудник", "столы", "часов простоя за смену", "часов всего", "пауз", "дней"],
-                     ...prostoi.люди.map((x) => [x.сотрудник, x.столы.join(", "), +(x.за_смену / 60).toFixed(2),
-                                                  +(x.минут / 60).toFixed(2), x.пауз, x.дней])],
-                    `${data.название} простои ${staff.label}`),
-        vidKn);
-      parts.push(block("Люди",
-                       `${staff.label} · простой — паузы дольше ${prostoi.порог} мин между документами человека в ВМС, `
-                       + "в часах за смену · клик по человеку — его дни на ленте",
-                       renderProstoi(data, period.current), lyudiTools));
-    } else {
-      const thin = staff.list.filter((s) => s.мало_смен).length;
-      const toggle = document.createElement("button");
-      toggle.className = "action action--secondary";
-      toggle.type = "button";
-      toggle.textContent = showAllStaff ? `Только от ${MIN_SHIFTS} ${shiftWord(MIN_SHIFTS)}` : `Показать всех (+${thin})`;
-      toggle.addEventListener("click", () => { showAllStaff = !showAllStaff; render(); });
-      lyudiTools.append(
-        excelButton([["сотрудник", "тип", "площадка", "период", "штук", "смен", "штук за смену",
-                      "тренд, %", "разброс", "первая смена"],
-                     ...staff.list.map((st) => [st.сотрудник, st.тип, st.площадка, staff.label,
-                                                st.штук, st.смен, st.на_смену, st.тренд ?? "",
-                                                st.разброс ?? "", st.первая_смена || ""])],
-                    `${data.название} сотрудники ${staff.label}`),
-        toggle, vidKn);
-      const allThin = staff.list.length > 0 && staff.list.every((st) => st.мало_смен);
-      const staffHead = allThin ? `ни у кого нет ${MIN_SHIFTS} ${shiftWord(MIN_SHIFTS)} — показаны все`
-        : showAllStaff ? "все, кто выходил" : `те, у кого ${MIN_SHIFTS} ${shiftWord(MIN_SHIFTS)} и больше`;
-      parts.push(block("Люди",
-                       `${staff.label} · штук за смену, ${staffHead} · клик — недели человека`,
-                       renderStaff(staff.list, allThin), lyudiTools));
+    parts.push(block("Люди",
+                     `${staff.label} · штук за смену · бледные — меньше ${MIN_SHIFTS} ${shiftWord(MIN_SHIFTS)}`
+                     + (sravn ? ` · % — к ${sravn.label}` : "") + " · клик — недели человека",
+                     renderStaff(lyudi, true)));
+    const prostoi = prostoiZa(data, period.current);
+    if (prostoi) {
+      parts.push(block("Простои",
+                       `${staff.label} · паузы дольше ${prostoi.порог} мин между документами человека в ВМС, часов за смену · `
+                       + "клик по человеку — только он на ленте дня",
+                       renderProstoi(data, period.current)));
     }
 
     const stolyBlok = renderStoly(data);
     if (stolyBlok) {
       parts.push(block("По столам и дням",
-                       `${stolVid === "смена" ? "штук за смену" : "штук"} на каждом столе по дням · свои даты, `
-                       + "не зависят от периода сверху · наведи на число — кто работал",
-                       stolyBlok, stolyKnopki(data)));
+                       `${period.current.label} · штук за смену на каждом столе по дням · наведи на число — кто работал`,
+                       stolyBlok));
     }
 
     // Ритм: часы и дни недели — рядом, это два ответа на один вопрос «когда проседаем»
@@ -1400,10 +1403,7 @@
       ritm.push(block("По часам",
                       peak ? `штук за человеко-час · лучше всего в ${String(peak.час).padStart(2, "0")}:00, `
                              + `хуже всего в ${String(dip.час).padStart(2, "0")}:00` : "штук за человеко-час",
-                      renderLine(hoursAsBars(view.часы), { label: (row) => row.подпись || row.ключ, legenda: "штук за человеко-час" }),
-                      excelButton([["час", "штук", "человеко-часов", "штук за час"],
-                                   ...view.часы.map((r) => [r.час, r.штук, r.человекочасов, r.на_час])],
-                                  `${data.название} по часам ${period.current.label}`)));
+                      renderLine(hoursAsBars(view.часы), { label: (row) => row.подпись || row.ключ, legenda: "штук за человеко-час" })));
     }
     if (view.дниНедели.length) {
       ritm.push(block("По дням недели", "штук за смену · где систематический провал, а не случайный день",

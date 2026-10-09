@@ -95,10 +95,16 @@
       + `<sheetData>${body}</sheetData></worksheet>`;
   }
 
-  function buildWorkbook(rows, sheetName) {
+  function buildWorkbook(listy) {
     const encoder = new TextEncoder();
-    // Имя листа Excel не переваривает длиннее 31 знака и с рядом символов.
-    const safeName = String(sheetName || "Лист1").replace(/[\\/:*?[\]]/g, " ").slice(0, 31);
+    // Имя листа Excel не переваривает длиннее 31 знака и с рядом символов; повторять имя тоже нельзя.
+    const zanyato = new Set();
+    const imena = listy.map((l, i) => {
+      let n = String(l.imya || `Лист${i + 1}`).replace(/[\\/:*?[\]]/g, " ").slice(0, 31) || `Лист${i + 1}`;
+      while (zanyato.has(n.toLowerCase())) n = (n.slice(0, 27) + " " + (i + 1)).slice(0, 31);
+      zanyato.add(n.toLowerCase());
+      return n;
+    });
     const files = [
       { name: "[Content_Types].xml", text:
         `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>`
@@ -106,7 +112,7 @@
         + `<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>`
         + `<Default Extension="xml" ContentType="application/xml"/>`
         + `<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>`
-        + `<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`
+        + listy.map((_, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join("")
         + `</Types>` },
       { name: "_rels/.rels", text:
         `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>`
@@ -117,25 +123,33 @@
         `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>`
         + `<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"`
         + ` xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">`
-        + `<sheets><sheet name="${xmlEscape(safeName)}" sheetId="1" r:id="rId1"/></sheets>`
+        + `<sheets>${imena.map((n, i) => `<sheet name="${xmlEscape(n)}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join("")}</sheets>`
         + `</workbook>` },
       { name: "xl/_rels/workbook.xml.rels", text:
         `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>`
         + `<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">`
-        + `<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>`
+        + imena.map((_, i) => `<Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`).join("")
         + `</Relationships>` },
-      { name: "xl/worksheets/sheet1.xml", text: sheetXml(rows) },
+      ...listy.map((l, i) => ({ name: `xl/worksheets/sheet${i + 1}.xml`, text: sheetXml(l.rows) })),
     ];
     return zipStore(files.map((file) => ({ name: file.name, bytes: encoder.encode(file.text) })));
   }
 
   /** Собрать книгу и отдать её пользователю файлом. */
-  window.saveXlsx = function saveXlsx(rows, sheetName, fileName) {
-    const url = URL.createObjectURL(buildWorkbook(rows, sheetName));
+  function skachat(blob, fileName) {
+    const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `${fileName || sheetName || "выгрузка"}.xlsx`.replace(/[\\/:*?"<>|]/g, "-");
+    link.download = `${fileName || "выгрузка"}.xlsx`.replace(/[\\/:*?"<>|]/g, "-");
     link.click();
     URL.revokeObjectURL(url);
+  }
+
+  window.saveXlsx = function saveXlsx(rows, sheetName, fileName) {
+    skachat(buildWorkbook([{ imya: sheetName, rows }]), fileName || sheetName);
+  };
+  /** 09.10: книга из нескольких листов [{imya, rows}] — «одна выгрузка на все графики сразу». */
+  window.saveXlsxKniga = function saveXlsxKniga(listy, fileName) {
+    skachat(buildWorkbook(listy.filter((l) => l.rows && l.rows.length > 1)), fileName);
   };
 })();
