@@ -1330,6 +1330,7 @@
     try { svezh = await chitat(`/__vms/akt?kod=${encodeURIComponent(a.наклейка || `ACT ${String(a.акт).padStart(10, "0")}`)}`); } catch { svezh = null; }
     if (svezh && !neprinyat(svezh)) { aktK = svezh; stopSnyat(); risovat(); return; }
     if (kn) { kn.disabled = false; kn.textContent = "всё ещё не принят — проверить ещё раз"; }
+    vpZagruzit(a);   // 09.10: и заново — можно ли принять (задание из ВТИС могло уже прийти)
     window.pikalkaZvuk && window.pikalkaZvuk("oshibka");
   }
   // Пока стоп — любые пики гасим раньше остальных обработчиков (захват, этот файл грузится до pikalka-c.js).
