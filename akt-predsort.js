@@ -404,7 +404,7 @@
         <p class="aktPs__chto">актов создано: ${palRabota.акты.length}${palRabota.ошибки.length ? ` · ошибок: ${palRabota.ошибки.length}` : ""}</p>
         ${palRabota.акты.length ? `<div class="aktPs__nomera" style="display:grid;gap:3px;margin-top:8px;font-size:13px;color:var(--muted)">${palRabota.акты.slice(-12).map((a) => `<p style="margin:0"><b style="color:var(--text);font-feature-settings:'tnum' 1">ACT ${String(a.акт).padStart(10, "0")}</b> — ${esc(a.товар)}</p>`).join("")}${palRabota.акты.length > 12 ? `<p style="margin:0">…и ещё ${palRabota.акты.length - 12} — все номера в журнале актировки</p>` : ""}</div>` : ""}
         ${palRabota.ошибки.slice(-3).map((o) => `<p class="aktPs__net"><b class="aktPs__oshibka">${esc(o.товар)}</b> ${esc(o.ошибка)}</p>`).join("")}
-        ${!palRabota.идёт && palRabota.акты.length ? knopkiPechati(palRabota.акты.map((a) => a.акт)) : ""}
+        ${!palRabota.идёт && palRabota.акты.length ? knopkiPechati(palRabota.акты.map((a) => ({ акт: a.акт, товар: a.товар }))) : ""}
         ${palRabota.идёт ? "" : `<p class="aktPs__chto">Пикните следующую паллету или товар.</p>`}</div>`;
     } else if (pal.без_акта) {
       const gotov = palKrit && palDefekt && bezVybr > 0;
@@ -1891,13 +1891,24 @@
   let korzPechat = [];       // 03.10: номера созданных актов — для печати одной кнопкой
   /* 03.10 Струков: «опцию печати актов брака в пикалке, после того как массово заактировали» — формы ВМС
      (наклейка 70×70 или акт A4) одной страницей, печать открывается сама. */
-  function knopkiPechati(ids) {
-    if (!ids.length) return "";
+  // 09.10 Раджабов: «как поменять — надо 60×30». Главная кнопка — наша этикетка в формате ленты стола (ShkPechat),
+  // вся пачка одним окном печати; форма WMS 70×70 и акты A4 — рядом. spisok — номера или {акт, товар}.
+  const pechSpiski = new Map();   // номера через запятую → список для печати
+  function knopkiPechati(spisok) {
+    if (!spisok.length) return "";
+    const ids = spisok.map((x) => (typeof x === "object" ? x.акт : x));
     const q = encodeURIComponent(ids.join(","));
+    pechSpiski.set(ids.join(","), spisok);
+    const fmt = window.ShkPechat ? window.ShkPechat.format().replace("x", "×") : "";
     return `<div class="aktPs__vopros" style="margin-top:10px">
-      <a class="aktPs__kn is-on" target="_blank" rel="noopener" href="/__akt/pechat?forma=nakleyka&akty=${q}">Печать наклеек 70×70 · ${ids.length}</a>
+      ${window.ShkPechat ? `<button type="button" class="aktPs__kn is-on" data-pech-pachka="${esc(ids.join(","))}">Печать наклеек ${fmt} · ${ids.length}</button>` : ""}
+      <a class="aktPs__kn" target="_blank" rel="noopener" href="/__akt/pechat?forma=nakleyka&akty=${q}">Наклейки 70×70 (форма WMS)</a>
       <a class="aktPs__kn" target="_blank" rel="noopener" href="/__akt/pechat?forma=akt&akty=${q}">Акты A4</a></div>`;
   }
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest && e.target.closest("[data-pech-pachka]");
+    if (b && window.ShkPechat && window.ShkPechat.pechatAktov) window.ShkPechat.pechatAktov(pechSpiski.get(b.dataset.pechPachka) || []);
+  });
   let korzIdet = false;
   let korzVstavka = null;
   let korzPer = null;        // { yach, proverka: [...] }
@@ -2373,7 +2384,7 @@
         }
         korzLog.push(`${esc(x.паллета)}: актов ${(h.акты || []).length}${(h.ошибки || []).length ? ` · <b class="aktPs__oshibka">ошибок ${h.ошибки.length}</b>` : ""}`);
         zaSmenu += (h.акты || []).length;
-        (h.акты || []).forEach((a) => korzPechat.push(a.акт));
+        (h.акты || []).forEach((a) => korzPechat.push({ акт: a.акт, товар: a.товар || "" }));
         x.без_акта = Math.max(0, x.без_акта - (h.акты || []).length);
       } catch (e) {
         korzLog.push(`${esc(x.паллета)}: <b class="aktPs__oshibka">${esc(e.message || e)}</b>`);

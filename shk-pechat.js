@@ -106,7 +106,8 @@
     fr.style.cssText = `position:fixed;left:-2000px;top:0;width:${pw}mm;height:${ph}mm;border:0;opacity:0;pointer-events:none`;
     document.body.appendChild(fr);
     const d = fr.contentWindow.document;
-    d.open(); d.write(etiketka(dannye, f)); d.close();
+    // 09.10: dannye — одна этикетка или список (пачка наклеек актов: по одной на страницу, одно окно печати)
+    d.open(); d.write(Array.isArray(dannye) ? pachka(dannye, f) : etiketka(dannye, f)); d.close();
     const pusk = () => {
       const win = fr.contentWindow;
       const shrifty = win.document.fonts && win.document.fonts.ready ? win.document.fonts.ready : Promise.resolve();
@@ -115,6 +116,29 @@
     };
     if (d.readyState === "complete") setTimeout(pusk, 50); else fr.addEventListener("load", pusk, { once: true });
   }
+  /** Пачка этикеток: стиль одной, тела — каждая на своей странице того же размера. */
+  function pachka(spisok, f) {
+    const [w, h] = FORMATY[f] || FORMATY["60x30"];
+    const [pw, ph] = povorot(f) ? [h, w] : [w, h];
+    const odna = etiketka(spisok[0], f);
+    const golova = odna.slice(0, odna.indexOf("<body>"));
+    const tela = spisok.map((x) => {
+      const t = etiketka(x, f);
+      return `<div class="pg">${t.slice(t.indexOf("<body>") + 6, t.lastIndexOf("</body>"))}</div>`;
+    }).join("");
+    return golova.replace("</style>", `html, body { height: auto !important; overflow: visible !important }
+      .pg { position: relative; width: ${pw}mm; height: ${ph}mm; overflow: hidden; page-break-after: always; break-after: page }
+      .pg:last-child { page-break-after: auto; break-after: auto }</style>`) + `<body>${tela}</body></html>`;
+  }
+  const dannyeAkta = (nomer, tovar = "", kategoriya = "") => {
+    const n = String(nomer).replace(/\D/g, "").replace(/^0+/, "");
+    return n ? { shk: `ACT ${n.padStart(10, "0")}`, imya: String(tovar || "").slice(0, 60), kategoriya: `Акт №${n}${kategoriya ? " · " + kategoriya : ""}` } : null;
+  };
+  /** Пачка наклеек актов: [{акт, товар}] или номера. */
+  function pechatAktov(spisok) {
+    const d = (spisok || []).map((x) => (typeof x === "object" ? dannyeAkta(x.акт, x.товар, x.категория) : dannyeAkta(x))).filter(Boolean);
+    if (d.length) pechat(d);
+  }
   /** Наклейка акта — та же этикетка, что у паллет: «Акт №…» крупно, ШК ACT, товар. */
   function pechatAkta(nomer, tovar = "", kategoriya = "") {
     const n = String(nomer).replace(/\D/g, "").replace(/^0+/, "");
@@ -122,5 +146,5 @@
     pechat({ shk: `ACT ${n.padStart(10, "0")}`, imya: String(tovar || "").slice(0, 60), kategoriya: `Акт №${n}${kategoriya ? " · " + kategoriya : ""}` });
   }
 
-  window.ShkPechat = { svg, pechat, pechatAkta, etiketka, formaty: Object.keys(FORMATY), format, zadatFormat, povorot, zadatPovorot };
+  window.ShkPechat = { svg, pechat, pechatAkta, pechatAktov, etiketka, formaty: Object.keys(FORMATY), format, zadatFormat, povorot, zadatPovorot };
 })();
