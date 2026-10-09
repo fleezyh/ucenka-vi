@@ -1,0 +1,15 @@
+/* Сайт Дирекции продаж B2C (b2c-vi.ru): общие стили сайта уценки + плитки направлений. */
+.b2cHero { margin-bottom: 28px; }
+.b2cNapr { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+.b2cKarta {
+  display: flex; flex-direction: column; gap: 6px; padding: 20px 20px 18px; border: 1px solid var(--line);
+  border-radius: 16px; background: var(--panel); color: var(--text); text-decoration: none;
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+.b2cKarta b { font-size: 22px; font-weight: 600; letter-spacing: -.01em; }
+.b2cKarta span { color: var(--muted); font-size: 13.5px; line-height: 1.4; }
+.b2cKarta .b2cKarta__nad { font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; }
+.b2cKarta--zhivaya { background: linear-gradient(160deg, #0f2a1d, #0b1a14); border-color: rgba(39, 196, 107, .55); }
+.b2cKarta--zhivaya .b2cKarta__nad { color: #7ee3b3; }
+.b2cKarta--zhivaya:hover { transform: translateY(-4px); box-shadow: 0 14px 30px rgba(0, 0, 0, .35); }
+@media (prefers-reduced-motion: reduce) { .b2cKarta { transition: none; } .b2cKarta--zhivaya:hover { transform: none; } }
