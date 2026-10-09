@@ -718,3 +718,11 @@ body .heroPerf { display: flex; flex-wrap: wrap; justify-content: space-between;
 .stolyKarta__itog small, .stolyKarta__kto { color: var(--muted); font-size: 11.5px; }
 .stolyKarta__kto { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (max-width: 900px) { .stolyKarta__row { grid-template-columns: 120px minmax(0, 1fr) 80px; } .stolyKarta__kto { display: none; } }
+
+/* 09.10 «тепловая карта тоже нечитаема»: столы — рейтингом, клик раскрывает дни и людей */
+.stolyReyting .contourRow { grid-template-columns: minmax(180px, 260px) minmax(0, 1fr) 64px minmax(200px, 300px); text-align: left; }
+.stolCard { margin: 2px 0 10px; }
+.stolCard__lyudi { display: grid; gap: 4px; margin-top: 6px; }
+.stolCard__chel { display: grid; grid-template-columns: minmax(180px, 260px) minmax(0, 1fr) 64px 160px; gap: 12px; align-items: center; font-size: 13px; }
+.stolCard__chel b { text-align: right; font-variant-numeric: tabular-nums; }
+.stolCard__chel small { color: var(--muted); }
