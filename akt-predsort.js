@@ -1417,6 +1417,7 @@
         <p class="aktPs__rezhim">${esc(a.вид)} · ${esc(a.когда)} · ${esc(a.автор)}${a.статус ? ` · ${esc(a.статус.toLowerCase())}` : ""}</p></div></header>
       <p class="aktPs__podskaz aktTovar">${esc(a.товар)}</p>
       ${a.особый ? `<div class="aktOsob"><b>${esc(a.особый)}</b><span>товар клиента, не уценка — отдельно</span></div>` : ""}
+      ${a.частей > 1 ? `<div class="aktOsob"><b>Товар из ${esc(a.частей)} частей</b><span>как в WMS: проверьте, что все ${esc(a.частей)} части на месте, и кладите их вместе</span></div>` : ""}
       ${a.живьём ? blokDefekta(a) : ""}
       ${panel ? "" : kat}
       ${a.описание && a.описание.length ? `<dl class="aktOp">${a.описание.filter((x) => x.что !== "заявленный дефект").map((x) => `<dt>${esc(x.что)}</dt><dd>${esc(x.значение)}</dd>`).join("")}</dl>`
@@ -1546,6 +1547,7 @@
         <h3 class="cAktTovar">${esc(a.товар)}</h3>
         <div class="cSub">${sb && sb.code ? `<span class="cChip">код ${esc(sb.code)}</span>` : ""}<span class="cChip">${esc(a.наклейка || "")}</span></div></div></div>
       ${a.особый ? `<div class="aktOsob"><b>${esc(a.особый)}</b><span>товар клиента, не уценка — отдельно</span></div>` : ""}
+      ${a.частей > 1 ? `<div class="aktOsob"><b>Товар из ${esc(a.частей)} частей</b><span>как в WMS: проверьте, что все ${esc(a.частей)} части на месте, и кладите их вместе</span></div>` : ""}
       <div class="cTiles cTiles--akt">
         <div class="cT cT--big cT--pol"><div class="cT__l">Себестоимость</div><div class="cT__v">${sebes}</div></div>
         <div class="cT cT--big cT--pol"><div class="cT__l">${a.цена_откуда === "сайт" ? "Цена на сайте" : "Цена в акте"}</div><div class="cT__v">${a.цена ? `<b class="cBig">${esc(rub(a.цена))}</b>` : '<span class="aNet" style="display:inline">—</span>'}${
