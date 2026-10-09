@@ -1058,9 +1058,10 @@
     // переоткрыли акт из списка «не переложены», а он уже не на столе — убрать из списка
     if (aktK && aktK.акт && aktK.живьём && !naStole(aktK)) nePerUbrat(aktK.акт);
     if (aktK && aktK.акт) PikIst.dobavit({ vid: "акт", kod: aktK.наклейка || String(aktK.акт), akt: aktK.акт, n: aktK.товар,
-      itog: neprinyat(aktK) ? "не принят в WMS" : (aktK.категория || ""), ok: neprinyat(aktK) ? false : null });
+      itog: neprinyat(aktK) ? "не принят в WMS" : klientskiy(aktK) ? "товар клиента — курьеру" : (aktK.категория || ""),
+      ok: neprinyat(aktK) || klientskiy(aktK) ? false : null });
     risovat();
-    if (neprinyat(aktK)) stopPokazat(aktK);
+    if (neprinyat(aktK) || klientskiy(aktK)) stopPokazat(aktK);
   }
 
   // Меню слева (pikalka-c.js): «Сверка» — ждём паллету; «Ошибки» — журнал за день.
@@ -1205,9 +1206,15 @@
      излишек. Теперь: категории нет («не раскладывать»), экран стопорится, пики паллет/товаров/актов не проходят,
      пока человек не нажмёт «Отложил в сторону». Нажатие пишется в журнал (/__akt/otlozheno) — список для Гамлета. */
   const neprinyat = (a) => Boolean(a && a.живьём && !(a.где && a.где.length) && !(a.транзит && (a.транзит.причина || a.транзит.едет)));
+  /* 09.10 Гамлет: «если товар гар ремонт, акт асц, брак поставщика, диагностика, платный ремонт, ремонт 5 дней,
+     срочный ремонт — пикалка должна не пропускать… отложить в паллет для передачи курьеру». Был вопрос «точно?» —
+     теперь тот же стоп, что у непринятых: экран стоит, пока не нажмут «отложил(а) курьеру». Акт ещё не принят —
+     сначала стоп «не принят» (принять можно), потом этот. Сервер тоже не перекладывает (akt_skan.KURERU). */
+  const klientskiy = (a) => Boolean(a && a.живьём && a.особый && !neprinyat(a));
   let stopAkt = null;
   function stopPokazat(a) {
     stopAkt = a;
+    const kl = klientskiy(a);
     let el = document.getElementById("aktStop");
     if (!el) {
       el = document.createElement("div");
@@ -1223,7 +1230,13 @@
     }
     el.innerHTML = `<div class="aktStop__okno">
         <p class="aktStop__nad">Акт №${esc(a.акт)}${a.статус ? ` · ${esc(a.статус.toLowerCase())}` : ""}</p>
-        <h2 class="aktStop__zag">Стоп. Акт не принят в WMS</h2>
+        ${kl ? `<h2 class="aktStop__zag">Стоп. Товар клиента — ${esc(String(a.особый).toLowerCase())}</h2>
+        <p class="aktStop__tovar">${esc(a.товар || "")}</p>
+        <p class="aktStop__chto">Это не уценка: в паллету уценки <b>не класть</b>.
+          Отложите в паллету для передачи курьеру.</p>
+        <div class="aktStop__knopki">
+          <button type="button" class="aktStop__da" data-stop-otlozhil="1">Отложил(а) в паллету курьеру</button>
+        </div>` : `<h2 class="aktStop__zag">Стоп. Акт не принят в WMS</h2>
         <p class="aktStop__tovar">${esc(a.товар || "")}</p>
         <p class="aktStop__chto">В паллету <b>не класть</b> — получится излишек. Отложите товар в сторону, к непринятым.
           Когда его примут, пикните акт снова.</p>
@@ -1231,12 +1244,12 @@
         <div class="aktStop__knopki">
           <button type="button" class="aktStop__da" data-stop-otlozhil="1">Отложил(а) в сторону</button>
           <button type="button" class="aktStop__snova" data-stop-snova="1">Проверить ещё раз</button>
-        </div>
+        </div>`}
         <p class="aktStop__poka">пока не нажмёте — пикалка не принимает паллеты, товары и другие акты</p>
       </div>`;
     el.hidden = false;
     document.body.classList.add("is-aktStop");
-    vpZagruzit(a);
+    if (!kl) vpZagruzit(a);
     setTimeout(() => window.pikalkaZvuk && window.pikalkaZvuk("oshibka"), 300);
     setTimeout(() => el.querySelector("[data-stop-otlozhil]")?.focus(), 50);
   }
@@ -1317,7 +1330,8 @@
     const a = stopAkt;
     if (!a) return stopSnyat();
     fetch("/__akt/otlozhil", { method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ акт: a.акт, товар: a.товар, наклейка: a.наклейка || "", стол: stol ? stol.имя : "", статус: a.статус || "" }) })
+      body: JSON.stringify({ акт: a.акт, товар: a.товар, наклейка: a.наклейка || "", стол: stol ? stol.имя : "", статус: a.статус || "",
+        причина: klientskiy(a) ? `товар клиента (${a.особый}) — курьеру` : "не принят в WMS" }) })
       .catch(() => {});
     stopSnyat();
   }
@@ -1345,10 +1359,10 @@
   function shagiAkta(a) {
     const itog = aktPer && aktPer.itog;
     const gotovo = itog && itog.ok;
-    const net = neprinyat(a);
+    const net = neprinyat(a) || klientskiy(a);
     return `<div class="cShag3">
       <div class="${stol ? "is-ok" : "is-net"}"><i>1</i><span>стол</span><b>${stol ? esc(String(stol.имя).replace(/^ФБ \(ДМД\) /, "")) : "без стола"}</b></div>
-      <div class="${a.категория && !net ? "is-ok" : "is-net"}"><i>2</i><span>категория</span><b>${net ? "не принят" : esc(a.категория || "нет")}</b></div>
+      <div class="${a.категория && !net ? "is-ok" : "is-net"}"><i>2</i><span>категория</span><b>${neprinyat(a) ? "не принят" : net ? "клиента" : esc(a.категория || "нет")}</b></div>
       <div class="${gotovo ? "is-ok" : net ? "is-net" : "is-sled"}"><i>3</i><span>паллета</span><b>${gotovo ? "переложена" : net ? "нельзя" : "пикните"}</b></div>
     </div>`;
   }
@@ -1384,9 +1398,12 @@
     const a = aktK;
     if (a.zhdu) { vyvesti('<p class="aktPs__chto">Смотрю акт в WMS…</p>', shapkaDey("Акт", "смотрю в WMS…") + bolshoyItog()); return; }
     if (a.oshibka) { vyvesti(`<p class="aktPs__net"><b class="aktPs__oshibka">${esc(a.oshibka)}</b></p>`, ""); return; }
-    const est = a.живьём && a.где && a.где.length;
+    const est = a.живьём && a.где && a.где.length && !klientskiy(a);
     const panel = Boolean(deyEl());
-    const kat = neprinyat(a) ? `<div class="aktKat aktKat--stop"><span class="aktKat__nad">категория уценки</span>
+    const kat = klientskiy(a) ? `<div class="aktKat aktKat--stop"><span class="aktKat__nad">категория уценки</span>
+        <b class="aktKat__imya">не раскладывать</b>
+        <span class="aktKat__rub">товар клиента (${esc(String(a.особый).toLowerCase())}) — в паллету для передачи курьеру</span></div>`
+      : neprinyat(a) ? `<div class="aktKat aktKat--stop"><span class="aktKat__nad">категория уценки</span>
         <b class="aktKat__imya">не раскладывать</b>
         <span class="aktKat__rub">акт не принят в WMS — товар в сторону, в паллету не класть</span></div>`
       : a.живьём ? `<div class="aktKat${a.гсм ? " aktKat--stop" : ""}"><span class="aktKat__nad">категория уценки${a.цена ? ` <b class="aktKat__cena">${esc(Number(a.цена).toLocaleString("ru-RU"))} ₽${a.цена_откуда === "сайт" ? " · цена сайта" : ""}</b>` : ""}</span>
@@ -1931,7 +1948,8 @@
     try {
       const d = await chitat(`/__vms/akt?kod=${encodeURIComponent(`ACT ${String(akt).padStart(10, "0")}`)}`);
       // 07.10 «ну конечно делай в массовом»: непринятый в вмс акт в список не берём — стоп до «отложил в сторону»
-      if (neprinyat(d)) {
+      // 09.10: и товар клиента — стоп «курьеру»
+      if (neprinyat(d) || klientskiy(d)) {
         korzAkty.splice(korzAkty.indexOf(z), 1);
         risovat();
         stopPokazat(d);
