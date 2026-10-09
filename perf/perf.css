@@ -748,3 +748,10 @@ body .heroPerf { display: flex; flex-wrap: wrap; justify-content: space-between;
 .staffRow__track { height: 10px; border-radius: 5px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
 .staffRow__bar { border-radius: 5px; }
 .prost__karta { margin: 0 0 4px; }
+
+/* штат: строки «тип · зона» длинные — шире колонка имени во вложенных списках */
+.polosy--vnutri { padding: 6px 0 6px 18px; border: 0; background: none; }
+.polosy--vnutri .contourRow { grid-template-columns: minmax(240px, 420px) minmax(0, 1fr) 80px minmax(200px, 360px); }
+.contourRow__note i { font-style: normal; font-weight: 600; }
+.contourRow__note i.isUp { color: #7ee3b3; }
+.contourRow__note i.isDown { color: #ffa3a3; }
