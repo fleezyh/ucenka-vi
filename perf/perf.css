@@ -726,3 +726,25 @@ body .heroPerf { display: flex; flex-wrap: wrap; justify-content: space-between;
 .stolCard__chel { display: grid; grid-template-columns: minmax(180px, 260px) minmax(0, 1fr) 64px 160px; gap: 12px; align-items: center; font-size: 13px; }
 .stolCard__chel b { text-align: right; font-variant-numeric: tabular-nums; }
 .stolCard__chel small { color: var(--muted); }
+
+/* 09.10 Степан: «мне надо всё в одном стиле». Все списки-полосы страницы (люди, простои, столы, контуры) —
+   одна разметка: тёмная подложка как у графиков, строка — плашка, полоса 10 px на треке. Цвет — смысл:
+   синий — выработка, зелёный — выше медианы / выбранное, красный — простой. */
+.polosy, .polosyRamka, .staffChart { display: grid; gap: 6px; padding: 12px; border: 1px solid var(--line); border-radius: 14px;
+  background: linear-gradient(180deg, rgba(15, 23, 35, 0.92), rgba(8, 13, 20, 0.92)); }
+.polosyRamka .polosy { padding: 0; border: 0; background: none; }
+.polosy .contourRow, .stolyReyting .contourRow { grid-template-columns: minmax(180px, 280px) minmax(0, 1fr) 70px minmax(200px, 320px); background: rgba(255,255,255,.03); }
+.polosy .contourRow:hover { transform: none; border-color: var(--line-strong); }
+.polosy--krasnye .contourRow__track i { background: #f05d72; }
+.polosy--krasnye .contourRow.is-on { border-color: rgba(240,93,114,.55); background: rgba(240,93,114,.08); }
+.polosy--krasnye .contourRow.is-on .contourRow__track i { background: #f05d72; }
+.contourRow__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.contourRow__note { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.staffRows { display: grid; gap: 6px; }
+.staffRows__median { display: none; }
+.staffRow { grid-template-columns: minmax(180px, 280px) minmax(0, 1fr) 70px 96px 58px 76px; padding: 10px 14px; border: 1px solid var(--line);
+  border-radius: 12px; background: rgba(255,255,255,.03); font-weight: 600; }
+.staffRow:hover, .staffRow.isClickable:hover { background: rgba(255,255,255,.05); border-color: var(--line-strong); }
+.staffRow__track { height: 10px; border-radius: 5px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
+.staffRow__bar { border-radius: 5px; }
+.prost__karta { margin: 0 0 4px; }

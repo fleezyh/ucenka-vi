@@ -633,7 +633,7 @@
     const max = Math.max(...rows.map((row) => row.на_смену), 1);
 
     const wrap = document.createElement("div");
-    wrap.className = "contours";
+    wrap.className = "polosy";
     for (const row of rows) {
       const item = document.createElement("button");
       item.type = "button";
@@ -1001,65 +1001,57 @@
     const p = prostoiZa(data, period);
     if (!p) return null;
     const box = document.createElement("div");
-    box.className = "prost";
+    box.className = "polosyRamka";
     if (!p.люди.length) {
       box.innerHTML = `<p class="perfLead">За ${escapeHtml(period.label)} простоев не посчитано — данные с 1 января.</p>`;
       return box;
     }
     const maks = Math.max(1, ...p.люди.map((x) => x.за_смену));
     const spisok = document.createElement("div");
-    spisok.className = "prost__list";
+    spisok.className = "polosy polosy--krasnye";
     p.люди.forEach((x) => {
       const row = document.createElement("button");
       row.type = "button";
-      row.className = "prost__row" + (x.сотрудник === prostoyChelovek ? " is-on" : "");
-      row.innerHTML = `<span class="prost__who">${escapeHtml(x.сотрудник)}`
-        + `${x.столы.length ? ` <i>${escapeHtml(x.столы.join(", "))}</i>` : ""}</span>`
-        + `<span class="prost__bar"><i style="width:${(100 * x.за_смену / maks).toFixed(1)}%"></i></span>`
-        + `<b class="prost__val">${chasy(x.за_смену)} ч</b>`
-        + `<span class="prost__sub">за смену · ${chasy(x.минут)} ч за ${x.дней} ${dayWord(x.дней)}</span>`;
+      row.className = "contourRow" + (x.сотрудник === prostoyChelovek ? " is-on" : "");
+      row.innerHTML = `<span class="contourRow__name">${escapeHtml(x.сотрудник)}</span>`
+        + `<span class="contourRow__track"><i style="width:${(100 * x.за_смену / maks).toFixed(1)}%"></i></span>`
+        + `<b class="contourRow__value">${chasy(x.за_смену)} ч</b>`
+        + `<span class="contourRow__note">за смену · ${chasy(x.минут)} ч за ${x.дней} ${dayWord(x.дней)}`
+        + `${x.столы.length ? " · " + escapeHtml(x.столы.slice(0, 2).join(", ")) : ""}</span>`;
       row.addEventListener("click", () => {
         prostoyChelovek = prostoyChelovek === x.сотрудник ? null : x.сотрудник;
         render();
       });
       spisok.appendChild(row);
+      if (x.сотрудник === prostoyChelovek) spisok.appendChild(lentaCheloveka(data, period, x.сотрудник));
     });
     box.appendChild(spisok);
 
-    // Лента дня: все люди дня (Карташев 09.10: «лучше по умолчанию сразу всех»); клик по человеку выше — только он
-    const dni = p.дни.filter((d) => !prostoyChelovek || d.люди.some((x) => x.сотрудник === prostoyChelovek));
-    if (!dni.length) return box;
-    if (!prostoyDen || !dni.some((d) => d.день === prostoyDen)) prostoyDen = dni[dni.length - 1].день;
-    const i = dni.findIndex((d) => d.день === prostoyDen);
-    const den = dni[i];
-    const lyudi = den.люди.filter((x) => !prostoyChelovek || x.сотрудник === prostoyChelovek)
-      .sort((a, b) => minOt(a.начало) - minOt(b.начало));
-    const ot = Math.min(8 * 60, ...lyudi.map((x) => minOt(x.начало)));
-    const doo = Math.max(21 * 60, ...lyudi.map((x) => minOt(x.конец)));
+    return box;
+  }
+
+  /* 09.10 Степан: «в чём смысл листания, если меняется только низ». Листания дней больше нет: клик по человеку
+     раскрывает прямо под его строкой его дни за период — строка ленты на день: серым от первого до последнего
+     документа, красным паузы. Так же, как стол раскрывается своими днями. */
+  function lentaCheloveka(data, period, kto) {
+    const p = prostoiZa(data, period);
+    const dni = (p ? p.дни : []).map((d) => ({ день: d.день, x: d.люди.find((z) => z.сотрудник === kto) })).filter((d) => d.x);
+    const card = document.createElement("div");
+    card.className = "personCard prost__karta";
+    if (!dni.length) { card.innerHTML = `<p class="perfLead">по дням паузы есть только за последние полтора месяца</p>`; return card; }
+    const ot = Math.min(8 * 60, ...dni.map((d) => minOt(d.x.начало)));
+    const doo = Math.max(21 * 60, ...dni.map((d) => minOt(d.x.конец)));
     const pos = (m) => (100 * (m - ot) / (doo - ot)).toFixed(2) + "%";
     const shkala = [];
     for (let h = Math.ceil(ot / 60); h * 60 <= doo; h += 1) shkala.push(`<span style="left:${pos(h * 60)}">${h}:00</span>`);
-
-    const nav = document.createElement("div");
-    nav.className = "prost__nav";
-    nav.innerHTML = `<b>День</b>`
-      + `<button type="button" class="action action--secondary" data-den="${i > 0 ? dni[i - 1].день : ""}"${i > 0 ? "" : " disabled"}>‹</button>`
-      + `<select class="perfSelect" aria-label="День">${dni.map((d) => `<option value="${d.день}"${d.день === prostoyDen ? " selected" : ""}>${dayLabel(d.день)} · ${d.люди.length} чел.</option>`).join("")}</select>`
-      + `<button type="button" class="action action--secondary" data-den="${i < dni.length - 1 ? dni[i + 1].день : ""}"${i < dni.length - 1 ? "" : " disabled"}>›</button>`
-      + `<span class="perfLead">${prostoyChelovek ? escapeHtml(prostoyChelovek) + " · " : ""}серым — от первого до последнего документа, красным — паузы дольше ${p.порог} мин (наведи — время)</span>`;
-    nav.addEventListener("click", (e) => { const b = e.target.closest("[data-den]"); if (b && b.dataset.den) { prostoyDen = b.dataset.den; render(); } });
-    nav.addEventListener("change", (e) => { if (e.target.tagName === "SELECT") { prostoyDen = e.target.value; render(); } });
-
-    const lenta = document.createElement("div");
-    lenta.className = "prost__lenta";
-    lenta.innerHTML = `<div class="prost__shkala">${shkala.join("")}</div>` + lyudi.map((x) => {
-      const pauzy = x.паузы.map((pp) => `<i class="prost__pauza" style="left:${pos(minOt(pp[0]))};width:calc(${pos(minOt(pp[1]))} - ${pos(minOt(pp[0]))})" title="${pp[0]}–${pp[1]} · ${pp[2]} мин"></i>`).join("");
-      return `<div class="prost__line"><span class="prost__who">${escapeHtml(x.сотрудник)}</span>`
-        + `<span class="prost__track"><i class="prost__rabota" style="left:${pos(minOt(x.начало))};width:calc(${pos(minOt(x.конец))} - ${pos(minOt(x.начало))})" title="первый документ ${x.начало}, последний ${x.конец}"></i>${pauzy}</span>`
-        + `<b class="prost__val">${chasy(x.минут)} ч</b></div>`;
-    }).join("");
-    box.append(nav, lenta);
-    return box;
+    card.innerHTML = `<p class="perfLead">${escapeHtml(kto)} · по дням: серым — от первого до последнего документа, красным — паузы (наведи — время)</p>`
+      + `<div class="prost__lenta"><div class="prost__shkala">${shkala.join("")}</div>` + dni.map((d) => {
+        const pauzy = d.x.паузы.map((pp) => `<i class="prost__pauza" style="left:${pos(minOt(pp[0]))};width:calc(${pos(minOt(pp[1]))} - ${pos(minOt(pp[0]))})" title="${pp[0]}–${pp[1]} · ${pp[2]} мин"></i>`).join("");
+        return `<div class="prost__line"><span class="prost__who">${dayLabel(d.день)}</span>`
+          + `<span class="prost__track"><i class="prost__rabota" style="left:${pos(minOt(d.x.начало))};width:calc(${pos(minOt(d.x.конец))} - ${pos(minOt(d.x.начало))})" title="первый документ ${d.x.начало}, последний ${d.x.конец}"></i>${pauzy}</span>`
+          + `<b class="prost__val">${chasy(d.x.минут)} ч</b></div>`;
+      }).join("") + `</div>`;
+    return card;
   }
 
   // Строка: {день, стол, площадка, кто, штук}. Новый формат — [день, стол, площадка, сотрудник, штук]
@@ -1105,7 +1097,7 @@
     if (otkrytStol && !stoly.has(otkrytStol)) otkrytStol = null;
 
     const wrap = document.createElement("div");
-    wrap.className = "contours stolyReyting";
+    wrap.className = "polosy stolyReyting";
     spisok.forEach((x) => {
       const row = document.createElement("button");
       row.type = "button";
@@ -1405,7 +1397,7 @@
     if (prostoi) {
       parts.push(block("Простои",
                        `${staff.label} · паузы дольше ${prostoi.порог} мин между документами человека в ВМС, часов за смену · `
-                       + "клик по человеку — только он на ленте дня",
+                       + "клик по человеку — его дни",
                        renderProstoi(data, period.current)));
     }
 
