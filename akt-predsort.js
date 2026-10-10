@@ -453,6 +453,7 @@
     // 07.10 ночь Степан: «сверка не нужна — должно быть "этого товара нет в паллете"» — вкладку убрали, у строк кнопка
     const vkladki = dvkRezhim ? [["sverka", `Проверка ДВК · <em>${Math.min(sverkaNashli(), vsego)}/${vsego}</em>`]]
       : [["akt", `Акт${bezVybr ? ` · <em>${bezVybr}</em>` : ""}`], ["per", "Переместить"], ["db", "На склад"], ["priyom", "Принять"]];
+    // 10.10 Степан: пломба — «в шапке надо сразу» — в большой шапке паллеты рядом с лотом (blokKarty)
     vyvesti(glav, `${shapkaDey("Паллета", pal.паллета, `<span class="cDey__pod">${vseVybrany() ? `${vsego} шт` : `выбрано ${shtVybr} из ${vsego} шт`}</span>`)}
       ${plashkaVms()}${formaVms()}
       <div class="cSeg">${vkladki.map(([k, t]) => `<button type="button" class="${k === tab ? "is-on" : ""}" data-ptab="${k}"${zanyato && k !== tab ? " disabled" : ""}>${t}</button>`).join("")}</div>
@@ -471,6 +472,7 @@
     return `<div class="palKartaAkt">
       ${k ? `<div class="palKartaAkt__fakty">
         ${!gde ? "<span>в ячейке не числится</span>" : gde.ячейка !== pal.ячейка ? `<span>стоит: <b>${esc(gde.ячейка)}</b></span>` : ""}
+        ${dvkRezhim ? (dvkPlombaSeichas ? `<span class="is-plomba" title="${esc([dvkPlombaSeichas.статус, dvkPlombaSeichas.источник].filter(Boolean).join(" · "))}">пломба <b>${esc(dvkPlombaSeichas.пломба)}</b> · ${esc([dvkPlombaSeichas.проверил, dvkPlombaSeichas.когда].filter(Boolean).join(" · "))}</span>` : '<span class="is-netPlomby">без пломбы</span>') : ""}
         ${k.лот ? `<span>лот <b>${esc(k.лот.номер)}</b> · ${esc(k.лот.статус || "—")}</span>` : "<span>не в лоте</span>"}
         ${(k.в_заказах || []).length ? `<span>в заказе <b>${k.в_заказах.map(esc).join(", ")}</b></span>` : ""}
       </div>
@@ -941,8 +943,6 @@
         <span>${l.вид === "Не принят в ВМС" ? "акт не принят в WMS" : `числится: ${esc(gdeStr(l.где))}`}${l.кто ? ` · клал(а) ${esc(l.кто.кто)} ${esc(l.кто.когда)}` : ""}</span></p>`).join("")}</div>` : ""}
       ${kat.length ? `<p class="aktPs__zag">Не та категория · ${kat.length}</p><div class="sverka__spisok">${kat.map((k) => `<p><b>акт ${esc(k.акт)}</b> ${esc(k.товар)}
         <span>нужна «${esc(k.нужна)}»${k.кто ? ` · клал(а) ${esc(k.кто.кто)} ${esc(k.кто.когда)}` : ""}</span></p>`).join("")}</div>` : ""}
-      ${dvkPlombaSeichas ? `<p class="dvk__seichas">Сейчас на паллете пломба <b>${esc(dvkPlombaSeichas.пломба)}</b> · ${esc([dvkPlombaSeichas.проверил, dvkPlombaSeichas.когда, dvkPlombaSeichas.статус, dvkPlombaSeichas.источник].filter(Boolean).join(" · "))}</p>`
-        : '<p class="dvk__seichas is-net">Пломбы на паллете нет — ни в книге ДВК, ни в системе</p>'}
       <label class="dvk__plomba"><span>${dvkPlombaSeichas ? "Новая пломба" : "Пломба"}</span><input id="dvkPlomba" inputmode="numeric" autocomplete="off" placeholder="номер пломбы" value="${esc(dvkPlomba)}"></label>
       <div class="aktPs__vopros"><button type="button" class="aktPs__kn is-on" data-sverka="konec"${sverka.zhdut ? " disabled" : ""}>Закончить проверку${ost > 0 ? ` · не пикнуто ${ost} — в недостачу` : ""}</button>
         <button type="button" class="aktPs__kn" data-sverka="sbros">Сначала</button></div>

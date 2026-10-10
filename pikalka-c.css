@@ -879,3 +879,9 @@ body.cSkin .cField #cMass.is-on{background:#7b5cf0;border-color:#7b5cf0;color:#f
 .dvk__seichas{margin:10px 0 0;padding:8px 12px;border-radius:10px;background:rgba(52,199,123,.1);border:1px solid rgba(52,199,123,.35);font-size:14px}
 .dvk__seichas b{color:#7ff0b4}
 .dvk__seichas.is-net{background:rgba(240,180,60,.08);border-color:rgba(240,180,60,.35);color:#f3c56b}
+.cDey__plomba{display:inline-block;margin-top:6px;padding:3px 10px;border-radius:8px;background:rgba(52,199,123,.12);border:1px solid rgba(52,199,123,.4);font-size:13px;color:var(--muted)}
+.cDey__plomba b{color:#7ff0b4;font-weight:600}
+.cDey__plomba.is-net{background:rgba(240,180,60,.08);border-color:rgba(240,180,60,.4);color:#f3c56b}
+body.cSkin .palKartaAkt__fakty span.is-plomba{background:rgba(52,199,123,.12);border:1px solid rgba(52,199,123,.4)}
+body.cSkin .palKartaAkt__fakty span.is-plomba b{color:#7ff0b4}
+body.cSkin .palKartaAkt__fakty span.is-netPlomby{background:rgba(240,180,60,.08);border:1px solid rgba(240,180,60,.4);color:#f3c56b}
