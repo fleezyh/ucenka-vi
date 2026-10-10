@@ -252,8 +252,8 @@
      показывает остаток: на контейнере 100, отпикали 20 — осталось 80»; Степан: «это просто режим ДВК, а не отдельная
      пикалка»). Только у ДВК (право pikalka_dvk). Пикнули паллету — проверка; пик акта — «проверено», в WMS ничего не
      двигается. Проверка хранится на сервере (dvk_proverka): обновили страницу или продолжил другой — с того же места. */
-  let dvkMozhno = false;
-  let dvkRezhim = localStorage.getItem("pikDvk") === "1";
+  let dvkMozhno = false;      // журнал ошибок: ДВК и админ
+  let dvkRezhim = false;      // режим ДВК — сам, у кого право pikalka_dvk дано явно
   let dvkId = null;          // id проверки на сервере
   let dvkPlomba = "";
   let dvkProshlaya = null;   // прошлая законченная проверка этой паллеты
@@ -385,7 +385,7 @@
         <span class="palStroka__kat">${katPal(x)}</span>
         <span class="palStroka__sht">${x.штук} шт</span>
         <span class="palStroka__akt">${x.акт ? `<button type="button" class="palStroka__aktKn" data-akt-detal="${esc(x.акт)}" title="Акт целиком: что с ним и фото">акт №${x.акт}</button>` : x.уже_нами && !x.без_акта ? "заактировано нами" : "без акта"}</span>
-        <button type="button" class="palNet${palNetZapisano.has(x.ключ) ? " is-on" : ""}" data-pal-net="${esc(x.ключ)}" title="Физически на паллете нет — записать ошибку «Недостача»">${palNetZapisano.has(x.ключ) ? "записано: нет" : "нет в паллете"}</button>
+        ${dvkRezhim ? `<button type="button" class="palNet${palNetZapisano.has(x.ключ) ? " is-on" : ""}" data-pal-net="${esc(x.ключ)}" title="Физически на паллете нет — записать ошибку «Недостача»">${palNetZapisano.has(x.ключ) ? "записано: нет" : "нет в паллете"}</button>` : ""}
       </label>`).join("");
     const shtVybr = vybrano().reduce((n, x) => n + x.штук, 0);
     const bezVybr = bezAktaVybrano();
@@ -700,33 +700,27 @@
 
   // ---- режим ДВК: сервер ----
   function dvkKnopka() {
-    const b = document.getElementById("cDvk");
-    if (!b) return;
-    b.hidden = !dvkMozhno;
-    b.classList.toggle("is-on", dvkMozhno && dvkRezhim);
+    // заголовок: «Пикалка» или «Пикалка (ДВК)»; журнал «Ошибки» в рейке — ДВК и админу
+    const h = document.querySelector(".cTitle h1");
+    if (h) h.innerHTML = dvkRezhim ? 'Пикалка <span class="cDvkMetka">(ДВК)</span>' : "Пикалка";
+    const j = document.getElementById("cOshibki");
+    if (j) j.hidden = !dvkMozhno;
+    document.body.classList.toggle("is-dvk", dvkRezhim);
   }
   function dvkPravo() {
     fetch("/__dvk/ya", { cache: "no-store" }).then((o) => (o.ok ? o.json() : {})).then((d) => {
-      dvkMozhno = Boolean(d && d.двк);
-      if (!dvkMozhno) dvkRezhim = false;
+      const byl = dvkRezhim;
+      dvkRezhim = Boolean(d && d.двк);
+      dvkMozhno = dvkRezhim || Boolean(d && d.админ);
+      if (dvkRezhim && massPik && !korzIdet) { massPik = false; korzina = []; korzRezhim = ""; korzLog = []; korzPer = null; korzDb = null; }
       dvkKnopka();
+      if (byl && !dvkRezhim && pal) { palTab = ""; sverka = null; dvkId = null; risovat(); }
       if (dvkRezhim && pal && palTab !== "sverka") { dvkOtkryt(); risovat(); }
     }).catch(() => {});
   }
   dvkPravo();
   document.addEventListener("wms:vkl", (e) => { if (e.detail) dvkPravo(); });
   setTimeout(dvkKnopka, 1500);
-  function dvkPereklyuchit() {
-    if (!dvkMozhno) return;
-    dvkRezhim = !dvkRezhim;
-    localStorage.setItem("pikDvk", dvkRezhim ? "1" : "0");
-    if (dvkRezhim && massPik && !korzIdet) { massPik = false; korzina = []; korzRezhim = ""; korzLog = []; korzPer = null; korzDb = null; }
-    dvkKnopka();
-    if (pal) { if (dvkRezhim) dvkOtkryt(); else { palTab = ""; sverka = null; dvkId = null; } }
-    signal(dvkRezhim ? "Режим ДВК: пикните паллету — начнётся проверка; товар не перемещается" : "Режим ДВК выключен");
-    risovat();
-  }
-  document.addEventListener("click", (e) => { if (e.target.closest("#cDvk")) { e.preventDefault(); dvkPereklyuchit(); } });
 
   const dvkSost = () => ({ nashli: Object.fromEntries(sverka.nashli), lishnie: sverka.lishnie, kat: [...sverka.kat.values()],
     poslAkt: sverka.poslAkt || "" });
@@ -981,7 +975,7 @@
   }
 
   function blokIzlishka() {
-    if (!pal || palOshibka) return "";
+    if (!pal || palOshibka || !dvkRezhim) return "";
     if (!izl) return `<div class="izl"><button type="button" class="aktPs__kn izl__kn" data-izl="otkryt">+ нашли на паллете то, чего нет в составе</button></div>`;
     const k = izl.karta;
     const gde = k && k.где && k.где[0];
@@ -1602,7 +1596,7 @@
   let oshAkt = null;      // { akt, vid, kont, komm, idet, gotovo, oshibka }
   let posledPal = "";     // последняя открытая паллета — «где нашли» по умолчанию
   function blokOshibki(a) {
-    if (!a || !a.акт) return "";
+    if (!a || !a.акт || !dvkRezhim) return "";
     if (!oshAkt || oshAkt.akt !== a.акт) oshAkt = { akt: a.акт, vid: "", kont: posledPal, komm: "" };
     const o = oshAkt;
     const gde = a.где && a.где.length ? gdeStr(a.где) : (a.живьём ? "не принят в ВМС" : "");

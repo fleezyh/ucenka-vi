@@ -97,7 +97,9 @@
     golova.appendChild(ryad);
     ryad.classList.add("cField");
     ryad.insertAdjacentHTML("afterbegin", `<svg class="cField__ico" viewBox="0 0 24 24" aria-hidden="true">${IKONKI.bar}</svg>`);
-    $("#kamera")?.insertAdjacentHTML("beforebegin", `<span class="cPref"><i data-primer="CON 0163233250"><b>CON</b>паллета</i><i data-primer="CEL 3923168"><b>CEL</b>ячейка</i><i data-primer="ACT 0005263917"><b>ACT</b>акт</i></span><button type="button" class="cRezh" id="cMass" data-polosa="mass" title="Массовый пик: пикать паллеты и акты списком">Масс. пик<span class="cBadge" id="cMassN" hidden></span></button><button type="button" class="cRezh cRezh--dvk" id="cDvk" hidden title="Режим ДВК: проверка контейнера без перемещения">ДВК</button>`);
+    // 10.10 Степан: «CON/CEL/ACT уже не нужен; масс. пик и ДВК — не к селу по визуалу». Масс. пик — квадратной кнопкой,
+    // как камера рядом; режим ДВК включается сам (у кого право), в заголовке — «Пикалка (ДВК)».
+    $("#kamera")?.insertAdjacentHTML("beforebegin", `<button type="button" class="action action--secondary cMassKn" id="cMass" data-polosa="mass" title="Массовый пик — пикать паллеты и акты списком" aria-label="Массовый пик"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IKONKI.stack}</svg><span class="cBadge" id="cMassN" hidden></span></button>`);
     const scan = $("#scan");
     if (scan) scan.setAttribute("inputmode", "text");
 
@@ -232,10 +234,10 @@
       const pre = m === "costlist" ? "себес списком" : m === "pallets" ? "где паллеты" : "";
       const layout = `${pre}|${vklWms}|${svyaz && svyaz.wms}|${svyaz && svyaz.wtis}`;
       if (kr.dataset.sysLayout !== layout) {
-        kr.innerHTML = [pre ? `<span>${pre}</span>` : "", vklWms ? sysHtml() : ""].filter(Boolean).join('<span class="sysPl">+</span>');
+        kr.innerHTML = pre ? `<span>${pre}</span>` : "";   // 10.10 «оставь просто Пикалка» — без «× WMS + WTIS»
         kr.dataset.sysLayout = layout;
       }
-      kr.parentNode.hidden = !pre && !vklWms;
+      kr.parentNode.hidden = !pre;
       // 03.10: «ПИКАЛКА × WMS + WTIS»
       const sep = $("#cCrumbSep");
       if (sep) sep.textContent = vklWms && !pre ? "x" : "/";
@@ -518,7 +520,7 @@
   document.addEventListener("click", (e) => {
     // Массовый пик из рейки при выключенном WMS — сначала включить.
   });
-  document.addEventListener("click", (e) => { if (e.target.closest("#cMass, #cDvk") && !vklWms) vklyuchitWms(true); }, true);
+  document.addEventListener("click", (e) => { if (e.target.closest("#cMass") && !vklWms) vklyuchitWms(true); }, true);
 
   // 01.10 Степан: «этот режим надо добавить в пикалку» — экран «Бэклог тает» (/__ekran) на всё окно
   // поверх пикалки; закрыть — крестик или Esc. Для телевизора на складе — F11 в этом режиме.
