@@ -247,7 +247,18 @@
   // 07.10 ночь Степан: «а если надо туда добавить товар, который нашёлся, а его нет по акту? с возможностью найти
   // его и принудительно перенести». { kod, zhdu, karta, oshibka, zapisat, idet, vopros, itog }
   let izl = null;
-  let zhdemSverku = false;   // 07.10 «а где сверка»: нажали «Сверка» в меню — следующая паллета открывается на ней
+  let zhdemSverku = false;
+  /* 10.10 режим «ДВК» (Шабловский: «проверяем без создания нового контейнера — сканируем товар и не перемещаем, но пикалка
+     показывает остаток: на контейнере 100, отпикали 20 — осталось 80»; Степан: «это просто режим ДВК, а не отдельная
+     пикалка»). Только у ДВК (право pikalka_dvk). Пикнули паллету — проверка; пик акта — «проверено», в WMS ничего не
+     двигается. Проверка хранится на сервере (dvk_proverka): обновили страницу или продолжил другой — с того же места. */
+  let dvkMozhno = false;
+  let dvkRezhim = localStorage.getItem("pikDvk") === "1";
+  let dvkId = null;          // id проверки на сервере
+  let dvkPlomba = "";
+  let dvkProshlaya = null;   // прошлая законченная проверка этой паллеты
+  let dvkDef = {};           // акт → { дефект, цена_акта, вид }
+  let dvkItogPlomby = "";   // 07.10 «а где сверка»: нажали «Сверка» в меню — следующая паллета открывается на ней
   let sverka = null;
   let sverkaPosl = null;   // прошлая сверка этой паллеты — с сервера
   const IMYA_MARSHRUTA = { ДАНИЛОВО: "в Данилово", "СЦ-ДМД": "на СЦ-ДМД", ДОМОДЕДОВО: "в ДМД (РЦ)" };
@@ -317,6 +328,7 @@
       palVybor = new Set((pal.строки || []).map((x) => x.ключ));
       posledPal = pal.паллета || posledPal;
       if (zhdemSverku) { zhdemSverku = false; palTab = "sverka"; sverkaNachat(); }
+      if (dvkRezhim) dvkOtkryt();
       if (pal.паллета_id) {
         chitat(`/__akt/sverka?palleta_id=${encodeURIComponent(pal.паллета_id)}`)
           .then((s) => { if (pal && s.сверка) { sverkaPosl = s.сверка; risovat(); } }).catch(() => {});
@@ -367,9 +379,9 @@
       return `<span class="palStroka__sv${est >= x.штук ? " is-ok" : est ? " is-chast" : ""}${kat ? " is-kat" : ""}">${kat ? `не та категория → ${esc(kat.нужна)}`
         : est >= x.штук ? "✓ сверено" : est ? `${est} из ${x.штук}` : "не пикнута"}</span>`;
     };
-    const spisok = vidno.map((x) => `<label class="palStroka palStroka--vybor${x.без_акта ? " is-bez" : ""}${vkl(x) ? "" : " is-vykl"}">
+    const spisok = vidno.map((x) => `<label class="palStroka palStroka--vybor${x.без_акта ? " is-bez" : ""}${vkl(x) ? "" : " is-vykl"}${dvkRezhim ? " is-dvk" : ""}">
         <input type="checkbox" data-pvyb="${esc(x.ключ)}"${vkl(x) ? " checked" : ""}${palRabota && palRabota.идёт ? " disabled" : ""}>
-        <span class="palStroka__tovar">${esc(x.товар)}${x.качество && !/^брак$/i.test(x.качество) ? ` <i class="palStroka__kach">${esc(x.качество)}</i>` : ""}${svMetka(x)}</span>
+        <span class="palStroka__tovar">${esc(x.товар)}${x.качество && !/^брак$/i.test(x.качество) ? ` <i class="palStroka__kach">${esc(x.качество)}</i>` : ""}${svMetka(x)}${dvkRezhim ? `<small class="palStroka__dvk">${x.акт && dvkDef[x.акт] ? esc(dvkDef[x.акт].дефект || "дефект не указан") : x.акт ? "…" : "без акта"}${x.цена ? ` · ${esc(rubl(x.цена))}` : x.акт && dvkDef[x.акт] && dvkDef[x.акт].цена_акта ? ` · ${esc(rubl(dvkDef[x.акт].цена_акта))}` : ""}</small>` : ""}</span>
         <span class="palStroka__kat">${katPal(x)}</span>
         <span class="palStroka__sht">${x.штук} шт</span>
         <span class="palStroka__akt">${x.акт ? `<button type="button" class="palStroka__aktKn" data-akt-detal="${esc(x.акт)}" title="Акт целиком: что с ним и фото">акт №${x.акт}</button>` : x.уже_нами && !x.без_акта ? "заактировано нами" : "без акта"}</span>
@@ -438,7 +450,8 @@
     // у одной паллеты — та же кнопка, ведёт в тот же приём с этой паллетой.
     // 07.10: «Сверка» — пятой вкладкой, остальные четыре не меняются.
     // 07.10 ночь Степан: «сверка не нужна — должно быть "этого товара нет в паллете"» — вкладку убрали, у строк кнопка
-    const vkladki = [["akt", `Акт${bezVybr ? ` · <em>${bezVybr}</em>` : ""}`], ["per", "Переместить"], ["db", "На склад"], ["priyom", "Принять"]];
+    const vkladki = dvkRezhim ? [["sverka", `Проверка ДВК · <em>${Math.min(sverkaNashli(), vsego)}/${vsego}</em>`]]
+      : [["akt", `Акт${bezVybr ? ` · <em>${bezVybr}</em>` : ""}`], ["per", "Переместить"], ["db", "На склад"], ["priyom", "Принять"]];
     vyvesti(glav, `${shapkaDey("Паллета", pal.паллета, `<span class="cDey__pod">${vseVybrany() ? `${vsego} шт` : `выбрано ${shtVybr} из ${vsego} шт`}</span>`)}
       ${plashkaVms()}${formaVms()}
       <div class="cSeg">${vkladki.map(([k, t]) => `<button type="button" class="${k === tab ? "is-on" : ""}" data-ptab="${k}"${zanyato && k !== tab ? " disabled" : ""}>${t}</button>`).join("")}</div>
@@ -682,7 +695,93 @@
   const zvukPik = (vid) => { if (window.pikalkaZvuk) setTimeout(() => window.pikalkaZvuk(vid), 280); };
   function sverkaNachat() {
     sverka = { pid: pal.паллета_id || null, imya: (palKarta && palKarta.паллета) || pal.паллета, nashli: new Map(),
-      lishnie: [], kat: new Map(), zhdut: 0, posl: "", itog: null };
+      lishnie: [], kat: new Map(), zhdut: 0, posl: "", itog: null, poslAkt: "" };
+  }
+
+  // ---- режим ДВК: сервер ----
+  function dvkKnopka() {
+    const b = document.getElementById("cDvk");
+    if (!b) return;
+    b.hidden = !dvkMozhno;
+    b.classList.toggle("is-on", dvkMozhno && dvkRezhim);
+  }
+  function dvkPravo() {
+    fetch("/__dvk/ya", { cache: "no-store" }).then((o) => (o.ok ? o.json() : {})).then((d) => {
+      dvkMozhno = Boolean(d && d.двк);
+      if (!dvkMozhno) dvkRezhim = false;
+      dvkKnopka();
+      if (dvkRezhim && pal && palTab !== "sverka") { dvkOtkryt(); risovat(); }
+    }).catch(() => {});
+  }
+  dvkPravo();
+  document.addEventListener("wms:vkl", (e) => { if (e.detail) dvkPravo(); });
+  setTimeout(dvkKnopka, 1500);
+  function dvkPereklyuchit() {
+    if (!dvkMozhno) return;
+    dvkRezhim = !dvkRezhim;
+    localStorage.setItem("pikDvk", dvkRezhim ? "1" : "0");
+    if (dvkRezhim && massPik && !korzIdet) { massPik = false; korzina = []; korzRezhim = ""; korzLog = []; korzPer = null; korzDb = null; }
+    dvkKnopka();
+    if (pal) { if (dvkRezhim) dvkOtkryt(); else { palTab = ""; sverka = null; dvkId = null; } }
+    signal(dvkRezhim ? "Режим ДВК: пикните паллету — начнётся проверка; товар не перемещается" : "Режим ДВК выключен");
+    risovat();
+  }
+  document.addEventListener("click", (e) => { if (e.target.closest("#cDvk")) { e.preventDefault(); dvkPereklyuchit(); } });
+
+  const dvkSost = () => ({ nashli: Object.fromEntries(sverka.nashli), lishnie: sverka.lishnie, kat: [...sverka.kat.values()],
+    poslAkt: sverka.poslAkt || "" });
+  async function dvkOtkryt() {
+    palTab = "sverka"; palPer = null; palDb = null;
+    sverkaNachat();
+    dvkId = null; dvkPlomba = ""; dvkProshlaya = null; dvkItogPlomby = "";
+    const akty = pal.строки.filter((x) => x.акт).map((x) => x.акт);
+    if (akty.length) {
+      chitat(`/__dvk/defekty?akty=${akty.join(",")}`).then((d) => { dvkDef = { ...dvkDef, ...d }; risovat(); }).catch(() => {});
+    }
+    if (!pal.паллета_id) return;
+    try {
+      const d = await chitat(`/__dvk/proverka?palleta_id=${encodeURIComponent(pal.паллета_id)}`);
+      dvkProshlaya = d.прошлая || null;
+      const p = d.проверка;
+      if (p && sverka && String(sverka.pid) === String(p.паллета_id)) {
+        dvkId = p.id; dvkPlomba = p.пломба || "";
+        const st = p.состояние || {};
+        sverka.nashli = new Map(Object.entries(st.nashli || {}));
+        sverka.lishnie = st.lishnie || [];
+        sverka.kat = new Map((st.kat || []).map((k) => [String(k.акт), k]));
+        sverka.poslAkt = st.poslAkt || "";
+        sverka.posl = `продолжаю проверку: начал(а) ${p.начал_имя} ${p.начало}, последний пик — ${p.кто_последний} ${p.обновлено}`;
+      }
+    } catch (e) { /* без сервера проверка всё равно идёт — сохранится при следующем пике */ }
+    risovat();
+  }
+  let dvkTajmer = 0;
+  function dvkPozzhe() { if (!dvkRezhim || !sverka || sverka.itog) return; clearTimeout(dvkTajmer); dvkTajmer = setTimeout(dvkSohranit, 400); }
+  async function dvkSohranit() {
+    if (!dvkRezhim || !sverka || !pal || sverka.itog) return;   // закрытую проверку не пересоздаём
+    try {
+      const o = await fetch("/__dvk/proverka", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: dvkId, паллета: sverka.imya, паллета_id: sverka.pid, состояние: dvkSost(), пломба: dvkPlomba,
+          всего: sverkaVsego(), проверено: Math.min(sverkaNashli(), sverkaVsego()) }) });
+      const d = await o.json().catch(() => ({}));
+      if (o.ok && d.id) dvkId = d.id;
+    } catch (e) { /* следующий пик сохранит */ }
+  }
+  async function dvkZakonchit(oshibok, otmena) {
+    clearTimeout(dvkTajmer);
+    if (!dvkId && !otmena) {
+      // ни разу не сохранилась (пикали без связи) — сохранить и сразу закрыть
+      const it = sverka.itog; sverka.itog = null; await dvkSohranit(); sverka.itog = it;
+    }
+    if (!dvkId) return;
+    try {
+      const o = await fetch("/__dvk/proverka/konec", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: dvkId, пломба: dvkPlomba, ошибок: oshibok, паллета: sverka ? sverka.imya : "",
+          проверено: Math.min(sverkaNashli(), sverkaVsego()), отмена: Boolean(otmena) }) });
+      const d = await o.json().catch(() => ({}));
+      dvkItogPlomby = d.пломба || "";
+    } catch (e) { dvkItogPlomby = `проверка не закрылась на сервере: ${e.message || e}`; }
+    dvkId = null;
   }
 
   async function sverkaAkt(kod) {
@@ -694,6 +793,7 @@
     if (x && sverka.nashli.get(x.ключ)) { sverka.posl = `акт ${akt} уже отмечен`; zvukPik("oshibka"); risovat(); return; }
     if (!x && sverka.lishnie.some((l) => String(l.акт) === akt)) { sverka.posl = `акт ${akt} уже в излишках`; zvukPik("oshibka"); risovat(); return; }
     if (x) { sverka.nashli.set(x.ключ, x.штук || 1); sverka.posl = `✓ ${x.товар}`; zvukPik("ok"); }
+    sverka.poslAkt = akt;
     sverka.zhdut += 1; risovat();
     try {
       // свой акт — проверить категорию; чужой — где числится по ВМС и кто клал
@@ -711,7 +811,7 @@
     } catch (e) {
       if (!x) sverka.lishnie.push({ акт: akt, товар: "", где: [], кто: null, вид: "Излишек", комм: `ВМС не ответила: ${e.message || e}` });
     } finally {
-      sverka.zhdut -= 1; risovat();
+      sverka.zhdut -= 1; risovat(); dvkPozzhe();
     }
   }
 
@@ -730,7 +830,7 @@
       sverka.lishnie.push({ акт: "", товар: imya, где: [], кто: null, цена: t.price || "", вид: "Излишек", комм: "без акта, по штрихкоду" });
       sverka.posl = `излишек без акта: ${imya}`; zvukPik("oshibka");
     }
-    risovat();
+    risovat(); dvkPozzhe();
   }
 
   function sverkaStroka(vid, o) {
@@ -758,6 +858,7 @@
       if (!o.ok) throw new Error(d.ошибка || `сервер ответил ${o.status}`);
       sverka.itog = d.строки || stroki;
       sverka.posl = "";
+      if (dvkRezhim) await dvkZakonchit(stroki.length, false);
       sverkaPosl = { когда: "только что", кто: "вы", всего: sverkaVsego(), совпало: Math.min(sverkaNashli(), sverkaVsego()), ошибок: stroki.length };
     } catch (e) {
       sverka.itog = stroki;
@@ -781,6 +882,7 @@
     if (!sverka) sverkaNachat();
     const N = sverkaVsego();
     const n = Math.min(sverkaNashli(), N);
+    if (dvkRezhim) return blokDvk(N, n);
     const posl = sverkaPosl ? `<p class="aktPs__chto">Прошлая сверка: ${esc(sverkaPosl.когда)} · ${esc(sverkaPosl.кто)} · сошлось ${sverkaPosl.совпало} из ${sverkaPosl.всего}, ошибок ${sverkaPosl.ошибок}</p>` : "";
     if (sverka.itog) {
       const it = sverka.itog;
@@ -805,6 +907,48 @@
       <div class="aktPs__vopros"><button type="button" class="aktPs__kn is-on" data-sverka="konec"${sverka.zhdut ? " disabled" : ""}>Закончить сверку${N - n > 0 ? ` · не пикнуто ${N - n} — в недостачу` : ""}</button>
         <button type="button" class="aktPs__kn" data-sverka="sbros">Сначала</button></div>
       ${posl}
+    </div>`;
+  }
+
+  // Блок проверки ДВК: остаток, последний пикнутый (дефект, цена, категория), излишки, пломба, итог.
+  const rubl = (v) => (v || v === 0 ? `${Number(v).toLocaleString("ru-RU", { maximumFractionDigits: 0 })} ₽` : "");
+  function blokDvk(N, n) {
+    const ost = N - n;
+    const zag = `<div class="dvk__schet"><div><b>${n}</b><span>проверено</span></div><div class="is-ost"><b>${ost}</b><span>осталось</span></div><div><b>${N}</b><span>на контейнере по WMS</span></div></div>`;
+    if (sverka.itog) {
+      const it = sverka.itog;
+      return `<div class="sverka dvk">${zag}
+        <div class="sverka__schet"><b>${it.length ? it.length : "✓"}</b><span>${it.length ? "ошибок по контейнеру — записаны в журнал, по каждой ниже виновный и ушло ли уведомление" : "всё сошлось с WMS"}</span></div>
+        ${dvkPlomba ? `<p class="aktPs__chto">пломба <b>${esc(dvkPlomba)}</b>${dvkItogPlomby ? ` · ${esc(dvkItogPlomby)}` : ""}</p>` : ""}
+        ${sverka.posl ? `<p class="aktPs__net"><b class="aktPs__oshibka">${esc(sverka.posl)}</b></p>` : ""}
+        ${it.length ? `<div class="sverka__spisok">${it.map((s) => `<p><b>${esc(s["Вид ошибки"])}</b> ${s["Номер акта"] ? `акт ${esc(s["Номер акта"])} · ` : ""}${esc(s["Товар"])}
+          <span>${esc(s["Программное размещение"] || "")}${s["Виновный"] ? ` · виновный: ${esc(s["Виновный"])}` : ""}${s["Уведомление"] ? ` · уведомление: ${esc(s["Уведомление"])}` : ""}</span></p>`).join("")}</div>` : ""}
+        <div class="aktPs__vopros">${it.length ? '<button type="button" class="aktPs__kn" data-sverka="excel">Excel</button>' : ""}
+          <button type="button" class="aktPs__kn is-on" data-sverka="novaya">Проверить заново</button></div></div>`;
+    }
+    const pa = sverka.poslAkt;
+    const px = pa && pal.строки.find((x) => String(x.акт) === String(pa));
+    const df = pa && dvkDef[pa];
+    const posl = pa ? `<div class="dvk__posl"><p class="aktPs__zag">Последний пикнутый</p>
+        <b><button type="button" class="palStroka__aktKn" data-akt-detal="${esc(pa)}">акт ${esc(pa)}</button> · ${esc(px ? px.товар : (sverka.lishnie.find((l) => String(l.акт) === String(pa)) || {}).товар || "")}</b>
+        <dl class="dvk__polya">
+          <dt>дефект</dt><dd>${esc(df ? df.дефект || "—" : "…")}</dd>
+          <dt>стоимость</dt><dd>${esc(rubl(px && px.цена) || rubl(df && df.цена_акта) || "—")}${px && px.цена && df && df.цена_акта ? ` · в акте ${esc(rubl(df.цена_акта))}` : ""}</dd>
+          <dt>категория</dt><dd>${px ? katPal(px) : "—"}</dd>
+          ${df && df.вид ? `<dt>вид обращения</dt><dd>${esc(df.вид)}</dd>` : ""}
+        </dl></div>` : "";
+    const kat = [...sverka.kat.values()];
+    return `<div class="sverka dvk">${zag}
+      <p class="aktPs__chto">${sverka.posl ? esc(sverka.posl) : "Пикайте акты с контейнера по одному. Товар остаётся на месте — в WMS ничего не двигается. Без акта — штрихкодом товара."}${sverka.zhdut ? " · проверяю в WMS…" : ""}</p>
+      ${posl}
+      ${sverka.lishnie.length ? `<p class="aktPs__zag">Лежат здесь, по WMS — не здесь · ${sverka.lishnie.length}</p><div class="sverka__spisok">${sverka.lishnie.map((l) => `<p><b>${l.акт ? `<button type="button" class="palStroka__aktKn" data-akt-detal="${esc(l.акт)}">акт ${esc(l.акт)}</button>` : "без акта"}</b> ${esc(l.товар)}
+        <span>${l.вид === "Не принят в ВМС" ? "акт не принят в WMS" : `числится: ${esc(gdeStr(l.где))}`}${l.кто ? ` · клал(а) ${esc(l.кто.кто)} ${esc(l.кто.когда)}` : ""}</span></p>`).join("")}</div>` : ""}
+      ${kat.length ? `<p class="aktPs__zag">Не та категория · ${kat.length}</p><div class="sverka__spisok">${kat.map((k) => `<p><b>акт ${esc(k.акт)}</b> ${esc(k.товар)}
+        <span>нужна «${esc(k.нужна)}»${k.кто ? ` · клал(а) ${esc(k.кто.кто)} ${esc(k.кто.когда)}` : ""}</span></p>`).join("")}</div>` : ""}
+      <label class="dvk__plomba"><span>Пломба</span><input id="dvkPlomba" inputmode="numeric" autocomplete="off" placeholder="номер пломбы" value="${esc(dvkPlomba)}"></label>
+      <div class="aktPs__vopros"><button type="button" class="aktPs__kn is-on" data-sverka="konec"${sverka.zhdut ? " disabled" : ""}>Закончить проверку${ost > 0 ? ` · не пикнуто ${ost} — в недостачу` : ""}</button>
+        <button type="button" class="aktPs__kn" data-sverka="sbros">Сначала</button></div>
+      <p class="aktPs__chto">Ошибки по итогу пишутся с виновным (кто клал пикалкой) и уведомлением${dvkProshlaya ? ` · прошлая проверка: ${esc(dvkProshlaya.когда)}, ${esc(dvkProshlaya.кто)}, ${dvkProshlaya.проверено} из ${dvkProshlaya.всего}, ошибок ${dvkProshlaya.ошибок}${dvkProshlaya.пломба ? `, пломба ${esc(dvkProshlaya.пломба)}` : ""}` : ""}</p>
     </div>`;
   }
 
@@ -2596,7 +2740,7 @@
     if (zhdemOtkuda()) { otkudaPoPallete(e.detail.kod); return; }
     if (massPik && korzAkty.length && !korzina.length) { aktyCel({ palleta: e.detail.kod, yacheyka: "" }); return; }
     if (massPik) { vKorzinu(e.detail.kod); return; }
-    if (aktK && aktK.живьём && aktK.где && aktK.где.length && !(aktPer && aktPer.itog && aktPer.itog.ok)) { aktVPalletu(e.detail.kod); return; }
+    if (!dvkRezhim && aktK && aktK.живьём && aktK.где && aktK.где.length && !(aktPer && aktPer.itog && aktPer.itog.ok)) { aktVPalletu(e.detail.kod); return; }
     if (pal && palPer && palPer.zhdemPal) { peremestitPalletu(palPer.yach, false, e.detail.kod); return; }
     otkrytPalletu(e.detail.kod);
   });
@@ -2711,6 +2855,7 @@
   naPaneli("input", (e) => {
     if (e.target.dataset && e.target.dataset.oshPole && oshAkt) { oshAkt[e.target.dataset.oshPole] = e.target.value; return; }
     if (e.target.id === "izlKod" && izl) { izl.kod = e.target.value; return; }
+    if (e.target.id === "dvkPlomba") { dvkPlomba = e.target.value.trim(); dvkPozzhe(); return; }
     if (e.target.dataset && "izlZap" in e.target.dataset && izl) { izl.zapisat = e.target.checked; return; }
     if (e.target.id === "palPoisk") {
       palPoisk = e.target.value;
@@ -3053,6 +3198,11 @@
       const t = svk.dataset.sverka;
       if (t === "konec") sverkaKonec();
       else if (t === "excel") sverkaExcel();
+      else if (dvkRezhim) {
+        // «Сначала» — отменить начатую проверку на сервере; «Проверить заново» — новая с нуля
+        if (t === "sbros" && !confirm("Начать проверку сначала? Отмеченное сотрётся.")) return;
+        (t === "sbros" && dvkId ? dvkZakonchit(0, true) : Promise.resolve()).then(() => { dvkOtkryt(); risovat(); vFokus(); });
+      }
       else { sverkaNachat(); risovat(); vFokus(); }
       return;
     }

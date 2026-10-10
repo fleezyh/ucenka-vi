@@ -852,3 +852,19 @@ body.cSkin.is-svetlo .cPech input { background: #fff; }
 /* 08.10 ГСМ — не продаём: плитка паллеты красная */
 body.cGsm .cT--pal { background: linear-gradient(135deg, rgba(240,93,114,.18), var(--cTile) 65%); border-color: rgba(240,93,114,.6); }
 body.cGsm .cT--pal #aPal b { color: #ff6f82; }
+.cRezh--dvk.is-on{background:rgba(52,199,123,.18);border-color:#34c77b;color:#7ff0b4}
+.dvk__schet{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.dvk__schet div{display:grid;gap:2px;padding:10px 12px;border:1px solid var(--line,#263345);border-radius:12px;background:#0d1320}
+.dvk__schet b{font-size:28px;line-height:1.1;font-weight:600}
+.dvk__schet span{color:var(--muted);font-size:12.5px}
+.dvk__schet .is-ost{border-color:rgba(240,180,60,.5)}
+.dvk__schet .is-ost b{color:#f3c56b}
+.dvk__posl{padding:10px 12px;border:1px solid rgba(123,92,240,.45);border-radius:12px;background:rgba(123,92,240,.06);margin:8px 0}
+.dvk__polya{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:8px 0 0;font-size:14px}
+.dvk__polya dt{color:var(--muted)}
+.dvk__polya dd{margin:0}
+.dvk__plomba{display:flex;gap:10px;align-items:center;margin:10px 0}
+.dvk__plomba span{color:var(--muted)}
+.dvk__plomba input{flex:1;min-width:0;height:40px;padding:0 12px;border-radius:10px;border:1px solid var(--line,#263345);background:#0d1320;color:var(--text,#fff);font:inherit}
+.palStroka.is-dvk .palStroka__tovar{white-space:normal}
+.palStroka__dvk{display:block;margin-top:2px;color:#f3c56b;font-size:13px;font-weight:400}
