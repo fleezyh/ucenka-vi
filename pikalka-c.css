@@ -868,8 +868,10 @@ body.cGsm .cT--pal #aPal b { color: #ff6f82; }
 .dvk__plomba input{flex:1;min-width:0;height:40px;padding:0 12px;border-radius:10px;border:1px solid var(--line,#263345);background:#0d1320;color:var(--text,#fff);font:inherit}
 .palStroka.is-dvk .palStroka__tovar{white-space:normal}
 .palStroka__dvk{display:block;margin-top:2px;color:#f3c56b;font-size:13px;font-weight:400}
-body.cSkin .cField #cMass{width:56px;min-width:56px;padding:0;position:relative;margin-right:8px}
+body.cSkin .cField #cMass{width:56px;min-width:56px;padding:0;position:relative}
 body.cSkin .cField #cMass.is-on{background:#7b5cf0;border-color:#7b5cf0;color:#fff}
 #cMass .cBadge{position:absolute;top:-7px;right:-7px}
 .cDvkMetka{color:#7ff0b4;font-weight:600}
 .cRi[hidden]{display:none!important}
+/* 10.10 Степан: «на компе сканер камерой не нужен, на телефоне нужен» — камера только там, где палец, а не мышь */
+@media (hover: hover) and (pointer: fine) { body.cSkin .cField #kamera { display: none; } }
