@@ -876,3 +876,6 @@ body.cSkin .cField #cMass.is-on{background:#7b5cf0;border-color:#7b5cf0;color:#f
 .cRi[hidden]{display:none!important}
 /* 10.10 Степан: «на компе сканер камерой не нужен, на телефоне нужен» — камера только там, где палец, а не мышь */
 @media (hover: hover) and (pointer: fine) { body.cSkin .cField #kamera { display: none; } }
+.dvk__seichas{margin:10px 0 0;padding:8px 12px;border-radius:10px;background:rgba(52,199,123,.1);border:1px solid rgba(52,199,123,.35);font-size:14px}
+.dvk__seichas b{color:#7ff0b4}
+.dvk__seichas.is-net{background:rgba(240,180,60,.08);border-color:rgba(240,180,60,.35);color:#f3c56b}

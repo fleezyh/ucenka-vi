@@ -257,6 +257,7 @@
   let dvkId = null;          // id проверки на сервере
   let dvkPlomba = "";
   let dvkProshlaya = null;   // прошлая законченная проверка этой паллеты
+  let dvkPlombaSeichas = null;   // пломба, что висит сейчас: книга ДВК или внесённая в системе
   let dvkDef = {};           // акт → { дефект, цена_акта, вид }
   let dvkItogPlomby = "";   // 07.10 «а где сверка»: нажали «Сверка» в меню — следующая паллета открывается на ней
   let sverka = null;
@@ -727,7 +728,7 @@
   async function dvkOtkryt() {
     palTab = "sverka"; palPer = null; palDb = null;
     sverkaNachat();
-    dvkId = null; dvkPlomba = ""; dvkProshlaya = null; dvkItogPlomby = "";
+    dvkId = null; dvkPlomba = ""; dvkProshlaya = null; dvkItogPlomby = ""; dvkPlombaSeichas = null;
     const akty = pal.строки.filter((x) => x.акт).map((x) => x.акт);
     if (akty.length) {
       chitat(`/__dvk/defekty?akty=${akty.join(",")}`).then((d) => { dvkDef = { ...dvkDef, ...d }; risovat(); }).catch(() => {});
@@ -736,6 +737,7 @@
     try {
       const d = await chitat(`/__dvk/proverka?palleta_id=${encodeURIComponent(pal.паллета_id)}`);
       dvkProshlaya = d.прошлая || null;
+      dvkPlombaSeichas = d.пломба_сейчас || null;
       const p = d.проверка;
       if (p && sverka && String(sverka.pid) === String(p.паллета_id)) {
         dvkId = p.id; dvkPlomba = p.пломба || "";
@@ -939,7 +941,9 @@
         <span>${l.вид === "Не принят в ВМС" ? "акт не принят в WMS" : `числится: ${esc(gdeStr(l.где))}`}${l.кто ? ` · клал(а) ${esc(l.кто.кто)} ${esc(l.кто.когда)}` : ""}</span></p>`).join("")}</div>` : ""}
       ${kat.length ? `<p class="aktPs__zag">Не та категория · ${kat.length}</p><div class="sverka__spisok">${kat.map((k) => `<p><b>акт ${esc(k.акт)}</b> ${esc(k.товар)}
         <span>нужна «${esc(k.нужна)}»${k.кто ? ` · клал(а) ${esc(k.кто.кто)} ${esc(k.кто.когда)}` : ""}</span></p>`).join("")}</div>` : ""}
-      <label class="dvk__plomba"><span>Пломба</span><input id="dvkPlomba" inputmode="numeric" autocomplete="off" placeholder="номер пломбы" value="${esc(dvkPlomba)}"></label>
+      ${dvkPlombaSeichas ? `<p class="dvk__seichas">Сейчас на паллете пломба <b>${esc(dvkPlombaSeichas.пломба)}</b> · ${esc([dvkPlombaSeichas.проверил, dvkPlombaSeichas.когда, dvkPlombaSeichas.статус, dvkPlombaSeichas.источник].filter(Boolean).join(" · "))}</p>`
+        : '<p class="dvk__seichas is-net">Пломбы на паллете нет — ни в книге ДВК, ни в системе</p>'}
+      <label class="dvk__plomba"><span>${dvkPlombaSeichas ? "Новая пломба" : "Пломба"}</span><input id="dvkPlomba" inputmode="numeric" autocomplete="off" placeholder="номер пломбы" value="${esc(dvkPlomba)}"></label>
       <div class="aktPs__vopros"><button type="button" class="aktPs__kn is-on" data-sverka="konec"${sverka.zhdut ? " disabled" : ""}>Закончить проверку${ost > 0 ? ` · не пикнуто ${ost} — в недостачу` : ""}</button>
         <button type="button" class="aktPs__kn" data-sverka="sbros">Сначала</button></div>
       <p class="aktPs__chto">Ошибки по итогу пишутся с виновным (кто клал пикалкой) и уведомлением${dvkProshlaya ? ` · прошлая проверка: ${esc(dvkProshlaya.когда)}, ${esc(dvkProshlaya.кто)}, ${dvkProshlaya.проверено} из ${dvkProshlaya.всего}, ошибок ${dvkProshlaya.ошибок}${dvkProshlaya.пломба ? `, пломба ${esc(dvkProshlaya.пломба)}` : ""}` : ""}</p>
