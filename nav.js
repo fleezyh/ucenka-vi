@@ -268,9 +268,9 @@
   const KONTURY = [
     { imya: "Управленческий", razdel: ["/heatmap", "/zp/fot"],
       pod: [["Хитмап", "/heatmap/", "heatmap"], ["ФОТ", "/zp/fot", "salary_team"]] },
-    { imya: "Операционный", razdel: ["/perf", "/people", "/launch", "/priyomka"],
+    { imya: "Операционный", razdel: ["/perf", "/people", "/launch", "/priyomka", "/3pl"],
       pod: [["Производительность", "/perf/", "perf"], ["Паноптикум", "/people/", "people"],
-            ["Данилово", "/launch/", "launch"], ["Приёмка ДМД", "/priyomka/", "priyomka"]] },
+            ["Данилово", "/launch/", "launch"], ["Приёмка ДМД", "/priyomka/", "priyomka"], ["3PL ГСМ", "/3pl/", "tpl"]] },
     { imya: "Проектный", razdel: ["/antigen"],
       pod: [["Брак", "/antigen/", "antigen"], ["Отправка ОЛ с регионов", "/antigen/mashiny/", "mashiny"], ["Экономика позиций", "/antigen/ekonomika/", "ekonomika"]] },
     { imya: "Коммерческий", razdel: ["/sales", "/crm", "/soglas"],
