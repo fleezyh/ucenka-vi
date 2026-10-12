@@ -28,6 +28,7 @@
      legendaLinii: "день", vysota: 280,
      klik: (i) => {},             // клик по точке
      zony: [{ s, po, podpis, klass: "do|perehod|posle" }],   // подписанные полосы фона по оси
+     ugol: true,                  // числа над точками под 45°, а не столбиком (12.10, 3PL)
    }) → HTMLElement
 */
 (() => {
@@ -183,7 +184,7 @@
     const mode = n <= 31 ? "flat" : n <= 125 ? "tall" : "sparse";
     const W = 1000;
     const H = o.vysota || 280;
-    const padTop = mode === "flat" ? 30 : 62;
+    const padTop = o.ugol ? 66 : mode === "flat" ? 30 : 62;
     const padBottom = mode === "flat" ? 24 : 10;
     const padX = n > 1 ? 16 : 0;
     const x = (i) => (n === 1 ? W / 2 : padX + (i / (n - 1)) * (W - 2 * padX));
@@ -300,12 +301,12 @@
       if (i % every && !extreme && i !== posledniy) return;
       const prev = values[i - 1];
       const next = values[i + 1];
-      const valley = mode === "flat" && n > 2 && !over
+      const valley = !o.ugol && mode === "flat" && n > 2 && !over
         && (prev == null || v < prev) && (next == null || v < next);
       const pin = document.createElement("b");
       pin.className = "vg__pin"
         + (valley ? " is-below" : "")
-        + (mode !== "flat" ? " is-tall" : "")
+        + (o.ugol ? " is-ugol" : mode !== "flat" ? " is-tall" : "")
         + (i === 0 && mode === "flat" ? " is-first" : "")
         + (i === posledniy ? " is-last" : "")
         + (over ? " is-over" : "")

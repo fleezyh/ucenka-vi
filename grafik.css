@@ -78,6 +78,10 @@
 .vg__pin.is-over { color: #ff8a9a; }
 .vg__pin.is-vybrano { color: #fff; font-size: 13px; }
 .vg__pin.is-tall { writing-mode: vertical-rl; font-size: 10px; transform: translate(-50%, calc(-100% - 6px)) rotate(180deg); }
+/* Числа под углом (опция ugol): левый нижний угол подписи — над точкой, текст уходит вправо-вверх;
+   у последней — так же, только крупнее. */
+.vg__pin.is-ugol, .vg__pin.is-ugol.is-first { font-size: 10.5px; transform-origin: 0 100%; transform: translate(-3px, calc(-100% - 7px)) rotate(-45deg); }
+.vg__pin.is-ugol.is-last { font-size: 11.5px; transform-origin: 0 100%; transform: translate(-3px, calc(-100% - 7px)) rotate(-45deg); }
 
 .vg__axis { position: relative; height: 18px; margin: 6px 0 0 58px; color: var(--muted, #8f9cad); font-size: 11px; font-feature-settings: "tnum" 0, "pnum" 1; }
 .vg__axis span { position: absolute; top: 0; transform: translateX(-50%); white-space: nowrap; }

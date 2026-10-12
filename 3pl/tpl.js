@@ -84,10 +84,12 @@
 
   function grafik(tochki, o = {}) {
     return window.ViGrafik.sozdat({
-      tochki, format: o.format || ((v) => (Math.abs(v) >= 10000 ? window.ViGrafik.shortNumber(v) : one(v))),
+      // над точкой коротко («167к», «1,2 млн») — под углом длинные подписи налезают на соседей; точно — в подсказке
+      tochki, format: o.format || ((v) => (Math.abs(v) >= 1e6 ? `${one(v / 1e6)} млн` : Math.abs(v) >= 10000 ? `${Math.round(v / 1000)}к` : one(v))),
       formatTochno: o.formatTochno || one, edinica: o.edinica || "", otNulya: o.otNulya !== false, trend: 0,
       mediana: false, linii: o.linii || [], legendaLinii: o.legenda || "", vysota: o.vysota || 260, klik: o.klik,
       zony: o.zony || [],
+      ugol: true,
     });
   }
 
