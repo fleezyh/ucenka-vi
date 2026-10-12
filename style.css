@@ -1387,3 +1387,12 @@ body.vmsPlg .layout { grid-template-columns: 1fr !important; }
 .pickerZamok--nazad { border-style: solid; color: var(--text); cursor: pointer; }
 .pickerZamok.is-drozh { animation: pickerDrozh .35s; }
 @keyframes pickerDrozh { 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
+/* Массовый пик актов: кликабельная карточка и короткая строка дефекта. */
+.korzAkty .palStroka { align-items: start; }
+.korzAkty .palStroka__tovar { display: flex; flex-direction: column; align-items: flex-start; gap: 3px;
+  white-space: normal; overflow: hidden; text-overflow: clip; }
+.korzAkty .palStroka__actOpen { max-width: 100%; padding: 0; border: 0; background: transparent; color: inherit;
+  font: inherit; font-weight: 600; text-align: left; cursor: pointer; }
+.korzAkty .palStroka__actOpen:hover { color: var(--accent, #a78bfa); text-decoration: underline; }
+.korzAkty .palStroka__defect { display: block; max-width: 100%; overflow: hidden; color: var(--muted);
+  font-size: 11px; line-height: 1.25; white-space: nowrap; text-overflow: ellipsis; }

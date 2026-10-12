@@ -37,7 +37,7 @@
       <p class="aktDet__pod">фото ${ft.length} · загрузил(а): ${esc([...new Set(ft.map((f) => f.кто))].join(", "))} · ${esc(ft[0].когда)}</p>`;
   }
   function istoriya(d) {
-    return `${d.ошибки.length ? `<section><h4>Ошибки ДВК по акту · ${d.ошибки.length}</h4>${d.ошибки.map((o) => `<p class="aktDet__str is-osh"><b>${esc(o.когда)} · ${esc(o.вид)}</b> на ${esc(o.контейнер || "—")} · записал(а) ${esc(o.записал)}${o.виновный ? ` · виновный: ${esc(o.виновный)}` : ""}${o.основание ? `<span>${esc(o.основание)}</span>` : ""}${o.комментарий ? `<span>${esc(o.комментарий)}</span>` : ""}</p>`).join("")}</section>` : ""}
+    return `${d.ошибки.length ? `<section><h4>Ошибки ДВК по акту · ${d.ошибки.length}</h4>${d.ошибки.map((o) => `<p class="aktDet__str is-osh"><b>${esc(o.когда)} · ${esc(o.вид)}</b> на ${esc(o.контейнер || "—")} · записал(а) ${esc(o.записал)} · ошибка от: ${esc(o.виновный || "не установлен")}${o.основание ? `<span>${esc(o.основание)}</span>` : ""}${o.комментарий ? `<span>${esc(o.комментарий)}</span>` : ""}</p>`).join("")}</section>` : ""}
       ${d.комментарии.length ? `<section><h4>Комментарии в WMS</h4>${d.комментарии.map((c) => `<p class="aktDet__str"><b>${esc(c.когда)} · ${esc(c.кто)}</b> ${esc(c.текст)}</p>`).join("")}</section>` : ""}
       ${(d.довоз || []).length ? `<section><h4>Довоз — отложенные и транзитные перекладки</h4>${d.довоз.map((v) => `<p class="aktDet__str${v.st === "err" ? " is-osh" : ""}"><b>${esc(v.когда)} · ${esc(v.кто)} → ${esc(v.куда || "—")} · ${{ ok: "доехала", wait: "в пути", err: "не доехала", skip: "пикнута заново" }[v.st] || ""}</b><span>${esc(v.t)}</span></p>`).join("")}</section>` : ""}
       <section><h4>Перекладки пикалкой · ${d.перекладки.length}</h4>

@@ -63,7 +63,7 @@
     document.body.classList.add("vmsRezhimVkl");
     document.title = "WMS · Пикалка";
     const scan = document.getElementById("scan");
-    const podpis = () => { if (scan && !scan.disabled && !/CON|CEL/.test(scan.placeholder) && !document.body.classList.contains("aTsd")) scan.placeholder = "штрихкод, CON …, CEL … или ACT …"; };
+    const podpis = () => { if (scan && !scan.disabled && !/CON|CEL/.test(scan.placeholder) && !document.body.classList.contains("aTsd")) scan.placeholder = "штрихкод, CON …, CEL …, ACT … или номер акта"; };
     [300, 1500, 4000, 9000].forEach((t) => setTimeout(podpis, t));
     const ryad = document.querySelector(".searchCard .searchRow");
     // 30.09, дизайн A (Степан выбрал из трёх макетов): под строкой скана «прорастают»
@@ -1105,6 +1105,7 @@
   let stolyVse = null;     // столы кнопками — без наклейки
   let vyborStola = false;
   let vozvrat = null;      // открыли паллету/акт из карточки товара — можно вернуться
+  let massAktViewing = false; // карточка открыта из массового списка актов
   // Под-режим ТСД (29.09): каждый скан ячейки — ещё и в форму «брак в ячейке» (tsd-rezhim.js).
   let podTsd = false;
   document.addEventListener("wms:pod", (e) => { podTsd = e.detail === "tsd"; });
@@ -1171,6 +1172,7 @@
       <p class="aktPs__chto">Из хранилища — акты за последние часы ещё не видны. Нажмите акт — где эта штука сейчас.</p>`;
   }
   function knopkaNazad() {
+    if (massAktViewing) return `<button type="button" class="aktPs__kn vmsNazad" data-nazad-mass-acts="1">← к списку актов</button>`;
     return vozvrat ? `<button type="button" class="aktPs__kn vmsNazad" data-nazad="1">← к товару</button>` : "";
   }
   async function chitat(url) {
@@ -1182,7 +1184,9 @@
 
   // 06.10: сканер на подставке сыпал одну наклейку 5 раз в секунду — тот же акт в течение 2 с не открываем заново
   let aktPosl = { kod: "", t: 0 };
-  async function otkrytAkt(kod) {
+  async function otkrytAkt(kod, izMassAkta = false) {
+    massAktViewing = Boolean(izMassAkta);
+    if (massAktViewing) vozvrat = null;
     if (kod === aktPosl.kod && Date.now() - aktPosl.t < 2000) return;
     aktPosl = { kod, t: Date.now() };
     if (svezhiy && nomerAkta(kod) !== svezhiy.nomer) svezhiy = null;
@@ -1354,7 +1358,28 @@
      сначала стоп «не принят» (принять можно), потом этот. Сервер тоже не перекладывает (akt_skan.KURERU). */
   const klientskiy = (a) => Boolean(a && a.живьём && a.особый && !neprinyat(a));
   let stopAkt = null;
+  /* 12.10 Бершацкая: «когда паллеты перекидываешь — ошибка про акт, этот акт вообще не из списка паллет». Акт 4095709
+     пикнут 11.10 в 16:49, стоп остался открытым на ночь — утром он гасил её паллеты. Теперь на стопе видно, когда пикнут,
+     а стоп с прошлой смены (другой день) снимается сам при первом пике — и пик проходит. */
+  const stopVremya = () => {
+    const t = stopAkt && stopAkt.__stopT;
+    if (!t) return "";
+    const d = new Date(t), hm = d.toTimeString().slice(0, 5);
+    return d.toDateString() === new Date().toDateString() ? `пикнут в ${hm}` : `пикнут ${d.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit" })} в ${hm}`;
+  };
+  function stopVcherashniySnyat() {
+    if (!stopAkt || !stopVcherashniy()) return false;
+    const a = stopAkt;
+    fetch("/__akt/otlozhil", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ акт: a.акт, товар: a.товар, наклейка: a.наклейка || "", стол: stol ? stol.имя : "", статус: a.статус || "",
+        причина: "стоп с прошлой смены снят сам при первом пике" }) }).catch(() => {});
+    stopSnyat();
+    signal(`снят вчерашний стоп по акту ${a.акт} — он остался открытым с прошлой смены`);
+    return true;
+  }
+  const stopVcherashniy = () => Boolean(stopAkt && stopAkt.__stopT && new Date(stopAkt.__stopT).toDateString() !== new Date().toDateString());
   function stopPokazat(a) {
+    a.__stopT = Date.now();
     stopAkt = a;
     const kl = klientskiy(a);
     let el = document.getElementById("aktStop");
@@ -1371,7 +1396,7 @@
       });
     }
     el.innerHTML = `<div class="aktStop__okno">
-        <p class="aktStop__nad">Акт №${esc(a.акт)}${a.статус ? ` · ${esc(a.статус.toLowerCase())}` : ""}</p>
+        <p class="aktStop__nad">Акт №${esc(a.акт)}${a.статус ? ` · ${esc(a.статус.toLowerCase())}` : ""} · ${esc(stopVremya())}</p>
         ${kl ? `<h2 class="aktStop__zag">Стоп. Товар клиента — ${esc(String(a.особый).toLowerCase())}</h2>
         <p class="aktStop__tovar">${esc(a.товар || "")}</p>
         <p class="aktStop__chto">Это не уценка: в паллету уценки <b>не класть</b>.
@@ -1494,6 +1519,7 @@
   // Пока стоп — любые пики гасим раньше остальных обработчиков (захват, этот файл грузится до pikalka-c.js).
   ["picker:hit", "picker:akt", "picker:palleta", "picker:miss"].forEach((tip) => document.addEventListener(tip, (e) => {
     if (!stopAkt && !ostatok) return;
+    if (stopVcherashniySnyat() && !ostatok) return;   // пик идёт дальше как обычный
     e.stopImmediatePropagation();
     const el = document.getElementById(stopAkt ? "aktStop" : "kontOst");
     if (el) { el.classList.remove("is-tryas"); void el.offsetWidth; el.classList.add("is-tryas"); }
@@ -2108,6 +2134,7 @@
       }
       const g = (d.где || [])[0] || {};
       Object.assign(z, { товар: d.товар || "", ячейка: g.ячейка || "", паллета: g.паллета || "", zhdu: false,
+        дефект: d.дефект || "", вид: d.вид || "",
         категория: d.категория || "", спорно: !!d.спорно, product_id: d.product_id,
         oshibka: (d.где || []).length ? "" : "на складе этой штуки нет" });
     } catch (e) {
@@ -2187,8 +2214,13 @@
       const kl = `${x.товар}|${x.паллета}|${x.ячейка}`;
       const pervyy = !x.zhdu && !x.oshibka && !gruppy.has(kl);
       if (pervyy) gruppy.add(kl);
+      const defekt = x.zhdu ? "загружаю…" : x.дефект !== undefined ? (x.дефект || "не указана") : "откройте акт";
       return `<div class="palStroka${x.oshibka ? " is-bez" : ""}">
-        <span class="palStroka__tovar">ACT ${x.akt} · ${esc(x.товар || "…")}${x.паллета || x.ячейка ? ` <i class="palStroka__kach">${esc(x.паллета || x.ячейка)}</i>` : ""}</span>
+        <span class="palStroka__tovar">
+          <button type="button" class="palStroka__actOpen" data-ka-otkryt="${esc(x.kod || ("ACT " + String(x.akt).padStart(10, "0")))}" title="Открыть акт">ACT ${x.akt} · ${esc(x.товар || "…")}</button>
+          <small class="palStroka__defect">Вид ошибки: ${esc(defekt)}${x.вид ? ` · вид акта: ${esc(x.вид)}` : ""}</small>
+          ${x.паллета || x.ячейка ? `<i class="palStroka__kach">${esc(x.паллета || x.ячейка)}</i>` : ""}
+        </span>
         <span class="palStroka__kat">${x.категория ? `<b>${esc(x.категория)}</b>${x.спорно ? ' <span class="aTag aTag--spor">спорно</span>' : ""}` : x.zhdu ? "" : '<i class="palStroka__nokat">категория —</i>'}</span>
         <span class="palStroka__sht">${x.zhdu ? "…" : x.oshibka ? `<b class="aktPs__oshibka">${esc(x.oshibka)}</b>` : pervyy ? `<button type="button" class="aLnk" data-ka-ryadom="${x.akt}">+ такие же отсюда</button>` : ""}</span>
         <span class="palStroka__akt"><button type="button" class="korzX" data-ka-ubrat="${x.akt}" title="Убрать из списка">×</button></span>
@@ -2337,14 +2369,48 @@
     const m = v.match(/^CON\s*(\d{5,12})$/i) || v.match(/^(?:[^\d\s].*-\s*)?(0\d{9})$/) || v.match(/^-\s*(\d{9,10})$/);
     return m && Number(m[1]) > 0 ? "CON " + m[1].padStart(10, "0") : "";
   }
+  // Разбирает один столбец из обычного текста, Excel и Markdown-таблицы.
+  // Много столбцов отклоняем, чтобы случайно не отправить лишние данные в массовый пик.
+  function listColumnValues(text) {
+    const result = [];
+    for (const source of String(text || "").split(/\r\n?|\n/)) {
+      let row = source.trim();
+      if (!row) continue;
+      if (row.includes("|")) {
+        row = row.replace(/^\|/, "").replace(/\|$/, "");
+        const cells = row.split("|").map((x) => x.trim()).filter((x, i, a) => !(i === 0 && !x) && !(i === a.length - 1 && !x));
+        if (cells.length !== 1) return null;
+        row = cells[0];
+      } else if (row.includes("\t")) {
+        const cells = row.split("\t").map((x) => x.trim()).filter((x, i, a) => !(i === 0 && !x) && !(i === a.length - 1 && !x));
+        if (cells.length !== 1) return null;
+        row = cells[0];
+      }
+      row = row.replace(/^['"]|['"]$/g, "").trim();
+      if (!row || /^:?-{3,}:?$/.test(row) || /^(?:акт|номер акта)$/i.test(row)) continue;
+      result.push(row);
+    }
+    return result;
+  }
+  function actCode(value) {
+    const raw = String(value || "").trim();
+    const v = (window.latinica || String)(raw);
+    const m = v.match(/^(?:(?:ACT|АКТ)\s*)?(\d{5,12})$/i);
+    if (!m) return "";
+    if (!/^(?:ACT|АКТ)/i.test(v) && palletCode(raw)) return "";
+    return "ACT " + m[1];
+  }
   function vstavitPallety(tekst) {
-    const stroki = String(tekst || "").split(/[\r\n,;\t]+/).map((x) => (window.latinica || String)(x.trim())).filter(Boolean);
+    stopVcherashniySnyat();
+    const stroki = listColumnValues(tekst);
+    if (!stroki) { signal("Список не загружен: вставьте один столбец актов или паллет."); return true; }
     if (stroki.length < 2) return false;
-    const akty = stroki.every((x) => /^(ACT|АКТ)\s?\d{5,12}$/i.test(x));
+    const actKody = stroki.map(actCode);
+    const akty = actKody.every(Boolean);
     const kody = stroki.map(palletCode);
-    if (!akty && kody.some((x) => !x)) { signal("Список не загружен: проверьте неизвестные наклейки. Нужен один столбец паллет или актов."); return true; }
-    if (korzVstavka) { signal("Дождитесь загрузки текущего списка паллет"); return true; }
-    const naKlad = [...new Set(akty ? stroki : kody)];
+    if (!akty && kody.some((x) => !x)) { signal("Список не загружен: проверьте номера. Нужен один столбец паллет или актов."); return true; }
+    if (korzVstavka) { signal("Дождитесь загрузки текущего списка актов или паллет"); return true; }
+    const naKlad = [...new Set(akty ? actKody : kody)];
     const existing = akty ? korzAkty.length : korzina.length;
     const additions = akty ? naKlad.length : naKlad.filter((k) => !korzina.some((x) => x.id === Number(k.slice(4)))).length;
     if (existing + additions > 2500) { signal("Список не загружен: максимум 2500 паллет или актов"); return true; }
@@ -2365,9 +2431,9 @@
   }
   document.addEventListener("paste", (e) => {
     if (e.target.id !== "scan" || !aktivno) return;
-    if (vstavitPallety((e.clipboardData || window.clipboardData)?.getData("text") || "")) e.preventDefault();
+    if (vstavitPallety((e.clipboardData || window.clipboardData)?.getData("text") || "")) { e.preventDefault(); e.stopImmediatePropagation(); }
   });
-  // 30.09: вставку списка паллет разбирает pikalka-a.js — WMS мог быть выключен, он включает и отдаёт сюда.
+  // Вставку списка паллет или актов из поля разбирает pikalka-c.js — при выключенном WMS он включает режим и отдаёт сюда.
   document.addEventListener("wms:vstavka", (e) => { if (aktivno) vstavitPallety(e.detail); });
 
   function signal(tekst) {
@@ -2525,7 +2591,7 @@
         <p class="aktPs__rezhim">${sht} шт · без акта ${bez} · ${korzVstavka ? `загружаю ${korzVstavka.done} из ${korzVstavka.total}` : "пикайте ещё или выберите действие"}</p></div></header>
       ${korzina.length ? `<div class="korzAdrKn"><button type="button" class="aktPs__kn${korzAdr ? " is-on" : ""}" data-kz-adr>адреса таблицей</button>
         <button type="button" class="aktPs__kn" data-kz-kop="vse">копировать всё (в Excel)</button>${korzKop ? `<span class="aktPs__chto">${esc(korzKop)}</span>` : ""}</div>` : ""}
-      ${tablica || (korzina.length ? `<div class="palSpisok">${spisok}</div>` : korzAkty.length ? "" : '<p class="aktPs__chto">Список пуст — пикайте паллеты (CON …), акты (ACT …) или вставьте список.</p>')}
+      ${tablica || (korzina.length ? `<div class="palSpisok">${spisok}</div>` : korzAkty.length ? "" : '<p class="aktPs__chto">Список пуст — пикайте паллеты (CON …), акты (ACT … или номер) или вставьте один столбец.</p>')}
       ${blokAktySpisok()}`;
     const akty = blokAktyKuda() + (korzRezhim === "priyom" ? blokPriyoma() : "");
     if (!deyEl()) { box.innerHTML = glav + knopkiKorz + blok + scQueueBlock() + akty + log; return; }
@@ -2646,6 +2712,7 @@
   function risovat() {
     if (!aktivno) return;
     risovatPolosu();
+    if (massPik && massAktViewing && aktK) { box.hidden = false; risovatAkt(); box.insertAdjacentHTML("afterbegin", knopkaNazad()); return; }
     if (massPik) { box.hidden = false; vRezhimPalety(true); risovatKorzinu(); return; }
     if (aktK && !pal) { box.hidden = false; risovatAkt(); box.insertAdjacentHTML("afterbegin", knopkaNazad()); return; }
     if (yach && !pal) { box.hidden = false; risovatYacheyku(); return; }
@@ -3225,6 +3292,10 @@
     const zapomnit = () => { if (tovar && !vozvrat) vozvrat = { tovar, gdeT, aktyT, reshenie }; };
     const ao = e.target.closest("[data-akt-otkryt]");
     if (ao) { zapomnit(); otkrytAkt(ao.dataset.aktOtkryt); return; }
+    if (e.target.closest("[data-nazad-mass-acts]") && massAktViewing) {
+      massAktViewing = false; aktK = null; aktPer = null; vozvrat = null;
+      return risovat();
+    }
     if (e.target.closest("[data-nazad]") && vozvrat) {
       const v = vozvrat; vozvrat = null;
       pal = null; aktK = null; yach = null; palPer = null; istP = null; vRezhimPalety(false);
@@ -3289,6 +3360,8 @@
     }
     const prm = e.target.closest("[data-pr-marshrut]");
     if (prm && priyom && !priyom.idet) { priyom = { marshrut: prm.dataset.prMarshrut, plany: {} }; priyomProverit(); return risovat(); }
+    const kao = e.target.closest("[data-ka-otkryt]");
+    if (kao) { otkrytAkt(kao.dataset.kaOtkryt, true); return; }
     const kar = e.target.closest("[data-ka-ryadom]");
     if (kar) { aktyRyadom(Number(kar.dataset.kaRyadom)); return; }
     const kau = e.target.closest("[data-ka-ubrat]");

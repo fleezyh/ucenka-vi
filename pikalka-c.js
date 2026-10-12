@@ -261,6 +261,37 @@
     const m = v.match(/^CON\s*(\d{5,12})$/i) || v.match(/^(?:[^\d\s].*-\s*)?(0\d{9})$/) || v.match(/^-\s*(\d{9,10})$/);
     return m && Number(m[1]) > 0 ? "CON " + m[1].padStart(10, "0") : "";
   }
+  // Разбирает один столбец из обычного текста, Excel и Markdown-таблицы.
+  // Много столбцов отклоняем, чтобы случайно не отправить лишние данные в массовый пик.
+  function listColumnValues(text) {
+    const result = [];
+    for (const source of String(text || "").split(/\r\n?|\n/)) {
+      let row = source.trim();
+      if (!row) continue;
+      if (row.includes("|")) {
+        row = row.replace(/^\|/, "").replace(/\|$/, "");
+        const cells = row.split("|").map((x) => x.trim()).filter((x, i, a) => !(i === 0 && !x) && !(i === a.length - 1 && !x));
+        if (cells.length !== 1) return null;
+        row = cells[0];
+      } else if (row.includes("\t")) {
+        const cells = row.split("\t").map((x) => x.trim()).filter((x, i, a) => !(i === 0 && !x) && !(i === a.length - 1 && !x));
+        if (cells.length !== 1) return null;
+        row = cells[0];
+      }
+      row = row.replace(/^['"]|['"]$/g, "").trim();
+      if (!row || /^:?-{3,}:?$/.test(row) || /^(?:акт|номер акта)$/i.test(row)) continue;
+      result.push(row);
+    }
+    return result;
+  }
+  function actCode(value) {
+    const raw = String(value || "").trim();
+    const v = (window.latinica || String)(raw);
+    const m = v.match(/^(?:(?:ACT|АКТ)\s*)?(\d{5,12})$/i);
+    if (!m) return "";
+    if (!/^(?:ACT|АКТ)/i.test(v) && palletCode(raw)) return "";
+    return "ACT " + m[1];
+  }
   const WMS_KOD = /^(?:ACT|АКТ|CON|CEL)\s?\d{5,12}$/i;
   const poNazvaniyu = (v) => /[A-Za-zА-Яа-яЁё]/.test(v) && v.length >= 3 && !KOD.test(v) && !PALLETA_IMYA.test(v)
     && !WMS_KOD.test((window.latinica || String)(v));
@@ -269,6 +300,13 @@
     const v = (scan?.value || "").trim();
     if (!v) return;
     const lat = (window.latinica || String)(v);
+    // Голый номер акта распознаём только внутри включённого WMS-режима;
+    // номера товара и паллет в обычной Пикалке остаются обычным поиском.
+    if (window.__aktPs && /^\d{5,12}$/.test(lat) && !palletCode(v)) {
+      e.preventDefault(); e.stopImmediatePropagation(); scan.value = "";
+      document.dispatchEvent(new CustomEvent("picker:akt", { detail: { kod: "ACT " + lat } }));
+      return;
+    }
     // Наклейка WMS при выключенном WMS: включаем и отдаём скан дальше.
     if (!window.__aktPs && (WMS_KOD.test(lat) || (v.length <= 60 && PALLETA_IMYA.test(v)) || /^0\d{9}$/.test(v))) {
       e.preventDefault(); e.stopImmediatePropagation();
@@ -298,25 +336,34 @@
   document.addEventListener("paste", (e) => {
     if (e.target.id !== "scan") return;
     const tekst = (e.clipboardData || window.clipboardData)?.getData("text") || "";
-    const stroki = tekst.split(/[\r\n]+/).map((x) => x.trim()).filter(Boolean);
-    const kuski = tekst.split(/[\r\n,;\t]+/).map((x) => x.trim()).filter(Boolean);
+    const kuski = listColumnValues(tekst);
+    const tableLike = /[|\t]/.test(tekst);
+    const parts = kuski || tekst.split(/[\r\n,;\t]+/).map((x) => x.trim()).filter(Boolean);
     const lat = (x) => (window.latinica || String)(x);
-    const allPallets = kuski.length >= 2 && kuski.every((x) => palletCode(x));
-    const allActs = kuski.length >= 2 && kuski.every((x) => /^(ACT|АКТ)\s?\d{5,12}$/i.test(lat(x)));
+    const aktMode = !!window.__aktPs || (vklWms && (B.dataset.mode || "ucenka") !== "costlist");
+    const allPallets = parts.length >= 2 && parts.every((x) => palletCode(x));
+    const allActs = parts.length >= 2 && aktMode && parts.every((x) => actCode(x));
+    if (tableLike && !kuski) {
+      e.preventDefault(); e.stopImmediatePropagation();
+      const msg = document.getElementById("message");
+      if (msg) { msg.textContent = "Список не загружен: вставьте один столбец актов или паллет."; msg.className = "message warn"; }
+      return;
+    }
     if (allPallets || allActs) {
       e.preventDefault(); e.stopImmediatePropagation();
       rezhim("ucenka");
-      const otdat = () => document.dispatchEvent(new CustomEvent("wms:vstavka", { detail: tekst }));
+      const normalized = (allPallets ? parts.map(palletCode) : parts.map(actCode)).join("\n");
+      const otdat = () => document.dispatchEvent(new CustomEvent("wms:vstavka", { detail: normalized }));
       if (vklWms) otdat(); else { vklyuchitWms(true); setTimeout(otdat, 60); }
       return;
     }
-    if (kuski.length >= 2 && (kuski.some((x) => palletCode(x) || /^(CON|ACT|АКТ|CEL)\b/i.test(lat(x))) || (vklWms && (B.dataset.mode || "ucenka") !== "costlist"))) {
+    if (parts.length >= 2 && (parts.some((x) => palletCode(x) || /^(CON|ACT|АКТ|CEL)\b/i.test(lat(x))) || (vklWms && (B.dataset.mode || "ucenka") !== "costlist"))) {
       e.preventDefault(); e.stopImmediatePropagation();
       const msg = document.getElementById("message");
-      if (msg) { msg.textContent = "Список не загружен: есть неизвестные или разные типы наклеек. Вставьте один столбец паллет или актов."; msg.className = "message warn"; }
+      if (msg) { msg.textContent = "Список не загружен: вставьте один столбец актов или паллет одного типа."; msg.className = "message warn"; }
       return;
     }
-    if (stroki.length >= 2) { e.preventDefault(); e.stopImmediatePropagation(); spisok(tekst); }
+    if (parts.length >= 2) { e.preventDefault(); e.stopImmediatePropagation(); spisok(tekst); }
   }, true);
   function spisok(tekst) {
     rezhim("costlist");
