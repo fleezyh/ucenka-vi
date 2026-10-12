@@ -32,3 +32,8 @@
 body.is-svetlo .tplCard:hover { border-color: rgba(20, 30, 50, 0.35); }
 body.is-svetlo .tplTablica tbody tr[data-tovar]:hover, body.is-svetlo .tplTablica tbody tr.is-on { background: rgba(20, 30, 50, 0.05); }
 body.is-svetlo .tplTablica__razvorot a { color: #2563eb; }
+
+/* биллинг */
+.tplOk { color: #7ee3b3; font-style: normal; font-weight: 600; font-size: 12px; }
+.tplItog td { font-weight: 600; color: var(--text); background: rgba(255, 255, 255, 0.03); }
+.tplTablica td[rowspan] { vertical-align: top; font-weight: 600; white-space: nowrap; min-width: 0; }

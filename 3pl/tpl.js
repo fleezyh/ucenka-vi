@@ -277,6 +277,9 @@
     const itPe = R.reduce((a, r) => a + r["вход_переезд_шт"], 0), itPo = R.reduce((a, r) => a + r["вход_пост_шт"], 0);
     parts.push(block("Приёмка на 3PL", `Два потока: переезд с Домодедово (поступление по переезду) — ${count(itPe)} шт; поставщики напрямую с 18.09 — ${count(itPo)} шт`, vhBox));
 
+    // биллинг 3PL (встреча 09.10, задача Жени): счета 3PL против нашего расчёта и деньги месяца
+    if (D.биллинг) parts.push(biling());
+
     // товары
     parts.push(tovary());
 
@@ -287,6 +290,60 @@
       + "Продажи — витрина продаж ВТИС по точке продажи, «Москва» — точки «МСК - …»; «через 3PL» — номер заказа есть во внутренней отгрузке с 3PL. "
       + `Габариты есть у ${D.товаров_с_габаритами} из ${D.товаров} SKU. Остаток — снимок на конец дня, обновляется утром за вчера.`;
     message.textContent = "";
+  }
+
+
+  /** Биллинг: паллеты на 3PL по дням (машины переезда + поставщики − отгрузки, в паллетах по объёму, откалиброванному
+      по счёту 3PL), сверка каждого счёта 3PL с нашим расчётом и деньги текущего месяца по тарифам из счетов. */
+  function biling() {
+    const B = D.биллинг, M = B.месяц || {};
+    const wrap = document.createElement("div");
+    const kart = document.createElement("div");
+    kart.className = "perfTop";
+    kart.innerHTML = `<article class="perfCard perfCard--zhel"><p class="perfCard__title">Паллет на 3PL сейчас</p><b class="perfCard__value">≈ ${count(M.паллет_сейчас)}</b>`
+      + `<span class="perfCard__note">расчёт на ${M.по ? dd(M.по) : "—"} · переехало ${count(B.паллет_переезда)}</span></article>`
+      + `<article class="perfCard perfCard--sin"><p class="perfCard__title">Хранение в сутки</p><b class="perfCard__value">${rub(M.хранение_в_сутки || 0)}</b>`
+      + `<span class="perfCard__note">паллет × ${count(Object.entries(B.тарифы).find(([k]) => k.includes("Хранение"))?.[1] || 0)} ₽ по тарифу из счёта</span></article>`
+      + `<article class="perfCard perfCard--glav"><p class="perfCard__title">Начислено за ${esc(M.месяц || "")}</p><b class="perfCard__value">${rub(M.начислено || 0)}</b>`
+      + `<span class="perfCard__note">${M.дней} дн: хранение ${rub(M.хранение || 0)} · приёмка ${rub(M.приёмка || 0)}</span></article>`
+      + `<article class="perfCard perfCard--fiol"><p class="perfCard__title">Прогноз за месяц</p><b class="perfCard__value">${rub(M.прогноз || 0)}</b>`
+      + `<span class="perfCard__note">если паллет столько же до конца месяца · без исходящих: их тарифа в счетах нет</span></article>`;
+    wrap.appendChild(kart);
+
+    // паллеты по дням и паллеты по счёту 3PL (паллето-сутки / дней периода)
+    const pd = B.паллеты_по_дням || [];
+    const poSchetu = new Map();
+    (B.счета || []).forEach((sch) => {
+      const hr = sch.строки.find((x) => String(x.услуга).includes("Хранение"));
+      if (!hr) return;
+      const n = Math.round((new Date(sch.по) - new Date(sch.с)) / 864e5) + 1;
+      pd.forEach(([d]) => { if (d >= sch.с && d <= sch.по) poSchetu.set(d, hr.кол / n); });
+    });
+    const tochki = pd.map(([d, v]) => ({ znach: Math.round(v), os: dd(d), zag: dd(d),
+      dop: [poSchetu.has(d) ? `по счёту 3PL ${count(poSchetu.get(d))} паллет в сутки` : "счёта за этот день ещё нет"] }));
+    const sh = s.shag === "день" ? tochki : tochki.filter((_, i) => i % 7 === 0 || i === tochki.length - 1);
+    const shIdx = s.shag === "день" ? pd.map((_, i) => i) : pd.map((_, i) => i).filter((i) => i % 7 === 0 || i === pd.length - 1);
+    wrap.appendChild(grafik(sh, {
+      edinica: "паллет", legenda: "паллет на 3PL — наш расчёт", vysota: 220,
+      linii: [{ znach: shIdx.map((i) => (poSchetu.has(pd[i][0]) ? Math.round(poSchetu.get(pd[i][0])) : null)), klass: "tpl", podpis: "по счёту 3PL" }],
+    }));
+
+    // сверка счетов
+    const tab = document.createElement("div");
+    tab.className = "tplTablica";
+    const raznica = (a, b) => { const r = a - b; return Math.abs(r) < 0.5 ? '<i class="tplOk">сходится</i>' : `<i class="tplFlag${Math.abs(r) / (b || 1) > 0.05 ? " tplFlag--nel" : ""}">${r > 0 ? "+" : ""}${count(r)}</i>`; };
+    tab.innerHTML = "<table><thead><tr><th>период счёта</th><th>услуга</th><th>по счёту 3PL</th><th>наш расчёт</th><th>разница</th><th>тариф</th><th>сумма по счёту</th></tr></thead><tbody>"
+      + (B.счета || []).map((sch) => sch.строки.map((x, i) => {
+        const hr = String(x.услуга).includes("Хранение"), vy = String(x.услуга).includes("Выгрузка механизированным");
+        const nashe = hr ? sch.наше_паллето_сутки : vy ? sch.наше_выгружено_паллет : null;
+        return `<tr>${i === 0 ? `<td rowspan="${sch.строки.length + 1}">${dd(sch.с)}–${dd(sch.по)}</td>` : ""}<td>${esc(x.услуга)}</td><td>${count(x.кол)}</td>`
+          + `<td>${nashe == null ? "—" : count(nashe)}</td><td>${nashe == null ? "" : raznica(x.кол, nashe)}</td><td>${count(x.тариф)} ₽</td><td>${rub(x.сумма)}</td></tr>`;
+      }).join("") + `<tr class="tplItog"><td colspan="5">итого по счёту</td><td>${rub(sch.итого)}</td></tr>`).join("")
+      + "</tbody></table>";
+    wrap.appendChild(tab);
+    const sec = block("Биллинг 3PL", `Счета 3PL — из «3PL Desk», машины переезда — оттуда же · паллета = ${Number(B.паллета_м3).toLocaleString("ru-RU", { maximumFractionDigits: 2 })} м³ товара: переезд ${count(B.объём_переезда_м3)} м³ по габаритам ВТИС / ${count(B.паллет_переезда)} паллет по счёту · дальше паллеты считаются по объёму: + поставщики − отгрузки с 3PL · частично разобранную паллету 3PL считает целой, так что ближе к концу расчёт может быть ниже счёта`, wrap);
+    sec.id = "biling";
+    return sec;
   }
 
   const TOV_KOL = [["товар", "товар"], ["модель", "модель"], ["ост3pl_шт", "на 3PL, шт"], ["ост3pl_руб", "на 3PL, ₽"], ["бункер_шт", "в бункере, шт"],
@@ -358,6 +415,13 @@
       v.нелик_доля == null ? "" : Number(v.нелик_доля.toFixed(1)), v.бездв_доля == null ? "" : Number(v.бездв_доля.toFixed(1)),
       v["вход_переезд_шт"], v["вход_пост_шт"], v["выход_шт"], v["выход_палл"], v["рейсов"]])] });
     listy.push({ imya: "Отгрузка по направлениям", rows: [D.направления_колонки, ...D.направления] });
+    if (D.биллинг) {
+      listy.push({ imya: "Биллинг — счета", rows: [["с", "по", "группа", "услуга", "кол-во по счёту", "тариф", "сумма", "наш расчёт"],
+        ...D.биллинг.счета.flatMap((sch) => sch.строки.map((x) => [sch.с, sch.по, x.группа, x.услуга, x.кол, x.тариф, x.сумма,
+          String(x.услуга).includes("Хранение") ? sch.наше_паллето_сутки : String(x.услуга).includes("Выгрузка механизированным") ? sch.наше_выгружено_паллет : ""]))] });
+      listy.push({ imya: "Биллинг — паллеты по дням", rows: [["дата", "паллет на 3PL (расчёт)"], ...D.биллинг.паллеты_по_дням] });
+      listy.push({ imya: "Машины на 3PL", rows: [["дата", "машин", "паллет"], ...D.биллинг.машины] });
+    }
     listy.push({ imya: "Товары", rows: [["код сайта", "товар", "модель учёта", "на 3PL, шт", "на 3PL, ₽", "в бункере, шт", "в бункере, ₽", "на 3PL с",
       "последняя продажа", "дней без продаж", "дней с продажей за 30", "продано до, шт", "продано после, шт", "уехало с 3PL, шт", "неликвид", "без движения", "объём штуки, м³"],
     ...D.товары.map((t) => [t.кодсайта, t.товар, t.модель, t["ост3pl_шт"], t["ост3pl_руб"], t["бункер_шт"], t["бункер_руб"], t.на3pl_с || "",
