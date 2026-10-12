@@ -1,0 +1,68 @@
+/* Каждая красная плашка пикалки — в журнал (12.10.2026, Степан: «надо проверить, что каждый случай с красной плашкой,
+   когда появляется, записывается — а то походу вообще нихуя»).
+   Сервер сам пишет только свои отказы перекладки; всё, что пикалка рисует красным сама (стоп «акт не принят», «не
+   переместилось», ошибки приёмки, ВТИС, сети), раньше не видел никто. Скрипт смотрит на экран: появилась видимая
+   красная плашка — шлёт её текст на /__pik/krasnoe. Та же плашка повторно — не чаще раза в 10 минут.
+   Личные промахи («не выбран стол» и т. п.) не пишем: «нам нет смысла знать её, это ошибка личная». */
+(() => {
+  "use strict";
+  const VIDY = [
+    [".aktStop:not([hidden]) .aktStop__okno", "стоп"],
+    [".bigIt.is-err", "итог перекладки"],
+    [".aktPs__oshibka", "карточка"],
+    [".aktPs__net", "карточка"],
+    [".palKarta__oshibka", "паллета"],
+    [".aktStop__vpOsh", "приёмка со стола"],
+    [".vmsPolosa__net", "связь с WMS"],
+    ["#message.error", "сообщение"],
+  ];
+  const LICHNYE = /не выбран стол|пикните наклейку своего стола|уже в списке|дождитесь загрузки|список пуст/i;
+  const RAZ_V = 10 * 60 * 1000;
+  const bylo = new Map();   // вид|текст → когда слали
+
+  const vidno = (el) => Boolean(el && (el.offsetParent !== null || el.getClientRects().length));
+  const tekstOf = (el) => {
+    const kopiya = el.cloneNode(true);
+    kopiya.querySelectorAll("button, .aktStop__poka, .aktStop__knopki").forEach((x) => x.remove());
+    // текст по кусочкам через пробел: у отсоединённой копии innerText без вёрстки склеивал «Не переместилосьACT …»
+    const kuski = [];
+    const hod = document.createTreeWalker(kopiya, NodeFilter.SHOW_TEXT);
+    while (hod.nextNode()) kuski.push(hod.currentNode.nodeValue);
+    return kuski.join(" ").replace(/\s+/g, " ").trim();
+  };
+  const aktIz = (el, tekst) => {
+    const m = String(tekst).match(/(?:Акт\s*№|ACT\s*0*|акт\s+)(\d{5,10})/i);
+    if (m) return m[1];
+    const blok = el.closest("section, article, .aktPs, .cModal__okno, main") || document;
+    const m2 = (blok.innerText || "").match(/(?:Акт\s*№|ACT\s*0*)(\d{5,10})/i);
+    return m2 ? m2[1] : "";
+  };
+
+  function proverit() {
+    const seychas = Date.now();
+    for (const [sel, vid] of VIDY) {
+      document.querySelectorAll(sel).forEach((el) => {
+        if (!vidno(el)) return;
+        const tekst = tekstOf(el).slice(0, 600);
+        if (!tekst || LICHNYE.test(tekst)) return;
+        const kl = vid + "|" + tekst;
+        if (seychas - (bylo.get(kl) || 0) < RAZ_V) return;
+        bylo.set(kl, seychas);
+        fetch("/__pik/krasnoe", {
+          method: "POST", keepalive: true, credentials: "same-origin",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ вид: vid, текст: tekst, акт: aktIz(el, tekst), страница: location.pathname }),
+        }).catch(() => {});
+      });
+    }
+  }
+
+  let tajmer = 0;
+  const pozzhe = () => { clearTimeout(tajmer); tajmer = setTimeout(proverit, 400); };
+  const nachat = () => {
+    new MutationObserver(pozzhe).observe(document.body, { subtree: true, childList: true, characterData: true,
+                                                          attributes: true, attributeFilter: ["class", "hidden"] });
+    pozzhe();
+  };
+  if (document.body) nachat(); else document.addEventListener("DOMContentLoaded", nachat);
+})();
