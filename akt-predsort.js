@@ -1273,7 +1273,10 @@
     }
     if (aktPer && aktPer.itog) {
       const r = aktPer.itog;
-      return `<div class="bigIt ${r.ok ? "is-ok" : "is-err"}"><b>${esc(r.zag)}</b><span>${esc(r.tekst)}</span></div>`;
+      // 12.10 Гамлет: вторая часть, когда первая уже в продаже, — «как отдельный товар, новым актом»: кнопка сразу на поиск
+      const chast = !r.ok && /новым актом/.test(r.tekst || "");
+      return `<div class="bigIt ${r.ok ? "is-ok" : "is-err"}"><b>${esc(r.zag)}</b><span>${esc(r.tekst)}</span>${chast
+        ? '<button type="button" class="aktPs__kn is-on bigIt__kn" data-chast-novym="1">Завести часть новым актом</button>' : ""}</div>`;
     }
     return "";
   }
@@ -3299,6 +3302,15 @@
     const zapomnit = () => { if (tovar && !vozvrat) vozvrat = { tovar, gdeT, aktyT, reshenie }; };
     const ao = e.target.closest("[data-akt-otkryt]");
     if (ao) { zapomnit(); otkrytAkt(ao.dataset.aktOtkryt); return; }
+    if (e.target.closest("[data-chast-novym]")) {
+      // карточку акта закрываем — пикалка снова ищет товар; часть пикают её штрихкодом и актируют как обычно
+      massAktViewing = false; aktK = null; aktPer = null; vozvrat = null; pal = null; yach = null; palPer = null; istP = null;
+      tovar = null; svezhiy = null; vRezhimPalety(false);
+      const m = document.getElementById("message");
+      if (m) { m.textContent = "Пикните штрихкод этой части и заактируйте её как отдельный товар. Нет остатка — товара не существует, как обычно."; m.className = "message ok"; }
+      risovat(); vFokus();
+      return;
+    }
     if (e.target.closest("[data-nazad-mass-acts]") && massAktViewing) {
       massAktViewing = false; aktK = null; aktPer = null; vozvrat = null;
       return risovat();
