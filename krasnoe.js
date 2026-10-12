@@ -16,8 +16,8 @@
     [".vmsPolosa__net", "связь с WMS"],
     ["#message.error", "сообщение"],
   ];
-  const LICHNYE = /не выбран стол|пикните наклейку своего стола|уже в списке|дождитесь загрузки|список пуст/i;
-  const RAZ_V = 10 * 60 * 1000;
+  // 12.10: «акта 530922 нет в вмс» — опечатка в номере (5309222), тоже личное
+  const LICHNYE = /не выбран стол|пикните наклейку своего стола|уже в списке|дождитесь загрузки|список пуст|^акта \d+ нет в вмс$/i;
   const bylo = new Map();   // вид|текст → когда слали
 
   const vidno = (el) => Boolean(el && (el.offsetParent !== null || el.getClientRects().length));
@@ -38,15 +38,20 @@
     return m2 ? m2[1] : "";
   };
 
+  // 12.10: висящая плашка слалась заново каждые 10 минут (акт 5309222: 10 плашек на 5 настоящих отказов). Теперь шлём,
+  // только когда плашка появилась: была на экране в прошлый проход — это та же, просто страница перерисовалась.
+  let naEkrane = new Set();
   function proverit() {
     const seychas = Date.now();
+    const teper = new Set();
     for (const [sel, vid] of VIDY) {
       document.querySelectorAll(sel).forEach((el) => {
         if (!vidno(el)) return;
         const tekst = tekstOf(el).slice(0, 600);
         if (!tekst || LICHNYE.test(tekst)) return;
         const kl = vid + "|" + tekst;
-        if (seychas - (bylo.get(kl) || 0) < RAZ_V) return;
+        teper.add(kl);
+        if (naEkrane.has(kl) || seychas - (bylo.get(kl) || 0) < 60 * 1000) return;
         bylo.set(kl, seychas);
         fetch("/__pik/krasnoe", {
           method: "POST", keepalive: true, credentials: "same-origin",
@@ -55,6 +60,7 @@
         }).catch(() => {});
       });
     }
+    naEkrane = teper;
   }
 
   let tajmer = 0;
