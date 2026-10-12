@@ -524,6 +524,8 @@ body.cSkin .cCenter > .message:empty { display: none; }
 /* 12.10: утиль — опасные отходы */
 .aktKat__opas { display: block; margin-top: 8px; padding: 8px 12px; border-radius: 10px; background: rgba(245,158,11,.16); border: 1px solid rgba(245,158,11,.55); color: #fbbf24; font-size: 14px; font-weight: 600; }
 .aTag--opas { background: rgba(245,158,11,.18); color: #fbbf24; border-color: rgba(245,158,11,.5); }
+.aktKat--opas { background: rgba(245,158,11,.14) !important; border-color: rgba(245,158,11,.65) !important; }
+.aktKat--opas .aktKat__imya { color: #fbbf24; }
 /* куда положить — сплошной блок действия, а не пунктирная дырка */
 .cKuda { margin-top: 14px; padding: 20px; border-radius: 18px; background: rgba(123,92,240,.16); border: 1.5px solid rgba(185,162,255,.6); display: grid; gap: 12px;
   box-shadow: 0 0 40px rgba(123,92,240,.15); }

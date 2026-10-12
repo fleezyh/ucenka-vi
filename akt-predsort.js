@@ -361,15 +361,11 @@
   }
 
   /* 30.09: категория уценки (паллета для продаж) по рубрике — прямо в составе, «по акту он не показывает нихера» */
-  // 12.10: утиль — опасные отходы (таблички мест накопления): какая из них, по названию товара (palleta-prodazh.js)
-  function opasnyeHtml(tovar) {
-    const sp = window.OpasnyeOthody ? window.OpasnyeOthody(tovar) : [];
-    return sp.length ? `<span class="aktKat__opas">утиль — опасные отходы: ${esc(sp.join(" · "))}</span>` : "";
-  }
   function katPal(x) {
     const p = window.PalletaProdazh && (x.рубрика || x.цена) ? window.PalletaProdazh(x.рубрика, "", x.цена, x.товар) : null;
-    const op = window.OpasnyeOthody ? window.OpasnyeOthody(x.товар) : [];
-    const opTag = op.length ? ` <span class="aTag aTag--opas" title="утиль — опасные отходы: ${esc(op.join(" · "))}">опасные отходы</span>` : "";
+    // 12.10: опасные отходы — категория «Утиль · опасные отходы» (PalletaProdazh), класс — в подсказке и меткой
+    const op = window.OpasnyeOthody ? window.OpasnyeOthody(x.товар) : "";
+    const opTag = op ? ` <span class="aTag aTag--opas" title="${esc(op)}">${esc(op)}</span>` : "";
     if (!p) return '<i class="palStroka__nokat">категория —</i>' + opTag;
     return `<b title="${esc(x.рубрика + (p.pochemu ? " · " + p.pochemu : ""))}">${esc(p.imya)}</b>${p.sporno ? ' <span class="aTag aTag--spor">спорно</span>' : ""}${opTag}`;
   }
@@ -1586,9 +1582,9 @@
       : neprinyat(a) ? `<div class="aktKat aktKat--stop"><span class="aktKat__nad">категория уценки</span>
         <b class="aktKat__imya">не раскладывать</b>
         <span class="aktKat__rub">акт не принят в WMS — товар в сторону, в паллету не класть</span></div>`
-      : a.живьём ? `<div class="aktKat${a.гсм ? " aktKat--stop" : ""}"><span class="aktKat__nad">категория уценки${a.цена ? ` <b class="aktKat__cena">${esc(Number(a.цена).toLocaleString("ru-RU"))} ₽${a.цена_откуда === "сайт" ? " · цена сайта" : ""}</b>` : ""}</span>
+      : a.живьём ? `<div class="aktKat${a.гсм ? " aktKat--stop" : a.опасные ? " aktKat--opas" : ""}"><span class="aktKat__nad">категория уценки${a.цена ? ` <b class="aktKat__cena">${esc(Number(a.цена).toLocaleString("ru-RU"))} ₽${a.цена_откуда === "сайт" ? " · цена сайта" : ""}</b>` : ""}</span>
         <b class="aktKat__imya">${esc(a.категория || "не определилась")}</b>${a.спорно ? ' <span class="aTag aTag--spor">спорно</span>' : ""}
-        <span class="aktKat__rub">${a.мисбокс ? "цена до 1 000 ₽ — мистери бокс · " : ""}рубрика «${esc(a.рубрика || "—")}»${a.рубрика_вмс ? ` · ${esc(a.рубрика_вмс)}` : ""}</span>${opasnyeHtml(a.товар)}</div>` : "";
+        <span class="aktKat__rub">${a.мисбокс ? "цена до 1 000 ₽ — мистери бокс · " : ""}рубрика «${esc(a.рубрика || "—")}»${a.рубрика_вмс ? ` · ${esc(a.рубрика_вмс)}` : ""}</span>${a.опасные ? `<span class="aktKat__opas">${esc(a.опасные)} — в место накопления, не в продажу</span>` : ""}</div>` : "";
     // 07.10 столы: «когда пикаешь акт — чтобы можно было его прямо там распечатать, как у контейнера»
     const vWms = `<div class="palKartaAkt__knopki"><a class="aktPs__kn" href="${esc(a.вмс || a.WMS)}" target="_blank" rel="noopener">Открыть акт в WMS</a>${
       window.ShkPechat && a.акт ? '<button type="button" class="aktPs__kn" data-akt-pechat="1">Печать наклейки акта</button>' : ""}</div>`;
@@ -1780,7 +1776,8 @@
   let novP = null;   // null | { idet, kat } | { gotovo: {...} } | { oshibka, kat }
   function knopkiNovoy(kat) {
     const k = String(kat || "").replace(" (спорно)", "").trim();
-    if (!k || /^нет своей/.test(k)) return "";
+    // 12.10: «Утиль · опасные отходы» — место накопления, а не тип паллеты WMS: новую паллету под это не создаём
+    if (!k || /^нет своей/.test(k) || k === window.UTIL_OPAS) return "";
     if (novP && novP.idet) return `<p class="aktPs__podskaz">Создаю паллету «${esc(novP.kat)}» в WMS…</p>`;
     if (novP && novP.gotovo) {
       const g = novP.gotovo;
