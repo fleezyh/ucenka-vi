@@ -1,0 +1,115 @@
+/* Склад-радар (13.10.2026) — штабной пульт: почти чёрный, бирюза — свои объекты, янтарь — внимание, красный — сломано.
+   Холст 1920×1080, radar.js вписывает его в окно. Панели — тонкая рамка с уголками, как на оперативных картах. */
+
+body.rd { margin: 0; background: #03060a; color: #b8c7d1; overflow: hidden; font-family: "VI Sans", system-ui, sans-serif; font-weight: 500; }
+.rd * { box-sizing: border-box; }
+.rdHolst { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; overflow: hidden; font-size: 13px;
+  background: radial-gradient(ellipse at 50% 38%, #0a1620 0, #04080c 55%, #03060a 100%); }
+.rdHolst b { font-feature-settings: "tnum" 1; }
+.rdHolst::after { content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 20;
+  background: repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.012) 0 1px, transparent 1px 3px); }
+
+/* ---- шапка ---- */
+.rdShapka { position: absolute; left: 0; right: 0; top: 0; height: 56px; display: flex; align-items: center; gap: 20px; padding: 0 18px;
+  border-bottom: 1px solid #12212c; background: linear-gradient(#071018, #050b10); }
+.rdLogo { display: flex; align-items: center; gap: 12px; min-width: 300px; }
+.rdLogo__znak { width: 26px; height: 26px; border: 1.5px solid #2ee6d6; border-radius: 50%; position: relative; overflow: hidden; }
+.rdLogo__znak::before { content: ""; position: absolute; left: 50%; top: 50%; width: 50%; height: 1.5px; background: #2ee6d6; transform-origin: 0 50%; animation: rdKrug 3s linear infinite; }
+.rdLogo__znak::after { content: ""; position: absolute; inset: 9px; border-radius: 50%; background: #2ee6d6; }
+@keyframes rdKrug { to { transform: rotate(360deg); } }
+.rdLogo b { display: block; color: #e8f6ff; font-size: 19px; font-weight: 600; letter-spacing: 0.34em; }
+.rdLogo i { display: block; color: #2ee6d6; font-style: normal; font-size: 10px; letter-spacing: 0.22em; }
+.rdRezhim { font-size: 12px; letter-spacing: 0.16em; font-weight: 600; padding: 6px 12px; border: 1px solid #2ee6d6; color: #2ee6d6; white-space: nowrap; }
+.rdRezhim.is-istoriya { border-color: #f2b33d; color: #f2b33d; background: #f2b33d14; }
+.rdIstochniki { display: flex; gap: 16px; flex: 1; font-size: 11px; letter-spacing: 0.06em; overflow: hidden; }
+.rdIstochniki span { color: #6c8291; white-space: nowrap; }
+.rdIstochniki span::before { content: "●"; margin-right: 6px; color: var(--c, #2ee6d6); }
+.rdIstochniki span b { color: #b8c7d1; font-weight: 600; }
+.rdRisk { font-size: 12px; letter-spacing: 0.14em; color: #6c8291; white-space: nowrap; }
+.rdRisk b { margin-left: 6px; font-weight: 600; }
+.rdChasy { text-align: right; min-width: 132px; }
+.rdChasy b { display: block; color: #e8f6ff; font-size: 24px; font-weight: 600; line-height: 1; letter-spacing: 0.04em; }
+.rdChasy span { color: #6c8291; font-size: 10.5px; letter-spacing: 0.08em; }
+.rdKnopka { border: 1px solid #1a2d3a; background: #07111a; color: #8fa6b4; padding: 7px 11px; font: 600 11.5px "VI Sans", sans-serif;
+  letter-spacing: 0.1em; text-decoration: none; cursor: pointer; }
+.rdKnopka:hover, .rdKnopka.is-on { color: #e8f6ff; border-color: #2ee6d6; }
+
+/* ---- панели с уголками ---- */
+.rdLevo, .rdPravo { position: absolute; top: 70px; height: 690px; display: flex; flex-direction: column; gap: 12px; }
+.rdLevo { left: 16px; width: 372px; }
+.rdPravo { right: 16px; width: 452px; }
+.rdPanel { position: relative; border: 1px solid #12212c; background: #050c12e6; padding: 12px 14px; }
+.rdPanel::before, .rdPanel::after { content: ""; position: absolute; width: 10px; height: 10px; border: 1.5px solid #2ee6d6; pointer-events: none; }
+.rdPanel::before { left: -1px; top: -1px; border-right: 0; border-bottom: 0; }
+.rdPanel::after { right: -1px; bottom: -1px; border-left: 0; border-top: 0; }
+.rdPanel--rost { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
+.rdPanel--pol { flex: 0 0 330px; overflow: hidden; display: flex; flex-direction: column; }
+.rdPanel h3 { margin: 0 0 10px; color: #7fa0b2; font-size: 11px; font-weight: 600; letter-spacing: 0.2em; display: flex; justify-content: space-between; gap: 10px; }
+.rdPanel h3 span { color: #46606f; letter-spacing: 0.08em; font-size: 10.5px; text-align: right; }
+
+/* обстановка: этап × склад */
+.rdObst { display: grid; grid-template-columns: 104px 1fr 1fr; gap: 4px 8px; align-items: stretch; }
+.rdObst__sk { color: #e8f6ff; font-size: 11px; letter-spacing: 0.18em; font-weight: 600; padding-bottom: 4px; border-bottom: 1px solid #12212c; cursor: pointer; }
+.rdObst__sk:hover { color: #2ee6d6; }
+.rdObst__etap { color: #7fa0b2; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; padding: 6px 0; border-bottom: 1px solid #0b1820; }
+.rdObst__kl { padding: 5px 0 5px 8px; border-left: 2px solid var(--c); border-bottom: 1px solid #0b1820; cursor: pointer; min-width: 0; }
+.rdObst__kl:hover { background: #0a1822; }
+.rdObst__kl b { display: block; color: #e8f6ff; font-size: 15px; font-weight: 600; white-space: nowrap; }
+.rdObst__kl span { display: block; color: var(--c); font-size: 10.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* воронка */
+.rdVor { margin-bottom: 12px; }
+.rdVor__sk { color: #e8f6ff; font-size: 11px; letter-spacing: 0.18em; font-weight: 600; margin-bottom: 6px; }
+.rdVor__ryad { display: grid; grid-template-columns: 92px 1fr 126px; gap: 8px; align-items: center; font-size: 12px; margin-bottom: 5px; }
+.rdVor__ryad span { color: #7fa0b2; }
+.rdVor__ryad i { height: 6px; background: #0e1d27; position: relative; display: block; }
+.rdVor__ryad i u { position: absolute; left: 0; top: 0; bottom: 0; background: var(--c, #2ee6d6); }
+.rdVor__ryad i s { position: absolute; top: -3px; bottom: -3px; width: 2px; background: #b8c7d1; opacity: 0.7; }
+.rdVor__ryad b { text-align: right; color: #e8f6ff; font-weight: 600; white-space: nowrap; font-size: 12px; }
+.rdVor__pri { color: #46606f; font-size: 10.5px; line-height: 1.4; }
+
+/* карта */
+.rdKarta { position: absolute; left: 404px; top: 70px; width: 1048px; height: 690px; border: 1px solid #12212c; background: #03080c; overflow: hidden; }
+.rdKarta svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.rdKarta text { font-family: "VI Sans", sans-serif; }
+.rdUzel { cursor: pointer; }
+@keyframes rdPing { 0% { transform: scale(0.7); opacity: 0.9; } 100% { transform: scale(2.4); opacity: 0; } }
+.rdPing { transform-box: fill-box; transform-origin: center; animation: rdPing 2s ease-out infinite; }
+@keyframes rdTech { to { stroke-dashoffset: -40; } }
+.rdPotok { animation: rdTech linear infinite; }
+@keyframes rdLuch { to { transform: rotate(360deg); } }
+.rdLuch { transform-box: view-box; animation: rdLuch 9s linear infinite; }
+
+/* сигналы и журнал */
+.rdLenta { overflow: hidden; display: flex; flex-direction: column; gap: 8px; }
+.rdSig { border-left: 2px solid var(--c); padding: 2px 0 2px 10px; cursor: pointer; }
+.rdSig:hover { background: #0a1822; }
+.rdSig span { display: block; color: var(--c); font-size: 10px; letter-spacing: 0.14em; font-weight: 600; }
+.rdSig b { display: block; color: #e8f6ff; font-size: 14px; font-weight: 600; margin: 2px 0 1px; }
+.rdSig i { display: block; color: #7fa0b2; font-style: normal; font-size: 11.5px; }
+.rdPusto { color: #46606f; font-size: 12px; padding: 4px 0; }
+
+/* шкала времени */
+.rdShkala { position: absolute; left: 16px; right: 16px; top: 774px; height: 290px; border: 1px solid #12212c; background: #050c12e6; padding: 10px 14px; }
+.rdShkala__upr { display: flex; gap: 10px; align-items: center; margin-bottom: 6px; }
+.rdShkala__t { color: #e8f6ff; font-size: 15px; font-weight: 600; letter-spacing: 0.08em; min-width: 260px; }
+.rdShkala__leg { margin-left: auto; color: #46606f; font-size: 11px; }
+.rdShkala__leg i { display: inline-block; width: 16px; height: 3px; margin: 0 5px 2px 12px; vertical-align: middle; }
+.rdShkala__leg .k1 { background: #2ee6d6; } .rdShkala__leg .k2 { background: #f2b33d; }
+.rdShkala__leg .k3 { background: repeating-linear-gradient(90deg, #7fa0b2 0 3px, transparent 3px 6px); } .rdShkala__leg .k4 { background: #ff4d5e; height: 8px; }
+.rdShkala__holst { position: relative; height: 236px; cursor: crosshair; user-select: none; }
+.rdShkala__holst svg { width: 100%; height: 100%; display: block; }
+
+/* карточка фокуса */
+.rdFokus { position: absolute; left: 420px; top: 86px; width: 620px; max-height: 660px; overflow: auto; z-index: 10;
+  border: 1px solid var(--c, #2ee6d6); background: #040a0ff7; box-shadow: 0 0 60px #000c; padding: 14px 16px; }
+.rdFokus__zag { display: flex; justify-content: space-between; align-items: center; color: var(--c); font-size: 11px; letter-spacing: 0.16em; font-weight: 600; }
+.rdFokus__zag button { border: 0; background: none; color: #7fa0b2; font-size: 18px; cursor: pointer; }
+.rdFokus h2 { margin: 8px 0 6px; color: #e8f6ff; font-size: 21px; font-weight: 600; line-height: 1.2; }
+.rdFokus p { margin: 0 0 10px; color: #9fb3c0; font-size: 13px; line-height: 1.45; }
+.rdFokus table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin: 6px 0 10px; }
+.rdFokus th { text-align: left; color: #46606f; font-weight: 600; font-size: 10px; letter-spacing: 0.12em; padding: 4px 6px; border-bottom: 1px solid #12212c; }
+.rdFokus td { padding: 5px 6px; border-bottom: 1px solid #0b1820; color: #cfdce4; white-space: nowrap; }
+.rdFokus td:first-child { white-space: normal; }
+.rdVorota { display: flex; gap: 2px; height: 18px; margin: 4px 0 10px; }
+.rdVorota i { flex: 1; background: #0e1d27; }

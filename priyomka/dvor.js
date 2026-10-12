@@ -87,6 +87,10 @@
     const tishina = minutMezhdu(s.последняя_регистрация, dannye.обновлено);
     const chas = Number(String(dannye.обновлено || "").slice(11, 13));
     const opozdanie = (Date.now() - moment(dannye.обновлено)) / 60000;
+    // 13.10: ночью (22:50–06:00) таймер ucenka-dvor стоит по расписанию — это не сбой, плашку не показываем
+    const seychas = new Date(), minut = seychas.getHours() * 60 + seychas.getMinutes();
+    const nochnayaPauza = minut >= 22 * 60 + 50 || minut < 6 * 60 + 15;
+    if (nochnayaPauza && opozdanie < 8 * 60) return "";
     if (opozdanie > ZADACHA_OPAZDYVAET_MIN) {
       return `Двор не пересчитывался ${chmm(opozdanie)}: задача ucenka-dvor не отработала, цифры ниже — на ${escape(dannye.обновлено)}.`;
     }

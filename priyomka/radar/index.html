@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#04070a">
+  <title>Склад-радар · ДМД + Чашниково</title>
+  <link rel="icon" type="image/svg+xml" href="../../assets/brand/vi-mark.svg">
+  <link rel="preload" href="../../assets/fonts/VI_Sans_Regular.woff2" as="font" type="font/woff2" crossorigin>
+  <!-- Только ради шрифта: радар живёт без шапки сайта, как экран для стены. -->
+  <link rel="stylesheet" href="../../style.css?v=20260911-3">
+  <link rel="stylesheet" href="radar.css?v=20261013-2">
+  <script src="radar.js?v=20261013-2" defer></script>
+</head>
+<body class="rd">
+  <!-- Холст 1920×1080, вписывается в окно целиком. Слева обстановка по этапам и воронка дня, в центре карта
+       Подмосковья в настоящих координатах (склады, челнок ДМД⇄ЧШК, 3PL, направления в регионы), справа сигналы
+       и журнал инцидентов, внизу шкала времени: три недели по часам, ползунок, проигрывание. -->
+  <div class="rdHolst" id="rdHolst">
+    <header class="rdShapka">
+      <div class="rdLogo"><span class="rdLogo__znak"></span><div><b>СКЛАД-РАДАР</b><i>ВХОД МОСКВЫ · ДМД · ЧШК · 3PL</i></div></div>
+      <div class="rdRezhim" id="rdRezhim"></div>
+      <div class="rdIstochniki" id="rdIstochniki"></div>
+      <div class="rdRisk" id="rdRisk"></div>
+      <div class="rdChasy"><b id="rdChasy">--:--</b><span id="rdSmena"></span></div>
+      <a class="rdKnopka" href="../ekran/" title="Старая карта Домодедова сверху">КАРТА ДМД</a>
+      <button type="button" class="rdKnopka" id="rdPolnyi" title="Во весь экран">⛶</button>
+    </header>
+
+    <aside class="rdLevo">
+      <section class="rdPanel"><h3>ОБСТАНОВКА <span id="rdObstT"></span></h3><div id="rdObst"></div></section>
+      <section class="rdPanel rdPanel--rost"><h3>ВОРОНКА СУТОК <span id="rdVorT"></span></h3><div id="rdVoronka"></div></section>
+    </aside>
+
+    <main class="rdKarta" id="rdKarta"></main>
+
+    <aside class="rdPravo">
+      <section class="rdPanel rdPanel--pol"><h3>СИГНАЛЫ <span id="rdSchet"></span></h3><div class="rdLenta" id="rdLenta"></div></section>
+      <section class="rdPanel rdPanel--rost"><h3>ЖУРНАЛ ИНЦИДЕНТОВ <span>3 НЕДЕЛИ · КЛИК — ПЕРЕЙТИ</span></h3><div class="rdLenta" id="rdZhurnal"></div></section>
+    </aside>
+
+    <section class="rdShkala" id="rdShkala">
+      <div class="rdShkala__upr">
+        <button type="button" class="rdKnopka" id="rdPlay" title="Проиграть (пробел)">▶</button>
+        <button type="button" class="rdKnopka" id="rdSeychas" title="Вернуться в сейчас (End)">СЕЙЧАС</button>
+        <span class="rdShkala__t" id="rdShkalaT"></span>
+        <span class="rdShkala__leg"><i class="k1"></i>очередь ДМД <i class="k2"></i>очередь ЧШК <i class="k3"></i>норма <i class="k4"></i>критично · ← → по часу, Shift — по суткам</span>
+      </div>
+      <div class="rdShkala__holst" id="rdShkalaHolst"></div>
+    </section>
+
+    <section class="rdFokus" id="rdFokus" hidden></section>
+  </div>
+</body>
+</html>
