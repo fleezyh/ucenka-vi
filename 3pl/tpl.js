@@ -71,11 +71,12 @@
     return o;
   }
 
-  function vedra(dni) {
+  function vedra(dni, vseNedeli = false) {
     if (s.shag === "день") return dni.map((r) => ({ key: r.дата, os: dd(r.дата), zag: `${dd(r.дата)} · ${PER_IMYA[r.пер] || ""}`, per: r.пер, ...vedro([r]) }));
     const m = new Map();
     dni.forEach((r) => { const n = nedelya(r.дата); const v = m.get(n.key) || { key: n.key, pn: n.pn, dni: [] }; v.dni.push(r); m.set(n.key, v); });
-    return [...m.values()].map((v) => {
+    // первая неделя года неполная (01–04.01, праздники) — выброс по оборачиваемости, не показываем
+    return [...m.values()].filter((v, i) => vseNedeli || i > 0 || v.dni.length >= 7).map((v) => {
       const pers = [...new Set(v.dni.map((r) => r.пер))];
       return { key: v.key, os: dd(v.pn), zag: `неделя ${v.key.slice(6)} · с ${dd(v.pn)} · ${pers.map((p) => PER_IMYA[p] || p).join(" / ")}`, per: pers.length === 1 ? pers[0] : "переход", ...vedro(v.dni) };
     });
@@ -86,7 +87,21 @@
       tochki, format: o.format || ((v) => (Math.abs(v) >= 10000 ? window.ViGrafik.shortNumber(v) : one(v))),
       formatTochno: o.formatTochno || one, edinica: o.edinica || "", otNulya: o.otNulya !== false, trend: 0,
       mediana: false, linii: o.linii || [], legendaLinii: o.legenda || "", vysota: o.vysota || 260, klik: o.klik,
+      zony: o.zony || [],
     });
+  }
+
+  /** Подписанные полосы фона по периодам: «до · бункер ДМД», «переход», «после · 3PL». */
+  const ZONA_KLASS = { до: "do", переход: "perehod", после: "posle" };
+  const ZONA_PODPIS = { до: "до · бункер ДМД", переход: "переход", после: "после · 3PL" };
+  function zonyDlya(V) {
+    const out = [];
+    V.forEach((v, i) => {
+      const z = out[out.length - 1];
+      if (z && z.per === v.per) z.po = i;
+      else if (v.per) out.push({ per: v.per, s: i, po: i, podpis: ZONA_PODPIS[v.per], klass: ZONA_KLASS[v.per] });
+    });
+    return out;
   }
 
   function block(title, lead, ...body) {
@@ -171,6 +186,7 @@
     parts.push(sravn);
 
     const V = vedra(dni);
+    const Z = zonyDlya(V);
     const tochkaDop = (v) => [`вся компания: ${count(v["все_шт"])} шт · ${rub(v["все_руб"])} · ${count(v["все_заказов"])} заказов`,
       `Москва ${count(v["мск_шт"])} шт · ${rub(v["мск_руб"])} · регионы ${count(v["рег_шт"])} шт · ${rub(v["рег_руб"])}`,
       `через 3PL: ${count(v["3pl_шт"])} шт (Москва ${count(v["3pl_мск_шт"])}, регионы ${count(v["3pl_рег_шт"])}) · ${count(v["3pl_заказов"])} заказов`];
@@ -178,33 +194,40 @@
     // продажи
     const mk = { шт: ["все_шт", "3pl_шт", "шт", "мск_шт"], руб: ["все_руб", "3pl_руб", "₽", "мск_руб"], заказов: ["все_заказов", "3pl_заказов", "заказов", "мск_заказов"] }[s.mera];
     const gP = grafik(V.map((v) => ({ znach: v[mk[0]], os: v.os, zag: v.zag, dop: tochkaDop(v) })), {
-      edinica: mk[2], legenda: "вся компания",
-      linii: [{ znach: V.map((v) => v[mk[3]] || null), klass: "msk", podpis: "Москва" },
-        { znach: V.map((v) => (v.posl.дата < "2026-08-17" ? null : v[mk[1]] || null)), klass: "tpl", podpis: "через 3PL" }],
+      edinica: mk[2], legenda: "продажи набора — вся компания", zony: Z,
+      linii: [{ znach: V.map((v) => (v.posl.дата < "2026-08-17" ? null : v[mk[1]] || null)), klass: "tpl", podpis: "из них уехало с 3PL" }],
     });
     gP.id = "prodazhi";
-    parts.push(block("Продажи набора", `Те же SKU по всей компании · Москва — точки «МСК - …» · через 3PL — заказ уехал с 3PL (3PL возит и в регионы) · ${s.shag === "день" ? "по дням" : "по неделям, сумма"} · реализация минус возвраты, выручка без НДС`, gP));
+    // доля через 3PL — отдельно: на общем графике оранжевая линия теряется внизу
+    const gD = grafik(V.map((v) => ({ znach: v.posl.дата < "2026-08-17" || !v["все_шт"] ? null : Math.round(1000 * v["3pl_шт"] / v["все_шт"]) / 10,
+      os: v.os, zag: v.zag, dop: [`через 3PL ${count(v["3pl_шт"])} из ${count(v["все_шт"])} шт`,
+        `в Москве через 3PL ${v["мск_шт"] ? pct(100 * v["3pl_мск_шт"] / v["мск_шт"]) : "—"} (${count(v["3pl_мск_шт"])} из ${count(v["мск_шт"])} шт)`] })), {
+      edinica: "%", format: (x) => `${one(x)}%`, legenda: "доля продаж набора, заказ которых уехал с 3PL", zony: Z, vysota: 200,
+      linii: [{ znach: V.map((v) => (v.posl.дата < "2026-08-17" || !v["мск_шт"] ? null : Math.round(1000 * v["3pl_мск_шт"] / v["мск_шт"]) / 10)), klass: "msk", podpis: "то же в Москве" }],
+    });
+    parts.push(block("Продажи набора", `Синее — все продажи этих SKU по компании, оранжевое — та их часть, заказ по которой собран и уехал с 3PL (3PL возит и в регионы) · ниже — эта часть в процентах · ${s.shag === "день" ? "по дням" : "по неделям, сумма"} · реализация минус возвраты, выручка без НДС`, gP, gD));
 
     // остаток и оборачиваемость
     const gO = grafik(V.map((v) => ({ znach: Math.round(v.ост_шт), os: v.os, zag: v.zag,
       dop: [`бункер ДМД ${count(v["бункер_шт"])} шт · ${rub(v["бункер_руб"])} · ${count(v["бункер_sku"])} SKU`,
         `3PL ${count(v["ост3pl_шт"])} шт · ${rub(v["ост3pl_руб"])} · ${count(v["ост3pl_sku"])} SKU`,
         `паллетомест ≈ ${count(v.палл)} (бункер ${count(v["бункер_палл"])}, 3PL ${count(v["ост3pl_палл"])})`] })), {
-      edinica: "шт", legenda: "бункер ДМД + 3PL", otNulya: true,
-      linii: [{ znach: V.map((v) => v["ост3pl_шт"] || null), klass: "tpl", podpis: "из них на 3PL" }],
+      edinica: "шт", legenda: "всего на хранении", otNulya: true, zony: Z,
+      linii: [{ znach: V.map((v) => v["бункер_шт"] || null), klass: "bun", podpis: "в бункере ДМД" },
+        { znach: V.map((v) => v["ост3pl_шт"] || null), klass: "tpl", podpis: "на 3PL" }],
     });
     gO.id = "ostatok";
     const gT = grafik(V.map((v) => ({ znach: v.оборот == null ? null : Math.round(v.оборот), os: v.os, zag: v.zag,
       dop: [`средний остаток ${count(v.ост_шт)} шт`, `продаж в день ${count(v.вдень)} шт (вся компания)`,
-        `по продажам одной Москвы — ${v.оборот_мск == null ? "—" : count(v.оборот_мск)} дней`] })), { edinica: "дней", legenda: "дней запаса" });
-    parts.push(block("Остаток набора и оборачиваемость", `Остаток — дневной снимок, за неделю среднее · оборачиваемость = средний остаток / средние продажи набора в день по всей компании · паллетоместа — оценка: штуки × габарит из ВТИС / ${one(D.паллета_м3)} м³ на паллету (у 3PL в ВМС одна ячейка на весь склад)`, gO, gT));
+        `по продажам одной Москвы — ${v.оборот_мск == null ? "—" : count(v.оборот_мск)} дней`] })), { edinica: "дней", legenda: "дней запаса", zony: Z, vysota: 200 });
+    parts.push(block("Остаток набора и оборачиваемость", `Пунктир — бункер ДМД, оранжевое — 3PL, синее — всё вместе: в конце июля товар ушёл из бункера, на 3PL в ВМС появился 18.08 и 14.09, между ними был в дороге и на отгрузке ДМД · ниже — сколько дней продаж лежит на хранении · остаток — дневной снимок, за неделю среднее · оборачиваемость = средний остаток / средние продажи набора в день по всей компании · паллетоместа — оценка: штуки × габарит из ВТИС / ${one(D.паллета_м3)} м³ на паллету (у 3PL в ВМС одна ячейка на весь склад)`, gO, gT));
 
     // неликвид и без движения
     const gN = grafik(V.map((v) => ({ znach: v.нелик_доля == null ? null : Math.round(v.нелик_доля * 10) / 10, os: v.os, zag: v.zag,
       dop: [`${count(v.posl["нелик_sku"])} SKU без продаж ${D.неликвид_дней}+ дн из ${count(v.posl["хран_sku"])} на хранении`,
         `в штуках ${v.нелик_доля_шт == null ? "—" : pct(v.нелик_доля_шт)} · ${rub(v.posl["нелик_руб"] || 0)}`,
         v.бездв_доля == null ? "" : `на 3PL без отгрузки с переезда: ${count(v.posl["бездв_sku"])} SKU, ${pct(v.бездв_доля_шт)} штук`].filter(Boolean) })), {
-      edinica: "%", format: (x) => `${one(x)}%`, legenda: "неликвид, % SKU на хранении",
+      edinica: "%", format: (x) => `${one(x)}%`, legenda: "неликвид, % SKU на хранении (бункер + 3PL)", zony: Z,
       linii: [{ znach: V.map((v) => (v.бездв_доля == null ? null : Math.round(v.бездв_доля * 10) / 10)), klass: "tpl", podpis: "без движения с переезда, % SKU 3PL" }],
     });
     gN.id = "nelikvid";
@@ -228,12 +251,12 @@
     const gV = grafik(VO.map((v) => ({ znach: v["выход_шт"], os: v.os, zag: v.zag,
       dop: [`${count(v["выход_палл"])} паллет · ${count(v["выход_заказов"])} заказов`,
         `рейсов на ДМД ${count(v["рейсов"])} · ${one(v["рейсы_м3"])} м³ · ${count(v["рейсы_кг"])} кг`] })), {
-      edinica: "шт", legenda: s.napr ? `отгружено · ${s.napr}` : "отгружено с 3PL",
+      edinica: "шт", legenda: s.napr ? `отгружено · ${s.napr}` : "отгружено с 3PL", zony: zonyDlya(VO),
     });
     gV.id = "otgruzka";
     const gR = grafik(VO.map((v) => ({ znach: v["рейсов"], os: v.os, zag: v.zag,
       dop: [`${one(v["рейсы_м3"])} м³ · ${count(v["рейсы_кг"])} кг`, v["рейсов"] ? `в среднем ${one(v["рейсы_м3"] / v["рейсов"])} м³ на машину` : ""].filter(Boolean) })), {
-      edinica: "рейсов", format: count, formatTochno: count, legenda: "рейсов с 3PL на ДМД (все направления)", vysota: 200,
+      edinica: "рейсов", format: count, formatTochno: count, legenda: "рейсов с 3PL на ДМД (все направления)", vysota: 200, zony: zonyDlya(VO),
     });
     parts.push(block("Отгрузка с 3PL", `Внутренняя отгрузка с 3PL на ДМД под заказы, с 17.08 · направление — ячейка отгрузки 3PL · паллеты — контейнеры, в которых уехало · рейс — пачка заданий приёмки на ДМД в пределах получаса · клик по направлению — график штук только по нему`, napBox, gV, gR));
 
@@ -323,7 +346,7 @@
     listy.push({ imya: "Сравнение", rows: pk });
     listy.push({ imya: "По дням", rows: [["период", ...D.колонки], ...R.map((r) => [r.пер, ...D.колонки.map((k) => r[k])])] });
     const sh = s.shag; s.shag = "неделя";
-    const V = vedra(R.filter((r) => r.пер));
+    const V = vedra(R.filter((r) => r.пер), true);   // в Excel — все недели, и неполная первая
     s.shag = sh;
     listy.push({ imya: "По неделям", rows: [["неделя", "понедельник", "период", "продажи, шт", "выручка, ₽", "заказов", "Москва, шт", "через 3PL, шт",
       "остаток бункер, шт (ср.)", "остаток 3PL, шт (ср.)", "оборачиваемость, дней", "паллетомест (ср.)", "неликвид, % SKU", "без движения, % SKU 3PL",

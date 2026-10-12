@@ -27,6 +27,7 @@
      linii: [{ znach: [числа|null], klass: "limit", podpis: "лимит ШР" }],
      legendaLinii: "день", vysota: 280,
      klik: (i) => {},             // клик по точке
+     zony: [{ s, po, podpis, klass: "do|perehod|posle" }],   // подписанные полосы фона по оси
    }) → HTMLElement
 */
 (() => {
@@ -201,6 +202,12 @@
       const w = (W - 2 * padX) / (n - 1);
       svgNode("rect", { class: "vg__band", x: x(i) - w / 2, y: 0, width: w, height: H }, svg);
     });
+    // Зоны по оси (12.10, 3PL: «до · переход · после») — фон под рядом и подпись сверху.
+    // zony: [{ s, po, podpis, klass }] — индексы точек с/по включительно.
+    const shag = n > 1 ? (W - 2 * padX) / (n - 1) : W;
+    const zony = (o.zony || []).filter((z) => z.po >= z.s).map((z) => ({ ...z,
+      x1: Math.max(0, x(z.s) - shag / 2), x2: Math.min(W, x(z.po) + shag / 2) }));
+    zony.forEach((z) => svgNode("rect", { class: `vg__zona vg__zona--${z.klass || "seryy"}`, x: z.x1, y: 0, width: z.x2 - z.x1, height: H }, svg));
     for (const tick of ticks) {
       svgNode("line", { class: tick === 0 && from < 0 ? "vg__zero" : "vg__grid", x1: 0, x2: W, y1: y(tick), y2: y(tick) }, svg);
     }
@@ -244,6 +251,16 @@
     const canvas = document.createElement("div");
     canvas.className = "vg__canvas";
     canvas.appendChild(svg);
+    zony.forEach((z) => {
+      if (!z.podpis) return;
+      const s = document.createElement("span");
+      s.className = `vg__zonaPodpis vg__zonaPodpis--${z.klass || "seryy"}`;
+      // крайняя правая зона обычно узкая — подпись прижимаем к правому краю и даём ей вылезти влево
+      if (z.po >= n - 1 && z.x1 > W / 2) s.style.right = pct(W - z.x2, W);
+      else { s.style.left = pct(z.x1, W); s.style.width = pct(z.x2 - z.x1, W); }
+      s.textContent = z.podpis;
+      canvas.appendChild(s);
+    });
     const layer = document.createElement("div");
     layer.className = "vg__dots";
     layer.style.height = `${H}px`;

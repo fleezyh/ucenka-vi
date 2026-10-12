@@ -3,6 +3,8 @@
 .vg__extra--tpl { stroke: #f5ad32; stroke-dasharray: none; stroke-width: 2; opacity: 0.95; }
 .vg__extra--msk { stroke: #c084fc; stroke-dasharray: 4 5; opacity: 0.9; }
 .vg__legend .k--tpl { height: 3px; background: #f5ad32; }
+.vg__extra--bun { stroke: #9cc8ff; stroke-dasharray: 6 5; opacity: 0.9; }
+.vg__legend .k--bun { height: 2px; background: repeating-linear-gradient(90deg, #9cc8ff 0 6px, transparent 6px 10px); }
 .vg__legend .k--msk { height: 2px; background: repeating-linear-gradient(90deg, #c084fc 0 4px, transparent 4px 8px); }
 
 .tplCard { display: block; color: inherit; text-decoration: none; cursor: pointer; transition: border-color 0.15s; }
