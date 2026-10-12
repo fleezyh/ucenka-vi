@@ -2342,8 +2342,71 @@
     menu.innerHTML = `<div class="vygruzkiMenu__zag">Цели и факт</div>`
       + `<button type="button" class="vygruzkiMenu__kn" id="prostynyaBtn">Все показатели по месяцам, факт и план — Excel, лист на год</button>`
       + `<div class="vygruzkiMenu__zag">ФС-отчёт по браку · месяц к тому же месяцу год назад</div>`
-      + `<div class="vygruzkiMenu__spisok" id="fsSpisok"><p class="vygruzkiMenu__zhdu">загружаю список…</p></div>`;
+      + `<div class="vygruzkiMenu__spisok" id="fsSpisok"><p class="vygruzkiMenu__zhdu">загружаю список…</p></div>`
+      // 12.10 Дима: «с января 25 инфу по балансу, входу и выходу предсорта» и «перепак — ну вот этот» (как «Перепак Июнь.xlsx»).
+      // Данные — task_predsort.py на сервере, раз в день: data/otchety/predsort.json и data/otchety/perepak/ГГГГ-ММ.json.
+      + `<div class="vygruzkiMenu__zag">Предсорт и перепак · с января 2025</div>`
+      + `<button type="button" class="vygruzkiMenu__kn" id="predsortBtn">Предсорт по дням: баланс, вход, выход — Excel</button>`
+      + `<button type="button" class="vygruzkiMenu__kn" id="perepakVseBtn">Перепак по товарам: все месяцы — Excel, лист на месяц</button>`
+      + `<div class="vygruzkiMenu__spisok" id="perepakSpisok"><p class="vygruzkiMenu__zhdu">загружаю месяцы…</p></div>`;
     document.getElementById("prostynyaBtn").addEventListener("click", () => { vygruzitProstynyu(); zakryt(); });
+    const dataOtch = (put) => fetch(`../data/otchety/${put}`, { cache: "no-cache" }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+    const mesImya = (k) => { const [g, m] = String(k).split("-"); return `${MES_R[Number(m) - 1] || ""} ${g}`; };
+    const okr = (v) => (v == null ? "" : Math.round(Number(v) * 100) / 100);
+    const listPerepak = (d) => ({ imya: mesImya(d.месяц), rows: [d.колонки, ...d.строки.map((r) => [r[0], r[1], r[2], r[3], r[4], okr(r[5]), okr(r[6])])] });
+    document.getElementById("predsortBtn").addEventListener("click", async () => {
+      const d = await dataOtch("predsort.json");
+      if (!d || !d.дни || !d.дни.length) { alert("Данные предсорта ещё считаются — попробуйте позже"); return; }
+      const shapka = ["дата", "площадка", "баланс, шт", "баланс, ₽ учётные", "вход, шт", "вход, себес без НДС", "вход, по РРЦ",
+                      "выход, шт", "выход, себес без НДС", "выход, по РРЦ"];
+      const poDnyam = [shapka, ...d.дни.map((x) => [x.дата, x.площадка, okr(x.баланс_шт), okr(x.баланс_руб), okr(x.вход_шт),
+        okr(x.вход_себес), okr(x.вход_сумма), okr(x.выход_шт), okr(x.выход_себес), okr(x.выход_сумма)])];
+      // по месяцам: баланс — на последний день месяца и средний за месяц (уровень, по дням не складываем); вход и выход — сумма
+      const mes = {};
+      for (const x of d.дни) {
+        const k = `${x.дата.slice(0, 7)}|${x.площадка}`;
+        const m = mes[k] || (mes[k] = { mes: x.дата.slice(0, 7), pl: x.площадка, posl: "", konec: 0, sum: 0, dney: 0, vh: 0, vhs: 0, vy: 0, vys: 0 });
+        if (x.баланс_шт != null) { m.sum += x.баланс_шт; m.dney += 1; if (x.дата >= m.posl) { m.posl = x.дата; m.konec = x.баланс_шт; } }
+        m.vh += x.вход_шт || 0; m.vhs += x.вход_себес || 0; m.vy += x.выход_шт || 0; m.vys += x.выход_себес || 0;
+      }
+      const poMes = [["месяц", "площадка", "баланс на конец месяца, шт", "баланс средний, шт", "вход, шт", "вход, себес без НДС",
+                      "выход, шт", "выход, себес без НДС"],
+        ...Object.values(mes).sort((a, b) => (a.mes + a.pl).localeCompare(b.mes + b.pl))
+          .map((m) => [mesImya(m.mes), m.pl, okr(m.konec), okr(m.dney ? m.sum / m.dney : 0), okr(m.vh), okr(m.vhs), okr(m.vy), okr(m.vys)])];
+      const kak = [["как считали"],
+        ["Предсорт — зоны «009 Предсорт брак» (столы, вход, ошибки с секторов) — ДМД; «Предсорт СЦ» (столы, вход, ошибки) — СЦ-ДМД."],
+        ["Баланс — остаток в зонах предсорта на конец дня (дневные снимки остатков WMS), любое качество: в предсорте 93% годного, брак ставят после разбора."],
+        ["Вход — приход в ячейки предсорта извне (перекладки внутри предсорта не в счёт), проведённые перемещения, по дате документа."],
+        ["Выход — уход со столов предсорта в ячейки вне предсорта (уценка, утиль, переупаковка, некомплекты, ДВК…), по дате документа."],
+        ["Себестоимость — последняя закупочная цена без НДС (1401_Last_Supply_Price / 1,22); по РРЦ — последняя РРЦ сайта."],
+        ["Баланс по месяцам — на последний день и средний за месяц: это уровень, дни не складываются."],
+        [`Обновлено: ${d.обновлено}`]];
+      window.saveXlsxKniga([{ imya: "По месяцам", rows: poMes }, { imya: "По дням", rows: poDnyam }, { imya: "Как считали", rows: kak }],
+        `Предсорт — баланс, вход, выход с ${d.с.slice(0, 7)}`);
+      zakryt();
+    });
+    dataOtch("perepak/index.json").then((idx) => {
+      const sp = ((idx && idx.месяцы) || []).slice().reverse();
+      document.getElementById("perepakSpisok").innerHTML = sp.length
+        ? sp.map((x) => `<button type="button" class="vygruzkiMenu__fs" data-perepak="${x.месяц}"><b>${mesImya(x.месяц)}</b>`
+          + `<span>перепак по товарам</span><em>${Number(x.штук).toLocaleString("ru-RU")} шт</em><small>${x.строк} строк</small></button>`).join("")
+        : `<p class="vygruzkiMenu__zhdu">месяцы ещё считаются</p>`;
+    });
+    menu.addEventListener("click", async (e) => {
+      const b = e.target.closest("[data-perepak]");
+      if (!b) return;
+      const d = await dataOtch(`perepak/${b.dataset.perepak}.json`);
+      if (d) window.saveXlsxKniga([listPerepak(d)], `Перепак ${mesImya(d.месяц)}`);
+      zakryt();
+    });
+    document.getElementById("perepakVseBtn").addEventListener("click", async () => {
+      const idx = await dataOtch("perepak/index.json");
+      const mesyacy = (idx && idx.месяцы) || [];
+      if (!mesyacy.length) { alert("Перепак ещё считается — попробуйте позже"); return; }
+      const knigi = (await Promise.all(mesyacy.map((x) => dataOtch(`perepak/${x.месяц}.json`)))).filter(Boolean);
+      window.saveXlsxKniga(knigi.map(listPerepak), `Перепак ${mesImya(mesyacy[0].месяц)} — ${mesImya(mesyacy[mesyacy.length - 1].месяц)}`);
+      zakryt();
+    });
     fetch("../data/fs/fs_brak.json", { cache: "no-cache" }).then((r) => (r.ok ? r.json() : null)).catch(() => null).then((d) => {
       const fs = (d && d.отчёты) || [];
       document.getElementById("fsSpisok").innerHTML = fs.length ? fs.map(stroka).join("")

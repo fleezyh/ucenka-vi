@@ -915,3 +915,6 @@ body.is-svetlo .dtip { background: rgba(255, 255, 255, 0.98); }
 .vygruzkiMenu__zhdu { margin: 4px; color: var(--muted); font-size: 13px; }
 .periodRow .vygruzkiMenu { width: min(580px, 94vw); }
 .vygruzkiMenu__fs { grid-template-columns: 130px 140px 1fr auto; white-space: nowrap; }
+
+/* 12.10: месяцы перепака — кнопки в том же виде, что ссылки ФС-отчётов */
+button.vygruzkiMenu__fs { width: 100%; text-align: left; font-family: inherit; color: inherit; cursor: pointer; }
