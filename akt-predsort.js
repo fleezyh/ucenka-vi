@@ -2366,14 +2366,17 @@
   // Container labels exported from WMS can omit the name and leading zero.
   function palletCode(value) {
     const v = String(value || "").trim().replace(/^"(.*)"$/, "$1").replace(/[–—−]/g, "-").replace(/\u00a0/g, " ");
-    const m = v.match(/^CON\s*(\d{5,12})$/i) || v.match(/^(?:[^\d\s].*-\s*)?(0\d{9})$/) || v.match(/^-\s*(\d{9,10})$/);
+    const m = v.match(/^CON\s*(\d{5,12})$/i) || v.match(/^(?:[^\d\s].*-\s*)?(0\d{9})$/) || v.match(/^-?\s*(\d{9,10})$/);
     return m && Number(m[1]) > 0 ? "CON " + m[1].padStart(10, "0") : "";
   }
   // Разбирает один столбец из обычного текста, Excel и Markdown-таблицы.
   // Много столбцов отклоняем, чтобы случайно не отправить лишние данные в массовый пик.
   function listColumnValues(text) {
     const result = [];
-    for (const source of String(text || "").split(/\r\n?|\n/)) {
+    let tekst = String(text || "");
+    // 12.10: список в одну строку через запятую или точку с запятой — как до 12.10 (29.09 «всю пачку вставить не смог»)
+    if (!/[\r\n]/.test(tekst) && /[,;]/.test(tekst)) tekst = tekst.replace(/\s*[,;]\s*/g, "\n");
+    for (const source of tekst.split(/\r\n?|\n/)) {
       let row = source.trim();
       if (!row) continue;
       if (row.includes("|")) {
@@ -2398,6 +2401,9 @@
     const m = v.match(/^(?:(?:ACT|АКТ)\s*)?(\d{5,12})$/i);
     if (!m) return "";
     if (!/^(?:ACT|АКТ)/i.test(v) && palletCode(raw)) return "";
+    // 12.10: без ACT — только семизначный номер (акты сейчас 4–5 млн): 8 цифр — штрихкод EAN-8, 9–10 — паллета без нуля
+    // (169841233), их нельзя читать как акт
+    if (!/^(?:ACT|АКТ)/i.test(v) && !/^[1-9]\d{6}$/.test(m[1])) return "";
     return "ACT " + m[1];
   }
   function vstavitPallety(tekst) {

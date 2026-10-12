@@ -258,7 +258,7 @@
   // Container labels exported from WMS can omit the name and leading zero.
   function palletCode(value) {
     const v = String(value || "").trim().replace(/^"(.*)"$/, "$1").replace(/[–—−]/g, "-").replace(/\u00a0/g, " ");
-    const m = v.match(/^CON\s*(\d{5,12})$/i) || v.match(/^(?:[^\d\s].*-\s*)?(0\d{9})$/) || v.match(/^-\s*(\d{9,10})$/);
+    const m = v.match(/^CON\s*(\d{5,12})$/i) || v.match(/^(?:[^\d\s].*-\s*)?(0\d{9})$/) || v.match(/^-?\s*(\d{9,10})$/);
     return m && Number(m[1]) > 0 ? "CON " + m[1].padStart(10, "0") : "";
   }
   // Разбирает один столбец из обычного текста, Excel и Markdown-таблицы.
@@ -290,6 +290,8 @@
     const m = v.match(/^(?:(?:ACT|АКТ)\s*)?(\d{5,12})$/i);
     if (!m) return "";
     if (!/^(?:ACT|АКТ)/i.test(v) && palletCode(raw)) return "";
+    // 12.10: без ACT — только семизначный номер (акты сейчас 4–5 млн): 8 цифр — штрихкод EAN-8, 9–10 — паллета без нуля
+    if (!/^(?:ACT|АКТ)/i.test(v) && !/^[1-9]\d{6}$/.test(m[1])) return "";
     return "ACT " + m[1];
   }
   const WMS_KOD = /^(?:ACT|АКТ|CON|CEL)\s?\d{5,12}$/i;
@@ -302,7 +304,7 @@
     const lat = (window.latinica || String)(v);
     // Голый номер акта распознаём только внутри включённого WMS-режима;
     // номера товара и паллет в обычной Пикалке остаются обычным поиском.
-    if (window.__aktPs && /^\d{5,12}$/.test(lat) && !palletCode(v)) {
+    if (window.__aktPs && /^[1-9]\d{6}$/.test(lat) && !palletCode(v)) {
       e.preventDefault(); e.stopImmediatePropagation(); scan.value = "";
       document.dispatchEvent(new CustomEvent("picker:akt", { detail: { kod: "ACT " + lat } }));
       return;
