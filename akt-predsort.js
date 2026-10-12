@@ -1533,7 +1533,7 @@
     return `<div class="cShag3">
       <div class="${stol ? "is-ok" : "is-net"}"><i>1</i><span>стол</span><b>${stol ? esc(String(stol.имя).replace(/^ФБ \(ДМД\) /, "")) : "без стола"}</b></div>
       <div class="${a.категория && !net ? "is-ok" : "is-net"}"><i>2</i><span>категория</span><b>${neprinyat(a) ? "не принят" : net ? "клиента" : esc(a.категория || "нет")}</b></div>
-      <div class="${gotovo ? "is-ok" : net ? "is-net" : "is-sled"}"><i>3</i><span>паллета</span><b>${gotovo ? "переложена" : net ? "нельзя" : "пикните"}</b></div>
+      <div class="${gotovo ? "is-ok" : net ? "is-net" : "is-sled"}"><i>3</i><span>паллета</span><b>${gotovo ? "готово" : net ? "нельзя" : "пикните"}</b></div>
     </div>`;
   }
 
@@ -1929,7 +1929,8 @@
         if (istKont && ist !== istKont) proveritOstatok(istKont);
         istKont = ist;
       }
-      aktK.где = [{ паллета: d.паллета, ячейка: d.ячейка, зона: "", заказ: "" }];
+      // 12.10: склад и зона из ответа — раньше после перекладки в карточке были прочерки
+      aktK.где = [{ паллета: d.паллета, ячейка: d.ячейка, зона: d.зона || "", база: d.база || "", база_id: d.база_id || null, заказ: "" }];
       if (navigator.vibrate) navigator.vibrate(120);
     } catch (oshibka) {
       aktPer = { itog: { ok: false, zag: "Не переместилось", tekst: oshibka.message || String(oshibka), zakaz: oshibka.zakaz || "" } };

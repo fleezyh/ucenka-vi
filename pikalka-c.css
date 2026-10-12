@@ -512,6 +512,9 @@ body.cSkin .cCenter > .message:empty { display: none; }
   background: var(--cLine2); color: var(--text); }
 .cShag3 span { font-size: 12.5px; color: var(--muted); }
 .cShag3 b { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* 12.10: в узкой правой колонке подпись шага обрезалась до «перепо…» — переносим, а не режем */
+.cShag3 div { padding-left: 40px; }
+.cShag3 b { white-space: normal; overflow: visible; overflow-wrap: break-word; line-height: 1.2; font-size: 14px; }
 .cShag3 .is-ok { border-color: rgba(39,196,107,.45); }
 .cShag3 .is-ok i { background: var(--green); color: #06130b; }
 .cShag3 .is-sled { border-color: rgba(185,162,255,.6); background: rgba(123,92,240,.14); }
