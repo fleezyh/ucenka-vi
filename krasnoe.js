@@ -55,6 +55,8 @@
         if (!tekst || LICHNYE.test(tekst)) return;
         if (vid === "приёмка со стола" && el.closest(".aktStop:not([hidden])")) return;
         if (vid === "стоп" && IDET_PROVERKA.test(tekst)) return;
+        // 13.10: «можно принять прямо здесь» без ошибки — не отказ (товар из частей ждёт подтверждения человека)
+        if (vid === "стоп" && /Можно принять прямо здесь/.test(tekst) && !el.querySelector(".aktStop__vpOsh")) return;
         const kl = vid === "стоп" ? `стоп|${aktIz(el, tekst) || tekst}` : vid + "|" + tekst;
         teper.add(kl);
         if (naEkrane.has(kl) || seychas - (bylo.get(kl) || 0) < 60 * 1000) return;

@@ -1467,6 +1467,7 @@
      Штука в руках, акт не принят — принимаем её по заданию акта (/__akt/vnutr_post, wms_vnutr_post.py),
      потом обычная карточка: пикнули паллету — переложилась (с СЦ на ДМД — через транзит). */
   let vp = null;   // {zhdu} | ответ сервера | {idet} | {oshibka}
+  const avtoPrinyaty = new Set();   // 13.10: акты, которые пикалка уже принимала сама
   function vpRisovat() {
     const el = document.getElementById("aktStopVp");
     if (!el) return;
@@ -1518,6 +1519,15 @@
       if (vp.шаг === "принят" || vp.шаг === "расхождение") {
         if (a.__perechitano) vp.perechitano = true;
         else { a.__perechitano = true; stopProverit(); }
+      }
+      // 13.10 Степан «а чо не само» (акт 5280342, Гразер): можно принять — принимаем сразу, без кнопки (и выгрузку из
+      // ВТИС тоже). Кнопка остаётся для товара из нескольких частей — человек подтверждает, что все у него — и после ошибки.
+      // Один акт — одна автоприёмка за сессию: если вмс после приёмки ещё показывает «не принят», второй раз сами не жмём
+      if (vp.можно && !vp.ошибка && !(vp.части && vp.части.length > 1) && !avtoPrinyaty.has(String(a.акт))) {
+        avtoPrinyaty.add(String(a.акт));
+        vpRisovat();
+        stopPrinyat();
+        return;
       }
     } catch (e) { if (stopAkt && stopAkt.акт === a.акт) vp = { ошибка: e.message || String(e), akt: a.акт }; }
     vpRisovat();
