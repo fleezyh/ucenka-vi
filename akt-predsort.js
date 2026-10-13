@@ -2358,9 +2358,10 @@
     } else if (k.proverka) {
       const d = k.proverka;
       telo = `<p class="aktPs__podskaz">→ ${d.куда.паллета ? `<b>${esc(d.куда.паллета)}</b> в ` : ""}<b>${esc(d.куда.ячейка)}</b> · ${esc(d.куда.база)}</p>
-        <p class="aktPs__chto">${d.стол ? `Через стол «${esc(d.стол.имя)}» · ` : ""}готово ${d.готово_к_перемещению} из ${n}${(d.проблемы || []).length ? ` · не пойдут: ${d.проблемы.length}` : ""}</p>
+        <p class="aktPs__chto">${d.стол ? `Через стол «${esc(d.стол.имя)}» · ` : ""}готово ${d.готово_к_перемещению + (d.через_транзит || []).length} из ${n}${(d.проблемы || []).length ? ` · не пойдут: ${d.проблемы.length}` : ""}</p>
+        ${(d.через_транзит || []).length ? `<p class="aktPs__chto">из них с СЦ — ${d.через_транзит.length} шт: через СЦ-стол и транзит, на паллету доедут сами за 10–15 минут</p>` : ""}
         ${(d.проблемы || []).slice(0, 8).map((x) => `<p class="aktPs__net">ACT ${x.акт}: ${esc(x.почему)}</p>`).join("")}
-        ${d.готово_к_перемещению ? `<button type="button" class="aktPs__akt" id="aktyGo"${!boevoy || !vms.подключено ? " disabled" : ""}>${!boevoy ? "Актировка выключена в админке" : !vms.подключено ? "Войдите в WMS" : `Переместить ${d.готово_к_перемещению} шт`}</button>` : ""}`;
+        ${d.готово_к_перемещению + (d.через_транзит || []).length ? `<button type="button" class="aktPs__akt" id="aktyGo"${!boevoy || !vms.подключено ? " disabled" : ""}>${!boevoy ? "Актировка выключена в админке" : !vms.подключено ? "Войдите в WMS" : `Переместить ${d.готово_к_перемещению + (d.через_транзит || []).length} шт`}</button>` : ""}`;
     } else {
       telo = `<p class="aktPs__podskaz">Пикните паллету (CON …) или ячейку (CEL …) — ${n} шт пройдут через выбранный стол, затем переедут туда; у каждой штуки свой акт.</p>`;
     }
@@ -2882,7 +2883,7 @@
     vyvestiTovar(`${shapka}
       <p class="aktPs__zag">Решение</p>
       <div class="aktPs__resheniya" style="grid-template-columns:repeat(${kolonok},minmax(0,1fr))">${RESHENIYA().map((x) => `<button type="button" class="aktPs__kn${String(x.id) === String(reshenie) ? " is-on" : ""}" data-resh="${x.id}" title="${esc(x.куда)}">${esc(x.имя)}</button>`).join("")}</div>
-      ${r && !r.акт ? `<p class="aktPs__net">«${esc(r.имя)}» — обычно без акта: сразу на паллету ниже, а нужен акт — выберите дефект.</p>${blokPalety()}` : ""}
+      ${r && !r.акт ? `<p class="aktPs__chto">«${esc(r.имя)}» — обычно без акта: сразу на паллету ниже, а нужен акт — выберите дефект.</p>${blokPalety()}` : ""}
       ${aktBlok(r ? "Крит или косм" : "Крит или косм · решение можно не выбирать")}`);
   }
   function vyvestiTovar(deystviya) {
