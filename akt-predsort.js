@@ -1462,7 +1462,7 @@
     el.hidden = Boolean(!kl);
     if (kl) document.body.classList.add("is-aktStop");
     if (!kl) {
-      signal(`Акт ${a.акт} ещё не принят в WMS — принимаю сам, держите штуку у себя (до полуминуты)`);
+      signal(`Акт ${a.акт} ещё не принят в WMS — принимаю сам, держите штуку у себя. Обычно секунды; если надо выгрузить из ВТИС — до двух минут, страницу не обновляйте`);
       vpZagruzit(a);
     } else setTimeout(() => window.pikalkaZvuk && window.pikalkaZvuk("oshibka"), 300);
     setTimeout(() => el.querySelector("[data-stop-otlozhil]")?.focus(), 50);
@@ -1519,7 +1519,8 @@
       if (idet && !stopAkt.__krasno) {
         okno.classList.add("is-proverka");
         if (kn) kn.hidden = true;
-        if (d.idet) signal(`Акт ${stopAkt.акт}: принимаю в WMS…`);
+        if (d.idet) signal(d.втис_выгрузить ? `Акт ${stopAkt.акт}: выгружаю перемещение из ВТИС и принимаю — до двух минут, страницу не обновляйте`
+          : `Акт ${stopAkt.акт}: принимаю в WMS…`);
       } else if (d.можно) {
         pokazat();
         okno.classList.remove("is-proverka");
