@@ -1150,6 +1150,7 @@
         <input name="kod" id="stolPoisk" placeholder="пикните наклейку стола или наберите: А1, 12…" inputmode="text">
         <button class="aktPs__kn is-on" type="submit">Выбрать</button>
       </form>
+      <p class="aktPs__chto">нет наклейки на столе — <a href="/picker/stoly/" target="_blank" rel="noopener">наклейки всех столов</a>: распечатать или пикнуть с экрана</p>
       ${stolyVse && stolyVse.zhdu ? '<p class="aktPs__chto">Загружаю столы…</p>' : ""}
       ${stolyVse && stolyVse.oshibka ? `<p class="aktPs__net"><b class="aktPs__oshibka">${esc(stolyVse.oshibka)}</b></p>` : ""}
       ${oshibkaStola ? `<p class="aktPs__net"><b class="aktPs__oshibka">${esc(oshibkaStola)}</b></p>` : ""}
@@ -1159,8 +1160,44 @@
     stol = d; vyborStola = false; reshenie = ""; defekt = ""; krit = ""; gotovo = null; oshibkaStola = "";
     localStorage.setItem(KLYUCH_STOLA, JSON.stringify({ день: segodnya(), стол: d }));
     if (tovar) zagruzitOtkuda();
+    if (aktK) signal(`Стол: ${d.имя}. Теперь пикните паллету.`);
     risovat();
   }
+  // 13.10 Степан: «хочу ввести просто название стола и подвязаться — мне неоткуда пикнуть». Пишут в строку поиска
+  // «Уценка Стол 8», «стол 8», «А1» с «стол» — ищем среди столов; один — ставим, несколько — открываем выбор с этим запросом.
+  const normStola = (s) => String(s || "").toLowerCase().replace(/^фб \(дмд\) /, "").replace(/[-–—]/g, " ").replace(/\s+/g, " ").trim();
+  async function stolPoImeni(q) {
+    if (!Array.isArray(stolyVse)) {
+      try { stolyVse = await chitat("/__akt/stoly"); } catch (err) { stolyVse = { oshibka: err.message || String(err) }; }
+    }
+    const spisok = Array.isArray(stolyVse) ? stolyVse : [];
+    const n = normStola(q);
+    const tochno = spisok.filter((x) => normStola(x.имя) === n);
+    const slovo = spisok.filter((x) => new RegExp(`(^|\\s)${n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(\\s|$)`).test(normStola(x.имя)));
+    const vybor = tochno.length === 1 ? tochno[0] : slovo.length === 1 ? slovo[0] : null;
+    if (vybor) { postavitStol(vybor); signal(`Стол: ${vybor.имя}.`); return; }
+    vyborStola = true;
+    oshibkaStola = slovo.length ? `под «${q}» ${slovo.length} столов — выберите` : `стола «${q}» нет — выберите из списка`;
+    risovat();
+    setTimeout(() => {
+      const p = document.getElementById("stolPoisk");
+      if (p) { p.value = String(q).replace(/^ФБ \(ДМД\) /i, ""); p.dispatchEvent(new Event("input", { bubbles: true })); }
+    }, 30);
+  }
+  document.addEventListener("picker:stol-imya", (e) => { stolPoImeni(e.detail.q); });
+  // 13.10: наклейку стола пикали без «CEL» — голый номер шёл как акт: 3073551 «Уценка Стол 5» открывался актом
+  // 2024 года (Гразер), 2498976 «Стол 3» (Бессонов), 3073553 «Стол 7» (Будаев) — и стоп «акт не принят».
+  // Номер стола важнее мёртвого акта с тем же числом.
+  function zagruzitIdStolov() {
+    chitat("/__akt/stoly").then((d) => {
+      if (!Array.isArray(d)) return;
+      if (!Array.isArray(stolyVse)) stolyVse = d;
+      window.__stolyId = new Set(d.map((x) => String(x.id)));
+      window.__stolyImena = d.map((x) => normStola(x.имя));
+      window.__normStola = normStola;
+    }).catch(() => {});
+  }
+  setTimeout(zagruzitIdStolov, 1500);
   function blokAktyTovara() {
     if (!tovar || !aktyT) return "";
     if (aktyT.zhdu) return '<p class="aktPs__zag">Акты на этот товар</p><p class="aktPs__chto">Смотрю акты в хранилище — секунд десять…</p>';
@@ -1552,7 +1589,7 @@
     const gotovo = itog && itog.ok;
     const net = neprinyat(a) || klientskiy(a);
     return `<div class="cShag3">
-      <div class="${stol ? "is-ok" : "is-net"}"><i>1</i><span>стол</span><b>${stol ? esc(String(stol.имя).replace(/^ФБ \(ДМД\) /, "")) : "без стола"}</b></div>
+      <div class="${stol ? "is-ok" : "is-net"}" data-smenit-stol="1" role="button" tabindex="0" title="выбрать стол"><i>1</i><span>стол · выбрать</span><b>${stol ? esc(String(stol.имя).replace(/^ФБ \(ДМД\) /, "")) : "без стола"}</b></div>
       <div class="${a.категория && !net ? "is-ok" : "is-net"}"><i>2</i><span>категория</span><b>${neprinyat(a) ? "не принят" : net ? "клиента" : esc(a.категория || "нет")}</b></div>
       <div class="${gotovo ? "is-ok" : net ? "is-net" : "is-sled"}"><i>3</i><span>паллета</span><b>${gotovo ? "готово" : net ? "нельзя" : "пикните"}</b></div>
     </div>`;
@@ -1622,13 +1659,14 @@
           <span>${skladTip(g.база) ? `<em class="cGde__tip cGde__tip--${skladTip(g.база) === "СЦ" ? "sc" : "fb"}">${skladTip(g.база)}</em> ` : ""}${esc(g.ячейка)}${g.зона ? ` <span class="yachPalleta__zak">· ${esc(g.зона)}</span>` : ""}${g.база ? ` <span class="yachPalleta__zak">· ${esc(g.база)}</span>` : ""}</span>
           ${g.заказ ? `<span class="yachPalleta__zak">заказ ${esc(g.заказ)}</span>` : ""}
         </button>`).join("")}</div>` : '<p class="aktPs__chto">По WMS штука нигде не числится — не принята, в перемещении, продана или списана.</p>'}
-      ${panel ? "" : nelzyaPerelozhit(a) + (est ? blokAktPer(a) : "") + vWms + otkuda}
+      ${panel ? "" : (vyborStola ? blokStolov() : "") + nelzyaPerelozhit(a) + (est ? blokAktPer(a) : "") + vWms + otkuda}
       ${panel || !window.AktDetal || !a.акт ? "" : window.AktDetal.blok(a.акт)}`;
     if (!panel) { box.innerHTML = glav; return; }
     vyvesti(glavAkta(a), `${shapkaDey("Акт", "№" + a.акт, a.особый ? `<span class="cDey__osob">${esc(a.особый)}</span>` : "")}
       ${plashkaVms()}${formaVms()}
       ${bolshoyItog()}
       ${shagiAkta(a)}
+      ${vyborStola ? `<div class="cStolVybor">${blokStolov()}</div>` : ""}
       ${kat}
       ${nelzyaPerelozhit(a)}
       ${est ? blokAktPer(a, true) : ""}
@@ -1925,7 +1963,7 @@
       const d = await otvet.json().catch(() => ({}));
       if (d.предупреждение) { aktPer = { vopros: { kod, tekst: d.предупреждение } }; if (navigator.vibrate) navigator.vibrate([80, 60, 80]); return; }
       if (d.нужен_вход) { vms = { подключено: false }; formaVhoda = true; oshibkaVhoda = "войдите в WMS, потом пикните паллету ещё раз"; aktPer = null; return; }
-      if (d.нужен_стол) { vyborStola = true; }   // 02.10: без стола перекладка не идёт — сразу выбор стола
+      if (d.нужен_стол) { vyborStola = true; oshibkaStola = ""; }   // 02.10: без стола перекладка не идёт — сразу выбор стола
       if (!otvet.ok || !d.готово) {
         const e = new Error(d.ошибка || `сервер ответил ${otvet.status}`);
         e.zakaz = d.заказ_втис || "";   // 02.10: чужой заказ — кнопка «удалить во ВТИС»
@@ -2746,6 +2784,12 @@
     if (aktK && !pal) { box.hidden = false; risovatAkt(); box.insertAdjacentHTML("afterbegin", knopkaNazad()); return; }
     if (yach && !pal) { box.hidden = false; risovatYacheyku(); return; }
     if (pal) { box.hidden = false; risovatPalletu(); box.insertAdjacentHTML("afterbegin", knopkaNazad()); return; }
+    if (!tovar && vyborStola) {
+      // 13.10: стол выбирают до первого пика (написали название в поиск) — только выбор стола
+      box.hidden = false;
+      vyvesti("", `${shapkaDey("Стол", stol ? stol.имя : "не выбран")}${blokStolov()}`);
+      return;
+    }
     if (!tovar) { box.hidden = true; spryatatDey(); return; }
     box.hidden = false;
     risovatTovar();
@@ -2986,9 +3030,9 @@
 
   naPaneli("input", (e) => {
     if (e.target.id !== "stolPoisk") return;
-    const q = e.target.value.trim().toLowerCase();
+    const q = normStola(e.target.value);   // 13.10: «стол 8» находит и «СЦ-ДМД Уценка Стол-8»
     // display, а не hidden: у кнопок свой display, атрибут hidden им не указ
-    vPanelyah("[data-stol-imya]").forEach((b) => { b.style.display = q && !b.dataset.stolImya.includes(q) ? "none" : ""; });
+    vPanelyah("[data-stol-imya]").forEach((b) => { b.style.display = q && !normStola(b.dataset.stolImya).includes(q) ? "none" : ""; });
     vPanelyah("[data-stol-gr]").forEach((g) => {
       g.style.display = [...g.querySelectorAll("[data-stol-imya]")].some((b) => b.style.display !== "none") ? "" : "none";
     });

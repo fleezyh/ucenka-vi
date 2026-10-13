@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Наклейки столов · пикалка</title>
+  <link rel="icon" type="image/svg+xml" href="../../assets/brand/vi-mark.svg">
+  <link rel="stylesheet" href="../../style.css?v=20260911-3">
+  <script src="../../shk-pechat.js?v=20261009-pak"></script>
+  <style>
+    /* 13.10 Степан: «мне неоткуда пикнуть — дай стол штрих и придумай систему».
+       Все столы пикалки со штрихкодом «CEL <ячейка>» — как наклейка вмс. Распечатать и наклеить на стол
+       или пикнуть сканером прямо с экрана. Клик по карточке — печать одной наклейки. */
+    body { margin: 0; background: #f4f5f8; color: #14161c; font-family: "VI Sans", system-ui, sans-serif; font-weight: 600; }
+    .st { max-width: 1280px; margin: 0 auto; padding: 24px; }
+    .st__shapka { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .st h1 { margin: 0; font-size: 28px; font-weight: 600; }
+    .st__pod { margin: 6px 0 0; color: #5d6372; font-size: 14px; font-weight: 500; max-width: 760px; line-height: 1.45; }
+    .st__kn { border: 1px solid #c9ccd6; background: #fff; color: #14161c; border-radius: 10px; padding: 10px 16px; font: 600 14px "VI Sans", sans-serif; cursor: pointer; }
+    .st__kn:hover { border-color: #7b5cf0; }
+    /* style.css красит кнопки и поля сайта под тёмную тему — здесь страница светлая, под печать */
+    .st button.st__kn, .st input.st__poisk { color: #14161c !important; -webkit-text-fill-color: #14161c !important; background: #fff !important; }
+    .st__poisk { background: #fff; color: #14161c; margin: 18px 0 8px; width: 100%; max-width: 420px; padding: 10px 14px; border: 1px solid #c9ccd6; border-radius: 10px; font: 500 15px "VI Sans", sans-serif; }
+    .st__gr { margin: 22px 0 10px; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: #5d6372; }
+    .st__setka { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+    .stK { background: #fff; border: 1px solid #dfe1e8; border-radius: 14px; padding: 14px 16px 12px; cursor: pointer; break-inside: avoid; }
+    .stK:hover { border-color: #7b5cf0; box-shadow: 0 4px 18px rgba(123,92,240,.15); }
+    .stK__imya { font-size: 20px; line-height: 1.15; }
+    .stK__poln { font-size: 12px; color: #5d6372; font-weight: 500; margin-top: 2px; }
+    .stK__shk { margin: 10px 0 4px; height: 70px; }
+    .stK__shk svg { width: 100%; height: 100%; display: block; }
+    .stK__kod { font-size: 14px; letter-spacing: .08em; text-align: center; }
+    .stK__resh { font-size: 12px; color: #5d6372; font-weight: 500; text-align: center; margin-top: 2px; }
+    .st__osh { color: #c0283c; }
+    @media print {
+      body { background: #fff; }
+      .st__shapka button, .st__poisk, .st__pod { display: none; }
+      .st { padding: 0; max-width: none; }
+      .st__setka { grid-template-columns: repeat(3, 1fr); gap: 6mm; }
+      .stK { border: 1px dashed #999; border-radius: 0; box-shadow: none; }
+      body.is-odna .stK:not(.is-pechat), body.is-odna .st__gr, body.is-odna h1 { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="st">
+    <div class="st__shapka">
+      <div>
+        <h1>Наклейки столов</h1>
+        <p class="st__pod">Штрихкод стола — «CEL» и номер ячейки стола в WMS, как наклейка WMS. Распечатайте и наклейте на стол —
+          или пикните сканером прямо с экрана. Без сканера: в пикалке напишите в поиск название стола («Уценка Стол 8») или
+          нажмите на шаг «1 стол» в карточке акта. Клик по карточке — печать одной наклейки.</p>
+      </div>
+      <button type="button" class="st__kn" id="stVse">Печатать все</button>
+    </div>
+    <input class="st__poisk" id="stPoisk" placeholder="найти стол: 8, А1, СЦ…" autocomplete="off">
+    <div id="stSpisok"><p class="st__pod">Загружаю столы…</p></div>
+  </main>
+  <script>
+  (function () {
+    "use strict";
+    const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+    const korot = (s) => String(s || "").replace(/^ФБ \(ДМД\) /, "");
+    function gruppa(x) {
+      const n = String(x.имя || "");
+      if (x.тип === "предсорт" || /предсорт/i.test(n)) return "Предсорт";
+      if (x.тип === "отгрузка") return "Отгрузка";
+      if (/^СЦ-ДМД/i.test(n)) return "Уценка СЦ-ДМД";
+      return "Уценка ДМД";
+    }
+    let stoly = [];
+    function risovat() {
+      const q = document.getElementById("stPoisk").value.trim().toLowerCase();
+      const vidno = stoly.filter((x) => !q || korot(x.имя).toLowerCase().includes(q) || String(x.id).includes(q));
+      const gr = {};
+      for (const x of vidno) (gr[gruppa(x)] = gr[gruppa(x)] || []).push(x);
+      document.getElementById("stSpisok").innerHTML = ["Предсорт", "Уценка ДМД", "Отгрузка", "Уценка СЦ-ДМД"].filter((g) => gr[g]).map((g) =>
+        `<p class="st__gr">${g} · ${gr[g].length}</p><div class="st__setka">${gr[g]
+          .sort((a, b) => korot(a.имя).localeCompare(korot(b.имя), "ru", { numeric: true }))
+          .map((x) => `<div class="stK" data-id="${esc(x.id)}" title="напечатать эту наклейку">
+            <div class="stK__imya">${esc(korot(x.имя))}</div>
+            <div class="stK__poln">${esc(x.имя)}</div>
+            <div class="stK__shk">${window.ShkPechat ? window.ShkPechat.svg("CEL " + x.id) : ""}</div>
+            <div class="stK__kod">CEL ${esc(x.id)}</div>
+            <div class="stK__resh">${(x.исходы || []).length} решений</div></div>`).join("")}</div>`).join("")
+        || '<p class="st__pod">Ничего не нашлось.</p>';
+    }
+    fetch("/__akt/stoly", { cache: "no-store" }).then((o) => {
+      if (!o.ok) throw new Error(o.status === 403 ? "нет доступа — войдите на сайт" : "сервер ответил " + o.status);
+      return o.json();
+    }).then((d) => { stoly = Array.isArray(d) ? d : []; risovat(); })
+      .catch((e) => { document.getElementById("stSpisok").innerHTML = `<p class="st__pod st__osh">${esc(e.message || e)}</p>`; });
+    document.getElementById("stPoisk").addEventListener("input", risovat);
+    document.getElementById("stVse").addEventListener("click", () => { document.body.classList.remove("is-odna"); window.print(); });
+    document.addEventListener("click", (e) => {
+      const k = e.target.closest(".stK");
+      if (!k) return;
+      document.querySelectorAll(".stK.is-pechat").forEach((x) => x.classList.remove("is-pechat"));
+      k.classList.add("is-pechat");
+      document.body.classList.add("is-odna");
+      window.print();
+      setTimeout(() => document.body.classList.remove("is-odna"), 500);
+    });
+  })();
+  </script>
+</body>
+</html>

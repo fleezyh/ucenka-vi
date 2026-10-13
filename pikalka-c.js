@@ -306,7 +306,20 @@
     // номера товара и паллет в обычной Пикалке остаются обычным поиском.
     if (window.__aktPs && /^[1-9]\d{6}$/.test(lat) && !palletCode(v)) {
       e.preventDefault(); e.stopImmediatePropagation(); scan.value = "";
+      // 13.10: наклейка стола без «CEL» (3073551 — «Уценка Стол 5») — это стол, а не мёртвый акт 2024 года с тем же номером
+      if (window.__stolyId && window.__stolyId.has(lat)) {
+        document.dispatchEvent(new CustomEvent("picker:stol", { detail: { kod: "CEL " + lat } }));
+        return;
+      }
       document.dispatchEvent(new CustomEvent("picker:akt", { detail: { kod: "ACT " + lat } }));
+      return;
+    }
+    // 13.10 Степан: «хочу ввести просто название стола и подвязаться к нему» — «Уценка Стол 8», «стол 8», «Стол А1 Предсорт»
+    // «стол обеденный» — товар: к столам идём, только если такое название у стола есть
+    if (window.__aktPs && /стол|предсорт/i.test(v) && v.length <= 60 && window.__stolyImena && window.__normStola
+      && window.__stolyImena.some((n) => n.includes(window.__normStola(v)))) {
+      e.preventDefault(); e.stopImmediatePropagation(); scan.value = "";
+      document.dispatchEvent(new CustomEvent("picker:stol-imya", { detail: { q: v } }));
       return;
     }
     // Наклейка WMS при выключенном WMS: включаем и отдаём скан дальше.
