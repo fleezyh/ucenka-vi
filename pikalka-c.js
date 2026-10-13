@@ -311,6 +311,11 @@
         document.dispatchEvent(new CustomEvent("picker:stol", { detail: { kod: "CEL " + lat } }));
         return;
       }
+      // 13.10 Белитов: ячейка без «CEL» (Данилово) — пикалка ждёт ячейку, значит это она, а не акт
+      if (window.__zhdemYacheyku && window.__zhdemYacheyku()) {
+        document.dispatchEvent(new CustomEvent("picker:stol", { detail: { kod: "CEL " + lat } }));
+        return;
+      }
       document.dispatchEvent(new CustomEvent("picker:akt", { detail: { kod: "ACT " + lat } }));
       return;
     }

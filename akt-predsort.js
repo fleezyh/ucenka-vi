@@ -2923,6 +2923,12 @@
       perIdet = false; risovat(); vFokus();
     }
   }
+  // 13.10 Белитов (Данилово): наклейки ячеек там без «CEL» — голые 7 цифр (4051911 «Буфер входа брака со склада (СЦ) ДНЛ»,
+  // 4051921 «Буфер входа в продажи с ДВК Данилово») при приёмке контейнеров и перемещении в ячейку читались как мёртвые акты
+  // 2025 года с тем же номером — «Стоп. Акт не принят в WMS». Когда пикалка ждёт ячейку, голое число — ячейка (pikalka-c.js).
+  window.__zhdemYacheyku = () => Boolean(podTsd || (massPik && korzRezhim === "priyom" && priyom)
+    || (massPik && korzAkty.length && !korzina.length) || (massPik && korzRezhim === "per" && !korzIdet)
+    || (pal && palPer && palPer.zhdem) || zhdemOtkuda());
   document.addEventListener("picker:stol", async (e) => {
     vyborStola = false;
     // ТСД (30.09, экран под телефон): ячейка — только в «брак в ячейке», без её содержимого.
