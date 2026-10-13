@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#04070a">
+  <title>Бэклог ФБ · пульт</title>
+  <link rel="icon" type="image/svg+xml" href="../../assets/brand/vi-mark.svg">
+  <link rel="preload" href="../../assets/fonts/VI_Sans_Regular.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="../../style.css?v=20260911-3">
+  <link rel="stylesheet" href="ekran.css?v=20261013-1">
+  <script src="ekran.js?v=20261013-1" defer></script>
+</head>
+<body class="bk">
+  <!-- Экран бэклога ФБ на стену (01.10, переделан 13.10 — «экран бэклога тоже должен иметь всю информацию:
+       покрутить, детализации, мощности по визуалу»). Холст 1920×1080 вписывается в окно.
+       Слева — сколько осталось и как шёл день, в центре — где лежит и сколько лежит, справа — кто разбирает,
+       куда разобрали, откуда приходит, лента. Внизу — бэклог по дням: клик по дню показывает тот день. -->
+  <div class="bkHolst" id="bkHolst">
+    <header class="bkShapka">
+      <div class="bkLogo"><i id="bkZhivo"></i><div><b>БЭКЛОГ ФБ</b><span id="bkRezhim">ЖИВЬЁМ</span></div></div>
+      <div class="bkDni" id="bkDni"></div>
+      <div class="bkChasy"><b id="bkChasy">--:--</b><span id="bkObn"></span></div>
+      <button type="button" class="bkKnopka" id="bkPolnyi" title="Во весь экран">⛶</button>
+    </header>
+
+    <section class="bkGlav">
+      <div class="bkGlav__lbl" id="bkLbl">ОСТАЛОСЬ РАЗОБРАТЬ</div>
+      <div class="bkGlav__big" id="bkOst">—</div>
+      <div class="bkGlav__delta" id="bkDelta"></div>
+      <div class="bkSchet" id="bkSchet"></div>
+      <div class="bkChas" id="bkChas"></div>
+    </section>
+    <section class="bkPanel bkDen"><h3>КАК ШЁЛ ДЕНЬ <span id="bkDenT"></span></h3><div class="bkDen__holst" id="bkDenHolst"></div></section>
+
+    <section class="bkPanel bkZony"><h3>ГДЕ ЛЕЖИТ <span>ЗОНЫ · ЗА 50 ДНЕЙ · КЛИК — ПОДРОБНО</span></h3><div id="bkZony"></div></section>
+    <section class="bkPanel bkLezhit"><h3>СКОЛЬКО ЛЕЖИТ <span>ПО ДНЮ, КОГДА ЗАШЛО</span></h3><div id="bkLezhit"></div></section>
+
+    <section class="bkPanel bkLyudi"><h3>КТО РАЗБИРАЕТ <span id="bkLyudiT"></span></h3><div id="bkLyudi"></div></section>
+    <section class="bkPanel bkKuda"><h3>КУДА РАЗОБРАЛИ</h3><div id="bkKat"></div></section>
+    <section class="bkPanel bkOtk"><h3>ПРИШЛО / УШЛО ДРУГИМИ ПУТЯМИ</h3><div id="bkOtk"></div></section>
+    <section class="bkPanel bkLenta"><h3>ЛЕНТА</h3><div id="bkLenta"></div></section>
+
+    <section class="bkPanel bkIst"><h3>БЭКЛОГ ПО ДНЯМ <span>КЛИК ПО ДНЮ — ПОКАЗАТЬ ТОТ ДЕНЬ · ← → ПО ДНЯМ · END — СЕГОДНЯ</span></h3><div class="bkIst__holst" id="bkIst"></div></section>
+
+    <section class="bkKarta" id="bkKarta" hidden></section>
+  </div>
+</body>
+</html>

@@ -1,0 +1,107 @@
+/* Экран бэклога ФБ (13.10.2026) — тот же пульт, что склад-радар: почти чёрный, бирюза — своё, янтарь — пришло, красный — растёт. */
+
+body.bk { margin: 0; background: #03060a; color: #b8c7d1; overflow: hidden; font-family: "VI Sans", system-ui, sans-serif; font-weight: 500; }
+.bk * { box-sizing: border-box; }
+.bkHolst { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; overflow: hidden; font-size: 13px;
+  background: radial-gradient(ellipse at 20% 20%, #0b1a24 0, #04080c 55%, #03060a 100%); }
+.bkHolst b { font-feature-settings: "tnum" 1; }
+
+.bkShapka { position: absolute; left: 0; right: 0; top: 0; height: 60px; display: flex; align-items: center; gap: 22px; padding: 0 20px;
+  border-bottom: 1px solid #12212c; background: linear-gradient(#071018, #050b10); }
+.bkLogo { display: flex; align-items: center; gap: 12px; min-width: 260px; }
+.bkLogo > i { width: 14px; height: 14px; border-radius: 50%; background: #2ee6d6; box-shadow: 0 0 0 0 #2ee6d688; animation: bkPuls 2s infinite; }
+.bkLogo > i.is-off { background: #ff4d5e; animation: none; }
+.bkLogo > i.is-ist { background: #f2b33d; animation: none; }
+@keyframes bkPuls { 0% { box-shadow: 0 0 0 0 #2ee6d688; } 70% { box-shadow: 0 0 0 14px #2ee6d600; } 100% { box-shadow: 0 0 0 0 #2ee6d600; } }
+.bkLogo b { display: block; color: #e8f6ff; font-size: 21px; font-weight: 600; letter-spacing: 0.3em; }
+.bkLogo span { display: block; color: #2ee6d6; font-size: 11px; letter-spacing: 0.2em; font-weight: 600; }
+.bkLogo span.is-ist { color: #f2b33d; }
+.bkDni { display: flex; gap: 6px; flex: 1; overflow: hidden; }
+.bkDen__k, .bkKnopka { border: 1px solid #1a2d3a; background: #07111a; color: #8fa6b4; padding: 7px 11px; font: 600 12px "VI Sans", sans-serif; cursor: pointer; white-space: nowrap; }
+.bkDen__k:hover, .bkKnopka:hover { color: #e8f6ff; border-color: #2ee6d6; }
+.bkDen__k.is-on { color: #03060a; background: #2ee6d6; border-color: #2ee6d6; }
+.bkChasy { text-align: right; min-width: 150px; }
+.bkChasy b { display: block; color: #e8f6ff; font-size: 26px; font-weight: 600; line-height: 1; }
+.bkChasy span { color: #6c8291; font-size: 11px; }
+
+.bkPanel { position: absolute; border: 1px solid #12212c; background: #050c12e6; padding: 12px 14px; overflow: hidden; }
+.bkPanel::before, .bkPanel::after { content: ""; position: absolute; width: 10px; height: 10px; border: 1.5px solid #2ee6d6; pointer-events: none; }
+.bkPanel::before { left: -1px; top: -1px; border-right: 0; border-bottom: 0; }
+.bkPanel::after { right: -1px; bottom: -1px; border-left: 0; border-top: 0; }
+.bkPanel h3 { margin: 0 0 10px; color: #7fa0b2; font-size: 11.5px; font-weight: 600; letter-spacing: 0.2em; display: flex; justify-content: space-between; gap: 10px; }
+.bkPanel h3 span { color: #46606f; letter-spacing: 0.08em; font-size: 10.5px; text-align: right; }
+
+/* главное число */
+.bkGlav { position: absolute; left: 24px; top: 76px; width: 690px; height: 330px; }
+.bkGlav__lbl { color: #7fa0b2; font-size: 18px; letter-spacing: 0.26em; font-weight: 600; }
+.bkGlav__big { color: #e8f6ff; font-size: 150px; font-weight: 600; line-height: 1; letter-spacing: -0.04em; margin: 6px 0 2px; font-feature-settings: "tnum" 1; transition: color 0.4s; }
+.bkGlav__big.is-minus { color: #2ee6d6; } .bkGlav__big.is-plus { color: #f2b33d; }
+.bkGlav__delta { font-size: 16px; font-weight: 600; color: #7fa0b2; }
+.bkSchet { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 14px; }
+.bkSchet div { border-left: 2px solid var(--c, #1f4256); padding-left: 10px; }
+.bkSchet span { display: block; color: #6c8291; font-size: 11.5px; letter-spacing: 0.06em; }
+.bkSchet b { display: block; color: var(--c, #e8f6ff); font-size: 34px; font-weight: 600; line-height: 1.1; }
+.bkChas { margin-top: 12px; color: #7fa0b2; font-size: 14px; }
+.bkChas b { color: #e8f6ff; }
+.bkLetit { position: absolute; font-size: 90px; font-weight: 600; pointer-events: none; animation: bkLetit 1.6s ease-out forwards; z-index: 30; }
+@keyframes bkLetit { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-110px); } }
+
+.bkDen { left: 16px; top: 418px; width: 700px; height: 466px; }
+.bkDen__holst { position: relative; height: 410px; }
+.bkDen__holst svg { width: 100%; height: 100%; display: block; }
+.bkTip { position: absolute; pointer-events: none; background: #040a0ff2; border: 1px solid #2ee6d6; padding: 8px 10px; font-size: 12px; color: #cfdce4; white-space: nowrap; z-index: 5; }
+.bkTip b { color: #e8f6ff; }
+
+.bkZony { left: 732px; top: 76px; width: 560px; height: 520px; }
+.bkLezhit { left: 732px; top: 608px; width: 560px; height: 276px; }
+.bkLyudi { left: 1308px; top: 76px; width: 596px; height: 330px; }
+.bkKuda { left: 1308px; top: 418px; width: 292px; height: 254px; }
+.bkOtk { left: 1612px; top: 418px; width: 292px; height: 254px; }
+.bkLenta { left: 1308px; top: 684px; width: 596px; height: 200px; }
+.bkIst { left: 16px; top: 896px; width: 1888px; height: 168px; }
+.bkIst__holst { position: relative; height: 118px; cursor: pointer; }
+.bkIst__holst svg { width: 100%; height: 100%; display: block; }
+
+/* строки-полосы */
+.bkStr { display: grid; grid-template-columns: 1fr 150px 74px 64px; gap: 10px; align-items: center; padding: 5px 4px; border-bottom: 1px solid #0b1820; cursor: pointer; font-size: 12.5px; }
+.bkStr:hover { background: #0a1822; }
+.bkStr__imya { color: #cfdce4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bkStr__pol { height: 7px; background: #0e1d27; position: relative; }
+.bkStr__pol i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--c, #2ee6d6); }
+.bkStr__zn { text-align: right; color: #e8f6ff; font-weight: 600; }
+.bkStr__d { text-align: right; font-size: 11.5px; font-weight: 600; }
+.bkStr svg { display: block; }
+
+.bkChel { display: grid; grid-template-columns: 170px 70px 1fr 66px; gap: 10px; align-items: center; padding: 6px 4px; border-bottom: 1px solid #0b1820; cursor: pointer; font-size: 13px; }
+.bkChel:hover { background: #0a1822; }
+.bkChel__imya { color: #e8f6ff; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bkChel__imya i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 7px; background: #2a3d49; vertical-align: 1px; }
+.bkChel__imya i.is-on { background: #2ee6d6; box-shadow: 0 0 8px #2ee6d6; }
+.bkChel__sht { text-align: right; color: #2ee6d6; font-weight: 600; font-size: 16px; }
+.bkChel__ch { display: flex; align-items: flex-end; gap: 2px; height: 22px; }
+.bkChel__ch i { flex: 1; background: #2ee6d6; opacity: 0.75; min-height: 1px; }
+.bkChel__ch i.is-0 { background: #0e1d27; opacity: 1; height: 2px !important; }
+.bkChel__temp { text-align: right; color: #7fa0b2; font-size: 11.5px; }
+
+.bkMalo { display: grid; grid-template-columns: 1fr 52px; gap: 8px; padding: 4px 0; border-bottom: 1px solid #0b1820; font-size: 12px; }
+.bkMalo span { color: #cfdce4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bkMalo b { text-align: right; color: var(--c, #e8f6ff); font-weight: 600; }
+
+.bkLen { display: grid; grid-template-columns: 62px 1fr 140px; gap: 8px; padding: 4px 0; border-bottom: 1px solid #0b1820; font-size: 12px; }
+.bkLen span { color: #46606f; } .bkLen b { color: #cfdce4; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bkLen i { color: #7fa0b2; font-style: normal; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: right; }
+.bkLen.is-new { animation: bkNovy 2.5s ease-out; }
+@keyframes bkNovy { 0% { background: #2ee6d644; } 100% { background: transparent; } }
+.bkPusto { color: #46606f; font-size: 12.5px; padding: 6px 0; }
+
+/* карточка */
+.bkKarta { position: absolute; left: 420px; top: 120px; width: 1080px; max-height: 760px; overflow: auto; z-index: 20;
+  border: 1px solid #2ee6d6; background: #040a0ff8; box-shadow: 0 0 80px #000d; padding: 18px 22px; }
+.bkKarta__zag { display: flex; justify-content: space-between; color: #2ee6d6; font-size: 12px; letter-spacing: 0.16em; font-weight: 600; }
+.bkKarta__zag button { border: 0; background: none; color: #7fa0b2; font-size: 20px; cursor: pointer; }
+.bkKarta h2 { margin: 8px 0 8px; color: #e8f6ff; font-size: 26px; font-weight: 600; }
+.bkKarta p { color: #9fb3c0; font-size: 14px; line-height: 1.45; margin: 0 0 10px; }
+.bkKarta table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 8px 0 12px; }
+.bkKarta th { text-align: left; color: #46606f; font-weight: 600; font-size: 10.5px; letter-spacing: 0.12em; padding: 4px 6px; border-bottom: 1px solid #12212c; }
+.bkKarta td { padding: 5px 6px; border-bottom: 1px solid #0b1820; color: #cfdce4; }
+.bkKarta svg { display: block; width: 100%; }
