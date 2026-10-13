@@ -19,6 +19,10 @@
   // 12.10: «акта 530922 нет в вмс» — опечатка в номере (5309222), тоже личное
   const LICHNYE = /не выбран стол|пикните наклейку своего стола|уже в списке|дождитесь загрузки|список пуст|^акта \d+ нет в вмс$/i;
   const bylo = new Map();   // вид|текст → когда слали
+  // 13.10 (Будаев, акт 4874364: одна ситуация — три строки в «Ошибках»): стоп пишем один раз на акт и только когда
+  // проверка «можно ли принять здесь» закончилась — пока она идёт, текст плашки меняется. «Приёмка со стола» внутри
+  // открытого стопа отдельно не пишем — она уже в тексте стопа.
+  const IDET_PROVERKA = /смотрю в WMS|смотрю, можно ли|принимаю в WMS|выгружаю перемещение|перечитываю акт/i;
 
   const vidno = (el) => Boolean(el && (el.offsetParent !== null || el.getClientRects().length));
   const tekstOf = (el) => {
@@ -49,7 +53,9 @@
         if (!vidno(el)) return;
         const tekst = tekstOf(el).slice(0, 600);
         if (!tekst || LICHNYE.test(tekst)) return;
-        const kl = vid + "|" + tekst;
+        if (vid === "приёмка со стола" && el.closest(".aktStop:not([hidden])")) return;
+        if (vid === "стоп" && IDET_PROVERKA.test(tekst)) return;
+        const kl = vid === "стоп" ? `стоп|${aktIz(el, tekst) || tekst}` : vid + "|" + tekst;
         teper.add(kl);
         if (naEkrane.has(kl) || seychas - (bylo.get(kl) || 0) < 60 * 1000) return;
         bylo.set(kl, seychas);
