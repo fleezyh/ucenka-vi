@@ -1564,8 +1564,34 @@
         stopPrinyat();
         return;
       }
+      // 13.10 встреча (Гамлет, Будаев): списана или отгружена по WMS, а штука в руках — возвращаем на учёт инвентаризацией
+      // с тем же актом (как с отремом), не переактивируем чужие остатки. Один раз на акт за сессию.
+      if (vp.можно_вернуть && !avtoPrinyaty.has("в" + a.акт)) {
+        avtoPrinyaty.add("в" + a.акт);
+        vernutAkt(a, vp);
+        return;
+      }
     } catch (e) { if (stopAkt && stopAkt.акт === a.акт) vp = { ошибка: e.message || String(e), akt: a.акт }; }
     vpRisovat();
+  }
+  async function vernutAkt(a, bylo) {
+    vp = { ...bylo, idet: true, vozvrat: true };
+    signal(`Акт ${a.акт}: по WMS ${bylo.ушла ? "ушёл со склада" : "списан"}, а штука у вас — возвращаю на учёт тем же актом (до полуминуты)`);
+    try {
+      const o = await fetch("/__akt/vernut", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ акт: a.акт, стол_id: stol ? stol.id : null, причина: bylo.текст || "" }) });
+      const d = await o.json().catch(() => ({}));
+      if (!o.ok || !d.готово) throw new Error(d.ошибка || `сервер ответил ${o.status}`);
+      PikIst.dobavit({ vid: "акт", kod: a.наклейка || String(a.акт), akt: a.акт, n: a.товар || "", itog: `возвращён на учёт: ${d.ячейка}`, ok: true });
+      signal(`Акт ${a.акт} снова на учёте (инвентаризация №${d.инвентаризация}) — штука в «${d.ячейка}». Пикните паллету, куда кладёте.`);
+      window.pikalkaZvuk && window.pikalkaZvuk("ok");
+      stopSnyat();
+      aktPosl = { kod: "", t: 0 };
+      otkrytAkt(a.наклейка || `ACT ${String(a.акт).padStart(10, "0")}`);
+    } catch (e) {
+      vp = { ...bylo, ошибка: `вернуть на учёт не вышло: ${e.message || e}` };
+      vpRisovat();
+    }
   }
   async function stopPrinyat() {
     const a = stopAkt;
