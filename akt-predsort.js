@@ -3277,6 +3277,7 @@
     if (otk.на_столе) return `${zag}<p class="otkOk">✓ по WMS уже на столе</p>`;
     if (otk.уже_акт) return `${zag}<p class="aktPs__net"><b class="aktPs__oshibka">${esc(otk.уже_акт.текст)}</b></p>
       <div class="aktPs__vopros"><button type="button" class="aktPs__kn is-on" data-otk-akt="${esc(otk.уже_акт.акт)}">Открыть акт ${esc(otk.уже_акт.акт)}</button></div>`;
+    if (otk.заведу) return `${zag}<p class="otkOk">✓ ${esc(otk.заведу)}</p>`;   // 13.10: не чужой акт из остатков, а излишек
     if (otk.нет) return `${zag}<p class="aktPs__net"><b class="aktPs__oshibka">${esc(otk.нет)}</b></p>`;
     if (otk.буфер && otk.сам) return `${zag}<p class="otkOk">✓ возьму из «${mesto(otk.сам)}» на стол</p>`;
     const v = otk.варианты || [];
