@@ -1446,21 +1446,25 @@
           Отложите в паллету для передачи курьеру.</p>
         <div class="aktStop__knopki">
           <button type="button" class="aktStop__da" data-stop-otlozhil="1">Отложил(а) в паллету курьеру</button>
-        </div>` : `<h2 class="aktStop__zag">Стоп. Акт не принят в WMS</h2>
+        </div>` : `<h2 class="aktStop__zag">Акт ещё не принят в WMS — принимаю сам</h2>
         <p class="aktStop__tovar">${esc(a.товар || "")}</p>
-        <p class="aktStop__chto">В паллету <b>не класть</b> — получится излишек. Отложите товар в сторону, к непринятым.
-          Когда его примут, пикните акт снова.</p>
+        <p class="aktStop__chto">Держите штуку у себя, <b>не откладывайте</b>: смотрю, можно ли принять её прямо здесь.</p>
         <div class="aktStop__vp" id="aktStopVp"><p class="aktStop__vpChto">смотрю, можно ли принять его прямо здесь…</p></div>
-        <div class="aktStop__knopki">
+        <div class="aktStop__knopki" hidden>
           <button type="button" class="aktStop__da" data-stop-otlozhil="1">Отложил(а) в сторону</button>
           <button type="button" class="aktStop__snova" data-stop-snova="1">Проверить ещё раз</button>
         </div>`}
         <p class="aktStop__poka">пока не нажмёте — пикалка не принимает паллеты, товары и другие акты</p>
       </div>`;
-    el.hidden = false;
-    document.body.classList.add("is-aktStop");
-    if (!kl) vpZagruzit(a);
-    setTimeout(() => window.pikalkaZvuk && window.pikalkaZvuk("oshibka"), 300);
+    // 13.10 Степан: «зачем красным показывать — он же отложит и не донесёт; в чём смысл показывать ошибку без итога».
+    // Пока смотрим, можно ли принять, и принимаем сами — окна нет, только строка внизу; окно — только с итогом (vpRisovat):
+    // «примите здесь» или красный стоп, если принять нельзя. Пики пока гасятся, как и раньше.
+    el.hidden = Boolean(!kl);
+    if (kl) document.body.classList.add("is-aktStop");
+    if (!kl) {
+      signal(`Акт ${a.акт} ещё не принят в WMS — принимаю сам, держите штуку у себя (до полуминуты)`);
+      vpZagruzit(a);
+    } else setTimeout(() => window.pikalkaZvuk && window.pikalkaZvuk("oshibka"), 300);
     setTimeout(() => el.querySelector("[data-stop-otlozhil]")?.focus(), 50);
   }
   /* 08.10 встреча 07.10: «на столах делать внутренние поступления, без того чтобы акты расхождения всё принимали».
@@ -1504,7 +1508,38 @@
     if (chto && (d.шаг === "нет" || (d.шаг === "расхождение" && d.perechitano)))
       chto.innerHTML = "В паллету <b>не класть</b> — по WMS этой штуки нет. Отложите её к излишкам.";
     // можно принять — главная кнопка «принять», «отложил» становится запасной
-    el.closest(".aktStop__okno")?.classList.toggle("is-mozhno", Boolean(d.можно));
+    const okno = el.closest(".aktStop__okno");
+    okno?.classList.toggle("is-mozhno", Boolean(d.можно));
+    // 13.10: проверка/автоприёмка идёт — спокойно; можно, но кнопкой — зелёный «примите здесь»; нельзя — красный стоп
+    const idet = Boolean(d.zhdu || d.idet || ((d.шаг === "принят" || d.шаг === "расхождение") && !d.perechitano) || (d.можно && !d.ошибка && stopAkt && avtoPrinyaty.has(String(stopAkt.акт)) && !(d.части && d.части.length > 1)));
+    if (okno && stopAkt && !okno.querySelector(".aktStop__zag")?.textContent.startsWith("Стоп. Товар клиента")) {
+      const zag = okno.querySelector(".aktStop__zag");
+      const kn = okno.querySelector(".aktStop__knopki");
+      const pokazat = () => { const st = document.getElementById("aktStop"); if (st) st.hidden = false; document.body.classList.add("is-aktStop"); };
+      if (idet && !stopAkt.__krasno) {
+        okno.classList.add("is-proverka");
+        if (kn) kn.hidden = true;
+        if (d.idet) signal(`Акт ${stopAkt.акт}: принимаю в WMS…`);
+      } else if (d.можно) {
+        pokazat();
+        okno.classList.remove("is-proverka");
+        if (zag) zag.textContent = "Акт не принят — примите его здесь";
+        if (chto) chto.innerHTML = "Штука у вас — <b>не откладывайте</b>: примите её кнопкой ниже, потом пикните паллету. «Отложил(а)» — только если штуки нет в руках.";
+        if (kn) kn.hidden = false;
+      } else if (!idet) {
+        pokazat();
+        okno.classList.remove("is-proverka");
+        if (zag) zag.textContent = "Стоп. Акт не принят в WMS";
+        if (chto && !(d.шаг === "нет" || (d.шаг === "расхождение" && d.perechitano)))
+          chto.innerHTML = "В паллету <b>не класть</b> — получится излишек. Отложите товар в сторону, к непринятым. Когда его примут, пикните акт снова.";
+        if (kn) kn.hidden = false;
+        if (!stopAkt.__krasno) {
+          stopAkt.__krasno = true;
+          setTimeout(() => window.pikalkaZvuk && window.pikalkaZvuk("oshibka"), 150);
+          setTimeout(() => okno.querySelector("[data-stop-otlozhil]")?.focus(), 50);
+        }
+      }
+    }
   }
   async function vpZagruzit(a) {
     vp = { zhdu: true, akt: a.акт }; vpRisovat();
@@ -1590,6 +1625,8 @@
     if (stopVcherashniySnyat() && !ostatok) return;   // пик идёт дальше как обычный
     e.stopImmediatePropagation();
     const el = document.getElementById(stopAkt ? "aktStop" : "kontOst");
+    // 13.10: окна ещё нет — пикалка сама принимает акт; пик подождёт, без звука ошибки
+    if (stopAkt && el && el.hidden) { signal(`Секунду — принимаю акт ${stopAkt.акт} в WMS, потом пикните ещё раз`); return; }
     if (el) { el.classList.remove("is-tryas"); void el.offsetWidth; el.classList.add("is-tryas"); }
     setTimeout(() => window.pikalkaZvuk && window.pikalkaZvuk("oshibka"), 260);
   }, { capture: true }));
