@@ -4,7 +4,9 @@
  * а под наши метрики… сама карта конченная где это находится — надо красиво, стиль управления вооружённых сил,
  * палантир, но чтоб реально эта карта ебать че-то говорила, и можно было крутить историю».
  *
- * Что говорит карта (Подмосковье в настоящих координатах):
+ * 13.10 утром: «мне не нравится такая абстрактная карта» — карта Подмосковья заменена планом складов сверху
+ * (выбор Степана): ДМД по секторам — хранение, буферы, приёмка, ворота; ЧШК по сторонам и мезонину; двор; перевозки.
+ * Ниже — как было на карте (осталось в смысле этапов и перевозок):
  *   — склад: кольцо из шести дуг — двор, ворота, приёмка, размещение, вход (буферы), хранение; цвет дуги — состояние этапа,
  *     в центре — сколько машин ждут ворот; мигает, если что-то сломано;
  *   — прилетающие штрихи — машины поставщиков за последний час;
@@ -42,33 +44,6 @@
   };
   const vozrastMin = (s) => (s ? (Date.now() - new Date(s.replace(" ", "T") + ":00+03:00").getTime()) / 60000 : Infinity);
   const noch = () => { const t = new Date(); const m = t.getHours() * 60 + t.getMinutes(); return m >= 22 * 60 + 50 || m < 6 * 60; };
-
-  /* ── география: проекция и подложка ─────────────────────────────── */
-  const W = 1048, H = 690, LAT0 = 55.65, LON0 = 37.55, S = 511, KX = Math.cos(LAT0 * Math.PI / 180);
-  const P = (lat, lon) => [W / 2 + (lon - LON0) * KX * S, H / 2 - (lat - LAT0) * S];
-  const GEO = { ДМД: [55.44, 37.75], ЧШК: [56.026, 37.173], "3PL": [55.18, 37.51], МСК: [55.756, 37.617] };
-  const TRASSY = [
-    ["М-11", [[55.80, 37.49], [55.885, 37.43], [55.98, 37.22], [56.03, 37.15], [56.18, 36.98], [56.36, 36.7]]],
-    ["М-8", [[55.85, 37.66], [55.91, 37.73], [56.01, 37.85], [56.30, 38.13], [56.4, 38.2]]],
-    ["М-7", [[55.75, 37.82], [55.80, 37.94], [55.85, 38.44], [55.88, 39.2]]],
-    ["М-5", [[55.68, 37.85], [55.68, 37.89], [55.42, 38.26], [55.15, 38.85]]],
-    ["М-4", [[55.62, 37.71], [55.44, 37.76], [55.25, 37.85], [54.95, 38.06]]],
-    ["М-2", [[55.58, 37.60], [55.43, 37.55], [55.14, 37.46], [54.92, 37.41]]],
-    ["М-3", [[55.63, 37.44], [55.55, 37.07], [55.39, 36.73], [55.2, 36.3]]],
-    ["М-1", [[55.71, 37.39], [55.68, 37.28], [55.61, 36.99], [55.5, 36.2]]],
-    ["М-9", [[55.79, 37.37], [55.80, 37.10], [55.92, 36.86], [55.98, 36.1]]],
-  ];
-  const GORODA = [["Москва", 55.756, 37.617, 1], ["Зеленоград", 55.99, 37.21], ["Солнечногорск", 56.18, 36.98], ["Химки", 55.89, 37.44],
-    ["Мытищи", 55.91, 37.73], ["Балашиха", 55.80, 37.94], ["Люберцы", 55.68, 37.89], ["Подольск", 55.43, 37.54], ["Домодедово", 55.44, 37.76],
-    ["Чехов", 55.14, 37.46], ["Серпухов", 54.92, 37.41], ["Одинцово", 55.68, 37.28], ["Истра", 55.92, 36.86], ["Сергиев Посад", 56.30, 38.13],
-    ["Ногинск", 55.85, 38.44], ["Наро-Фоминск", 55.39, 36.73], ["Клин", 56.33, 36.73], ["Ступино", 54.89, 38.08], ["Воскресенск", 55.32, 38.65]];
-  // куда уходит товар: координаты городов назначения (для направления стрелки)
-  const REG = { СПБ: [59.94, 30.31], КАЗ: [55.79, 49.12], ЕКБ: [56.84, 60.6], КРД: [45.04, 38.98], НН: [56.33, 44.0], САМ: [53.2, 50.15],
-    РНД: [47.23, 39.72], ТУЛ: [54.19, 37.62], НСК: [55.03, 82.92], ВРЖ: [51.67, 39.18], ЯР: [57.63, 39.87], ВГГ: [48.71, 44.51], УФА: [54.74, 55.97],
-    ЧЕЛ: [55.16, 61.4], САР: [51.53, 46.03], ПНЗ: [53.2, 45.0], ТЮМ: [57.15, 65.53], ПЕР: [58.01, 56.25], ВЛ: [56.13, 40.4], СРГ: [61.25, 73.4],
-    ВЛГ: [59.22, 39.89], ИЖ: [56.85, 53.2], СТВ: [45.04, 41.97], КСК: [56.01, 92.89], РЯЗ: [54.63, 39.74], ТВР: [56.86, 35.9], КАЛ: [54.51, 36.26],
-    БРН: [53.24, 34.36], ЛПЦ: [52.61, 39.6], БЛГ: [50.6, 36.59], КРС: [51.73, 36.19], ОРЛ: [52.97, 36.07], СМЛ: [54.78, 32.05], ИВН: [57.0, 40.97],
-    КСТ: [57.77, 40.93], ТМБ: [52.72, 41.45], УЛН: [54.31, 48.4], ЧБК: [56.15, 47.25], ОМС: [54.99, 73.37], ТЛТ: [53.51, 49.42], ОРБ: [51.77, 55.1] };
 
   let D = {};             // сырьё
   let I = 0;              // выбранный час (индекс в истории)
@@ -254,196 +229,286 @@
     }).join("") + '<div class="rdVor__pri">белая черта — норма к этому часу (тот же день недели и час, медиана 4–5 недель)</div>';
   }
 
-  /* ── карта ──────────────────────────────────────────────────────── */
+  /* ── план складов сверху ─────────────────────────────────────────
+     13.10, Степан: «мне не нравится такая абстрактная карта» → схема складов сверху (выбрал сам).
+     ДМД: секторы столбцами — сверху хранение (занятость мест), ниже буферы сектора (разноска, перемещения, адресные),
+     ниже приёмка сектора (приёмка товара, столы, поступление, зоны ворот), внизу ворота сектора по номерам.
+     Стрелки между ярусами — штук за 2 часа по участкам (приёмка, размещение) и сколько людей сейчас.
+     Слева двор с машинами. ЧШК — свой план по сторонам А/Б/В и мезонину. Справа внизу — челнок и 3PL, куда уходит товар.
+     В прошлом — зоны из почасовых снимков (с 13.10), хранение/люди/ворота/машины только в «сейчас». */
+  const W = 1048, H = 690;
+  const PORYADOK = ["0", "А", "Б", "В", "Г", "Д", "Е", "Ж", "З", "И"];
+  const zonaPriem = (n) => /Приёмка товара|Столы приемки|ПОСТУПЛЕНИЕ|Ворота|Ошибки приемки|переназначения доверительной/i.test(n);
+  const zonaBufer = (n) => /Разноска|Перемещени|Адресный буфер|Бункер|Вывоз столов/i.test(n);
+  const vsSev = (n48, maks) => (maks >= 168 && n48 >= 5 ? "krit" : n48 ? "vys" : "norma");
+  let ZONY_IST = null;            // radar_zony.json — грузим один раз, когда уходим в историю
+  let zonyIstZagruzka = null;
+
+  /** Зоны входа склада на выбранный час: в «сейчас» — живьём, в прошлом — снимок часа (если есть). */
+  function zonyNa(sk) {
+    if (I === N - 1) {
+      const z = sk === "ДМД" ? D.zhivo?.зоны : D.zhivo?.чшк?.зоны;
+      return z ? Object.entries(z).map(([imya, x]) => ({ imya, ...x })) : null;
+    }
+    const sn = ZONY_IST?.часы?.[D.ist.часы[I]]?.[sk];
+    if (!sn) return null;
+    return Object.entries(sn).map(([imya, [sht, n48]]) => ({ imya, штук: sht, ждут_больше_48ч: n48, ждут_макс_ч: 0, istoriya: true }));
+  }
+  function nuzhnyZonyIst() {
+    if (ZONY_IST || zonyIstZagruzka || I === N - 1) return;
+    zonyIstZagruzka = fetch(DATA + "radar_zony.json", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).catch(() => null)
+      .then((d) => { ZONY_IST = d || { часы: {} }; risovat(); });
+  }
+
+  /** Зона ДМД → буква сектора: по монитору (зоны сектора), иначе по имени. */
+  let ZONA_SEKTOR = null;
+  function bukvaZony(imya) {
+    if (!ZONA_SEKTOR) {
+      ZONA_SEKTOR = {};
+      (D.mon?.секторы || []).forEach((s) => { const b = (s.сектор.match(/Сектор (\S+) ДМД/) || [])[1]; if (b) (s.зоны || []).forEach((z) => { ZONA_SEKTOR[z.зона] = b; }); });
+    }
+    if (ZONA_SEKTOR[imya]) return ZONA_SEKTOR[imya];
+    const m = imya.match(/\(([0-9А-ЯЁ])-\d+\)/) || imya.match(/товара ([0-9А-ЯЁ])\b/) || imya.match(/сектор[еа]?\s+([0-9А-ЯЁ])\b/i)
+      || imya.match(/секторами (?:из )?([0-9А-ЯЁ])\b/) || imya.match(/\(([0-9А-ЯЁ])\)/) || imya.match(/ ([А-ЯЁ]) (?:мез|\(ДМД\)|Клиент)/);
+    return m ? m[1] : null;
+  }
+
+  const sostZony = (zz) => {
+    const sht = zz.reduce((a, z) => a + (z.штук || 0), 0), n48 = zz.reduce((a, z) => a + (z.ждут_больше_48ч || 0), 0);
+    const maks = Math.max(0, ...zz.map((z) => z.ждут_макс_ч || 0));
+    return { sht, n48, maks, sev: vsSev(n48, maks), zz };
+  };
+
   function karta() {
     const box = $("rdKarta");
     box.innerHTML = "";
     const svg = el("svg", { viewBox: `0 0 ${W} ${H}` }, box);
     const defs = el("defs", {}, svg);
-    const g = el("radialGradient", { id: "rdGlow" }, defs);
-    el("stop", { offset: 0, "stop-color": "#2ee6d6", "stop-opacity": 0.12 }, g);
-    el("stop", { offset: 1, "stop-color": "#2ee6d6", "stop-opacity": 0 }, g);
     for (const [k, c] of Object.entries(C)) {
-      const gg = el("radialGradient", { id: `rdSv_${k}` }, defs);
-      el("stop", { offset: 0, "stop-color": c, "stop-opacity": 0.32 }, gg);
-      el("stop", { offset: 1, "stop-color": c, "stop-opacity": 0 }, gg);
-      const m = el("marker", { id: `rdStr_${k}`, viewBox: "0 0 10 10", refX: 8, refY: 5, markerWidth: 5, markerHeight: 5, orient: "auto-start-reverse" }, defs);
+      const m = el("marker", { id: `rdStr_${k}`, viewBox: "0 0 10 10", refX: 8, refY: 5, markerWidth: 4, markerHeight: 4, orient: "auto-start-reverse" }, defs);
       el("path", { d: "M0 0 L10 5 L0 10 z", fill: c }, m);
     }
-    const sweep = el("linearGradient", { id: "rdSweep", x1: 0, y1: 0, x2: 1, y2: 0 }, defs);
-    el("stop", { offset: 0, "stop-color": "#2ee6d6", "stop-opacity": 0 }, sweep);
-    el("stop", { offset: 1, "stop-color": "#2ee6d6", "stop-opacity": 0.1 }, sweep);
-
-    // координатная сетка с подписями — как на оперативной карте
-    const setka = el("g", { stroke: "#0c1b24", "stroke-width": 1 }, svg);
-    for (let lat = 55.0; lat <= 56.31; lat += 0.25) {
-      const [, y] = P(lat, LON0);
-      el("line", { x1: 0, x2: W, y1: y, y2: y }, setka);
-      el("text", { x: 6, y: y - 4, fill: "#2b4352", "font-size": 10.5 }, svg, `${Math.floor(lat)}°${String(Math.round((lat % 1) * 60)).padStart(2, "0")}′ С`);
+    const pat = el("pattern", { id: "rdSetka", width: 24, height: 24, patternUnits: "userSpaceOnUse" }, defs);
+    el("path", { d: "M24 0H0V24", fill: "none", stroke: "#0a161e", "stroke-width": 1 }, pat);
+    el("rect", { width: W, height: H, fill: "url(#rdSetka)" }, svg);
+    nuzhnyZonyIst();
+    planDmd(svg);
+    planChshk(svg);
+    planSvyazi(svg);
+    if (I !== N - 1 && !ZONY_IST?.часы?.[D.ist.часы[I]]) {
+      el("text", { x: W / 2, y: 22, fill: C.vys, "font-size": 12, "text-anchor": "middle", "letter-spacing": 1 }, svg,
+        "в этот час снимка зон нет (снимки копятся с 13.10) — на плане только итоги по складу");
     }
-    for (let lon = 35.75; lon <= 39.3; lon += 0.25) {
-      const [x] = P(LAT0, lon);
-      el("line", { x1: x, x2: x, y1: 0, y2: H }, setka);
-      if (Math.abs((lon * 4) % 2) < 0.01) el("text", { x: x + 4, y: H - 6, fill: "#2b4352", "font-size": 10.5 }, svg, `${Math.floor(lon)}°${String(Math.round((lon % 1) * 60)).padStart(2, "0")}′ В`);
-    }
-    // ЦКАД и МКАД
-    const [mx, my] = P(55.745, 37.62);
-    el("ellipse", { cx: mx, cy: my, rx: 0.73 * KX * S, ry: 0.40 * S, fill: "none", stroke: "#173040", "stroke-width": 2, "stroke-dasharray": "7 6" }, svg);
-    el("text", { x: mx + 0.5 * KX * S, y: my - 0.33 * S, fill: "#2b4352", "font-size": 11, "letter-spacing": 2 }, svg, "ЦКАД");
-    el("ellipse", { cx: mx, cy: my, rx: 0.245 * KX * S, ry: 0.168 * S, fill: "#0a1a24", stroke: "#1f4256", "stroke-width": 2.5 }, svg);
-    el("text", { x: mx + 0.17 * KX * S, y: my - 0.15 * S, fill: "#2b4352", "font-size": 11, "letter-spacing": 2 }, svg, "МКАД");
-    // трассы
-    const tg = el("g", { fill: "none", stroke: "#12293a", "stroke-width": 2 }, svg);
-    for (const [imya, tochki] of TRASSY) {
-      const pts = tochki.map(([a, b]) => P(a, b));
-      el("polyline", { points: pts.map((p) => p.join(",")).join(" ") }, tg);
-      const [x, y] = pts[pts.length - 2];
-      el("text", { x: x + 6, y: y - 6, fill: "#26495c", "font-size": 10.5, "font-weight": 600 }, svg, imya);
-    }
-    // города
-    for (const [imya, a, b, glav] of GORODA) {
-      const [x, y] = P(a, b);
-      el("circle", { cx: x, cy: y, r: glav ? 3.5 : 2, fill: "#2b4352" }, svg);
-      el("text", { x: x + 6, y: y + 4, fill: glav ? "#5d7a8a" : "#33505f", "font-size": glav ? 13 : 11, "letter-spacing": glav ? 3 : 0.5 }, svg, glav ? imya.toUpperCase() : imya);
-    }
-    const [ax, ay] = P(55.41, 37.90);
-    el("text", { x: ax - 6, y: ay + 5, fill: "#33505f", "font-size": 13 }, svg, "✈");
-    el("text", { x: ax + 10, y: ay + 5, fill: "#33505f", "font-size": 10 }, svg, "DME");
-
-    // луч радара от Москвы
-    const luch = el("g", { class: "rdLuch", style: `transform-origin:${mx}px ${my}px` }, svg);
-    el("path", { d: `M${mx} ${my} L${mx + 420} ${my - 60} A 424 424 0 0 1 ${mx + 424} ${my} Z`, fill: "url(#rdSweep)" }, luch);
-
-    perevozkiNaKarte(svg);
-    for (const sk of SKLADY) uzel(svg, sk);
-    uzel3pl(svg);
-    legendaKarty(svg);
   }
 
-  /* перевозки за сутки выбранного часа */
-  function perevozkiNaKarte(svg) {
+  const klikom = (g, f) => { g.style.cursor = "pointer"; g.addEventListener("click", (ev) => { ev.stopPropagation(); f(); }); };
+  const pryam = (rod, x, y, w, h, atr = {}) => el("rect", { x, y, width: Math.max(0, w), height: Math.max(0, h), ...atr }, rod);
+  const tekst = (rod, x, y, t, atr = {}) => el("text", { x, y, fill: "#b8c7d1", "font-size": 11, ...atr }, rod, t);
+  const strelka = (rod, x1, y1, x2, y2, sht, c) => {
+    if (!sht) return;
+    const w = Math.max(1, Math.min(7, Math.sqrt(sht) / 9));
+    el("line", { x1, y1, x2, y2, stroke: c, "stroke-width": w, "stroke-opacity": 0.85, "stroke-dasharray": "6 4", class: "rdPotok",
+      style: `animation-duration:${Math.max(0.5, 2.6 - Math.log10(sht + 1) * 0.5)}s`, "marker-end": `url(#rdStr_${c === C.trans ? "trans" : "svoy"})` }, rod);
+  };
+
+  /** Двор: точки — машины, которые ждут ворот, цвет — сколько ждут против обычного. */
+  function planDvor(rod, sk, x, y, w, h) {
+    const s = ST[sk], e = s.e.dvor;
+    const g = el("g", {}, rod);
+    klikom(g, () => otkryt({ tip: "etap", sk, etap: "dvor" }));
+    pryam(g, x, y, w, h, { fill: "#06111a", stroke: C[e.sev] === C.norma ? "#173040" : C[e.sev], "stroke-width": 1.2 });
+    tekst(g, x + 8, y + 15, "ДВОР", { fill: "#7fa0b2", "font-size": 10.5, "letter-spacing": 2, "font-weight": 600 });
+    tekst(g, x + 8, y + 47, e.z == null ? "—" : num(e.z), { fill: C[e.sev] === C.norma ? "#e8f6ff" : C[e.sev], "font-size": 26, "font-weight": 600 });
+    tekst(g, x + 8, y + 64, "ждут ворот", { fill: "#7fa0b2", "font-size": 10 });
+    if (e.nz != null) tekst(g, x + 8, y + 77, `обычно ${num(e.nz)}`, { fill: "#46606f", "font-size": 10 });
+    const mash = I === N - 1 ? (e.mash || []).filter((m) => m.этап !== "на разгрузке") : [];
+    const kol = Math.max(1, Math.floor((w - 16) / 11));
+    mash.slice(0, kol * Math.floor((h - 106) / 11)).forEach((m, i) => {
+      const sev = sevDvor(1, null, m.на_дворе_мин, e.dln);
+      pryam(g, x + 8 + (i % kol) * 11, y + 86 + Math.floor(i / kol) * 11, 8, 8, { fill: C[sev === "norma" ? "svoy" : sev], "fill-opacity": 0.85 });
+    });
+    if (!mash.length && I !== N - 1) tekst(g, x + 8, y + 96, e.dl ? `дольше всех ${chmm(e.dl)}` : "", { fill: "#7fa0b2", "font-size": 10 });
+    tekst(g, x + 8, y + h - 8, `дольше всех ${chmm(e.dl)}`, { fill: C[e.sev] === C.norma ? "#7fa0b2" : C[e.sev], "font-size": 10.5 });
+  }
+
+  function planDmd(svg) {
+    const sk = "ДМД", s = ST[sk];
+    const X0 = 8, Y0 = 34, HB = 400;
+    const g = el("g", {}, svg);
+    tekst(g, X0, 20, "ДОМОДЕДОВО · ВХОД ОТ ВОРОТ ДО ЯЧЕЙКИ", { fill: "#e8f6ff", "font-size": 14, "font-weight": 600, "letter-spacing": 2 });
+    tekst(g, W - 8, 20, s.problem.length ? `${SLOVO[s.sev]} · ${s.problem.join(", ").toLowerCase()}` : "штатно", { fill: C[s.sev], "font-size": 12, "letter-spacing": 1, "text-anchor": "end" });
+    planDvor(g, sk, X0, Y0, 112, HB);
+
+    const zony = zonyNa(sk);
+    const sek = (D.mon?.секторы || []).filter((x) => /Сектор .* ДМД$/.test(x.сектор)).map((x) => ({ ...x, b: (x.сектор.match(/Сектор (\S+) ДМД/) || [])[1] }))
+      .filter((x) => PORYADOK.includes(x.b)).sort((a, b) => PORYADOK.indexOf(a.b) - PORYADOK.indexOf(b.b));
+    const uch = (u_, b) => (D.mon?.участки?.строки || []).find((r) => r.участок === u_ && (r.сектор.match(/Сектор (\S+) ДМД/) || [])[1] === b);
+    const vorota = D.dvor?.ворота_дмд || [];
+    const naVorotah = new Set((s.e.dvor.mash || []).filter((m) => m.этап === "на разгрузке" && m.ворота).map((m) => String(m.ворота).replace(/\D/g, "")));
+    const maksMash = Math.max(1, ...vorota.map((v_) => v_.машин_сегодня || 0));
+
+    // зоны без сектора (возвраты, ФБ, ошибки приёмки) — отдельным столбцом справа
+    const bezSek = zony ? zony.filter((z) => !PORYADOK.includes(bukvaZony(z.imya))) : [];
+    const XS = X0 + 122, WS = W - XS - 96;
+    const kor = sek.map((x) => Math.sqrt(x.мест_хранения || 1)), kMax = Math.max(1, ...kor);
+    const ves = kor.map((k) => 0.55 + 0.45 * k / kMax);
+    const vsego = ves.reduce((a, b) => a + b, 0) || 1;
+    // корпус здания
+    pryam(g, XS - 4, Y0, WS + 8 + 92, HB, { fill: "#050d13", stroke: "#1f4256", "stroke-width": 1.5 });
+    let x = XS;
+    const ya = { hr: Y0 + 8, hrH: 120, buf: Y0 + 160, bufH: 70, pr: Y0 + 262, prH: 70, vor: Y0 + HB - 30 };
+    tekst(g, XS - 2, ya.hr - 1 + 132, "", {});
+    sek.forEach((sx, i) => {
+      const w = WS * ves[i] / vsego - 4, b = sx.b;
+      const col = el("g", {}, g);
+      klikom(col, () => otkryt({ tip: "sektor", b }));
+      // хранение
+      const p = sx.процент_хранения || 0;
+      const cvH = I === N - 1 ? (p > 92 ? C.krit : p > 90 ? C.vys : p < 80 ? C.trans : C.svoy) : C.net;
+      pryam(col, x, ya.hr, w, ya.hrH, { fill: "#071621", stroke: "#173040" });
+      pryam(col, x, ya.hr + ya.hrH * (1 - p / 100), w, ya.hrH * p / 100, { fill: cvH, "fill-opacity": I === N - 1 ? 0.35 : 0.12 });
+      tekst(col, x + w / 2, ya.hr + 26, b, { fill: "#e8f6ff", "font-size": 22, "font-weight": 600, "text-anchor": "middle" });
+      tekst(col, x + w / 2, ya.hr + 48, I === N - 1 ? `${Math.round(p)}%` : "—", { fill: cvH, "font-size": 12.5, "font-weight": 600, "text-anchor": "middle" });
+      if (w > 60) tekst(col, x + w / 2, ya.hr + 60, `${tys(sx.мест_хранения)} мест`, { fill: "#46606f", "font-size": 9.5, "text-anchor": "middle" });
+      // буферы и приёмка сектора
+      const zsk = zony ? zony.filter((z) => bukvaZony(z.imya) === b) : [];
+      const yarus = (yy, hh, zz, podpis) => {
+        const st = zony ? sostZony(zz) : null;
+        const c = st ? C[st.sev === "norma" ? "svoy" : st.sev] : C.net;
+        pryam(col, x, yy, w, hh, { fill: st && st.sev !== "norma" ? `${C[st.sev]}22` : "#08141c", stroke: st && st.sev !== "norma" ? C[st.sev] : "#173040" });
+        if (w > 64) tekst(col, x + 5, yy + 12, podpis, { fill: "#46606f", "font-size": 9, "letter-spacing": 1 });
+        tekst(col, x + 4, yy + 33, st ? tys(st.sht) : "—", { fill: st ? "#e8f6ff" : "#46606f", "font-size": w > 70 ? 15 : 11, "font-weight": 600 });
+        if (st?.n48) tekst(col, x + 4, yy + 49, w > 64 ? `${num(st.n48)} > 48ч` : `${num(st.n48)}!`, { fill: c, "font-size": 10, "font-weight": 600 });
+        if (st?.maks >= 48 && w > 70) tekst(col, x + 5, yy + 62, `до ${Math.round(st.maks / 24)} дн`, { fill: c, "font-size": 9.5 });
+      };
+      yarus(ya.buf, ya.bufH, zsk.filter((z) => zonaBufer(z.imya)), "БУФЕРЫ");
+      yarus(ya.pr, ya.prH, zsk.filter((z) => zonaPriem(z.imya)), "ПРИЁМКА");
+      // потоки по участкам (DWH, ~раз в час): приёмка — ворота → приёмка, размещение — приёмка → хранение
+      if (I === N - 1) {
+        const pu = uch("приёмка", b), ru = uch("размещение", b);
+        strelka(col, x + w / 2, ya.vor - 4, x + w / 2, ya.pr + ya.prH + 4, pu?.штук_2ч, C.svoy);
+        strelka(col, x + w / 2, ya.buf - 2, x + w / 2, ya.hr + ya.hrH + 4, ru?.штук_2ч, C.svoy);
+        if (pu?.людей_сейчас) tekst(col, x + w / 2 + 5, ya.pr + ya.prH + 17, `${pu.людей_сейчас} чел`, { fill: "#7fa0b2", "font-size": 9.5 });
+        if (ru?.людей_сейчас) tekst(col, x + w / 2 + 5, ya.hr + ya.hrH + 20, `${ru.людей_сейчас} чел`, { fill: "#7fa0b2", "font-size": 9.5 });
+      }
+      // ворота сектора
+      const vv = vorota.filter((v_) => (v_.сектор.match(/Сектор (\S+) ДМД/) || [])[1] === b).sort((a, c2) => a.номер - c2.номер);
+      const wv = vv.length ? Math.max(2, (w - 2) / vv.length - 1.5) : 0;
+      vv.forEach((v_, j) => {
+        const sejchas = I === N - 1 && naVorotah.has(String(v_.номер));
+        const c = sejchas ? C.trans : I === N - 1 && v_.машин_сегодня ? `rgba(46,230,214,${0.15 + 0.7 * v_.машин_сегодня / maksMash})` : "#0e1d27";
+        const gr = el("g", {}, col);
+        pryam(gr, x + 1 + j * (wv + 1.5), ya.vor, wv, 18, { fill: c });
+        el("title", {}, gr, `ворота ${v_.имя} · машин сегодня ${v_.машин_сегодня}, паллет ${v_.паллет_сегодня}${sejchas ? " · сейчас разгружается" : ""}`);
+      });
+      if (vv.length) tekst(col, x + 1, ya.vor + 30, `${vv[0].номер}–${vv[vv.length - 1].номер}`, { fill: "#46606f", "font-size": 9 });
+      x += w + 4;
+    });
+    // столбец без сектора: возвраты, ФБ, ошибки
+    const xr = XS + WS + 6, wr = 86;
+    const gr = el("g", {}, g);
+    klikom(gr, () => otkryt({ tip: "zony", sk, nabor: "bez" }));
+    const st = zony ? sostZony(bezSek) : null;
+    pryam(gr, xr, ya.buf, wr, ya.pr + ya.prH - ya.buf, { fill: "#08141c", stroke: st && st.sev !== "norma" ? C[st.sev] : "#173040" });
+    tekst(gr, xr + 6, ya.buf + 14, "ВОЗВРАТЫ, ФБ,", { fill: "#46606f", "font-size": 8.5 });
+    tekst(gr, xr + 6, ya.buf + 26, "ОШИБКИ", { fill: "#46606f", "font-size": 8.5 });
+    tekst(gr, xr + 6, ya.buf + 50, st ? tys(st.sht) : "—", { fill: "#e8f6ff", "font-size": 15, "font-weight": 600 });
+    if (st?.n48) tekst(gr, xr + 6, ya.buf + 66, `${num(st.n48)} > 48ч`, { fill: C[st.sev], "font-size": 10, "font-weight": 600 });
+    tekst(gr, XS, ya.vor + 44 > Y0 + HB ? Y0 + HB - 2 : ya.vor + 44, "", {});
+    tekst(g, XS, ya.hr + ya.hrH + 16, "", {});
+    // подписи ярусов слева от корпуса
+  }
+
+  /** ЧШК: стороны А/Б/В — разгрузка, поступление, приёмка, размещение; мезонин по этажам; фронты; прочее. */
+  function planChshk(svg) {
+    const sk = "ЧШК", s = ST[sk];
+    const X0 = 8, Y0 = 474, HB = 208;
+    const g = el("g", {}, svg);
+    tekst(g, X0, Y0 - 10, "ЧАШНИКОВО · ВХОД", { fill: "#e8f6ff", "font-size": 14, "font-weight": 600, "letter-spacing": 2 });
+    tekst(g, 650, Y0 - 10, s.problem.length ? `${SLOVO[s.sev]} · ${s.problem.join(", ").toLowerCase()}` : "штатно", { fill: C[s.sev], "font-size": 12, "letter-spacing": 1, "text-anchor": "end" });
+    planDvor(g, sk, X0, Y0, 112, HB);
+    const zony = zonyNa(sk);
+    const XS = X0 + 122, WS = 520;
+    pryam(g, XS - 4, Y0, WS + 8, HB, { fill: "#050d13", stroke: "#1f4256", "stroke-width": 1.5 });
+    const kto = (rx) => (zony || []).filter((z) => rx.test(z.imya));
+    const stolbcy = [["А", /\bА\b|\(А\)|\(А-|Приемка А/], ["Б", /\bБ\b|\(Б\)|\(Б-/], ["В", /\bВ\b|\(В\)/]];
+    const ryady = [["РАЗГРУЗКА", /Ворота|РАЗГРУЗКА/], ["ПОСТУПЛЕНИЕ", /ПОСТУПЛЕНИЕ/], ["ПРИЁМКА", /Приёмка товара|Столы приемки|Излишки/], ["РАЗМЕЩЕНИЕ", /РАЗМЕЩЕНИЕ/]];
+    const wc = 92, hc = 44;
+    ryady.forEach(([imyaR, rxR], r) => {
+      tekst(g, XS + 2, Y0 + 14 + r * (hc + 4) + hc / 2 + 4, imyaR, { fill: "#2b4352", "font-size": 9, "letter-spacing": 1 });
+      stolbcy.forEach(([b, rxB], c) => {
+        const zz = kto(rxR).filter((z) => rxB.test(z.imya) && !/мез|Фронты|фронты/.test(z.imya));
+        const x = XS + 84 + c * (wc + 4), y = Y0 + 8 + r * (hc + 4);
+        const st = zony ? sostZony(zz) : null;
+        const gg = el("g", {}, g);
+        if (zz.length) klikom(gg, () => otkryt({ tip: "zony", sk, spisok: zz.map((z) => z.imya), zag: `${imyaR} ${b}` }));
+        pryam(gg, x, y, wc, hc, { fill: st && st.sev !== "norma" ? `${C[st.sev]}22` : zz.length ? "#08141c" : "#050b10", stroke: st && st.sev !== "norma" ? C[st.sev] : "#173040" });
+        tekst(gg, x + 5, y + 12, `${b}`, { fill: "#46606f", "font-size": 9, "font-weight": 600 });
+        if (zz.length) {
+          tekst(gg, x + 22, y + 13, st ? tys(st.sht) : "—", { fill: "#e8f6ff", "font-size": 13, "font-weight": 600 });
+          if (st?.n48) tekst(gg, x + 5, y + 28, `${num(st.n48)} конт. > 48ч`, { fill: C[st.sev], "font-size": 9.5, "font-weight": 600 });
+          if (r === 0 && /Ворота/.test(zz.map((z) => z.imya).join())) {
+            const vv = zz.filter((z) => /Ворота/.test(z.imya)).sort((a, b2) => a.imya.localeCompare(b2.imya, "ru", { numeric: true }));
+            const wv = (wc - 8) / Math.max(1, vv.length) - 1;
+            vv.forEach((z, j) => { const gr = el("g", {}, gg); pryam(gr, x + 4 + j * (wv + 1), y + hc - 9, wv, 6, { fill: z.штук ? (z.ждут_больше_48ч ? C.krit : C.vys) : "#0e1d27" });
+              el("title", {}, gr, `${z.imya} · ${num(z.штук)} шт у ворот`); });
+          }
+        }
+      });
+    });
+    // мезонин Б — по этажам
+    const xm = XS + 84 + 3 * (wc + 4) + 6, wm = 136;
+    tekst(g, xm, Y0 + 14, "МЕЗОНИН Б", { fill: "#2b4352", "font-size": 9, "letter-spacing": 1 });
+    [4, 3, 2, 1].forEach((et, k) => {
+      const zz = kto(new RegExp(`${et} эт Б мез`));
+      const st = zony ? sostZony(zz) : null;
+      const y = Y0 + 20 + k * 34;
+      const gg = el("g", {}, g);
+      if (zz.length) klikom(gg, () => otkryt({ tip: "zony", sk, spisok: zz.map((z) => z.imya), zag: `Мезонин Б, ${et} этаж` }));
+      pryam(gg, xm, y, wm, 30, { fill: st && st.sev !== "norma" ? `${C[st.sev]}22` : "#08141c", stroke: st && st.sev !== "norma" ? C[st.sev] : "#173040" });
+      tekst(gg, xm + 5, y + 19, `${et} эт`, { fill: "#46606f", "font-size": 9.5 });
+      tekst(gg, xm + 30, y + 19, st ? tys(st.sht) : "—", { fill: "#e8f6ff", "font-size": 13, "font-weight": 600 });
+      if (st?.n48) tekst(gg, xm + wm - 4, y + 19, `${num(st.n48)}>48ч`, { fill: C[st.sev], "font-size": 9.5, "font-weight": 600, "text-anchor": "end" });
+    });
+    const prochie = (zony || []).filter((z) => /Фронты|фронты|Входящий буфер|Сортировка|Буфер приемки на ФБ/.test(z.imya));
+    const st = zony ? sostZony(prochie) : null;
+    const gg = el("g", {}, g);
+    klikom(gg, () => otkryt({ tip: "zony", sk, spisok: prochie.map((z) => z.imya), zag: "Фронты, входящие буферы, сортировка, ФБ" }));
+    pryam(gg, xm, Y0 + 158, wm, 42, { fill: "#08141c", stroke: st && st.sev !== "norma" ? C[st.sev] : "#173040" });
+    tekst(gg, xm + 5, Y0 + 171, "ФРОНТЫ, БУФЕРЫ, ФБ", { fill: "#46606f", "font-size": 8.5 });
+    tekst(gg, xm + 5, Y0 + 192, st ? tys(st.sht) : "—", { fill: "#e8f6ff", "font-size": 13, "font-weight": 600 });
+    if (st?.n48) tekst(gg, xm + wm - 4, Y0 + 192, `${num(st.n48)}>48ч`, { fill: C[st.sev], "font-size": 9.5, "font-weight": 600, "text-anchor": "end" });
+  }
+
+  /** Связи: челнок ДМД ⇄ ЧШК, 3PL → ДМД, куда уходит товар — за сутки выбранного часа. */
+  function planSvyazi(svg) {
     const pv = D.ist?.перевозки;
+    const x0 = 680, y0 = 452, w = W - x0 - 8, h = H - y0 - 8;
+    const g = el("g", {}, svg);
+    pryam(g, x0, y0, w, h, { fill: "#050d13", stroke: "#173040" });
     if (!pv) return;
-    let den = D.ist.часы[I].slice(0, 10);
-    let j = pv.дни.indexOf(den);
-    if (j < 0) return;
-    // сутки только начались и перевозок ещё нет — показываем вчерашние, с подписью
+    let den = D.ist.часы[I].slice(0, 10), j = pv.дни.indexOf(den);
     const za = (jj) => Object.values(pv.пары).concat(Object.values(pv.регионы)).reduce((a, arr) => a + (arr[jj] || 0), 0);
     if (j > 0 && za(j) < 1000) { j -= 1; den = pv.дни[j]; }
-    const ves = (x) => Math.max(1.2, Math.min(14, Math.sqrt(x / 1000) * 1.1));
-    const duga = (a, b, izgib, sht, c, podpis, smesh = 0, podpisXY = null) => {
-      const [x1, y1] = a, [x2, y2] = b;
-      const nx = -(y2 - y1), ny = x2 - x1, dl = Math.hypot(nx, ny) || 1;
-      const cx = (x1 + x2) / 2 + nx / dl * izgib, cy = (y1 + y2) / 2 + ny / dl * izgib;
-      const d = `M${x1 + nx / dl * smesh} ${y1 + ny / dl * smesh} Q ${cx} ${cy}, ${x2 + nx / dl * smesh} ${y2 + ny / dl * smesh}`;
-      el("path", { d, fill: "none", stroke: c, "stroke-opacity": 0.22, "stroke-width": ves(sht) + 4 }, svg);
-      el("path", { d, fill: "none", stroke: c, "stroke-opacity": 0.85, "stroke-width": ves(sht), "stroke-dasharray": "14 6", class: "rdPotok",
-        style: `animation-duration:${Math.max(0.6, 3.2 - Math.log10(sht + 1) * 0.5)}s`, "marker-end": `url(#rdStr_${c === C.trans ? "trans" : "svoy"})` }, svg);
-      if (podpis) el("text", { x: podpisXY ? podpisXY[0] : cx + 6, y: podpisXY ? podpisXY[1] : cy, fill: c, "font-size": 12.5, "font-weight": 600,
-        "text-anchor": podpisXY ? "end" : "start" }, svg, podpis);
-    };
-    const pD = P(...GEO.ДМД), pC = P(...GEO.ЧШК), p3 = P(...GEO["3PL"]);
+    if (j < 0) return;
+    tekst(g, x0 + 10, y0 + 16, `ПЕРЕВОЗКИ ЗА ${ddmm(den)} · ШТ`, { fill: "#7fa0b2", "font-size": 10, "letter-spacing": 1.5, "font-weight": 600 });
     const dc = pv.пары["ДМД>ЧШК"]?.[j] || 0, cd = pv.пары["ЧШК>ДМД"]?.[j] || 0, td = pv.пары["3PL>ДМД"]?.[j] || 0;
-    // челнок одной подписью — слева от дуги, подальше от Москвы
-    const pod = [Math.min(pD[0], pC[0]) - 30, (pD[1] + pC[1]) / 2 + 40];
-    if (dc) duga(pD, pC, -60, dc, C.trans, "", 6);
-    if (cd) duga(pC, pD, -60, cd, C.trans, "", 6);
-    if (dc || cd) {
-      el("text", { x: pod[0], y: pod[1], fill: C.trans, "font-size": 13, "font-weight": 600, "text-anchor": "end" }, svg, "ЧЕЛНОК ДМД ⇄ ЧШК");
-      el("text", { x: pod[0], y: pod[1] + 16, fill: C.trans, "font-size": 12, "text-anchor": "end" }, svg, `в ЧШК ${tys(dc)} · в ДМД ${tys(cd)} шт`);
-    }
-    if (td) duga(p3, pD, 25, td, C.trans, `3PL → ДМД ${tys(td)} шт`);
-
-    // направления: самые крупные за сутки, из ДМД и ЧШК; Москва — в город
-    const vse = Object.entries(pv.регионы).map(([k, a]) => { const [ot, kuda] = k.split(">"); return { ot, kuda, sht: a[j] || 0 }; }).filter((x) => x.sht > 0);
-    const top = vse.filter((x) => x.kuda !== "МСК").sort((a, b) => b.sht - a.sht).slice(0, 12);
-    const kraya = [];
-    for (const x of top.concat(vse.filter((y) => y.kuda === "МСК"))) {
-      const ot = P(...GEO[x.ot]);
-      let kon;
-      if (x.kuda === "МСК") {
-        const m = P(...GEO.МСК);
-        kon = [m[0] + (ot[0] - m[0]) * 0.18, m[1] + (ot[1] - m[1]) * 0.18];
-      } else {
-        const r = REG[x.kuda];
-        if (!r) continue;
-        const cel = P(...r);
-        let dx = cel[0] - ot[0], dy = cel[1] - ot[1];
-        const dl = Math.hypot(dx, dy) || 1; dx /= dl; dy /= dl;
-        const tt = Math.min(...[dx > 0 ? (W - 40 - ot[0]) / dx : dx < 0 ? (40 - ot[0]) / dx : Infinity, dy > 0 ? (H - 30 - ot[1]) / dy : dy < 0 ? (30 - ot[1]) / dy : Infinity]);
-        kon = [ot[0] + dx * tt, ot[1] + dy * tt];
-      }
-      const st = x.ot === "ДМД" ? C.svoy : C.vys;
-      el("line", { x1: ot[0], y1: ot[1], x2: kon[0], y2: kon[1], stroke: st, "stroke-opacity": 0.5, "stroke-width": ves(x.sht) * 0.8,
-        "stroke-dasharray": "2 7", class: "rdPotok", style: "animation-duration:2.6s", "marker-end": `url(#rdStr_${x.ot === "ДМД" ? "svoy" : "vys"})` }, svg);
-      if (x.kuda !== "МСК") {
-        let ty = kon[1] + (kon[1] < 40 ? 16 : -6);
-        while (kraya.some((k) => Math.abs(k[0] - kon[0]) < 120 && Math.abs(k[1] - ty) < 14)) ty += 14;
-        kraya.push([kon[0], ty]);
-        el("text", { x: Math.min(W - 130, Math.max(8, kon[0] - 40)), y: ty, fill: st, "font-size": 11.5, "font-weight": 600 }, svg, `${x.kuda} ${tys(x.sht)}${x.ot === "ЧШК" ? " · ЧШК" : ""}`);
-      } else {
-        // подпись у склада, на трети пути к городу
-        const lx = ot[0] + (kon[0] - ot[0]) * 0.32, ly = ot[1] + (kon[1] - ot[1]) * 0.32;
-        el("text", { x: lx + 10, y: ly + (x.ot === "ДМД" ? 4 : -4), fill: st, "font-size": 11.5, "font-weight": 600 }, svg, `→ магазины МСК ${tys(x.sht)}`);
-      }
-    }
-    const prochie = pv.прочие?.[j] || 0;
-    el("text", { x: W - 230, y: 22, fill: "#46606f", "font-size": 11 }, svg, `отгрузки в регионы за ${ddmm(den)}${prochie ? `, мелкие ещё ${tys(prochie)}` : ""}`);
-  }
-
-  /* склад: кольцо из шести этапов, в центре очередь */
-  function uzel(svg, sk) {
-    const [x, y] = P(...GEO[sk]);
-    const s = ST[sk];
-    const g = el("g", { class: "rdUzel" }, svg);
-    g.addEventListener("click", () => otkryt({ tip: "sklad", sk }));
-    el("circle", { cx: x, cy: y, r: 120, fill: `url(#rdSv_${s.sev})` }, g);
-    // машины поставщиков за последний час — штрихи, летящие к складу
-    const pr = Math.min(40, (I === N - 1 ? v(sk, "приехало", I) : v(sk, "приехало", I)) || 0);
-    for (let k = 0; k < pr; k++) {
-      const a = (k * 137.5) * Math.PI / 180, r1 = 70 + (k % 5) * 9;
-      el("line", { x1: x + Math.cos(a) * r1, y1: y + Math.sin(a) * r1, x2: x + Math.cos(a) * (r1 - 14), y2: y + Math.sin(a) * (r1 - 14),
-        stroke: C.svoy, "stroke-opacity": 0.55, "stroke-width": 1.5 }, g);
-    }
-    if (s.sev === "krit" || s.sev === "vys") el("circle", { cx: x, cy: y, r: 30, fill: "none", stroke: C[s.sev], "stroke-width": 2, class: "rdPing" }, g);
-    const R = 34;
-    ETAPY.forEach(([k], i) => {
-      const a0 = (-90 + i * 60 + 3) * Math.PI / 180, a1 = (-90 + (i + 1) * 60 - 3) * Math.PI / 180;
-      const d = `M${x + R * Math.cos(a0)} ${y + R * Math.sin(a0)} A ${R} ${R} 0 0 1 ${x + R * Math.cos(a1)} ${y + R * Math.sin(a1)}`;
-      el("path", { d, fill: "none", stroke: C[s.e[k].sev], "stroke-width": 7 }, g);
+    const ryad = (y, t, v_, c) => { tekst(g, x0 + 10, y, t, { fill: c, "font-size": 12, "font-weight": 600 }); tekst(g, x0 + w - 10, y, tys(v_), { fill: "#e8f6ff", "font-size": 13, "font-weight": 600, "text-anchor": "end" }); };
+    ryad(y0 + 38, "ДМД → ЧШК", dc, C.trans);
+    ryad(y0 + 56, "ЧШК → ДМД", cd, C.trans);
+    ryad(y0 + 74, "3PL Чехов → ДМД", td, C.trans);
+    const vse = Object.entries(pv.регионы).map(([k, a]) => { const [ot, kuda] = k.split(">"); return { ot, kuda, sht: a[j] || 0 }; }).filter((q) => q.sht);
+    const po = {};
+    vse.forEach((q) => { po[q.kuda] = (po[q.kuda] || 0) + q.sht; });
+    const top = Object.entries(po).sort((a, b) => b[1] - a[1]).slice(0, 7);
+    const maks = Math.max(1, ...top.map((q) => q[1]));
+    tekst(g, x0 + 10, y0 + 98, "КУДА УШЛО (ДМД + ЧШК)", { fill: "#46606f", "font-size": 9.5, "letter-spacing": 1 });
+    top.forEach(([kuda, v_], i) => {
+      const y = y0 + 112 + i * 14;
+      tekst(g, x0 + 10, y + 8, kuda === "МСК" ? "магазины МСК" : kuda, { fill: "#b8c7d1", "font-size": 10.5 });
+      pryam(g, x0 + 100, y, (w - 170) * v_ / maks, 8, { fill: C.svoy, "fill-opacity": 0.55 });
+      tekst(g, x0 + w - 10, y + 8, tys(v_), { fill: "#e8f6ff", "font-size": 10.5, "text-anchor": "end" });
     });
-    el("circle", { cx: x, cy: y, r: 24, fill: "#04090d", stroke: "#1f4256", "stroke-width": 1 }, g);
-    const z = s.e.dvor.z;
-    el("text", { x, y: y + 7, fill: C[s.e.dvor.sev] === C.norma ? "#e8f6ff" : C[s.e.dvor.sev], "font-size": 20, "font-weight": 600, "text-anchor": "middle" }, g, z == null ? "—" : String(z));
-    // подпись: имя, очередь против нормы, темп
-    const lx = sk === "ЧШК" ? x - 52 : x + 52, an = sk === "ЧШК" ? "end" : "start";
-    el("text", { x: lx, y: y - 22, fill: "#e8f6ff", "font-size": 18, "font-weight": 600, "letter-spacing": 3, "text-anchor": an }, g, IMYA[sk]);
-    el("text", { x: lx, y: y - 4, fill: C[s.sev], "font-size": 12, "letter-spacing": 1.5, "text-anchor": an }, g,
-      s.problem.length ? `${SLOVO[s.sev]} · ${s.problem.join(", ").toLowerCase()}` : "ШТАТНО");
-    el("text", { x: lx, y: y + 13, fill: "#7fa0b2", "font-size": 12, "text-anchor": an }, g,
-      `во дворе ${num(s.e.dvor.z)}${s.e.dvor.nz != null ? ` (норма ${num(s.e.dvor.nz)})` : ""} · ворота ${num(s.e.vorota.na)}`);
-    el("text", { x: lx, y: y + 29, fill: "#7fa0b2", "font-size": 12, "text-anchor": an }, g,
-      `приёмка ${s.e.priyomka.d != null ? Math.round(s.e.priyomka.d * 100) + "%" : "—"} · размещение ${s.e.razm.d != null ? Math.round(s.e.razm.d * 100) + "%" : "—"} нормы`);
-    el("text", { x: lx, y: y + 45, fill: "#46606f", "font-size": 11, "text-anchor": an }, g, `буферы входа ${s.e.vhod.zn}`);
-  }
-
-  function uzel3pl(svg) {
-    const [x, y] = P(...GEO["3PL"]);
-    const tpl = D.tpl;
-    const g = el("g", { class: "rdUzel" }, svg);
-    g.addEventListener("click", () => window.open("../../3pl/", "_blank"));
-    el("rect", { x: x - 9, y: y - 9, width: 18, height: 18, fill: "#04090d", stroke: C.trans, "stroke-width": 2, transform: `rotate(45 ${x} ${y})` }, g);
-    el("text", { x: x + 18, y: y - 2, fill: "#e8f6ff", "font-size": 14, "font-weight": 600, "letter-spacing": 2 }, g, "3PL ЧЕХОВ");
-    el("text", { x: x + 18, y: y + 14, fill: C.trans, "font-size": 11.5 }, g,
-      tpl?.биллинг?.месяц ? `ГСМ · ≈ ${num(tpl.биллинг.месяц.паллет_сейчас)} паллет на хранении` : "ГСМ · внешний склад");
-  }
-
-  function legendaKarty(svg) {
-    const g = el("g", {}, svg);
-    el("rect", { x: 10, y: H - 108, width: 270, height: 96, fill: "#04090dee", stroke: "#12212c" }, g);
-    const st = [["кольцо склада: двор · ворота · приёмка", "#7fa0b2"], ["  · размещение · буферы · хранение (по часовой)", "#7fa0b2"],
-      ["цифра в центре — машин ждут ворот", "#7fa0b2"], ["штрихи — машины за последний час", C.svoy], ["синие дуги — внутренние перевозки за сутки", C.trans]];
-    st.forEach(([t, c], i) => el("text", { x: 20, y: H - 88 + i * 17, fill: c, "font-size": 11 }, g, t));
   }
 
   /* ── сигналы на выбранный час ───────────────────────────────────── */
@@ -582,6 +647,35 @@
       } else {
         tab += "<p>Машины поимённо, ворота, зоны и секторы есть только в «сейчас» — в истории хранятся итоги по часам.</p>";
       }
+    } else if (fokus.tip === "sektor") {
+      const b = fokus.b, sx = (D.mon?.секторы || []).find((q) => (q.сектор.match(/Сектор (\S+) ДМД/) || [])[1] === b);
+      const zz = (zonyNa("ДМД") || []).filter((z) => bukvaZony(z.imya) === b && (z.штук || z.ждут_больше_48ч)).sort((x, y) => (y.ждут_больше_48ч - x.ждут_больше_48ч) || (y.штук - x.штук));
+      const st = sostZony(zz);
+      sev = st.sev === "norma" ? "sred" : st.sev;
+      zag = `ФОКУС · ДМД · СЕКТОР ${b}`;
+      h = `Сектор ${b}: на входе ${tys(st.sht)} шт${st.n48 ? `, ${num(st.n48)} конт. висят > 48 ч` : ""}`;
+      const uch = (u_) => (D.mon?.участки?.строки || []).find((r) => r.участок === u_ && (r.сектор.match(/Сектор (\S+) ДМД/) || [])[1] === b);
+      const pu = uch("приёмка"), ru = uch("размещение");
+      p = sx ? `Хранение занято на ${sx.процент_хранения}% (${tys(sx.занято_хранения)} из ${tys(sx.мест_хранения)} мест), худшая зона — ${esc(sx.худшая_зона)} ${sx.худший_процент}%. `
+        + `Приёмка: ${pu ? `${tys(pu.штук_2ч)} шт за 2 ч, людей сейчас ${num(pu.людей_сейчас)}, за сутки ${tys(pu.штук_24)}` : "—"}. `
+        + `Размещение: ${ru ? `${tys(ru.штук_2ч)} шт за 2 ч, людей ${num(ru.людей_сейчас)}, за сутки ${tys(ru.штук_24)}` : "—"} (DWH, ${esc(D.mon?.участки?.край || "")}).` : "";
+      tab = t(["зона", "штук", "конт.", "> 48 ч", "дольше всех"], zz.slice(0, 14).map((z) => [esc(z.imya), num(z.штук), num(z.контейнеров), z.ждут_сотня ? "100+" : num(z.ждут_больше_48ч), z.ждут_макс_ч ? `${Math.round(z.ждут_макс_ч / 24)} дн` : "—"]));
+      const dolgie = zz.flatMap((z) => (z.дольше_всех || []).map((c) => ({ ...c, zona: z.imya }))).sort((x, y) => y.часов - x.часов).slice(0, 8);
+      if (dolgie.length) tab += t(["висит дольше всех · контейнер", "откуда → куда", "ждёт", "штук"], dolgie.map((c) => [esc(c.контейнер), `${esc(c.откуда)} → ${esc(c.куда)}`, `${Math.round(c.часов / 24)} дн ${Math.round(c.часов % 24)} ч`, num(c.штук)]));
+      const vv = (D.dvor?.ворота_дмд || []).filter((v_) => (v_.сектор.match(/Сектор (\S+) ДМД/) || [])[1] === b);
+      if (I === N - 1 && vv.length) tab += t(["ворота", "машин сегодня", "паллет сегодня", "за 14 дней"], vv.map((v_) => [esc(v_.имя), num(v_.машин_сегодня), num(v_.паллет_сегодня), num(v_.машин_14д)]));
+    } else if (fokus.tip === "zony") {
+      const vse = zonyNa(fokus.sk) || [];
+      const zz = (fokus.spisok ? vse.filter((z) => fokus.spisok.includes(z.imya)) : vse.filter((z) => !PORYADOK.includes(bukvaZony(z.imya))))
+        .sort((x, y) => (y.ждут_больше_48ч - x.ждут_больше_48ч) || (y.штук - x.штук));
+      const st = sostZony(zz);
+      sev = st.sev === "norma" ? "sred" : st.sev;
+      zag = `ФОКУС · ${IMYA[fokus.sk]} · ${esc(fokus.zag || "ВОЗВРАТЫ, ФБ, ОШИБКИ ПРИЁМКИ")}`.toUpperCase();
+      h = `${tys(st.sht)} шт${st.n48 ? ` · ${num(st.n48)} конт. висят > 48 ч` : ""}${st.maks ? ` · дольше всех ${Math.round(st.maks / 24)} дн` : ""}`;
+      p = I === N - 1 ? "Живьём из ВМС, раз в 5 минут. Отчёт «контроль перемещений» отдаёт до сотни самых долгих контейнеров на зону." : "Снимок часа: штуки и сколько контейнеров висело > 48 ч.";
+      tab = t(["зона", "штук", "конт.", "> 48 ч", "дольше всех"], zz.slice(0, 16).map((z) => [esc(z.imya), num(z.штук), num(z.контейнеров), z.ждут_сотня ? "100+" : num(z.ждут_больше_48ч), z.ждут_макс_ч ? `${Math.round(z.ждут_макс_ч / 24)} дн` : "—"]));
+      const dolgie = zz.flatMap((z) => (z.дольше_всех || []).map((c) => ({ ...c }))).sort((x, y) => y.часов - x.часов).slice(0, 10);
+      if (dolgie.length) tab += t(["висит дольше всех · контейнер", "откуда → куда", "ждёт", "штук"], dolgie.map((c) => [esc(c.контейнер), `${esc(c.откуда)} → ${esc(c.куда)}`, `${Math.round(c.часов / 24)} дн ${Math.round(c.часов % 24)} ч`, num(c.штук)]));
     } else if (fokus.tip === "tekst") {
       sev = fokus.x.sev; zag = "ФОКУС"; h = esc(fokus.x.zag); p = esc(fokus.x.tekst);
     }
@@ -610,6 +704,7 @@
     if (!ist_) { $("rdRezhim").textContent = "нет истории радара"; return; }
     const bylN = N;
     D = { ist: ist_, dvor, zhivo, temp, tempCh, mon, svezh, tpl };
+    ZONA_SEKTOR = null;
     N = ist_.часы.length;
     if (zhivoy || !bylN) I = N - 1;
     INC = zhurnal();
