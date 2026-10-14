@@ -130,8 +130,16 @@
       while (i++ < 60 && (z.scrollWidth > z.clientWidth + 0.5 || (z.classList.contains("z2") && z.scrollHeight > z.clientHeight + 0.5))) { s *= 0.96; z.style.fontSize = s + "px"; }
     }
     }
+    // на живом сайте шрифт приезжает позже, чем исполняется этот скрипт (14.10: «Стол 0 Предсо|» обрезалось) —
+    // подгоняем сразу и ещё раз на каждую догрузку шрифта и по таймеру: кегль только уменьшается, повтор безвреден
+    podgon();
     var f = document.fonts;
-    if (f && f.load) f.load('600 20px "VI Sans"').then(podgon, podgon); else podgon();
+    if (f) {
+      if (f.load) f.load('600 20px "VI Sans"').then(podgon, podgon);
+      if (f.ready) f.ready.then(podgon, podgon);
+      if (f.addEventListener) f.addEventListener("loadingdone", podgon);
+    }
+    [150, 500, 1200, 2500].forEach(function (t) { setTimeout(podgon, t); });
   })();</script>`;
 
   /** Печать: скрытый фрейм с этикеткой → окно печати браузера (принтер стола).
