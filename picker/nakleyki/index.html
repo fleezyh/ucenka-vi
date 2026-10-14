@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Наклейки · пикалка</title>
+  <link rel="icon" type="image/svg+xml" href="../../assets/brand/vi-mark.svg">
+  <link rel="stylesheet" href="../../style.css?v=20260911-3">
+  <script src="../../shk-pechat.js?v=20261009-pak"></script>
+  <style>
+    /* 14.10 Степан: «отдельную вкладку со всеми вариантами наклеек — паллеты, акта и т.д., красиво как со столами,
+       и схлопнуть в одну менюху». Все наклейки пикалки на одной странице: паллеты (новая в WMS и повтор по номеру),
+       акты (один или пачкой), столы, любые ячейки. Сверху одно поле: пикните ACT / CON / CEL — сама откроет нужное.
+       Печать — на принтер этикеток этого компьютера (ShkPechat, формат ленты запоминается здесь же). */
+    body { margin: 0; background: #f4f5f8; color: #14161c; font-family: "VI Sans", system-ui, sans-serif; font-weight: 600; }
+    .nk { max-width: 1280px; margin: 0 auto; padding: 24px; }
+    .nk__shapka { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .nk h1 { margin: 0; font-size: 28px; font-weight: 600; }
+    .nk__pod { margin: 6px 0 0; color: #5d6372; font-size: 14px; font-weight: 500; max-width: 760px; line-height: 1.45; }
+    .nk__fmt { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; font-size: 13px; color: #5d6372; font-weight: 500; }
+    .nk__fmt select { font: 600 14px "VI Sans", sans-serif; padding: 6px 10px; border: 1px solid #c9ccd6; border-radius: 8px; background: #fff; color: #14161c; }
+    .nk__kn { border: 1px solid #c9ccd6; background: #fff; color: #14161c; border-radius: 10px; padding: 10px 16px; font: 600 14px "VI Sans", sans-serif; cursor: pointer; text-decoration: none; display: inline-block; }
+    .nk__kn:hover { border-color: #7b5cf0; }
+    .nk__kn--glav { background: #7b5cf0 !important; border-color: #7b5cf0; color: #fff !important; -webkit-text-fill-color: #fff !important; }
+    .nk__kn:disabled { opacity: .5; cursor: wait; }
+    /* style.css красит кнопки и поля сайта под тёмную тему — здесь страница светлая, под печать */
+    .nk button.nk__kn:not(.nk__kn--glav), .nk input.nk__pole, .nk textarea.nk__pole, .nk .nk__tab { color: #14161c !important; -webkit-text-fill-color: #14161c !important; background: #fff !important; }
+    .nk__skan { display: flex; gap: 10px; margin: 20px 0 6px; flex-wrap: wrap; }
+    .nk__pole { flex: 1; min-width: 260px; max-width: 560px; padding: 12px 14px; border: 1px solid #c9ccd6; border-radius: 10px; font: 500 16px "VI Sans", sans-serif; background: #fff; color: #14161c; }
+    textarea.nk__pole { min-height: 76px; resize: vertical; }
+    .nk__tabs { display: flex; gap: 6px; margin: 18px 0 4px; border-bottom: 1px solid #dfe1e8; flex-wrap: wrap; }
+    .nk__tab { border: 0; border-bottom: 3px solid transparent; background: transparent !important; padding: 10px 14px 9px; font: 600 15px "VI Sans", sans-serif; cursor: pointer; }
+    .nk__tab.is-on { border-bottom-color: #7b5cf0; color: #7b5cf0 !important; -webkit-text-fill-color: #7b5cf0 !important; }
+    .nk__tab small { color: #8a90a0; font-weight: 500; margin-left: 4px; }
+    .nk__gr { margin: 22px 0 10px; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: #5d6372; }
+    .nk__setka { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+    .nk__kat { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
+    .nk__kat button { text-align: left; }
+    .nkK { background: #fff; border: 1px solid #dfe1e8; border-radius: 14px; padding: 14px 16px 12px; cursor: pointer; break-inside: avoid; position: relative; }
+    .nkK:hover { border-color: #7b5cf0; box-shadow: 0 4px 18px rgba(123,92,240,.15); }
+    .nkK__vid { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: #7b5cf0; }
+    .nkK__imya { font-size: 20px; line-height: 1.15; margin-top: 2px; }
+    .nkK__poln { font-size: 12px; color: #5d6372; font-weight: 500; margin-top: 2px; min-height: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .nkK__shk { margin: 10px 0 4px; height: 70px; }
+    .nkK__shk svg { width: 100%; height: 100%; display: block; }
+    .nkK__kod { font-size: 14px; letter-spacing: .08em; text-align: center; }
+    .nkK__niz { font-size: 12px; color: #5d6372; font-weight: 500; text-align: center; margin-top: 2px; }
+    .nkK__x { position: absolute; top: 8px; right: 10px; border: 0; background: transparent !important; color: #8a90a0 !important; -webkit-text-fill-color: #8a90a0 !important; font-size: 18px; cursor: pointer; }
+    .nk__ryad { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0; align-items: center; }
+    .nk__osh { color: #c0283c; }
+    .nk__ok { color: #1f8a4c; }
+    .nk__pusto { color: #8a90a0; font-weight: 500; font-size: 14px; }
+    @media print {
+      body { background: #fff; }
+      .nk__shapka, .nk__skan, .nk__tabs, .nk__ryad, .nk__kat, .nk__pod, .nkK__x, .nk__soob { display: none !important; }
+      .nk { padding: 0; max-width: none; }
+      .nk__setka { grid-template-columns: repeat(3, 1fr); gap: 6mm; }
+      .nkK { border: 1px dashed #999; border-radius: 0; box-shadow: none; }
+      [data-panel]:not(.is-on) { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="nk">
+    <div class="nk__shapka">
+      <div>
+        <h1>Наклейки</h1>
+        <p class="nk__pod">Паллеты, акты, столы и ячейки — всё, что пикает пикалка. Клик по карточке — наклейка на принтер этикеток
+          этого компьютера. Пикните сканером или наберите в поле ниже — откроется нужное.</p>
+      </div>
+      <div class="nk__fmt" id="nkFmt"></div>
+    </div>
+    <form class="nk__skan" id="nkSkan" autocomplete="off">
+      <input class="nk__pole" id="nkPole" placeholder="пикните ACT / CON / CEL или наберите номер" autofocus>
+      <button type="submit" class="nk__kn nk__kn--glav">Найти</button>
+    </form>
+    <p class="nk__pod nk__soob" id="nkSoob"></p>
+    <nav class="nk__tabs" id="nkTabs">
+      <button type="button" class="nk__tab" data-tab="palleti">Паллеты</button>
+      <button type="button" class="nk__tab" data-tab="akty">Акты<small id="nkAktyN"></small></button>
+      <button type="button" class="nk__tab" data-tab="stoly">Столы<small id="nkStolyN"></small></button>
+      <button type="button" class="nk__tab" data-tab="yacheyki">Ячейки<small id="nkYachN"></small></button>
+    </nav>
+
+    <section data-panel="palleti">
+      <p class="nk__gr">Новая паллета — создаётся в WMS и сразу печатается</p>
+      <div class="nk__kat" id="nkKat"></div>
+      <div id="nkPalSoob" class="nk__ryad"></div>
+      <p class="nk__gr">Паллеты · повторная печать — пикните CON или наберите номер паллеты</p>
+      <div class="nk__setka" id="nkPal"></div>
+    </section>
+
+    <section data-panel="akty">
+      <p class="nk__gr">Наклейки актов — номер, наклейка ACT или список номеров (вставьте столбиком)</p>
+      <form class="nk__skan" id="nkAktForma" autocomplete="off" style="margin-top:0">
+        <textarea class="nk__pole" id="nkAktPole" placeholder="5329149&#10;5329150 5329151 …"></textarea>
+        <button type="submit" class="nk__kn">Добавить</button>
+      </form>
+      <div class="nk__ryad" id="nkAktKn"></div>
+      <div class="nk__setka" id="nkAkty"></div>
+    </section>
+
+    <section data-panel="stoly">
+      <div class="nk__ryad">
+        <input class="nk__pole" id="nkStolPoisk" placeholder="найти стол: 8, А1, СЦ…" style="max-width:420px">
+        <button type="button" class="nk__kn" id="nkStolyA4">Все листом A4</button>
+      </div>
+      <p class="nk__pod">Штрихкод стола — «CEL» и номер ячейки стола в WMS. Без сканера: в пикалке напишите в поиск название
+        стола («Уценка Стол 8») или нажмите на шаг «1 стол» в карточке акта.</p>
+      <div id="nkStoly"><p class="nk__pusto">Загружаю столы…</p></div>
+    </section>
+
+    <section data-panel="yacheyki">
+      <p class="nk__gr">Любая ячейка — пикните CEL или наберите номер ячейки WMS</p>
+      <div class="nk__setka" id="nkYach"></div>
+    </section>
+  </main>
+  <script>
+  (function () {
+    "use strict";
+    const $ = (s) => document.querySelector(s);
+    const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+    const SP = window.ShkPechat;
+    const svg = (t) => (SP ? SP.svg(t) : "");
+    const korot = (s) => String(s || "").replace(/^ФБ \(ДМД\) /, "");
+    const KATEGORII = ["ФБ-Сад", "ФБ-ОД", "ФБ-Сантехника", "ФБ-Эл Свет", "ФБ-Складское Оборудование", "ФБ-Авто", "ФБ-Клининг",
+      "ФБ-Климат", "ФБ-Спорт и Туризм", "ФБ - Строительное оборудование", "ФБ-отделочные-материалы", "ФБ-Станки",
+      "Инст(РАБ)", "Инст(НЕРАБ)", "РМ(ОБЩ)", "КрепФур(ОБЩ)", "СИЗ(ОБЩ)", "Руч(КРИТ)", "Руч(КОСМ)", "Рад(ОБЩ)",
+      "Рохли(ОБЩ)", "ЛестСтр(ОБЩ)", "АКБ(ОБЩ)", "МисБокс", "КРГБ", "Маркетплейс", "Утиль", "Пересорт", "Переупаковка"];
+
+    // Что на этой странице набрано — живёт до закрытия вкладки (сессия), чтобы перезагрузка не теряла пачку актов.
+    const KL = "nakleyki-v1";
+    let st = { pal: [], akty: [], yach: [] };
+    try { st = Object.assign(st, JSON.parse(sessionStorage.getItem(KL) || "{}")); } catch (e) { /* пусто */ }
+    const sohranit = () => { try { sessionStorage.setItem(KL, JSON.stringify(st)); } catch (e) { /* не страшно */ } };
+
+    let tab = "";
+    function otkryt(t) {
+      tab = ["palleti", "akty", "stoly", "yacheyki"].includes(t) ? t : "palleti";
+      document.querySelectorAll("[data-tab]").forEach((b) => b.classList.toggle("is-on", b.dataset.tab === tab));
+      document.querySelectorAll("[data-panel]").forEach((p) => { p.hidden = p.dataset.panel !== tab; p.classList.toggle("is-on", p.dataset.panel === tab); });
+      if (location.hash !== "#" + tab) history.replaceState(null, "", "#" + tab);
+    }
+    const soob = (t, vid = "") => { $("#nkSoob").innerHTML = t ? `<span class="${vid}">${esc(t)}</span>` : ""; };
+
+    // формат ленты — общий с пикалкой (localStorage этого компьютера)
+    function risovatFmt() {
+      if (!SP) { $("#nkFmt").innerHTML = '<span class="nk__osh">печать недоступна</span>'; return; }
+      $("#nkFmt").innerHTML = `<label>этикетка <select id="nkFormat">${SP.formaty.map((x) => `<option${x === SP.format() ? " selected" : ""}>${x}</option>`).join("")}</select> мм</label>
+        <label><input type="checkbox" id="nkPov"${SP.povorot && SP.povorot(SP.format()) ? " checked" : ""}> печатает боком — повернуть</label>`;
+    }
+    document.addEventListener("change", (e) => {
+      if (e.target.id === "nkFormat") { SP.zadatFormat(e.target.value); risovatFmt(); }
+      if (e.target.id === "nkPov" && SP.zadatPovorot) SP.zadatPovorot(SP.format(), e.target.checked);
+    });
+
+    const karta = (vid, imya, poln, shk, niz, data, x) => `<div class="nkK" ${data} title="напечатать эту наклейку">
+      ${x ? `<button type="button" class="nkK__x" ${x} title="убрать">×</button>` : ""}
+      <div class="nkK__vid">${esc(vid)}</div><div class="nkK__imya">${esc(imya)}</div><div class="nkK__poln">${esc(poln || "")}</div>
+      <div class="nkK__shk">${svg(shk)}</div><div class="nkK__kod">${esc(shk)}</div><div class="nkK__niz">${esc(niz || "")}</div></div>`;
+
+    /* ── паллеты ── */
+    let palIdet = "";
+    function risovatPal() {
+      $("#nkKat").innerHTML = KATEGORII.map((k) => `<button type="button" class="nk__kn" data-nov="${esc(k)}"${palIdet ? " disabled" : ""}>${esc(k)}</button>`).join("");
+      $("#nkPal").innerHTML = st.pal.map((p, i) => karta(p.новая ? "новая паллета" : "паллета", p.имя, p.где || "", p.shk, p.новая ? "создана сейчас" : "",
+        `data-pal="${i}"`, `data-pal-x="${i}"`)).join("") || '<p class="nk__pusto">Пикните наклейку паллеты (CON …) или наберите её номер вверху.</p>';
+    }
+    const palDannye = (p) => ({ shk: p.shk, imya: p.имя, kategoriya: p.категория || String(p.имя || "").replace(/-\d+$/, "") });
+    async function sozdatPal(kat) {
+      if (palIdet) return;
+      palIdet = kat; risovatPal();
+      $("#nkPalSoob").innerHTML = `<span>Создаю «${esc(kat)}» в WMS…</span>`;
+      try {
+        const o = await fetch("/__wms/palleta", { method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ категория: kat, сохранить: true, откуда: "наклейки" }) });
+        const d = await o.json().catch(() => ({}));
+        if (d.нужен_вход) throw new Error("войдите в WMS в пикалке (вверху «войти в WMS») — паллета создаётся от вашего имени");
+        if (!o.ok || !d.готово) throw new Error(d.ошибка || `сервер ответил ${o.status}`);
+        const p = { shk: d.штрихкод, имя: d.имя, категория: d.категория, новая: true };
+        st.pal = [p, ...st.pal.filter((x) => x.shk !== p.shk)].slice(0, 30); sohranit();
+        $("#nkPalSoob").innerHTML = `<span class="nk__ok">Создана ${esc(d.имя)} — печатаю</span>`;
+        if (SP) SP.pechat(palDannye(p));
+      } catch (e) {
+        $("#nkPalSoob").innerHTML = `<span class="nk__osh">${esc(e.message || e)}</span>`;
+      }
+      palIdet = ""; risovatPal();
+    }
+    async function naytiPal(kod) {
+      soob("Ищу паллету в WMS…");
+      const o = await fetch(`/__palleta/karta?kod=${encodeURIComponent(kod)}`, { cache: "no-store" });
+      const d = await o.json().catch(() => ({}));
+      if (!o.ok) throw new Error(d.ошибка || `сервер ответил ${o.status}`);
+      const gde = (d.где || [])[0];
+      const p = { shk: d.наклейка, имя: d.паллета, где: gde ? (gde.ячейка || gde.имя || "") : "", штук: d.штук };
+      st.pal = [p, ...st.pal.filter((x) => x.shk !== p.shk)].slice(0, 30); sohranit();
+      otkryt("palleti"); risovatPal(); soob(`${d.паллета}: ${d.штук || 0} шт — клик по карточке печатает`, "nk__ok");
+    }
+
+    /* ── акты ── */
+    const nomerAkta = (s) => { const m = String(s || "").match(/(\d{5,12})\s*$/); return m ? String(Number(m[1])) : ""; };
+    function risovatAkty() {
+      $("#nkAktyN").textContent = st.akty.length ? `· ${st.akty.length}` : "";
+      $("#nkAkty").innerHTML = st.akty.map((a, i) => karta(`Акт №${a.n}`, a.товар ? a.товар.slice(0, 40) : `Акт №${a.n}`, a.категория || "",
+        `ACT ${a.n.padStart(10, "0")}`, a.ждём ? "смотрю товар в WMS…" : "", `data-akt="${i}"`, `data-akt-x="${i}"`)).join("")
+        || '<p class="nk__pusto">Добавьте номер акта — или пикните наклейку ACT вверху.</p>';
+      const q = encodeURIComponent(st.akty.map((a) => a.n).join(","));
+      $("#nkAktKn").innerHTML = st.akty.length ? `<button type="button" class="nk__kn nk__kn--glav" id="nkAktVse">Печать всех ${st.akty.length}${SP ? " · " + SP.format().replace("x", "×") : ""}</button>
+        <a class="nk__kn" target="_blank" rel="noopener" href="/__akt/pechat?forma=akt&akty=${q}">Акты A4</a>
+        <a class="nk__kn" target="_blank" rel="noopener" href="/__akt/pechat?forma=nakleyka&akty=${q}">Наклейки 70×70 (форма WMS)</a>
+        <button type="button" class="nk__kn" id="nkAktOchist">Очистить список</button>` : "";
+    }
+    async function tovarAkta(a) {
+      try {
+        const ctl = new AbortController();
+        const t = setTimeout(() => ctl.abort(), 6000);
+        const o = await fetch(`/__vms/akt?kod=${encodeURIComponent("ACT " + a.n.padStart(10, "0"))}`, { cache: "no-store", signal: ctl.signal });
+        clearTimeout(t);
+        const d = await o.json().catch(() => ({}));
+        if (o.ok && d.акт) { a.товар = d.товар || ""; a.категория = d.категория || ""; }
+      } catch (e) { /* WMS не успела — наклейка без товара */ }
+      a.ждём = false; sohranit(); risovatAkty();
+    }
+    function dobavitAkty(tekst) {
+      const nomera = String(tekst || "").split(/[\s,;]+/).map(nomerAkta).filter(Boolean);
+      if (!nomera.length) { soob("нужен номер акта — цифрами или наклейкой ACT", "nk__osh"); return 0; }
+      const novye = [];
+      for (const n of nomera) if (!st.akty.some((a) => a.n === n) && !novye.some((a) => a.n === n)) novye.push({ n, товар: "", категория: "", ждём: true });
+      st.akty = [...novye, ...st.akty].slice(0, 200); sohranit();
+      otkryt("akty"); risovatAkty();
+      novye.slice(0, 40).forEach(tovarAkta);
+      novye.slice(40).forEach((a) => { a.ждём = false; });
+      return nomera.length;
+    }
+    const aktDannye = (a) => ({ акт: a.n, товар: a.товар, категория: a.категория });
+
+    /* ── столы ── */
+    let stoly = [];
+    function gruppa(x) {
+      const n = String(x.имя || "");
+      if (x.тип === "предсорт" || /предсорт/i.test(n)) return "Предсорт";
+      if (x.тип === "отгрузка") return "Отгрузка";
+      if (/^СЦ-ДМД/i.test(n)) return "Уценка СЦ-ДМД";
+      return "Уценка ДМД";
+    }
+    function risovatStoly() {
+      const q = $("#nkStolPoisk").value.trim().toLowerCase();
+      const vidno = stoly.filter((x) => !q || korot(x.имя).toLowerCase().includes(q) || String(x.id).includes(q));
+      $("#nkStolyN").textContent = stoly.length ? `· ${stoly.length}` : "";
+      const gr = {};
+      for (const x of vidno) (gr[gruppa(x)] = gr[gruppa(x)] || []).push(x);
+      $("#nkStoly").innerHTML = ["Предсорт", "Уценка ДМД", "Отгрузка", "Уценка СЦ-ДМД"].filter((g) => gr[g]).map((g) =>
+        `<p class="nk__gr">${g} · ${gr[g].length}</p><div class="nk__setka">${gr[g]
+          .sort((a, b) => korot(a.имя).localeCompare(korot(b.имя), "ru", { numeric: true }))
+          .map((x) => karta("стол", korot(x.имя), x.имя, "CEL " + x.id, `${(x.исходы || []).length} решений`, `data-stol="${esc(x.id)}"`)).join("")}</div>`).join("")
+        || '<p class="nk__pusto">Ничего не нашлось.</p>';
+    }
+    fetch("/__akt/stoly", { cache: "no-store" }).then((o) => {
+      if (!o.ok) throw new Error(o.status === 403 ? "нет доступа — войдите на сайт" : "сервер ответил " + o.status);
+      return o.json();
+    }).then((d) => { stoly = Array.isArray(d) ? d : []; risovatStoly(); })
+      .catch((e) => { $("#nkStoly").innerHTML = `<p class="nk__pod nk__osh">${esc(e.message || e)}</p>`; });
+
+    /* ── ячейки ── */
+    function risovatYach() {
+      $("#nkYachN").textContent = st.yach.length ? `· ${st.yach.length}` : "";
+      $("#nkYach").innerHTML = st.yach.map((y, i) => karta("ячейка", y.имя, y.зона || "", "CEL " + y.id, y.склад || "", `data-yach="${i}"`, `data-yach-x="${i}"`)).join("")
+        || '<p class="nk__pusto">Пикните наклейку ячейки (CEL …) или наберите номер ячейки WMS вверху.</p>';
+    }
+    async function naytiYach(kod) {
+      soob("Ищу ячейку в WMS…");
+      const o = await fetch(`/__yacheyka/karta?kod=${encodeURIComponent(kod)}`, { cache: "no-store" });
+      const d = await o.json().catch(() => ({}));
+      if (!o.ok) throw new Error(d.ошибка || `сервер ответил ${o.status}`);
+      const y = { id: String(d.ячейка_id), имя: d.ячейка, зона: d.зона, склад: d.склад };
+      st.yach = [y, ...st.yach.filter((x) => x.id !== y.id)].slice(0, 60); sohranit();
+      otkryt("yacheyki"); risovatYach(); soob(`${d.ячейка} — клик по карточке печатает`, "nk__ok");
+    }
+
+    /* ── одно поле на всё: ACT / CON / CEL по префиксу, голые цифры — по открытой вкладке ── */
+    // сканер в русской раскладке пишет «ФСЕ 0005…» вместо «ACT 0005…» — как latinica() в script.js пикалки
+    const RU = "йцукенгшщзхъфывапролджэячсмитьбю", EN = "qwertyuiop[]asdfghjkl;'zxcvbnm,.";
+    const latinica = (kod) => {
+      const s0 = String(kod || "");
+      if (!/[а-яё]/i.test(s0)) return s0;
+      const lat = [...s0].map((ch) => { const i = RU.indexOf(ch.toLowerCase()); return i < 0 ? ch : (ch === ch.toLowerCase() ? EN[i] : EN[i].toUpperCase()); }).join("");
+      return /^(ACT|CON|CEL)\s?\d{5,12}$/i.test(lat) ? lat.toUpperCase() : s0;
+    };
+    async function skan(v) {
+      const s = latinica(String(v || "").trim()).trim();
+      if (!s) return;
+      const u = s.toUpperCase();
+      try {
+        if (/\s|,|;/.test(s) && !/^(ACT|CON|CEL)\s*\d+$/i.test(s)) { dobavitAkty(s); soob("Акты добавлены", "nk__ok"); return; }
+        if (u.startsWith("ACT")) { dobavitAkty(s); soob(""); return; }
+        if (u.startsWith("CON") || /^[^\d]+-\d{6,}$/.test(s)) { await naytiPal(s); return; }
+        if (u.startsWith("CEL")) { await naytiYach(s); return; }
+        if (/^\d+$/.test(s)) {
+          if (tab === "palleti") return await naytiPal(s);
+          if (tab === "yacheyki" || tab === "stoly") return await naytiYach("CEL " + s);
+          dobavitAkty(s); soob(""); return;
+        }
+        // название стола — фильтр столов
+        otkryt("stoly"); $("#nkStolPoisk").value = s; risovatStoly(); soob("");
+      } catch (e) { soob(e.message || String(e), "nk__osh"); }
+    }
+    $("#nkSkan").addEventListener("submit", (e) => { e.preventDefault(); const p = $("#nkPole"); skan(p.value); p.value = ""; p.focus(); });
+    $("#nkAktForma").addEventListener("submit", (e) => { e.preventDefault(); if (dobavitAkty($("#nkAktPole").value)) $("#nkAktPole").value = ""; });
+    $("#nkStolPoisk").addEventListener("input", risovatStoly);
+    $("#nkStolyA4").addEventListener("click", () => window.print());
+
+    document.addEventListener("click", (e) => {
+      const t = e.target;
+      const tb = t.closest("[data-tab]");
+      if (tb) { otkryt(tb.dataset.tab); return; }
+      const nov = t.closest("[data-nov]");
+      if (nov) { sozdatPal(nov.dataset.nov); return; }
+      for (const [x, spisok, ris] of [["data-pal-x", "pal", risovatPal], ["data-akt-x", "akty", risovatAkty], ["data-yach-x", "yach", risovatYach]]) {
+        const b = t.closest(`[${x}]`);
+        if (b) { st[spisok].splice(+b.getAttribute(x), 1); sohranit(); ris(); return; }
+      }
+      if (t.closest("#nkAktVse") && SP && SP.pechatAktov) { SP.pechatAktov(st.akty.map(aktDannye)); return; }
+      if (t.closest("#nkAktOchist")) { st.akty = []; sohranit(); risovatAkty(); return; }
+      if (!SP) return;
+      const k = t.closest(".nkK");
+      if (!k) return;
+      if (k.dataset.pal != null) SP.pechat(palDannye(st.pal[+k.dataset.pal]));
+      else if (k.dataset.akt != null) { const a = st.akty[+k.dataset.akt]; SP.pechatAkta(a.n, a.товар, a.категория); }
+      else if (k.dataset.stol != null) { const x = stoly.find((s) => String(s.id) === k.dataset.stol); if (x) SP.pechat({ shk: "CEL " + x.id, imya: x.имя, kategoriya: korot(x.имя) }); }
+      else if (k.dataset.yach != null) { const y = st.yach[+k.dataset.yach]; SP.pechat({ shk: "CEL " + y.id, imya: y.зона || "", kategoriya: y.имя }); }
+    });
+
+    window.addEventListener("hashchange", () => otkryt(location.hash.slice(1)));
+    risovatFmt(); risovatPal(); risovatAkty(); risovatYach();
+    otkryt(location.hash.slice(1));
+    // ?akt=… / ?kod=… — пикалка может открыть страницу сразу с наклейкой
+    const q = new URLSearchParams(location.search);
+    if (q.get("kod")) skan(q.get("kod"));
+  })();
+  </script>
+</body>
+</html>

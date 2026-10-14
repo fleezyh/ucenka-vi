@@ -33,6 +33,7 @@
     stack: '<path d="M12 3.5 3.5 8 12 12.5 20.5 8z"/><path d="m3.5 12 8.5 4.5 8.5-4.5"/><path d="m3.5 16 8.5 4.5 8.5-4.5"/>',
     phone: '<rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18h2"/>',
     bar: '<path d="M4 6v12M7 6v12M10.5 6v12M13 6v12M16.5 6v12M20 6v12"/>',
+    nakl: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 9v6M10 9v6M13.5 9v6M16.5 9v6"/>',
     ekran: '<rect x="2.5" y="4" width="19" height="13" rx="2"/><path d="M8 21h8M12 17v4"/><path d="m7 12 3-3 2.5 2.5L17 7"/>',
   };
   const ikonka = (k) => `<svg class="cI" viewBox="0 0 24 24" aria-hidden="true">${IKONKI[k]}</svg>`;
@@ -68,8 +69,9 @@
         </nav>
         <nav class="cRail__gr cRail__wms" aria-label="WMS">
           <span class="cRail__lbl">WMS</span>
-          <button type="button" class="cRi" id="cNovPal">${ikonka("pal")}Нов. паллета</button>
-          <button type="button" class="cRi" id="cPechAkt" title="Печать наклейки или бланка акта по номеру">${ikonka("list")}Печать акта</button>
+          <!-- 14.10 Степан: «все варианты наклеек — паллеты, акта и т.д., красиво как со столами, и схлопнуть в одну менюху».
+               Новая паллета, печать акта, столы, ячейки — одна страница /picker/nakleyki/ в своей вкладке. -->
+          <button type="button" class="cRi" id="cNakleyki" title="Наклейки: новая паллета, акты, столы, ячейки">${ikonka("nakl")}Наклейки</button>
           <button type="button" class="cRi" id="aTsdBtn">${ikonka("phone")}ТСД</button>
         </nav>
         <!-- 07.10 Степан: «а где я вижу, где ошибка, и как выставить ошибку», «а где сверка» -->
@@ -772,6 +774,7 @@
 
   document.addEventListener("click", (e) => {
     if (e.target.closest("#cNovPal")) { novOshibka = ""; risovatNovPal(); return; }
+    if (e.target.closest("#cNakleyki")) { window.open("/picker/nakleyki/", "nakleyki"); return; }
     if (e.target.closest("#cSverka")) { document.dispatchEvent(new CustomEvent("pikalka:sverka")); $("#scan")?.focus(); return; }
     if (e.target.closest("#cOshibki")) { oshDen = new Date(Date.now() + 3 * 3600e3).toISOString().slice(0, 10); zagruzitOshibki(); return; }
     if (e.target.closest("[data-osh-zakryt]")) { const m = $("#cOshModal"); if (m) m.hidden = true; $("#scan")?.focus(); return; }

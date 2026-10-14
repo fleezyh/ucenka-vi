@@ -1150,7 +1150,7 @@
         <input name="kod" id="stolPoisk" placeholder="пикните наклейку стола или наберите: А1, 12…" inputmode="text">
         <button class="aktPs__kn is-on" type="submit">Выбрать</button>
       </form>
-      <p class="aktPs__chto">нет наклейки на столе — <a href="/picker/stoly/" target="_blank" rel="noopener">наклейки всех столов</a>: распечатать или пикнуть с экрана</p>
+      <p class="aktPs__chto">нет наклейки на столе — <a href="/picker/nakleyki/#stoly" target="_blank" rel="noopener">наклейки всех столов</a>: распечатать или пикнуть с экрана</p>
       ${stolyVse && stolyVse.zhdu ? '<p class="aktPs__chto">Загружаю столы…</p>' : ""}
       ${stolyVse && stolyVse.oshibka ? `<p class="aktPs__net"><b class="aktPs__oshibka">${esc(stolyVse.oshibka)}</b></p>` : ""}
       ${oshibkaStola ? `<p class="aktPs__net"><b class="aktPs__oshibka">${esc(oshibkaStola)}</b></p>` : ""}
