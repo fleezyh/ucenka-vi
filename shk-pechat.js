@@ -73,13 +73,14 @@
      Данные: { shk, zag, pod } или по-старому { shk, kategoriya, imya } — повтор (имя паллеты = категория + номер) отбрасываем. */
   function norm(d) {
     const shk = String(d.shk || "");
-    const zag = String(d.zag || d.kategoriya || d.imya || shk).trim();
-    let pod = String(d.pod != null ? d.pod : d.imya || "").trim();
+    // 14.10: «название паллеты должно быть целиком» — имя («ФБ-Сад-0170347571») главнее категории
+    const zag = String(d.zag || d.imya || d.kategoriya || shk).trim();
+    let pod = String(d.pod || "").trim();
     const cifry = (shk.match(/\d{5,}/) || [""])[0].replace(/^0+/, "");
     if (!pod || pod === zag || pod.startsWith(zag) || zag.startsWith(pod) || (cifry && pod.includes(cifry))) pod = "";
     return { shk, zag, pod };
   }
-  const SHIR_BUKVY = 0.62;   // средняя ширина жирной буквы Arial в долях кегля
+  const SHIR_BUKVY = 0.55;   // ширина жирной буквы Arial в долях кегля — с запасом вверх, точнее подгоняет PODGON
   function etiketka(dannye, f, pov = povorot(f)) {
     const { shk, zag, pod } = norm(dannye);
     const [w, h] = FORMATY[f] || FORMATY["60x30"];
@@ -112,8 +113,17 @@
     </style></head><body><div class="l">
       <div class="z">${esc(zag)}</div>${pod ? `<div class="p">${esc(pod)}</div>` : ""}
       <div class="b">${svg(shk, 40)}</div><div class="k">${esc(shk)}</div>
-    </div></body></html>`;
+    </div>${PODGON}</body></html>`;
   }
+  // 14.10 «название паллеты должно быть целиком»: ширина букв на глаз врёт («МисБокс-0170…» обрезалось) — кегль
+  // берём с запасом и уменьшаем по факту, пока заголовок не войдёт целиком (по ширине и по двум строкам).
+  const PODGON = `<script>(function () {
+    var zz = document.querySelectorAll(".z");
+    for (var j = 0; j < zz.length; j++) {
+      var z = zz[j], s = parseFloat(getComputedStyle(z).fontSize), i = 0;
+      while (i++ < 60 && (z.scrollWidth > z.clientWidth + 0.5 || z.scrollHeight > z.clientHeight + 0.5)) { s *= 0.96; z.style.fontSize = s + "px"; }
+    }
+  })();</script>`;
 
   /** Печать: скрытый фрейм с этикеткой → окно печати браузера (принтер стола).
       08.10 «печатается через раз по-разному»: фрейм был 0×0 и печать звалась через 150 мс, не дожидаясь

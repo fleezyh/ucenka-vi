@@ -6,7 +6,7 @@
   <title>Наклейки · пикалка</title>
   <link rel="icon" type="image/svg+xml" href="../../assets/brand/vi-mark.svg">
   <link rel="stylesheet" href="../../style.css?v=20260911-3">
-  <script src="../../shk-pechat.js?v=20261014-centr"></script>
+  <script src="../../shk-pechat.js?v=20261014-imya"></script>
   <style>
     /* 14.10 Степан: «отдельную вкладку со всеми вариантами наклеек — паллеты, акта и т.д., красиво как со столами,
        и схлопнуть в одну менюху». Все наклейки пикалки на одной странице: паллеты (новая в WMS и повтор по номеру),
@@ -166,7 +166,7 @@
       $("#nkKat").innerHTML = KATEGORII.map((k) => `<button type="button" class="nk__kn" data-nov="${esc(k)}"${palIdet ? " disabled" : ""}>${esc(k)}</button>`).join("");
       $("#nkPal").innerHTML = st.pal.map((p, i) => karta(palDannye(p), `data-pal="${i}"`, `data-pal-x="${i}"`)).join("") || '<p class="nk__pusto">Пикните наклейку паллеты (CON …) или наберите её номер вверху.</p>';
     }
-    const palDannye = (p) => ({ shk: p.shk, zag: p.категория || String(p.имя || "").replace(/-\d+$/, "") });
+    const palDannye = (p) => ({ shk: p.shk, zag: p.имя || p.shk });   // 14.10: имя паллеты целиком
     async function sozdatPal(kat) {
       if (palIdet) return;
       palIdet = kat; risovatPal();
