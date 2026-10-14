@@ -666,40 +666,43 @@
     const zakryty = (data.closed_weeks || [...ves.keys()]).slice().sort();
     // 14.10 («чтобы период можно было менять — через месяц посмотреть за 2 месяца сразу»): окно — первые N недель после
     // запуска или всё, что прошло; «до» — столько же недель перед запуском
-    const vseNedeli = zakryty.filter((w) => w >= start);
-    const posle = effektOkno ? vseNedeli.slice(0, effektOkno) : vseNedeli;
+    const posle = zakryty.filter((w) => w >= start);
     const shag = posle.length;
     if (!shag) {
       box.innerHTML = `<div class="agEffektNote">${escape(gruppa.мероприятие || gruppa.имя)} — с ${escape(datePodpis(start))}. `
         + 'Первая полная неделя после запуска ещё не закрылась: по неполной неделе эффект не считаем.</div>';
       return box;
     }
-    const doNachala = zakryty.filter((w) => plus7(w) <= start).slice(-shag);
+    // 14.10 («оно ничего не меняет»): выбирается база «до» — 2 недели, месяц, 2 месяца, квартал; «после» — все закрытые
+    // недели с запуска. Сравниваем средний брак в неделю — окна разной длины так сравнимы.
+    const doNachala = zakryty.filter((w) => plus7(w) <= start).slice(-(effektOkno || Math.max(shag, 4)));
     const summa = (map, list) => list.reduce((sum, w) => sum + (map.get(w) || 0), 0);
-    const byloSvoi = summa(svoi, doNachala);
-    const staloSvoi = summa(svoi, posle);
-    const byloVes = summa(ves, doNachala);
-    const staloVes = summa(ves, posle);
+    const nDo = Math.max(doNachala.length, 1);
+    const byloSvoi = summa(svoi, doNachala) / nDo;
+    const staloSvoi = summa(svoi, posle) / shag;
+    const byloVes = summa(ves, doNachala) / nDo;
+    const staloVes = summa(ves, posle) / shag;
     const izm = byloSvoi ? (staloSvoi / byloSvoi - 1) * 100 : null;
     const fon = byloVes ? (staloVes / byloVes - 1) * 100 : null;
     const chistyy = izm !== null && fon !== null ? izm - fon : null;
 
     const znak = (v) => (v === null ? '—' : `${v > 0 ? '+' : ''}${v.toFixed(0)}%`);
     const cvet = (v) => (v === null ? '' : v < 0 ? ' agEffektVal--good' : ' agEffektVal--bad');
-    const okno = `${shag} ${shag === 1 ? 'неделя' : shag < 5 ? 'недели' : 'недель'}`;
+    const nedSlovo = (n) => `${n} ${n % 10 === 1 && n % 100 !== 11 ? 'неделя' : [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'недели' : 'недель'}`;
+    const okno = `после — ${nedSlovo(shag)}, база до — ${nedSlovo(doNachala.length)}, в среднем за неделю`;
     const nedeli = (list, map) => list.map((w) => `${datePodpis(w)}: ${fmt(map.get(w) || 0, measure.kind)}`).join(' · ');
     const fonImya = vidOk ? [...vidOk].join(', ') + ' целиком' : 'контур целиком';
 
-    const OKNA = [[0, 'всё после запуска'], [2, '2 недели'], [4, 'месяц'], [8, '2 месяца'], [13, 'квартал']];
-    const vybor = OKNA.filter(([n]) => !n || n <= vseNedeli.length || n === effektOkno)
-      .map(([n, imya]) => `<button type="button" class="agCrumb agEffektOkno${(effektOkno || 0) === n ? ' agGruppaChip--on' : ''}" `
-        + `data-okno="${n}">${imya}</button>`).join('');
+    const OKNA = [[2, '2 недели'], [4, 'месяц'], [8, '2 месяца'], [13, 'квартал']];
+    const tek = effektOkno || Math.max(shag, 4);
+    const vybor = OKNA.map(([n, imya]) => `<button type="button" class="agCrumb agEffektOkno${tek === n ? ' agGruppaChip--on' : ''}" `
+      + `data-okno="${n}">${imya}</button>`).join('');
     box.innerHTML = `<div class="agEffektHead">${escape(gruppa.мероприятие || gruppa.имя)} · с ${escape(datePodpis(start))} · `
       + `${okno} до и после</div>`
-      + `<div class="agGruppyLine agEffektOkna"><span class="agGruppyHead">окно:</span>${vybor}</div>`
+      + `<div class="agGruppyLine agEffektOkna"><span class="agGruppyHead">база до запуска:</span>${vybor}</div>`
       + '<div class="agEffektRow">'
-      + `<div class="agEffektCell"><b>${fmt(byloSvoi, measure.kind)}</b><i>до</i></div>`
-      + `<div class="agEffektCell"><b>${fmt(staloSvoi, measure.kind)}</b><i>после</i></div>`
+      + `<div class="agEffektCell"><b>${fmt(byloSvoi, measure.kind)}</b><i>до, в неделю</i></div>`
+      + `<div class="agEffektCell"><b>${fmt(staloSvoi, measure.kind)}</b><i>после, в неделю</i></div>`
       + `<div class="agEffektCell"><b class="agEffektVal${cvet(izm)}">${znak(izm)}</b><i>изменение в прицеле</i></div>`
       + `<div class="agEffektCell"><b>${znak(fon)}</b><i>${escape(fonImya)}</i></div>`
       + `<div class="agEffektCell"><b class="agEffektVal${cvet(chistyy)}">${znak(chistyy)}</b><i>чистый эффект</i></div>`
@@ -935,8 +938,10 @@
     const uzheLiniya = new Set();
     // 14.10: выбрано мероприятие — на графике только его прицел и одна засечка: его запуск, без общих отметок
     const vybrana = gruppy.find((g) => g.имя === state.gruppa);
+    // ещё этапы той же договорённости (обход, секция, зачистка) — своими засечками, эффект считается от «с»
     const otmetki = vybrana
-      ? (vybrana.с ? [{ дата: vybrana.с, название: vybrana.мероприятие || vybrana.имя, что: vybrana.что }] : [])
+      ? [...(vybrana.с ? [{ дата: vybrana.с, название: vybrana.мероприятие || vybrana.имя, что: vybrana.что }] : []),
+        ...(vybrana.этапы || [])].sort((a, b) => String(a.дата).localeCompare(String(b.дата)))
       : (events || []);
     const marks = otmetki.map((event) => {
       const day = String(event.дата || '').slice(0, 10);
