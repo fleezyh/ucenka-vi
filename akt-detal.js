@@ -111,6 +111,94 @@
     ].join("");
     return `${sut}<div class="aktDet__plitki">${plitki}${flagi ? `<div class="aktDet__pl is-shir"><span>Состояние при приёмке</span><p class="aktDet__flagi">${flagi}</p></div>` : ""}</div>`;
   }
+  /* 14.10 Степан: «мне должно в этом окне показать ВСЁ, не прокручивать; что уже видел в карточке — не ключевое,
+     остальные детали крупно; я сразу хочу сфотать». Один экран: кнопка фото сверху, фото слева, справа плитки только
+     того, чего нет в карточке акта, внизу история одной строкой на событие. */
+  const FT_TIPY = [[2, "Фото товара"], [11, "Фото неисправности"], [10, "Шильдик"]];
+  let ftTip = 2;
+  let ftNovye = [];     // [{url, b64}] — снято, ещё не отправлено
+  let ftIdet = "";
+  let ftItog = null;    // {ok, tekst}
+  function plitkiNeKarta(d) {
+    const v = new Map(d.поля.map((p) => [p.имя, p.знач]));
+    const dt = (x) => String(x || "").slice(0, 16);
+    const pl = (pod, zn) => (zn ? `<div class="aktDet__pl"><span>${esc(pod)}</span><b>${esc(zn)}</b></div>` : "");
+    return [
+      pl("Статус акта", v.get("Статус")), pl("Требование клиента", v.get("Требование клиента")),
+      pl("Внешний вид", v.get("Внешний вид")), pl("Решение оценки", v.get("Решение оценки")),
+      pl("Склад приёмки", [v.get("Где принят"), dt(v.get("Принят"))].filter(Boolean).join(" · ")),
+      pl("Куда едет по акту", v.get("Куда")), pl("Чей сервис", v.get("Тип СЦ")),
+      pl("Поставщик", v.get("Поставщик")), pl("Заказ продажи", v.get("Заказ, по которому продан")), pl("Срок", v.get("Срок")),
+      pl("Акт создал", [v.get("Создал"), dt(v.get("Дата акта"))].filter(Boolean).join(" · ")),
+      pl("Последний изменил", [v.get("Изменил"), dt(v.get("Изменён"))].filter(Boolean).join(" · ")),
+    ].join("");
+  }
+  function istoriyaKorotko(d) {
+    const str = [];
+    (d.возвраты || []).forEach((x) => str.push([x.когда, `${x.кто} · ${x.отмена ? "возврат на учёт отменён" : x.готово ? "заведена на учёт" : "возврат на учёт не вышел"}${x.инвентаризация ? ` · инв. №${x.инвентаризация}` : ""}`, x.ошибка]));
+    (d.перекладки || []).forEach((x) => str.push([x.когда, `${x.кто} · ${x.откуда || "—"} → ${x.куда || "—"}`, x.ошибка]));
+    (d.довоз || []).forEach((x) => str.push([x.когда, `${x.кто} · довоз на ${x.куда || "—"} · ${x.t || ""}`, x.st === "err"]));
+    (d.ошибки || []).forEach((x) => str.push([x.когда, `ошибка ДВК: ${x.вид} · ${x.контейнер || ""} · от ${x.виновный || "не установлен"}`, true]));
+    (d.комментарии || []).forEach((x) => str.push([x.когда, `${x.кто}: «${x.текст}»`, false]));
+    if (!str.length) return '<p class="aktDet__pusto">С актом на сайте ничего не делали.</p>';
+    return `<ul class="aktDet__lenta">${str.map(([k, t, osh]) => `<li class="${osh ? "is-osh" : ""}"><b>${esc(k)}</b> ${esc(t)}</li>`).join("")}</ul>`;
+  }
+  function blokFoto(d) {
+    const est = kartinki(d);
+    const novye = ftNovye.length ? `<div class="aktDet__novye">${ftNovye.map((f, i) => `<span><img src="${f.url}" alt=""><button type="button" data-ft-ubrat="${i}" title="убрать">×</button></span>`).join("")}</div>
+      <button type="button" class="aktDet__ftOtp" data-ft-otpr="1"${ftIdet ? " disabled" : ""}>${ftIdet ? esc(ftIdet) : `Отправить в акт ${ftNovye.length} фото · ${esc(FT_TIPY.find((x) => x[0] === ftTip)[1].toLowerCase())}`}</button>` : "";
+    return `<div class="aktDet__ftPult">
+        <label class="aktDet__ftKn"><input type="file" accept="image/*" capture="environment" multiple data-ft-vybor="1" hidden>📷 Сфотать в акт</label>
+        <div class="aktDet__ftTipy">${FT_TIPY.map(([id, im]) => `<button type="button" class="${id === ftTip ? "is-on" : ""}" data-ft-tip="${id}">${esc(im)}</button>`).join("")}</div>
+      </div>
+      ${novye}
+      ${ftItog ? `<p class="aktDet__ftItog${ftItog.ok ? "" : " is-osh"}">${esc(ftItog.tekst)}</p>` : ""}
+      <div class="aktDet__ftEst">${est.length ? galereya(d) : '<p class="aktDet__pusto">В акте фото нет — сфотайте.</p>'}</div>`;
+  }
+  async function szhat(file) {
+    const url = URL.createObjectURL(file);
+    try {
+      const img = await new Promise((ok, ne) => { const i = new Image(); i.onload = () => ok(i); i.onerror = ne; i.src = url; });
+      const k = Math.min(1, 1600 / Math.max(img.width, img.height));
+      const c = document.createElement("canvas");
+      c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      const b64 = c.toDataURL("image/jpeg", 0.85);
+      return { url: b64, b64 };
+    } finally { URL.revokeObjectURL(url); }
+  }
+  async function otpravitFoto() {
+    if (!ftNovye.length || ftIdet) return;
+    ftIdet = "Отправляю в WMS…"; ftItog = null; risovatOkno();
+    try {
+      const o = await fetch("/__akt/foto_v_akt", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ акт: oknoAkt, тип: ftTip, фото: ftNovye.map((f) => f.b64) }) });
+      const j = await o.json().catch(() => ({}));
+      if (!o.ok) throw new Error(j.нужен_вход ? "войдите в WMS (кнопка вверху пикалки) — фото уходят от вашего имени" : (j.ошибка || `сервер ответил ${o.status}`));
+      ftItog = { ok: true, tekst: `В акт добавлено ${j.добавлено} фото (${j.тип.toLowerCase()}). Было ${j.было}, стало ${j.стало}.` };
+      ftNovye = [];
+      kesh.delete(oknoAkt); ftIdet = ""; gruzit(oknoAkt);
+    } catch (e) {
+      ftItog = { ok: false, tekst: `Не отправилось: ${e.message || e}` };
+    }
+    ftIdet = ""; risovatOkno();
+  }
+  document.addEventListener("change", async (e) => {
+    const inp = e.target.closest && e.target.closest("[data-ft-vybor]");
+    if (!inp || !inp.files || !inp.files.length) return;
+    ftItog = null;
+    for (const f of [...inp.files].slice(0, 8 - ftNovye.length)) {
+      try { ftNovye.push(await szhat(f)); } catch (er) { ftItog = { ok: false, tekst: "фото не открылось" }; }
+    }
+    risovatOkno();
+  }, true);
+  document.addEventListener("click", (e) => {
+    const t = e.target.closest("[data-ft-tip]");
+    if (t) { e.stopPropagation(); ftTip = Number(t.dataset.ftTip); risovatOkno(); return; }
+    const u = e.target.closest("[data-ft-ubrat]");
+    if (u) { e.stopPropagation(); ftNovye.splice(Number(u.dataset.ftUbrat), 1); risovatOkno(); return; }
+    if (e.target.closest("[data-ft-otpr]")) { e.stopPropagation(); otpravitFoto(); }
+  }, true);
   function seychas(d) {
     const s = d.сейчас || {};
     if (s.ошибка) return `<div class="aktDet__seychas"><p class="aktDet__gde">Где штука сейчас — WMS не ответила</p><p class="aktDet__chto">${esc(s.ошибка)}</p></div>`;
@@ -147,10 +235,10 @@
     const b = kesh.get(oknoAkt) || {};
     const d = b.d;
     const telo = b.zhdu || !b.d ? `<p class="aktDet__pusto">${b.oshibka ? `Не открылось: ${esc(b.oshibka)}` : "Открываю акт в WMS…"}</p>`
-      : `${seychas(d)}${kartochki(d)}
-          <div class="aktDet__kol"><section class="aktDet__blok"><h3>Фото · ${kartinki(d).length}</h3>${galereya(d)}</section>
-          <section class="aktDet__blok"><h3>История</h3>${istoriya(d)}</section></div>
-          <details class="aktDet__vse"><summary>все поля акта как в WMS</summary>${polyaGruppami(d)}</details>`;
+      : `<div class="aktDet__ekran"><section class="aktDet__foto">${blokFoto(d)}</section>
+          <section class="aktDet__info"><div class="aktDet__plitki">${plitkiNeKarta(d)}</div>
+            <h3>История</h3>${istoriyaKorotko(d)}
+            <details class="aktDet__vse"><summary>все поля акта как в WMS</summary>${polyaGruppami(d)}</details></section></div>`;
     okno.innerHTML = `<div class="cModal__fon" data-akt-det-zakr="1"></div>
       <section class="cModal__okno cModal__okno--shir aktDet__okno" role="dialog" aria-label="Акт целиком">
         <header class="cModal__sh aktDet__sh"><div><b>Акт ${esc(d ? d.акт : oknoAkt)}</b>${d ? `<p class="aktDet__tovar">${esc(d.товар)}</p><span>${esc(d.наклейка)} · живьём из WMS</span>` : ""}</div>
@@ -158,7 +246,7 @@
         <div class="aktDet__telo">${telo}</div></section>`;
     okno.hidden = false;
   }
-  function otkryt(akt) { oknoAkt = kl(akt); risovatOkno(); gruzit(oknoAkt); }
+  function otkryt(akt) { const k = kl(akt); if (k !== oknoAkt) { ftNovye = []; ftItog = null; } oknoAkt = k; risovatOkno(); gruzit(oknoAkt); }
 
   /* ---- фото во весь экран ---- */
   let ves = null;   // { k, i }
