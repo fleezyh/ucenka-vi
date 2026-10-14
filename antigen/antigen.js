@@ -991,9 +991,17 @@
         return (point.months || []).includes(day.slice(0, 7));
       });
       if (at < 0) return '';
-      const label = String(event.название || '').slice(0, 34);
-      const x0 = x(at) + 6;
+      // по слову, с многоточием: «Команда точности хранения (цель —» резалось посреди фразы
+      const polnoe = String(event.название || '');
+      let label = polnoe;
+      if (polnoe.length > 34) {
+        const t = polnoe.slice(0, 34);
+        label = t.slice(0, Math.max(t.lastIndexOf(' '), 12)).replace(/\s*\([^)]*$/, '').replace(/[\s,;:—–-]+$/, '') + '…';
+      }
       const shirina = label.length * 6.4;
+      // 14.10: у правого края подпись обрезалась («Разбор брака с…») — тогда она встаёт слева от линии
+      const vlevo = x(at) + 6 + shirina > W - 4;
+      const x0 = vlevo ? x(at) - 6 - shirina : x(at) + 6;
       let d = dorozhki.findIndex((konec) => konec < x0 - 6);
       if (d < 0) { d = dorozhki.length; dorozhki.push(0); }
       dorozhki[d] = x0 + shirina;
@@ -1004,7 +1012,7 @@
         + `<circle class="agEventDot" cx="${x(at)}" cy="${pad.top - 8}" r="4">`
         + `<title>${escape(event.дата)} · ${escape(event.название)}`
         + `${event.что ? ' — ' + escape(event.что) : ''}</title></circle>`
-        + `<text class="agEventLabel" x="${x0}" y="${pad.top + 6 + d * 14}"><title>${escape(event.дата)} · ${escape(event.название)}</title>${escape(label)}</text>`;
+        + `<text class="agEventLabel" x="${vlevo ? x(at) - 6 : x0}" y="${pad.top + 6 + d * 14}"${vlevo ? ' text-anchor="end"' : ''}><title>${escape(event.дата)} · ${escape(event.название)}</title>${escape(label)}</text>`;
     }).join('');
 
     // 14.10: выбрано мероприятие и шаг «недели» — недели «до» и «после» подсвечены, по ним линии среднего: это и есть
@@ -1020,9 +1028,9 @@
         const x2 = Math.min(W - pad.right, x(Math.max(...ii)) + shag / 2);
         return `<rect class="agEffBand ${cls}" x="${x1.toFixed(1)}" y="${pad.top}" width="${(x2 - x1).toFixed(1)}" height="${innerH}"></rect>`
           + `<line class="agEffAvg ${cls}" x1="${x1.toFixed(1)}" x2="${x2.toFixed(1)}" y1="${y(val).toFixed(1)}" y2="${y(val).toFixed(1)}"></line>`
-          + `<text class="agEffAvgLabel ${cls}" x="${(x1 + 6).toFixed(1)}" y="${(y(val) - 7).toFixed(1)}">${podpis} ${fmt(val, measure.kind)}</text>`;
+          + `<text class="agEffAvgLabel ${cls}" x="${(x1 + 6).toFixed(1)}" y="${(pad.top + innerH - 8).toFixed(1)}">${podpis} ${fmt(val, measure.kind)}</text>`;
       };
-      effekt = polosa(r.doNachala, r.bylo, 'agEff--do', 'было в среднем') + polosa(r.posle, r.stalo, 'agEff--posle', 'стало в среднем');
+      effekt = polosa(r.doNachala, r.bylo, 'agEff--do', 'до · в среднем') + polosa(r.posle, r.stalo, 'agEff--posle', 'после · в среднем');
     }
 
     box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Динамика периода">`
@@ -1030,7 +1038,7 @@
       + '<stop offset="0%" stop-color="#4d8df7" stop-opacity=".26"></stop>'
       + '<stop offset="100%" stop-color="#4d8df7" stop-opacity="0"></stop></linearGradient></defs>'
       + ticks + effekt + `<path class="agArea" d="${area}"></path><path class="agLine" d="${line}"></path>`
-      + trend + marks + dots + labels + axis + '</svg>';
+      + (effekt ? '' : trend) + marks + dots + labels + axis + '</svg>';
 
     box.querySelectorAll('[data-i]').forEach((node) => {
       node.addEventListener('click', () => {
