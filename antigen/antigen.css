@@ -1021,3 +1021,11 @@ body.agList--open { overflow: hidden; }
 .agRow--head .agRow__val { grid-column: span 2; white-space: nowrap; }
 .agHeroVkladki { align-self: flex-end; }
 .agEffektOkna { margin: 8px 0 4px; }
+.agEffektVyvod { margin: 6px 0 4px; font-size: 15px; line-height: 1.45; }
+.agItogiTab { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 13px; }
+.agItogiTab th, .agItogiTab td { padding: 7px 10px; border-bottom: 1px solid rgba(255,255,255,.07); text-align: left; vertical-align: top; }
+.agItogiTab th { font-weight: 500; color: var(--muted); }
+.agItogiTab .n { text-align: right; white-space: nowrap; }
+.agItogiTab td small { color: var(--muted); }
+.agItogiTab tbody tr { cursor: pointer; }
+.agItogiTab tbody tr:hover { background: rgba(255,255,255,.04); }
