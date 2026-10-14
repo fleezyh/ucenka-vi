@@ -624,7 +624,7 @@
 
     const gruppa = gruppy.find((g) => g.имя === state.gruppa);
     if (gruppa) box.appendChild(effektBlok(data, gruppa));
-    else { const itogi = itogiBlok(data); if (itogi) box.appendChild(itogi); }
+
   }
 
   function datePodpis(iso) {
@@ -703,14 +703,11 @@
   const nedSlovo = (n) => `${n} ${n % 10 === 1 && n % 100 !== 11 ? 'неделя' : [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'недели' : 'недель'}`;
   const bazaSlovo = (n) => (n === 2 ? '2 недели' : n === 4 ? 'месяц' : n === 8 ? '2 месяца' : 'квартал');
 
-  /** Вывод одной фразой — то, что говорить на встрече. */
+  /** 14.10 («стало больше — почему лучше? запутал»): только было → стало и на сколько; склад — справкой, без «лучше/хуже». */
   function vyvod(r) {
-    if (r.chistyy === null) return '';
-    const fonSlovo = r.fon >= 0 ? `вырос на ${Math.abs(r.fon).toFixed(0)}%` : `снизился на ${Math.abs(r.fon).toFixed(0)}%`;
-    const itog = Math.abs(r.chistyy) < 5 ? 'идёт вместе со складом, эффекта пока не видно'
-      : `мероприятие ${r.chistyy < 0 ? 'лучше' : 'хуже'} склада на ${Math.abs(r.chistyy).toFixed(0)} п.п.`;
-    return `было ${fmt(r.bylo, r.measure.kind)} в неделю, стало ${fmt(r.stalo, r.measure.kind)} (${znakP(r.izm)}); `
-      + `${r.fonImya} за то же время ${fonSlovo} — ${itog}`
+    if (r.izm === null) return '';
+    const kak = r.izm >= 0 ? `выросло на ${Math.abs(r.izm).toFixed(0)}%` : `снизилось на ${Math.abs(r.izm).toFixed(0)}%`;
+    return `было ${fmt(r.bylo, r.measure.kind)} в неделю, стало ${fmt(r.stalo, r.measure.kind)} — ${kak}`
       + (r.posle.length < 3 ? ` (после запуска ${nedSlovo(r.posle.length)} — рано делать вывод)` : '');
   }
 
@@ -740,55 +737,12 @@
       + '<div class="agEffektRow">'
       + `<div class="agEffektCell"><b>${fmt(r.bylo, r.measure.kind)}</b><i>было в неделю</i></div>`
       + `<div class="agEffektCell"><b>${fmt(r.stalo, r.measure.kind)}</b><i>стало в неделю</i></div>`
-      + `<div class="agEffektCell"><b class="agEffektVal${cvet(r.izm)}">${znakP(r.izm)}</b><i>у мероприятия</i></div>`
-      + `<div class="agEffektCell"><b>${znakP(r.fon)}</b><i>${escape(r.fonImya)}</i></div>`
-      + `<div class="agEffektCell"><b class="agEffektVal${cvet(r.chistyy)}">${znakP(r.chistyy)}</b><i>лучше (−) / хуже (+) склада</i></div>`
+      + `<div class="agEffektCell"><b class="agEffektVal${cvet(r.izm)}">${znakP(r.izm)}</b><i>изменение</i></div>`
       + '</div>'
-      + `<div class="agEffektNote">Недели до: ${nedeli(r.doNachala)}. После: ${nedeli(r.posle)}. `
+      + `<div class="agEffektNote">Для справки: ${escape(r.fonImya)} за те же недели ${r.fon >= 0 ? 'вырос' : 'снизился'} на `
+      + `${Math.abs(r.fon || 0).toFixed(0)}%. Недели до: ${nedeli(r.doNachala)}. После: ${nedeli(r.posle)}. `
       + 'Текущая неделя не считается — она не закрыта; неделя запуска тоже — она наполовину до, наполовину после.'
       + (gruppa.что ? ` ${escape(gruppa.что)}` : '') + '</div>';
-    return box;
-  }
-
-  /** Итоги всех запущенных мероприятий одной таблицей — то, что показывать на встрече. */
-  function itogiBlok(data) {
-    const baza = effektOkno || 4;
-    const zapushcheny = gruppy.filter((g) => g.с);
-    if (!zapushcheny.length) return null;
-    const box = document.createElement('div');
-    box.className = 'agEffekt agItogi';
-    const stroki = zapushcheny.map((g) => ({ g, r: effektRaschet(data, g, baza) }))
-      .map(({ g, r }) => {
-        const est = r.posle && r.posle.length;
-        const cvet = r.chistyy === null ? '' : r.chistyy <= -5 ? ' agEffektVal--good' : r.chistyy >= 5 ? ' agEffektVal--bad' : '';
-        const slovo = !est ? 'нет закрытых недель' : Math.abs(r.chistyy) < 5 ? 'как склад'
-          : `${r.chistyy < 0 ? 'лучше' : 'хуже'} на ${Math.abs(r.chistyy).toFixed(0)} п.п.`;
-        return `<tr data-gruppa="${escape(g.имя)}"><td><b>${escape(g.имя)}</b><br><small>${escape(g.мероприятие || '')}</small></td>`
-          + `<td>${escape(datePodpis(r.start))}</td>`
-          + `<td class="n">${est ? fmt(r.bylo, r.measure.kind) : '—'}</td>`
-          + `<td class="n">${est ? fmt(r.stalo, r.measure.kind) : '—'}</td>`
-          + `<td class="n">${znakP(r.izm)}</td><td class="n">${znakP(r.fon)}</td>`
-          + `<td class="n"><b class="agEffektVal${cvet}">${slovo}</b></td>`
-          + `<td class="n">${est || 0}</td></tr>`;
-      }).join('');
-    const vybor = [2, 4, 8, 13].map((n) => `<button type="button" class="agCrumb agEffektOkno${baza === n ? ' agGruppaChip--on' : ''}" `
-      + `data-okno="${n}">${bazaSlovo(n)}</button>`).join('');
-    box.innerHTML = '<div class="agEffektHead">Итоги мероприятий склада · средний брак в неделю после запуска против периода до · '
-      + 'рядом весь брак ДМД за те же недели</div>'
-      + `<div class="agGruppyLine agEffektOkna"><span class="agGruppyHead">сравнивать с периодом до запуска:</span>${vybor}</div>`
-      + '<div class="scroll"><table class="agItogiTab"><thead><tr><th>мероприятие</th><th>с</th><th class="n">было в неделю</th>'
-      + '<th class="n">стало в неделю</th><th class="n">у мероприятия</th><th class="n">весь брак ДМД</th><th class="n">итог против склада</th>'
-      + '<th class="n">недель после</th></tr></thead><tbody>' + stroki + '</tbody></table></div>'
-      + '<div class="agEffektNote">Итог — насколько мероприятие лучше или хуже всего склада: склад вырос на 23%, а мероприятие '
-      + 'снизилось на 42% — лучше склада на 65 п.п. Меньше 5 п.п. — «как склад», эффекта не видно. Меньше трёх недель после '
-      + 'запуска — рано делать вывод. Текущая неделя и неделя запуска не считаются. Клик по строке — график мероприятия.</div>';
-    box.addEventListener('click', (e) => {
-      const tr = e.target.closest('tr[data-gruppa]');
-      if (!tr) return;
-      state.gruppa = tr.dataset.gruppa;
-      state.point = null;
-      render();
-    });
     return box;
   }
 
