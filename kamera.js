@@ -144,6 +144,7 @@
     okno.innerHTML = `<div class="kamera__ramka"><video class="kamera__video" playsinline muted></video>
         <span class="kamera__pritsel" aria-hidden="true"></span></div>
       <div class="kamera__niz"><div class="kamera__tekst"><p class="kamera__kod"></p><p class="kamera__itog"></p></div>
+      <button type="button" class="kamera__vspyshka" hidden>Вспышка</button>
       <button type="button" class="kamera__zakryt">Закрыть</button></div>`;
     document.body.append(okno);
     document.body.classList.add("kameraOtkryta");
@@ -161,6 +162,7 @@
     if (!okno) { potok.getTracks().forEach((t) => t.stop()); potok = null; return; }   // закрыли, пока спрашивали доступ
     video.srcObject = potok;
     await video.play().catch(() => {});
+    vspyshka(okno.querySelector(".kamera__vspyshka"));
     let zanyat = false;
     taymer = setInterval(async () => {
       itogVShtorku();
@@ -173,6 +175,27 @@
       } catch (e) { /* кадр не прочитался — ждём следующий */ }
       finally { zanyat = false; }
     }, 180);
+  }
+
+  /* 14.10 Степан: «вспышку на камеру наверное надо» — на складе темно, у ячеек верхних ярусов код не читается.
+     Фонарь есть не у всех камер: кнопка только там, где камера его умеет. Включили — запоминаем в этом браузере. */
+  function vspyshka(b) {
+    const dorozhka = potok && potok.getVideoTracks()[0];
+    let umeet = false;
+    try { umeet = Boolean(dorozhka && dorozhka.getCapabilities && dorozhka.getCapabilities().torch); } catch (e) { umeet = false; }
+    if (!b || !umeet) return;
+    b.hidden = false;
+    const postavit = (vkl) => dorozhka.applyConstraints({ advanced: [{ torch: vkl }] })
+      .then(() => { b.classList.toggle("is-on", vkl); b.textContent = vkl ? "Вспышка: вкл" : "Вспышка"; })
+      .catch(() => { b.hidden = true; });
+    b.addEventListener("click", () => {
+      const vkl = !b.classList.contains("is-on");
+      try { localStorage.setItem("kameraVspyshka", vkl ? "1" : "0"); } catch (e) { /* без памяти */ }
+      postavit(vkl);
+    });
+    let pomnit = false;
+    try { pomnit = localStorage.getItem("kameraVspyshka") === "1"; } catch (e) { pomnit = false; }
+    if (pomnit) postavit(true);
   }
 
   kn.addEventListener("click", () => otkryt(null));

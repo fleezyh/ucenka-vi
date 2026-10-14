@@ -768,7 +768,10 @@ body.cNeNayden #answer > .cCardHead::after { flex-basis: 100%; }
   border-radius: 18px 18px 0 0; background: rgba(5, 9, 15, .96); box-shadow: 0 -8px 30px rgba(0, 0, 0, .45); }
 .kamera--niz .kamera__ramka { width: min(100%, 640px); aspect-ratio: auto; height: 26vh; border-radius: 14px; }
 .kamera--niz .kamera__pritsel { top: 30%; bottom: 30%; }
-.kamera__niz { width: min(100%, 640px); display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; }
+.kamera__niz { width: min(100%, 640px); display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; align-items: center; }
+.kamera__vspyshka { appearance: none; padding: 12px 14px; border-radius: 14px; border: 1px solid #35465c; background: #1a2433; color: #e7eef8; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
+.kamera__vspyshka[hidden] { display: none; }
+.kamera__vspyshka.is-on { background: #f5c542; border-color: #f5c542; color: #1b1400; }
 .kamera--niz .kamera__tekst { min-width: 0; display: grid; gap: 4px; }
 .kamera--niz .kamera__zakryt { min-width: 0; padding: 12px 16px; }
 .kamera__kod { margin: 0; color: #9fb3cc; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -898,3 +901,27 @@ body.cSkin .palKartaAkt__fakty span.is-netPlomby{background:rgba(240,180,60,.08)
 .cShag3 [data-smenit-stol] { cursor: pointer; }
 .cShag3 [data-smenit-stol]:hover { border-color: rgba(185,162,255,.75); }
 .cStolVybor { margin-top: 12px; padding: 12px; border-radius: 14px; border: 1px solid var(--cLine); background: var(--cTile); }
+/* 14.10 ТСД, Степан: «визуал сломан нахуй, всё прозрачное». У пульта в ТСД фона нет, и сквозь полупрозрачные плашки
+   просвечивал красный холст сайта (reeded-bg). Здесь фон сплошной, плашки непрозрачные, в обеих темах. */
+body.cSkin.aTsd { background: #0b1019; --cTile: #141c28; --cTile2: #1b2534; --cPanel: #101722; }
+body.cSkin.aTsd.is-svetlo { background: #eef2f7; --cTile: #ffffff; --cTile2: #f3f6fa; --cPanel: #ffffff; }
+body.cSkin.aTsd .flowCanvas, body.cSkin.aTsd::after { display: none !important; }
+body.cSkin.aTsd .cField { background: var(--cPanel); }
+body.cSkin.aTsd .tsdVkladki--panel { grid-template-columns: repeat(4, minmax(0, 1fr)); background: var(--cPanel); border-color: var(--cLine); }
+body.cSkin.aTsd .tsdVkladka { min-width: 0; padding: 0 4px; font-size: 15px; overflow: hidden; text-overflow: ellipsis; }
+body.cSkin.aTsd .tsdPusto { color: var(--muted); }
+body.cSkin.aTsd .tsdUz .wmsD { background: var(--cTile); border-color: var(--cLine); }
+/* узкий экран ТСД: три кнопки в поле съедали само поле («Скан яч») */
+@media (max-width: 480px) {
+body.cSkin.aTsd .cField { gap: 6px; padding: 0 6px 0 12px; }
+body.cSkin.aTsd .cField .action, body.cSkin.aTsd .cField #cMass, body.cSkin.aTsd .cField #kamera, body.cSkin.aTsd .cField #go { width: 46px; min-width: 46px; height: 48px; }
+body.cSkin.aTsd .cField #scan { font-size: 18px; }
+body.cSkin.aTsd .cField .cField__ico { display: none; }
+}
+body.cSkin.aTsd.is-svetlo .tsdVkladka.is-on { background: #10203a !important; border-color: #10203a !important; color: #fff !important; }
+body.cSkin.aTsd.is-svetlo .tsdPrichina.is-on { color: #8a1426 !important; }
+/* 14.10 светлая тема пикалки (кнопка «Тема» в шапке): тексты, что были ярко-цветными под тёмный фон, на белом — темнее */
+body.cSkin.is-svetlo .message.warn { color: #9a5b00; }
+body.cSkin.is-svetlo .message.error { color: #b42335; }
+body.cSkin.is-svetlo .message.ok { color: #13703c; }
+body.cSkin.is-svetlo .aktKat--stop .aktKat__imya { color: #c0283c; }

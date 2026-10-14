@@ -26,6 +26,12 @@
   let prichina = "";
   let itog = "";                // «заявка №… отправлена» / ошибка
   let otkryto = 0;
+  // 14.10 Степан: «ТСД должен помогать выставлять УЗ и ошибки». Отметили брак — тут же УЗ в вмс по этой ячейке
+  // (общий блок wms-deystviya.js, создаёт человек кнопкой). Узел живёт до следующей ячейки: перерисовка панели
+  // его переносит, а не создаёт заново — иначе созданное задание предлагалось бы ещё раз.
+  let uzEl = null;
+  // причина сайта → причина УЗ в вмс (2 брак, 3 некомплект, 6 пересорт)
+  const UZ_PRICHINA = { "некомплект": 3, "пересорт": 6 };
 
   async function zapros(adres, telo) {
     const o = await fetch(adres, telo ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(telo) }
@@ -57,11 +63,14 @@
     let telo = "";
     if (vkladka === "brak") telo = yach ? formaBraka() : `<p class="tsdPusto">Пикните ячейку (CEL …) — отметить в ней брак. Товары, паллеты и акты пикаются как обычно.</p>${itog}`;
     else telo = '<div id="tsdPanelTelo"><p class="tsdPusto">Загружаю…</p></div>';
+    // 14.10 «криво брак в ячейке»: длинная подпись не влезала в треть экрана ТСД — во вкладке «Брак», полностью — на кнопке
     h.innerHTML = `<nav class="tsdVkladki tsdVkladki--panel">
-        <button class="tsdVkladka${vkladka === "brak" ? " is-on" : ""}" type="button" data-tvkl="brak">Брак в ячейке</button>
+        <button class="tsdVkladka${vkladka === "brak" ? " is-on" : ""}" type="button" data-tvkl="brak" title="Брак в ячейке">Брак</button>
         <button class="tsdVkladka${vkladka === "uborka" ? " is-on" : ""}" type="button" data-tvkl="uborka">Уборка${otkryto ? ` <b>· ${otkryto}</b>` : ""}</button>
         <button class="tsdVkladka${vkladka === "svodka" ? " is-on" : ""}" type="button" data-tvkl="svodka">Сводка</button>
+        <button class="tsdVkladka" type="button" data-tosh="1" title="Журнал ошибок за день">Ошибки</button>
       </nav>${telo}`;
+    if (vkladka === "brak" && !yach && uzEl) h.appendChild(uzEl);
     if (vkladka === "uborka") uborka();
     if (vkladka === "svodka") svodka();
   }
@@ -84,7 +93,7 @@
 
   async function otkrytYacheyku(kod) {
     if (!vkl) return;
-    vkladka = "brak"; prichina = ""; itog = "";
+    vkladka = "brak"; prichina = ""; itog = ""; uzEl = null;
     yach = { zhdu: true };
     risovat();
     try {
@@ -102,8 +111,14 @@
     try {
       const d = await zapros("/__tsd", { действие: "брак", код: String(yach.id), причина: prichina,
         комментарий: (document.getElementById("tsdPanelKomment") || {}).value || "" });
-      itog = `<p class="tsdGotovo">Заявка №${d.id}: ${esc(yach.имя)} — ${esc(prichina)}. Уйдёт на уборку. Пикайте следующую ячейку.</p>`;
+      itog = `<p class="tsdGotovo">Заявка №${d.id}: ${esc(yach.имя)} — ${esc(prichina)}. Уйдёт на уборку. Ниже — УЗ в вмс, или пикайте следующую ячейку.</p>`;
       if (navigator.vibrate) navigator.vibrate(120);
+      if (window.WmsDeystviya) {
+        uzEl = document.createElement("div");
+        uzEl.className = "tsdUz";
+        window.WmsDeystviya.uz(uzEl, { yacheyka: `CEL ${yach.id}`, otkuda: "тсд", podpis: yach.имя || `ячейка ${yach.id}`,
+          prichina: UZ_PRICHINA[String(prichina).toLowerCase()] || 2, komm: prichina });
+      }
       yach = null; prichina = "";
       schetchik();
     } catch (e) {
@@ -174,7 +189,10 @@
   }
 
   document.addEventListener("wms:pod", (e) => {
+    const byl = vkl;
     vkl = e.detail === "tsd";
+    // 14.10 «каждый раз, когда заходишь, всё равно отображается» прошлая ячейка — вход в ТСД начинается с чистого
+    if (vkl && !byl) { vkladka = "brak"; yach = null; prichina = ""; itog = ""; uzEl = null; }
     document.body.classList.toggle("tsdPodRezhim", vkl);
     if (vkl) schetchik();
     risovat();
@@ -189,6 +207,7 @@
   });
   document.addEventListener("click", async (e) => {
     const t = e.target;
+    if (t.closest("[data-tosh]")) { document.getElementById("cOshibki")?.click(); return; }
     const vk = t.closest("[data-tvkl]");
     if (vk) { vkladka = vk.dataset.tvkl; risovat(); return; }
     const pr = t.closest("[data-tprichina]");

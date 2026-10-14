@@ -48,7 +48,7 @@ body.is-svetlo .wmsD__spisok{color:#26303d}`;
     `<button type="button" class="wmsD__kn${id === vybrano ? " is-on" : ""}" data-${dataKey}="${id}">${esc(imya)}</button>`).join("");
 
   function uz(host, opc) {
-    const sost = { tip: 2, prichina: 2, prioritet: 2, potok: null, tovar_guid: opc.tovar_guid || "", komm: "",
+    const sost = { tip: opc.tip || 2, prichina: opc.prichina || 2, prioritet: 2, potok: null, tovar_guid: opc.tovar_guid || "", komm: opc.komm || "",
                    pred: null, idet: false, oshibka: "", gotovo: null };
     const telo = (sohranit) => ({ откуда: opc.otkuda || "сайт", ячейка: opc.yacheyka || "", паллета: opc.palleta || "",
       товар_guid: sost.tovar_guid, тип: sost.tip, причина: sost.prichina, приоритет: sost.prioritet,

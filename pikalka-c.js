@@ -53,26 +53,46 @@
     verh.className = "cTop";
     verh.innerHTML = `<div class="cTitle"><h1>Пикалка</h1><span class="cCrumb"><span id="cCrumbSep">/</span> <b id="cCrumb">Уценка</b></span></div>
       <div class="cPult">
+        <button type="button" class="cZvuk cTema" id="cTema"></button>
         <div class="cKto" id="cKto"></div>
       </div>`;
+    // 14.10 Степан: «сделай пикалке кнопку белой темы ОЧЕНЬ аккуратно». Тема общая с сайтом (tema.js, nav.js):
+    // те же ключи, что у кнопки в кабинете, — выбор держится на всех страницах.
+    const tema = $("#cTema", verh);
+    const podpisTemy = () => { tema.textContent = B.classList.contains("is-svetlo") ? "Тема: светлая" : "Тема: тёмная"; };
+    podpisTemy();
+    tema.addEventListener("click", () => {
+      const svet = !B.classList.contains("is-svetlo");
+      try {
+        localStorage.setItem("tema", svet ? "svet" : "temn");
+        localStorage.setItem("vt-tema", svet ? "svet" : "temno");
+        localStorage.setItem("crmTema", svet ? "svetlo" : "temno");
+      } catch (e) { /* без памяти — только на эту страницу */ }
+      document.documentElement.classList.toggle("is-svetlo", svet);
+      document.documentElement.style.background = svet ? "#e3e9f1" : "";   // tema.js красит <html> до отрисовки
+      B.classList.toggle("is-svetlo", svet);
+      podpisTemy();
+      document.dispatchEvent(new CustomEvent("tema", { detail: { svet } }));
+    });
 
     const pult = document.createElement("main");
     pult.className = "cConsole";
     pult.innerHTML = `<aside class="cRail">
-        <button type="button" class="cScanner" id="cBaza" title="Справочник товаров"><span class="cScanner__ico">${ikonka("bar")}<i class="cDot"></i></span><span id="cBazaT">база…</span></button>
         <!-- 30.09 Степан: «разбивку на уценку, предсорт и себес убрали — всё должно работать
              в одном». Режимов нет: одна карточка (себес, кластер, паллета для продаж), список —
-             вставкой в то же поле. В рейке только то, что правда отдельное. -->
+             вставкой в то же поле. В рейке только то, что правда отдельное.
+             14.10 Степан: «справочник товаров и база — информация бессмысленная; есть пикалка, потом экран работы,
+             потом режим ТСД». Чип «база» убран; наклейки — «Паллеты и наклейки». -->
         <nav class="cRail__gr" aria-label="Пикалка">
           <button type="button" class="cRi is-on" id="cGlav" title="Карточка товара">${ikonka("tag")}Пикалка</button>
           <button type="button" class="cRi" id="cEkran" title="Бэклог живьём — на весь экран">${ikonka("ekran")}Экран</button>
+          <button type="button" class="cRi" id="aTsdBtn" title="Режим ТСД: брак в ячейке, УЗ, уборка">${ikonka("phone")}Режим ТСД</button>
         </nav>
         <nav class="cRail__gr cRail__wms" aria-label="WMS">
           <span class="cRail__lbl">WMS</span>
           <!-- 14.10 Степан: «все варианты наклеек — паллеты, акта и т.д., красиво как со столами, и схлопнуть в одну менюху».
                Новая паллета, печать акта, столы, ячейки — одна страница /picker/nakleyki/ в своей вкладке. -->
-          <button type="button" class="cRi" id="cNakleyki" title="Наклейки: новая паллета, акты, столы, ячейки">${ikonka("nakl")}Наклейки</button>
-          <button type="button" class="cRi" id="aTsdBtn">${ikonka("phone")}ТСД</button>
+          <button type="button" class="cRi" id="cNakleyki" title="Паллеты и наклейки: новая паллета, акты, столы, ячейки">${ikonka("nakl")}Паллеты и наклейки</button>
         </nav>
         <!-- 07.10 Степан: «а где я вижу, где ошибка, и как выставить ошибку», «а где сверка» -->
         <nav class="cRail__gr" aria-label="Контроль">
@@ -620,7 +640,7 @@
     "Инст(РАБ)", "Инст(НЕРАБ)", "РМ(ОБЩ)", "КрепФур(ОБЩ)", "СИЗ(ОБЩ)", "Руч(КРИТ)", "Руч(КОСМ)", "Рад(ОБЩ)",
     "Рохли(ОБЩ)", "ЛестСтр(ОБЩ)", "АКБ(ОБЩ)", "МисБокс", "КРГБ",
     "Маркетплейс",   // 06.10 Степан: «паллеты маркетплейс нет в создании паллеты» — тип 2272 на сервере был с 02.10
-    "Утиль", "Пересорт", "Переупаковка", "ГСМ(АВТО)", "ГСМ(СТРОЙКА)", "ГСМ(ПРОСРОЧКА)"];   // 07.10 столы: «добавить утиль, пересорт и переупаковку» (типы — DOP_TIPY на сервере)
+    "Утиль", "Пересорт", "Переупаковка", "ГСМ(ОБЩ)"];   // 07.10 столы: «добавить утиль, пересорт и переупаковку» (типы — DOP_TIPY на сервере)
   let novSozdano = [];
   let novIdet = "";
   let novOshibka = "";
@@ -819,7 +839,8 @@
     $("#scan")?.focus();
   }
   document.addEventListener("click", (e) => {
-    if (e.target.closest("#aTsdBtn")) vTsd(true);
+    // 14.10 «каждый раз, когда заходишь, всё равно отображается» прошлое: в ТСД — с чистой страницы, без хвостов пикалки
+    if (e.target.closest("#aTsdBtn")) { location.assign("/picker/wms?pod=tsd"); return; }
     if (e.target.closest("#aTsdVyhod")) vTsd(false);
   });
 
