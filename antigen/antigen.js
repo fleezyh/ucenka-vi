@@ -406,6 +406,7 @@
       && !searchSet.has(row[data.dimAt.tovar])) return false;
     if (gruppaSet && data.dimAt.tovar !== undefined
       && !gruppaSet.has(row[data.dimAt.tovar])) return false;
+    if (gruppaUslovie && gruppaUslovie.some(([at, ok]) => !ok.has(row[at]))) return false;
     return state.filters.every(({ dim, label }) =>
       data.labels[dim] && data.labels[dim][row[data.dimAt[dim]]] === label);
   }
@@ -426,13 +427,28 @@
   let gruppy = [];
   let gruppaSet = null;
   let gruppaKey = '';
+  // 14.10 Степан: «видеть конкретные мероприятия, которые ровно на что-то должны были повлиять». Мероприятие бьёт не
+  // только по товарам, но и по дефекту и складу: плакаты о составных — по «Некомплекту» на ДМД, сроки ГСМ — по «Истек срок
+  // годности». В группе — «фильтр»: {измерение: [значения]} (vid, defekt, mu…); слова в названии товара — по желанию.
+  let gruppaUslovie = null;
 
   function buildGruppaSet(data) {
     const gruppa = gruppy.find((g) => g.имя === state.gruppa);
     const key = `${state.contour}|${state.gruppa || ''}`;
     if (key === gruppaKey) return;
     gruppaKey = key;
-    if (!gruppa || data.dimAt.tovar === undefined) { gruppaSet = null; return; }
+    gruppaUslovie = null;
+    if (gruppa && gruppa.фильтр) {
+      gruppaUslovie = Object.entries(gruppa.фильтр)
+        .filter(([dim]) => data.dimAt[dim] !== undefined && data.labels[dim])
+        .map(([dim, vals]) => {
+          const nado = new Set((vals || []).map(String));
+          const at = new Set();
+          data.labels[dim].forEach((name, i) => { if (nado.has(String(name))) at.add(i); });
+          return [data.dimAt[dim], at];
+        });
+    }
+    if (!gruppa || data.dimAt.tovar === undefined || !(gruppa.слова || []).length) { gruppaSet = null; return; }
 
     const slova = (gruppa.слова || []).map((s) => String(s).toLocaleLowerCase('ru-RU'));
     const krome = (gruppa.кроме || []).map((s) => String(s).toLocaleLowerCase('ru-RU'));
@@ -577,29 +593,34 @@
     box.hidden = false;
     box.innerHTML = '';
 
-    const line = document.createElement('div');
-    line.className = 'agGruppyLine';
-    const podpis = document.createElement('span');
-    podpis.className = 'agGruppyHead';
-    podpis.textContent = 'в работе:';
-    line.appendChild(podpis);
-
-    gruppy.forEach((gruppa) => {
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'agCrumb agGruppaChip';
-      if (gruppa.имя === state.gruppa) button.classList.add('agGruppaChip--on');
-      button.innerHTML = `<span>${escape(gruppa.имя)}</span>`
-        + (gruppa.с ? `<i>с ${escape(datePodpis(gruppa.с))}</i>` : '');
-      button.title = gruppa.что || gruppa.имя;
-      button.addEventListener('click', () => {
-        state.gruppa = gruppa.имя === state.gruppa ? null : gruppa.имя;
-        state.point = null;
-        render();
+    // 14.10: мероприятия склада (есть дата запуска) — отдельно от кандидатов, по которым склад ещё ничего не делал
+    const stroka = (zag, spisok, tusklo) => {
+      if (!spisok.length) return;
+      const line = document.createElement('div');
+      line.className = 'agGruppyLine' + (tusklo ? ' agGruppyLine--kandidaty' : '');
+      const podpis = document.createElement('span');
+      podpis.className = 'agGruppyHead';
+      podpis.textContent = zag;
+      line.appendChild(podpis);
+      spisok.forEach((gruppa) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'agCrumb agGruppaChip';
+        if (gruppa.имя === state.gruppa) button.classList.add('agGruppaChip--on');
+        button.innerHTML = `<span>${escape(gruppa.имя)}</span>`
+          + (gruppa.с ? `<i>с ${escape(datePodpis(gruppa.с))}</i>` : '');
+        button.title = [gruppa.мероприятие, gruppa.что].filter(Boolean).join(' — ') || gruppa.имя;
+        button.addEventListener('click', () => {
+          state.gruppa = gruppa.имя === state.gruppa ? null : gruppa.имя;
+          state.point = null;
+          render();
+        });
+        line.appendChild(button);
       });
-      line.appendChild(button);
-    });
-    box.appendChild(line);
+      box.appendChild(line);
+    };
+    stroka('мероприятия склада:', gruppy.filter((g) => g.с), false);
+    stroka('на примете:', gruppy.filter((g) => !g.с), true);
 
     const gruppa = gruppy.find((g) => g.имя === state.gruppa);
     if (gruppa) box.appendChild(effektBlok(data, gruppa));
@@ -611,48 +632,47 @@
     return `${Number(day.slice(8, 10))} ${MONTHS_SHORT[month] || ''}`;
   }
 
-  /** Эффект мероприятия: одинаковые окна до и после даты, внутри группы.
+  /** Эффект мероприятия: одинаковые окна до и после даты, внутри прицела мероприятия.
    *
-   * Сравнение ведём в полных месяцах: мероприятие начинает действовать не в
-   * день приказа, а когда до склада дойдёт, и половинки месяцев только шумят.
-   * Рядом показываем, как за те же месяцы менялся контур целиком: если группа
-   * упала на 30%, а склад на 28% — это не мероприятие, это общий тренд.
+   * 14.10: по неделям, а не по месяцам — меры склада запущены 23–30.09, и в месячном счёте сентябрь выходил «до»,
+   * а октябрь ещё не закрыт: сравнивать было нечего. «После» — закрытые недели с понедельником не раньше даты запуска,
+   * «до» — столько же закрытых недель целиком до неё. Рядом — тот же склад целиком: если прицел упал на 30%, а склад
+   * на 28% — это общий тренд, а не мероприятие.
    */
   function effektBlok(data, gruppa) {
     const measure = measureOf(contourDef());
     const at = data.measureAt[measure.key];
-    const nachalo = String(gruppa.с || '').slice(0, 7);
-
+    const start = String(gruppa.с || '').slice(0, 10);
+    const box = document.createElement('div');
+    box.className = 'agEffekt';
+    if (!start) {
+      box.innerHTML = '<div class="agEffektNote">Склад по этой группе ещё ничего не запускал — сравнивать до и после не с чем.'
+        + (gruppa.что ? ` ${escape(gruppa.что)}` : '') + '</div>';
+      return box;
+    }
+    const weekAt = data.dimAt.week;
+    const vidAt = data.dimAt.vid;
+    const vidOk = gruppa.фильтр && gruppa.фильтр.vid && vidAt !== undefined
+      ? new Set(gruppa.фильтр.vid.map(String)) : null;
     const svoi = new Map();
     const ves = new Map();
     data.rows.forEach((row) => {
-      const month = data.monthOfRow(row);
-      if (!month) return;
+      const week = data.labels.week[row[weekAt]];
       const value = row[at];
-      ves.set(month, (ves.get(month) || 0) + value);
-      if (matches(data, row)) svoi.set(month, (svoi.get(month) || 0) + value);
+      if (!vidOk || vidOk.has(String(data.labels.vid[row[vidAt]]))) ves.set(week, (ves.get(week) || 0) + value);
+      if (matches(data, row)) svoi.set(week, (svoi.get(week) || 0) + value);
     });
-
-    const box = document.createElement('div');
-    box.className = 'agEffekt';
-    const mesyacy = [...ves.keys()].sort();
-    const posle = mesyacy.filter((m) => nachalo && m >= nachalo && m < nowMonth());
-    const shag = Math.max(posle.length, 0);
-
-    if (!nachalo) {
-      box.innerHTML = '<div class="agEffektNote">У группы не проставлена дата взятия в работу — '
-        + 'сравнивать до и после не с чем. Дата ставится в админке, рядом с мероприятиями.</div>';
-      return box;
-    }
+    const plus7 = (iso) => new Date(new Date(iso).getTime() + 7 * 864e5).toISOString().slice(0, 10);
+    const zakryty = (data.closed_weeks || [...ves.keys()]).slice().sort();
+    const posle = zakryty.filter((w) => w >= start);
+    const shag = posle.length;
     if (!shag) {
-      box.innerHTML = '<div class="agEffektNote">Мероприятие взято в работу в этом месяце. '
-        + 'Первое сравнение появится, когда закроется месяц целиком: по половине месяца '
-        + 'эффект не считаем.</div>';
+      box.innerHTML = `<div class="agEffektNote">${escape(gruppa.мероприятие || gruppa.имя)} — с ${escape(datePodpis(start))}. `
+        + 'Первая полная неделя после запуска ещё не закрылась: по неполной неделе эффект не считаем.</div>';
       return box;
     }
-
-    const doNachala = mesyacy.filter((m) => m < nachalo).slice(-shag);
-    const summa = (map, list) => list.reduce((sum, m) => sum + (map.get(m) || 0), 0);
+    const doNachala = zakryty.filter((w) => plus7(w) <= start).slice(-shag);
+    const summa = (map, list) => list.reduce((sum, w) => sum + (map.get(w) || 0), 0);
     const byloSvoi = summa(svoi, doNachala);
     const staloSvoi = summa(svoi, posle);
     const byloVes = summa(ves, doNachala);
@@ -663,21 +683,21 @@
 
     const znak = (v) => (v === null ? '—' : `${v > 0 ? '+' : ''}${v.toFixed(0)}%`);
     const cvet = (v) => (v === null ? '' : v < 0 ? ' agEffektVal--good' : ' agEffektVal--bad');
-    const okno = `${shag} ${shag === 1 ? 'месяц' : shag < 5 ? 'месяца' : 'месяцев'}`;
+    const okno = `${shag} ${shag === 1 ? 'неделя' : shag < 5 ? 'недели' : 'недель'}`;
+    const nedeli = (list, map) => list.map((w) => `${datePodpis(w)}: ${fmt(map.get(w) || 0, measure.kind)}`).join(' · ');
+    const fonImya = vidOk ? [...vidOk].join(', ') + ' целиком' : 'контур целиком';
 
-    box.innerHTML = `<div class="agEffektHead">Эффект мероприятия · ${escape(gruppa.имя)} · `
+    box.innerHTML = `<div class="agEffektHead">${escape(gruppa.мероприятие || gruppa.имя)} · с ${escape(datePodpis(start))} · `
       + `${okno} до и после</div>`
       + '<div class="agEffektRow">'
       + `<div class="agEffektCell"><b>${fmt(byloSvoi, measure.kind)}</b><i>до</i></div>`
       + `<div class="agEffektCell"><b>${fmt(staloSvoi, measure.kind)}</b><i>после</i></div>`
-      + `<div class="agEffektCell"><b class="agEffektVal${cvet(izm)}">${znak(izm)}</b>`
-      + '<i>изменение в группе</i></div>'
-      + `<div class="agEffektCell"><b>${znak(fon)}</b><i>контур целиком</i></div>`
-      + `<div class="agEffektCell"><b class="agEffektVal${cvet(chistyy)}">${znak(chistyy)}</b>`
-      + '<i>чистый эффект</i></div>'
+      + `<div class="agEffektCell"><b class="agEffektVal${cvet(izm)}">${znak(izm)}</b><i>изменение в прицеле</i></div>`
+      + `<div class="agEffektCell"><b>${znak(fon)}</b><i>${escape(fonImya)}</i></div>`
+      + `<div class="agEffektCell"><b class="agEffektVal${cvet(chistyy)}">${znak(chistyy)}</b><i>чистый эффект</i></div>`
       + '</div>'
-      + `<div class="agEffektNote">Чистый эффект — разница между группой и общим фоном. `
-      + `Если он около нуля, группа поехала вместе со складом и мероприятие тут ни при чём.`
+      + `<div class="agEffektNote">До: ${nedeli(doNachala, svoi)}. После: ${nedeli(posle, svoi)}. `
+      + 'Чистый эффект — разница между прицелом и фоном того же склада; около нуля — прицел поехал вместе со складом.'
       + (gruppa.что ? ` ${escape(gruppa.что)}` : '') + '</div>';
     return box;
   }
@@ -897,7 +917,12 @@
     // Подпись встаёт в первую «дорожку», где не налезает на предыдущую; линия и точка — одна на точку графика.
     const dorozhki = [];
     const uzheLiniya = new Set();
-    const marks = (events || []).map((event) => {
+    // 14.10: выбрано мероприятие — на графике только его прицел и одна засечка: его запуск, без общих отметок
+    const vybrana = gruppy.find((g) => g.имя === state.gruppa);
+    const otmetki = vybrana
+      ? (vybrana.с ? [{ дата: vybrana.с, название: vybrana.мероприятие || vybrana.имя, что: vybrana.что }] : [])
+      : (events || []);
+    const marks = otmetki.map((event) => {
       const day = String(event.дата || '').slice(0, 10);
       const at = points.findIndex((point) => {
         if (state.step === 'week') {

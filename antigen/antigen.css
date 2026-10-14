@@ -32,12 +32,12 @@ body[data-mode="antigen"] .shell {
 .agGoals {
   display: flex;
   align-items: center;
-  gap: 18px;
+  column-gap: 12px;
+  row-gap: 3px;
   flex-wrap: wrap;
   border: 1px solid var(--line);
-  border-left: 2px solid var(--blue);
-  border-radius: 12px;
-  background: #0e1621;
+  border-radius: 24px;
+  background: rgba(15, 14, 20, .88);
   padding: 10px 16px;
 }
 .agGoals__label {
@@ -68,14 +68,14 @@ body[data-mode="antigen"] .shell {
    уже набежало и куда мы придём, если ничего не менять. */
 .agGoals__item--now b { color: #f5ad32; }
 .agGoals__item--forecast b { color: var(--red); }
-.agGoals__gap { margin-left: auto; font-size: 14px; color: var(--muted); }
+.agGoals__gap { margin-left: 0; font-size: 14px; color: var(--muted); }
 
 /* Светофор: не «сколько уже набежало», а придём ли мы к плану по нынешнему
    темпу. Рядом — сколько должно быть на сегодняшнее число, чтобы вопрос
    «мы в графике?» не требовал считать в уме. */
 .agGoals__light {
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-  width: 100%; margin-top: 4px; padding-top: 10px;
+  width: 100%; margin-top: 0; padding-top: 8px;
   border-top: 1px solid var(--line);
   font-size: 14px; font-weight: 600;
 }
@@ -88,9 +88,7 @@ body[data-mode="antigen"] .shell {
 .agGoals__light--bad { color: #ffc0ca; }
 .agGoals__light--bad i { background: var(--red); box-shadow: 0 0 0 4px rgba(240, 93, 114, .16); }
 
-/* Рамка плашки подсказывает состояние ещё до чтения. */
-.agGoals--warn { border-color: rgba(245, 173, 50, .42); }
-.agGoals--bad { border-color: rgba(240, 93, 114, .42); }
+/* Состояние передаётся текстом и индикатором, не окрашивает всю плашку. */
 .agGoals__gap b { color: var(--red); font-weight: 600; }
 .agGoals__track {
   flex: 1 1 160px;
@@ -881,6 +879,137 @@ body[data-mode="antigen"] .shell {
 .agCrumb__x { margin-left: 4px; color: var(--muted); font-size: 12px; }
 .agCrumb:hover .agCrumb__x { color: var(--red); }
 .agCrumbs__sep { color: var(--muted); font-size: 12px; }
+
+/* Раскладка обращений: вид и решение. Чип — это фильтр, поэтому он живёт в
+   том же семействе, что хлебные крошки, а не выглядит подписью. */
+.agSplits { display: grid; gap: 10px; margin: 4px 0 14px; }
+.agSplit { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px 12px; background: #0f1621; }
+.agSplitHead { font-size: 12.5px; color: var(--muted); margin-bottom: 8px; letter-spacing: .01em; }
+.agSplitLine { display: flex; flex-wrap: wrap; gap: 6px; }
+.agSplitChip { font-size: 13px; padding: 5px 10px; gap: 8px; }
+.agSplitChip b { font-variant-numeric: normal; font-feature-settings: 'tnum' 0, 'pnum' 1; }
+.agSplitChip i { font-style: normal; color: var(--muted); font-size: 12px; }
+.agSplitChip--on { border-color: var(--red); background: rgba(240, 93, 114, .10); }
+.agSplitChip--reset { color: var(--muted); }
+
+/* Рабочие группы товаров: «с чем мы работаем сейчас». Выбранная группа —
+   золотая: на встрече просили, чтобы взятое в работу было видно с одного
+   взгляда и за ним следили отдельно от общего графика. */
+.agGruppy { display: grid; gap: 10px; margin: 2px 0 14px; }
+.agGruppyLine { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.agGruppyLine + .agGruppyLine { margin-top: 6px; }
+.agGruppyLine--kandidaty .agGruppaChip:not(.agGruppaChip--on) { opacity: .55; }
+.agGruppyHead { font-size: 12.5px; color: var(--muted); margin-right: 2px; }
+.agGruppaChip { font-size: 13px; padding: 5px 10px; gap: 7px; }
+.agGruppaChip i { font-style: normal; color: var(--muted); font-size: 12px; }
+.agGruppaChip--on { border-color: #d9a441; background: rgba(217, 164, 65, .12); color: #ffd98a; }
+.agGruppaChip--on i { color: rgba(255, 217, 138, .72); }
+
+.agEffekt { border: 1px solid rgba(217, 164, 65, .35); border-radius: 12px; padding: 12px 14px; background: rgba(217, 164, 65, .05); }
+.agEffektHead { font-size: 12.5px; color: #ffd98a; margin-bottom: 10px; }
+.agEffektRow { display: flex; flex-wrap: wrap; gap: 26px; }
+.agEffektCell { display: flex; flex-direction: column; gap: 2px; }
+.agEffektCell b { font-size: 20px; font-weight: 600; font-feature-settings: 'tnum' 0, 'pnum' 1; }
+.agEffektCell i { font-style: normal; font-size: 12px; color: var(--muted); }
+.agEffektVal--good { color: #2fc97c; }
+.agEffektVal--bad { color: #f05d72; }
+.agEffektNote { margin-top: 10px; font-size: 12.5px; color: var(--muted); line-height: 1.5; }
+
+/* Пояснительные записки: один стеклянный переключатель как на главной и лист поверх страницы. Читают их
+   здесь же — заставлять скачивать файл ради чтения незачем. */
+.agZapiski { margin: 0 0 16px; }
+.agZapiski__head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.agZapiski__head b { font-size: 19px; font-weight: 600; letter-spacing: -.01em; }
+.agZapiski__head i { font-style: normal; font-size: 12px; color: var(--muted); }
+.agZapiski__grid {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  width: 100%;
+  overflow: hidden;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: rgba(15, 14, 20, .88);
+}
+.agZapiski__lens {
+  position: absolute;
+  z-index: -1;
+  border: 1px solid rgba(255, 255, 255, .24);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, .13);
+  opacity: 0;
+  transition: left .38s cubic-bezier(.22, 1, .36, 1),
+    top .38s cubic-bezier(.22, 1, .36, 1),
+    width .38s cubic-bezier(.22, 1, .36, 1),
+    height .38s cubic-bezier(.22, 1, .36, 1), opacity .18s ease;
+}
+.agZapiski__lens.is-ready { opacity: 1; }
+.agZapiski__controls { display: none; gap: 6px; margin-left: auto; }
+.agZapiski__controls button { width: 32px; height: 32px; border: 1px solid var(--line); border-radius: 9px; color: var(--text); background: #101823; font: inherit; cursor: pointer; }
+.agZapiski__controls button:hover:not(:disabled) { border-color: var(--red); }
+.agZapiski__controls button:disabled { opacity: .4; cursor: default; }
+@media (max-width: 1050px) {
+  .agZapiski__grid { grid-auto-columns: 160px; overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-inline: contain; scrollbar-width: none; }
+  .agZapiski__grid::-webkit-scrollbar { display: none; }
+  .agZapiski__controls { display: flex; }
+}
+.agPz { position: relative; z-index: 1; min-width: 0; min-height: 64px; padding: 10px 6px; scroll-snap-align: start;
+  border: 0; border-radius: 17px; background: transparent;
+  color: var(--muted); text-align: center; font: inherit; font-size: 14px; font-weight: 600;
+  line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  cursor: pointer; transition: border-color .3s ease, background .3s ease, color .2s ease, transform .12s ease; }
+.agPz:hover { color: var(--text); }
+.agPz.is-active { color: #fff; }
+.agPz:active { transform: scale(.97); }
+.agPz:focus-visible { outline: 2px solid var(--green); outline-offset: -3px; }
+@media (max-width: 640px) {
+  .agZapiski__grid { grid-auto-columns: 150px; padding: 5px; border-radius: 21px; }
+  .agPz { min-height: 58px; }
+}
+
+.agList { position: fixed; inset: 0; z-index: 90; display: flex; align-items: flex-start;
+  justify-content: center; padding: 32px 16px; }
+/* Без этой строки атрибут hidden не действует: display из класса сильнее, и
+   пустой лист висел поверх всей страницы. */
+.agList[hidden] { display: none; }
+.agList__fon { position: absolute; inset: 0; background: rgba(6, 10, 16, .78); backdrop-filter: blur(2px); }
+body.agList--open { overflow: hidden; }
+.agList__doc { position: relative; width: min(860px, 100%); max-height: calc(100vh - 64px);
+  overflow: auto; background: #0f1621; border: 1px solid var(--line); border-radius: 16px;
+  padding: 28px 34px 36px; box-shadow: 0 24px 70px rgba(0, 0, 0, .55); }
+.agList:not([hidden]) .agList__fon { animation: agListShadeIn .25s ease both; }
+.agList:not([hidden]) .agList__doc { animation: agListDocIn .34s cubic-bezier(.22, 1, .36, 1) both; }
+@keyframes agListShadeIn { from { opacity: 0; } }
+@keyframes agListDocIn { from { opacity: 0; transform: translateY(14px) scale(.985); } }
+@media (prefers-reduced-motion: reduce) {
+  .agZapiski__lens { transition: none; }
+  .agList:not([hidden]) .agList__fon, .agList:not([hidden]) .agList__doc { animation: none; }
+}
+.agList__top { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  margin-bottom: 14px; }
+.agList__teg { font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.agList__act { display: flex; gap: 8px; }
+.agList__doc h2 { font-size: 24px; line-height: 1.25; margin: 0 0 6px; }
+.agList__podpis { font-size: 12px; color: var(--muted); margin: 0 0 22px; }
+.agList__doc h3 { font-size: 15px; margin: 24px 0 8px; color: #ffd98a; }
+.agList__doc p { font-size: 14px; line-height: 1.62; margin: 0 0 10px; color: #dde5ef; }
+.agList__doc ul { margin: 0 0 12px; padding-left: 20px; }
+.agList__doc li { font-size: 14px; line-height: 1.6; margin-bottom: 6px; color: #dde5ef; }
+.agList__doc table { width: 100%; border-collapse: collapse; margin: 6px 0 10px; }
+.agList__doc th { text-align: left; font-size: 12px; font-weight: 600; color: var(--muted);
+  border-bottom: 1px solid var(--line); padding: 7px 10px 7px 0; }
+.agList__doc td { font-size: 13.5px; padding: 7px 10px 7px 0; border-bottom: 1px solid #1b2531;
+  font-feature-settings: 'tnum' 0, 'pnum' 1; }
+.agList__doc td:not(:first-child) { white-space: nowrap; }
+.agList__note { font-size: 12px !important; color: var(--muted) !important; margin-top: -4px; }
+@media (max-width: 640px) {
+  .agList { padding: 12px 8px; }
+  .agList__doc { padding: 20px 18px 26px; }
+  .agList__doc h2 { font-size: 20px; }
+}
 
 /* Вкладки раздела: брак, машины, дорожная карта (27.09 — «машины не часть антигенерации в итоге»). */
 .razdelVkladki { display: inline-flex; gap: 2px; padding: 4px; border: 1px solid var(--line); border-radius: 14px; background: rgba(8, 12, 18, .55); }
