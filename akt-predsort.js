@@ -1406,7 +1406,7 @@
   const blokVariantov = (k, kl = "") => {
     const v = varKat(k);
     return `<div class="katVar${kl}"><p class="katVar__zag">Спорно — ${v.length} варианта, выберите один:</p>
-      <div class="katVar__ryad">${v.map((x) => `<b class="katVar__v${dlinaKat(x)}">${esc(x)}</b>`).join('<span class="katVar__ili">или</span>')}</div></div>`;
+      <div class="katVar__ryad katVar__ryad--stolb">${v.map((x) => `<b class="katVar__v${dlinaKat(v.reduce((m, y) => (y.length > m.length ? y : m), ""))}">${esc(x)}</b>`).join('<span class="katVar__ili">или</span>')}</div></div>`;
   };
   const neprinyat = (a) => Boolean(a && a.живьём && !(a.где && a.где.length) && !(a.транзит && (a.транзит.причина || a.транзит.едет))
     && !a.__vernut);
