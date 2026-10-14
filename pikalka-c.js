@@ -462,7 +462,14 @@
     B.classList.toggle("cGsm", Boolean(gsm));
     const p = gsm ? window.GSM.palleta : palletaDlya(d.rubric, d.cluster, d.rrc, d.name);
     const pal = $("#aPal");
-    if (pal) { pal.innerHTML = p ? `<b>${esc(p.imya)}</b>${p.sporno ? ' <span class="aTag aTag--spor">спорно</span>' : ""}${p.pochemu ? `<small>${esc(p.pochemu)}</small>` : ""}` : ""; pal.hidden = !p; }
+    // 14.10 Степан: спорное — не через слеш, а отдельными вариантами
+    const vars = p ? String(p.imya).split("/").map((x) => x.trim()).filter(Boolean) : [];
+    if (pal) {
+      pal.innerHTML = !p ? "" : vars.length > 1
+        ? `<div class="katVar"><p class="katVar__zag">Спорно — ${vars.length} варианта, выберите один:</p><div class="katVar__ryad">${vars.map((x) => `<b class="katVar__v">${esc(x)}</b>`).join('<span class="katVar__ili">или</span>')}</div></div>${p.pochemu ? `<small>${esc(p.pochemu)}</small>` : ""}`
+        : `<b>${esc(p.imya)}</b>${p.sporno ? ' <span class="aTag aTag--spor">спорно</span>' : ""}${p.pochemu ? `<small>${esc(p.pochemu)}</small>` : ""}`;
+      pal.hidden = !p;
+    }
     const presort = d.mode === "presort";
     // кластер — категория, а не шкала: 1 расходники, 4 крупногабарит, 2 и 3 — по разделу каталога
     const chtoKlaster = (n, rub) => n === "1" ? "расходные материалы" : n === "4" ? "крупногабарит (КГТ)"

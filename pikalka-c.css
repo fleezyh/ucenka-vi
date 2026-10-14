@@ -1050,3 +1050,16 @@ body.cSkin.is-svetlo .aktDet__ftItog{color:#13703c}
 .cDey .aktKat__imya--dl{font-size:clamp(34px,2.6vw,50px)}
 .cDey .aktKat__imya--ochdl{font-size:clamp(26px,2vw,36px);line-height:1.12}
 .cDey .aktKat__imya{max-width:100%}
+/* 14.10 спорная категория — отдельные варианты плитками с «или», а не через слеш */
+.katVar{display:grid;gap:10px;width:100%}
+.katVar__zag{margin:0;font-size:16px;font-weight:600;color:#f5c26b}
+.katVar__ryad{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.katVar__v{padding:10px 16px;border-radius:14px;border:2px dashed rgba(245,194,107,.75);background:rgba(245,194,107,.08);font-size:clamp(28px,2.4vw,44px);font-weight:600;line-height:1.1;color:var(--text)}
+.katVar__v.aktKat__imya--dl{font-size:clamp(24px,2vw,34px)}
+.katVar__v.aktKat__imya--ochdl{font-size:clamp(20px,1.6vw,28px)}
+.katVar__ili{font-size:15px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.katVar__ryad--sm{margin:6px 0 10px}
+.katVar__ryad--sm .katVar__v{font-size:20px;padding:6px 12px}
+body.cSkin.is-svetlo .katVar__zag{color:#9a5b00}
+body.cSkin.is-svetlo .katVar__v{border-color:#d99a2b;background:#fff8ec}
+.cT--pal #aPal .katVar__v{font-size:clamp(22px,1.8vw,32px)}

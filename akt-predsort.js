@@ -1401,6 +1401,13 @@
     const slovo = Math.max(0, ...t.split(/\s+/).map((x) => x.length));
     return t.length > 26 || slovo > 13 ? " aktKat__imya--ochdl" : t.length > 14 || slovo > 9 ? " aktKat__imya--dl" : "";
   };
+  // 14.10 Степан: «отделять логически — не через слеш, а прямо показывать, что это спорно и есть ОТДЕЛЬНЫЕ варианты»
+  const varKat = (k) => String(k || "").replace(" (спорно)", "").split("/").map((x) => x.trim()).filter(Boolean);
+  const blokVariantov = (k, kl = "") => {
+    const v = varKat(k);
+    return `<div class="katVar${kl}"><p class="katVar__zag">Спорно — ${v.length} варианта, выберите один:</p>
+      <div class="katVar__ryad">${v.map((x) => `<b class="katVar__v${dlinaKat(x)}">${esc(x)}</b>`).join('<span class="katVar__ili">или</span>')}</div></div>`;
+  };
   const neprinyat = (a) => Boolean(a && a.живьём && !(a.где && a.где.length) && !(a.транзит && (a.транзит.причина || a.транзит.едет))
     && !a.__vernut);
   /* 09.10 Гамлет: «если товар гар ремонт, акт асц, брак поставщика, диагностика, платный ремонт, ремонт 5 дней,
@@ -1668,7 +1675,7 @@
     const net = neprinyat(a) || klientskiy(a);
     return `<div class="cShag3">
       <div class="${stol ? "is-ok" : "is-net"}" data-smenit-stol="1" role="button" tabindex="0" title="выбрать стол"><i>1</i><span>стол · выбрать</span><b>${stol ? esc(String(stol.имя).replace(/^ФБ \(ДМД\) /, "")) : "без стола"}</b></div>
-      <div class="${a.категория && !net ? "is-ok" : "is-net"}"><i>2</i><span>категория</span><b>${neprinyat(a) && smotryu(a) ? "проверяю" : neprinyat(a) ? "не принят" : net ? "клиента" : esc(a.категория || "нет")}</b></div>
+      <div class="${a.категория && !net ? "is-ok" : "is-net"}"><i>2</i><span>категория</span><b>${neprinyat(a) && smotryu(a) ? "проверяю" : neprinyat(a) ? "не принят" : net ? "клиента" : varKat(a.категория).length > 1 ? `спорно · ${varKat(a.категория).length} варианта` : esc(a.категория || "нет")}</b></div>
       <div class="${gotovo ? "is-ok" : net ? "is-net" : "is-sled"}"><i>3</i><span>паллета</span><b>${gotovo ? "готово" : net ? "нельзя" : "пикните"}</b></div>
     </div>`;
   }
@@ -1716,7 +1723,7 @@
         <b class="aktKat__imya">не раскладывать</b>
         <span class="aktKat__rub">акт не принят в WMS — товар в сторону, в паллету не класть</span></div>`
       : a.живьём ? `<div class="aktKat${a.гсм ? " aktKat--stop" : a.опасные ? " aktKat--opas" : ""}"><span class="aktKat__nad">категория уценки${a.цена ? ` <b class="aktKat__cena">${esc(Number(a.цена).toLocaleString("ru-RU"))} ₽${a.цена_откуда === "сайт" ? " · цена сайта" : ""}</b>` : ""}</span>
-        <b class="aktKat__imya${dlinaKat(a.категория)}">${esc(a.категория || "не определилась")}</b>${a.спорно ? ' <span class="aTag aTag--spor">спорно</span>' : ""}
+        ${varKat(a.категория).length > 1 ? blokVariantov(a.категория) : `<b class="aktKat__imya${dlinaKat(a.категория)}">${esc(a.категория || "не определилась")}</b>${a.спорно ? ' <span class="aTag aTag--spor">спорно</span>' : ""}`}
         <span class="aktKat__rub">${a.мисбокс ? "цена до 1 000 ₽ — мистери бокс · " : ""}рубрика «${esc(a.рубрика || "—")}»${a.рубрика_вмс ? ` · ${esc(a.рубрика_вмс)}` : ""}</span>${a.опасные ? `<span class="aktKat__opas">${esc(a.опасные)} — в место накопления, не в продажу</span>` : ""}</div>` : "";
     // 07.10 столы: «когда пикаешь акт — чтобы можно было его прямо там распечатать, как у контейнера»
     const vWms = `<div class="palKartaAkt__knopki"><a class="aktPs__kn" href="${esc(a.вмс || a.WMS)}" target="_blank" rel="noopener">Открыть акт в WMS</a>${
@@ -2016,12 +2023,13 @@
     }
     if (!boevoy) return '<p class="aktPs__chto">Перемещение в паллету — когда актировку включат в админке.</p>';
     if (!vms.подключено) return '<p class="aktPs__podskaz">Войдите в WMS — тогда пик паллеты переложит штуку в неё.</p>';
-    const kat = a.категория && !/^нет своей/.test(a.категория) ? ` «${esc(a.категория)}»` : "";
+    const kat = a.категория && !/^нет своей/.test(a.категория) ? (varKat(a.категория).length > 1 ? ` одного из: ${varKat(a.категория).map((x) => `«${esc(x)}»`).join(" или ")}` : ` «${esc(a.категория)}»`) : "";
     if (krupno) {
       const idet = aktPer && aktPer.idet;
       return `<div class="cKuda"><p class="cKuda__zag">Куда положить</p>
         <p class="cKuda__chto">${idet ? (a.__vernut ? "Проверяю путь → завожу на учёт тем же актом → перекладываю… (до минуты)" : "Перекладываю…")
-          : `Пикните паллету <b>${a.категория && !/^нет своей/.test(a.категория) ? esc(a.категория) : "(CON …)"}</b>`}</p>
+          : varKat(a.категория).length > 1 ? "Пикните паллету одного из вариантов:" : `Пикните паллету <b>${a.категория && !/^нет своей/.test(a.категория) ? esc(a.категория) : "(CON …)"}</b>`}</p>
+        ${!idet && varKat(a.категория).length > 1 ? `<div class="katVar__ryad katVar__ryad--sm">${varKat(a.категория).map((x) => `<b class="katVar__v">${esc(x)}</b>`).join('<span class="katVar__ili">или</span>')}</div>` : ""}
         ${a.__vernut && !idet ? `<p class="cKuda__pod cKuda__marshrut">по WMS акт ${esc(a.__vernutVid || "списан")}, штука у вас. Маршрут: пик паллеты → проверю паллету и категорию → заведу на учёт тем же актом (инвентаризация) → через ваш стол в паллету. Пока паллету не пикнули — в WMS ничего не делаю.</p>` : ""}
         <form class="cKuda__forma" id="aktPerForma" autocomplete="off">
           <input name="kod" placeholder="или номер паллеты" inputmode="numeric"${idet ? " disabled" : ""}>
