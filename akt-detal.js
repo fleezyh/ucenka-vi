@@ -37,7 +37,9 @@
       <p class="aktDet__pod">фото ${ft.length} · загрузил(а): ${esc([...new Set(ft.map((f) => f.кто))].join(", "))} · ${esc(ft[0].когда)}</p>`;
   }
   function istoriya(d) {
-    return `${d.ошибки.length ? `<section><h4>Ошибки ДВК по акту · ${d.ошибки.length}</h4>${d.ошибки.map((o) => `<p class="aktDet__str is-osh"><b>${esc(o.когда)} · ${esc(o.вид)}</b> на ${esc(o.контейнер || "—")} · записал(а) ${esc(o.записал)} · ошибка от: ${esc(o.виновный || "не установлен")}${o.основание ? `<span>${esc(o.основание)}</span>` : ""}${o.комментарий ? `<span>${esc(o.комментарий)}</span>` : ""}</p>`).join("")}</section>` : ""}
+    const vz = d.возвраты || [];
+    return `${vz.length ? `<section><h4>Возврат на учёт (инвентаризация) · ${vz.length}</h4>${vz.map((v) => `<p class="aktDet__str${v.ошибка ? " is-osh" : ""}"><b>${esc(v.когда)} · ${esc(v.кто)} · ${v.отмена ? "отменён" : v.готово ? "заведена на учёт" : "не вышло"}${v.инвентаризация ? ` · инвентаризация №${esc(v.инвентаризация)}` : ""}</b><span>${esc(v.ячейка)}</span><span>${esc(String(v.почему).replace(/^ОТМЕНА:\s*/, ""))}</span>${v.ошибка ? `<span>${esc(v.ошибка)}</span>` : ""}</p>`).join("")}</section>` : ""}
+      ${d.ошибки.length ? `<section><h4>Ошибки ДВК по акту · ${d.ошибки.length}</h4>${d.ошибки.map((o) => `<p class="aktDet__str is-osh"><b>${esc(o.когда)} · ${esc(o.вид)}</b> на ${esc(o.контейнер || "—")} · записал(а) ${esc(o.записал)} · ошибка от: ${esc(o.виновный || "не установлен")}${o.основание ? `<span>${esc(o.основание)}</span>` : ""}${o.комментарий ? `<span>${esc(o.комментарий)}</span>` : ""}</p>`).join("")}</section>` : ""}
       ${d.комментарии.length ? `<section><h4>Комментарии в WMS</h4>${d.комментарии.map((c) => `<p class="aktDet__str"><b>${esc(c.когда)} · ${esc(c.кто)}</b> ${esc(c.текст)}</p>`).join("")}</section>` : ""}
       ${(d.довоз || []).length ? `<section><h4>Довоз — отложенные и транзитные перекладки</h4>${d.довоз.map((v) => `<p class="aktDet__str${v.st === "err" ? " is-osh" : ""}"><b>${esc(v.когда)} · ${esc(v.кто)} → ${esc(v.куда || "—")} · ${{ ok: "доехала", wait: "в пути", err: "не доехала", skip: "пикнута заново" }[v.st] || ""}</b><span>${esc(v.t)}</span></p>`).join("")}</section>` : ""}
       <section><h4>Перекладки пикалкой · ${d.перекладки.length}</h4>
@@ -62,7 +64,59 @@
   function obnovitBloki(k) {
     document.querySelectorAll(`[data-akt-proval="${k}"]`).forEach((el) => { el.innerHTML = vnutri(k); });
   }
-  /* ---- окно «все поля» ---- */
+  /* ---- окно «все поля» ----
+     14.10 Степан: «меню очень мелкое и неграмотное — суть акта». Сверху — где штука сейчас и что делать, потом поля
+     акта группами и человеческими словами, история (перекладки, возвраты на учёт), фото. */
+  const GRUPPY = [
+    ["Что с товаром", ["Вид обращения", "Требование клиента", "Заявленный дефект", "Качество", "Комплектность", "Внешний вид",
+      "Вскрыт", "Упаковка есть", "Повреждён", "Заправлялся", "Серийный номер"]],
+    ["Деньги и продажа", ["Цена", "Дата продажи", "Заказ, по которому продан", "Поставщик"]],
+    ["Откуда и куда", ["Тип СЦ", "Сервисный центр", "Где принят", "Принят", "Куда", "Решение оценки", "Срок"]],
+    ["Документ", ["Дата акта", "Статус", "Создал", "Изменил", "Изменён"]],
+  ];
+  const PODPIS = { "Вскрыт": "Вскрывали", "Упаковка есть": "Упаковка на месте", "Повреждён": "Мех. повреждения",
+    "Заправлялся": "Топливо / заправка", "Где принят": "Склад приёмки", "Куда": "Куда едет по акту", "Тип СЦ": "Чей сервис",
+    "Принят": "Дата приёмки", "Изменён": "Последнее изменение", "Цена": "Цена в акте, ₽" };
+  const DA_NET = { "Да": "да", "Нет": "нет" };
+  function polyaGruppami(d) {
+    const vse = new Map(d.поля.map((p) => [p.имя, p.знач]));
+    const byli = new Set();
+    const gr = GRUPPY.map(([zag, imena]) => {
+      const str = imena.filter((i) => vse.has(i)).map((i) => { byli.add(i); return [PODPIS[i] || i, DA_NET[vse.get(i)] || vse.get(i)]; });
+      return str.length ? `<section class="aktDet__gr"><h4>${esc(zag)}</h4><dl class="aktDet__polya">${str.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("")}</dl></section>` : "";
+    }).join("");
+    const prochee = d.поля.filter((p) => !byli.has(p.имя));
+    return gr + (prochee.length ? `<section class="aktDet__gr"><h4>Ещё</h4><dl class="aktDet__polya">${prochee.map((p) => `<dt>${esc(p.имя)}</dt><dd>${esc(p.знач)}</dd>`).join("")}</dl></section>` : "");
+  }
+  function seychas(d) {
+    const s = d.сейчас || {};
+    if (s.ошибка) return `<div class="aktDet__seychas"><p class="aktDet__gde">Где штука сейчас — WMS не ответила</p><p class="aktDet__chto">${esc(s.ошибка)}</p></div>`;
+    const g = (s.где || [])[0];
+    const kat = s.категория ? `<p class="aktDet__kat">категория уценки: <b>${esc(s.категория)}</b></p>` : "";
+    const vz = (d.возвраты || []).slice(-1)[0];
+    let gde, chto, cvet = "";
+    if (g) {
+      gde = `Лежит: ${esc(g.ячейка)}${g.паллета ? ` · на паллете ${esc(g.паллета)}` : " · без паллеты"}`;
+      const pod = `${g.база ? `склад ${esc(g.база)}` : ""}${g.качество ? ` · качество ${esc(g.качество).toLowerCase()}` : ""}${g.заказ ? ` · в заказе ${esc(g.заказ)}` : ""}`;
+      gde += pod ? `<span>${pod}</span>` : "";
+      if (/стол|завед|контроль уценки/i.test(`${g.ячейка} ${g.зона || ""}`) && !g.паллета) {
+        chto = `Штука на столе, в паллету ещё не положена. Пикните акт в пикалке, потом паллету${s.категория ? ` «${esc(s.категория)}»` : ""} — переедет в неё.`;
+        cvet = " is-zhdu";
+      } else if (g.паллета) chto = "Разложена на паллету — делать ничего не нужно.";
+      else chto = "Лежит в ячейке без паллеты.";
+    } else if (s.транзит && (s.транзит.едет || s.транзит.причина)) {
+      gde = "Едет через транзит — по WMS ещё в пути";
+      chto = s.транзит.причина ? `Не доехала: ${esc(s.транзит.причина)}` : "Доедет сама, перекладывать не нужно.";
+    } else {
+      // почему не числится — из причины возврата: «по вмс штука ушла со склада: 28.08.2026 · Списание товаров №338567 · …»
+      const pr = (d.возвраты || []).map((v) => String(v.почему).match(/(ушла со склада|списана)[^:]*:\s*(.*?№\s*\d+)/)).find(Boolean);
+      gde = `По WMS на складе не числится${pr ? `<span>${esc(pr[1])}: ${esc(pr[2])}</span>` : ""}`;
+      chto = vz && vz.отмена ? "Ошибочный возврат на учёт отменён — акт как был. Обработают по обычному процессу; если штука найдётся в руках — пикните акт в пикалке, потом паллету."
+        : "Не принята, списана или ушла. Если штука у вас в руках — пикните акт в пикалке: она скажет, что делать, и ничего не запишет в WMS до пика паллеты. Если штуки нет — ничего не делайте.";
+      cvet = " is-net";
+    }
+    return `<div class="aktDet__seychas${cvet}"><p class="aktDet__nad">Сейчас</p><p class="aktDet__gde">${gde}</p>${kat}<p class="aktDet__chto">${chto}</p></div>`;
+  }
   let okno = null;
   let oknoAkt = "";
   function risovatOkno() {
@@ -70,11 +124,12 @@
     const b = kesh.get(oknoAkt) || {};
     const d = b.d;
     const telo = b.zhdu || !b.d ? `<p class="aktDet__pusto">${b.oshibka ? `Не открылось: ${esc(b.oshibka)}` : "Открываю акт в WMS…"}</p>`
-      : `<div class="aktDet__kol"><section><h4>Акт</h4><dl class="aktDet__polya">${d.поля.map((p) => `<dt>${esc(p.имя)}</dt><dd>${esc(p.знач)}</dd>`).join("")}</dl></section>
-          <section><h4>Фото · ${kartinki(d).length}</h4>${galereya(d)}</section></div>${istoriya(d)}`;
+      : `${seychas(d)}<div class="aktDet__kol"><div class="aktDet__levo">${polyaGruppami(d)}</div>
+          <div class="aktDet__pravo"><section><h4>Фото · ${kartinki(d).length}</h4>${galereya(d)}</section>
+          <div class="aktDet__ist"><h3>История</h3>${istoriya(d)}</div></div></div>`;
     okno.innerHTML = `<div class="cModal__fon" data-akt-det-zakr="1"></div>
       <section class="cModal__okno cModal__okno--shir aktDet__okno" role="dialog" aria-label="Акт целиком">
-        <header class="cModal__sh"><div><b>${d ? `Акт ${esc(d.акт)} · ${esc(d.товар)}` : `Акт ${esc(oknoAkt)}`}</b><span>${d ? `живьём из WMS · ${esc(d.наклейка)}` : ""}</span></div>
+        <header class="cModal__sh aktDet__sh"><div><b>Акт ${esc(d ? d.акт : oknoAkt)}</b>${d ? `<p class="aktDet__tovar">${esc(d.товар)}</p><span>${esc(d.наклейка)} · живьём из WMS</span>` : ""}</div>
           <button type="button" class="cBtn cBtn--sm" data-akt-det-zakr="1">закрыть</button></header>
         <div class="aktDet__telo">${telo}</div></section>`;
     okno.hidden = false;

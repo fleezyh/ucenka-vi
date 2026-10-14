@@ -928,3 +928,28 @@ body.cSkin.aTsd.is-svetlo .tsdPrichina.is-on { color: #8a1426 !important; }
 body.cSkin.is-svetlo .message.warn { color: #9a5b00; }
 body.cSkin.is-svetlo .message.error { color: #b42335; }
 body.cSkin.is-svetlo .message.ok { color: #13703c; }
+/* 14.10 окно акта: «очень мелкое и неграмотное». Крупнее, сверху «Сейчас» — где штука и что делать, поля группами */
+.aktDet__sh b{font-size:28px;line-height:1.15}
+.aktDet__tovar{margin:6px 0 4px;font-size:20px;font-weight:600;line-height:1.3;color:var(--text)}
+.aktDet__sh span{font-size:14px}
+.aktDet__telo{font-size:16px}
+.aktDet__telo h4{font-size:14px;letter-spacing:.08em}
+.aktDet__seychas{padding:18px 20px;border-radius:16px;border:1px solid var(--cLine,#263345);background:var(--cTile2,rgba(255,255,255,.05))}
+.aktDet__seychas.is-zhdu{border-color:#7b5cf0;background:color-mix(in oklab,#7b5cf0 12%,transparent)}
+.aktDet__seychas.is-net{border-color:#f5ad32;background:color-mix(in oklab,#f5ad32 10%,transparent)}
+.aktDet__nad{margin:0 0 4px;font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.aktDet__gde{margin:0;font-size:24px;font-weight:600;line-height:1.25}
+.aktDet__gde span{display:block;margin-top:4px;font-size:16px;font-weight:500;color:var(--muted)}
+.aktDet__kat{margin:8px 0 0;font-size:17px}
+.aktDet__chto{margin:10px 0 0;font-size:18px;line-height:1.4}
+.aktDet__kol{grid-template-columns:minmax(320px,1fr) minmax(320px,1fr)}
+.aktDet__levo{display:grid;gap:16px;align-content:start}
+.aktDet__pravo{display:grid;gap:16px;align-content:start}
+.aktDet__gr{padding:14px 16px;border-radius:14px;border:1px solid var(--cLine,#263345)}
+.aktDet__polya{font-size:16px;gap:8px 16px}
+.aktDet__polya dd{font-weight:600}
+.aktDet__ist h3{margin:0 0 10px;font-size:20px;font-weight:600}
+.aktDet__str{font-size:16px}
+body.cSkin.is-svetlo .aktDet__seychas.is-net{background:#fff6e5}
+body.cSkin.is-svetlo .aktDet__seychas.is-zhdu{background:#f1edff}
+@media (max-width:900px){.aktDet__kol{grid-template-columns:1fr}.aktDet__gde{font-size:20px}}
