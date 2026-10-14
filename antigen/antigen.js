@@ -666,12 +666,12 @@
 
   /** Эффект мероприятия: средний брак в неделю — база до запуска против всех закрытых недель после, и то же у всего
    * склада. 14.10: текущая неделя не берётся (не закрыта), неделя запуска — тоже: она наполовину до, наполовину после. */
-  function effektRaschet(data, gruppa, bazaNed) {
+  function effektRaschet(data, gruppa, bazaNed, rowOk) {
     const measure = measureOf(contourDef());
     const at = data.measureAt[measure.key];
     const start = String(gruppa.с || '').slice(0, 10);
     if (!start) return { measure, start };
-    const ok = pricelFor(data, gruppa);
+    const ok = rowOk || pricelFor(data, gruppa);
     const weekAt = data.dimAt.week;
     const vidAt = data.dimAt.vid;
     const vidOk = gruppa.фильтр && gruppa.фильтр.vid && vidAt !== undefined ? new Set(gruppa.фильтр.vid.map(String)) : null;
@@ -715,7 +715,8 @@
     const box = document.createElement('div');
     box.className = 'agEffekt';
     const baza = effektOkno || 4;
-    const r = effektRaschet(data, gruppa, baza);
+    // 14.10 («что за цифры, если на графике такого нет»): ровно те строки, что на графике, — и средние нарисованы там же
+    const r = effektRaschet(data, gruppa, baza, (row) => matches(data, row));
     if (!r.start) {
       box.innerHTML = '<div class="agEffektNote">Склад по этой группе ещё ничего не запускал — сравнивать до и после не с чем.'
         + (gruppa.что ? ` ${escape(gruppa.что)}` : '') + '</div>';
@@ -739,6 +740,7 @@
       + `<div class="agEffektCell"><b>${fmt(r.stalo, r.measure.kind)}</b><i>стало в неделю</i></div>`
       + `<div class="agEffektCell"><b class="agEffektVal${cvet(r.izm)}">${znakP(r.izm)}</b><i>изменение</i></div>`
       + '</div>'
+      + (state.step === 'week' ? '' : '<div class="agEffektNote">Шаг графика «недели» — тогда на графике видно, какие недели «до» и «после» и их средние.</div>')
       + `<div class="agEffektNote">Для справки: ${escape(r.fonImya)} за те же недели ${r.fon >= 0 ? 'вырос' : 'снизился'} на `
       + `${Math.abs(r.fon || 0).toFixed(0)}%. Недели до: ${nedeli(r.doNachala)}. После: ${nedeli(r.posle)}. `
       + 'Текущая неделя не считается — она не закрыта; неделя запуска тоже — она наполовину до, наполовину после.'
@@ -1005,11 +1007,29 @@
         + `<text class="agEventLabel" x="${x0}" y="${pad.top + 6 + d * 14}"><title>${escape(event.дата)} · ${escape(event.название)}</title>${escape(label)}</text>`;
     }).join('');
 
+    // 14.10: выбрано мероприятие и шаг «недели» — недели «до» и «после» подсвечены, по ним линии среднего: это и есть
+    // «было в неделю» и «стало в неделю» из карточки
+    let effekt = '';
+    if (vybrana && vybrana.с && state.step === 'week' && n > 1) {
+      const r = effektRaschet(data, vybrana, effektOkno || 4, (row) => matches(data, row));
+      const shag = innerW / (n - 1);
+      const polosa = (weeks, val, cls, podpis) => {
+        const ii = weeks.map((w) => points.findIndex((p) => p.key === w)).filter((i) => i >= 0);
+        if (!ii.length) return '';
+        const x1 = Math.max(pad.left, x(Math.min(...ii)) - shag / 2);
+        const x2 = Math.min(W - pad.right, x(Math.max(...ii)) + shag / 2);
+        return `<rect class="agEffBand ${cls}" x="${x1.toFixed(1)}" y="${pad.top}" width="${(x2 - x1).toFixed(1)}" height="${innerH}"></rect>`
+          + `<line class="agEffAvg ${cls}" x1="${x1.toFixed(1)}" x2="${x2.toFixed(1)}" y1="${y(val).toFixed(1)}" y2="${y(val).toFixed(1)}"></line>`
+          + `<text class="agEffAvgLabel ${cls}" x="${(x1 + 6).toFixed(1)}" y="${(y(val) - 7).toFixed(1)}">${podpis} ${fmt(val, measure.kind)}</text>`;
+      };
+      effekt = polosa(r.doNachala, r.bylo, 'agEff--do', 'было в среднем') + polosa(r.posle, r.stalo, 'agEff--posle', 'стало в среднем');
+    }
+
     box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Динамика периода">`
       + '<defs><linearGradient id="agFill" x1="0" y1="0" x2="0" y2="1">'
       + '<stop offset="0%" stop-color="#4d8df7" stop-opacity=".26"></stop>'
       + '<stop offset="100%" stop-color="#4d8df7" stop-opacity="0"></stop></linearGradient></defs>'
-      + ticks + `<path class="agArea" d="${area}"></path><path class="agLine" d="${line}"></path>`
+      + ticks + effekt + `<path class="agArea" d="${area}"></path><path class="agLine" d="${line}"></path>`
       + trend + marks + dots + labels + axis + '</svg>';
 
     box.querySelectorAll('[data-i]').forEach((node) => {

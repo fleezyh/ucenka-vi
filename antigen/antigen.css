@@ -1029,3 +1029,11 @@ body.agList--open { overflow: hidden; }
 .agItogiTab td small { color: var(--muted); }
 .agItogiTab tbody tr { cursor: pointer; }
 .agItogiTab tbody tr:hover { background: rgba(255,255,255,.04); }
+.agEffBand.agEff--do { fill: rgba(154, 164, 178, .08); }
+.agEffBand.agEff--posle { fill: rgba(245, 173, 50, .09); }
+.agEffAvg { stroke-width: 2; stroke-dasharray: 6 4; }
+.agEffAvg.agEff--do { stroke: #9aa4b2; }
+.agEffAvg.agEff--posle { stroke: #f5ad32; }
+.agEffAvgLabel { font-size: 12px; font-weight: 600; }
+.agEffAvgLabel.agEff--do { fill: #c3cad4; }
+.agEffAvgLabel.agEff--posle { fill: #f5ad32; }
