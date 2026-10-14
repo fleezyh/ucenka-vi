@@ -88,6 +88,29 @@
     const prochee = d.поля.filter((p) => !byli.has(p.имя));
     return gr + (prochee.length ? `<section class="aktDet__gr"><h4>Ещё</h4><dl class="aktDet__polya">${prochee.map((p) => `<dt>${esc(p.имя)}</dt><dd>${esc(p.знач)}</dd>`).join("")}</dl></section>` : "");
   }
+  /* 14.10 Степан: «нужна карточная система — ты ставил так же всё мелко; в чём суть?». Как карточка пикалки: сверху
+     суть акта (что случилось с товаром) крупно, дальше плитки «подпись — крупное значение», да/нет — одной плиткой. */
+  function kartochki(d) {
+    const v = new Map(d.поля.map((p) => [p.имя, p.знач]));
+    const da = (k) => DA_NET[v.get(k)] || v.get(k);
+    const sut = `<div class="aktDet__sut"><p class="aktDet__nad">Суть акта${v.get("Вид обращения") ? ` · ${esc(v.get("Вид обращения"))}` : ""}</p>
+      <p class="aktDet__defekt">${esc(v.get("Заявленный дефект") || "дефект не указан")}</p>
+      ${v.get("Требование клиента") ? `<p class="aktDet__treb">клиент хочет: ${esc(v.get("Требование клиента"))}</p>` : ""}</div>`;
+    const plitka = (pod, zn, shir) => (zn ? `<div class="aktDet__pl${shir ? " is-shir" : ""}"><span>${esc(pod)}</span><b>${esc(zn)}</b></div>` : "");
+    const flagi = [["Вскрывали", "Вскрыт"], ["Упаковка", "Упаковка есть"], ["Мех. повреждения", "Повреждён"], ["Топливо", "Заправлялся"]]
+      .filter(([, k]) => v.has(k)).map(([pod, k]) => `<i class="${v.get(k) === "Да" ? "is-da" : ""}">${esc(pod)}: <b>${esc(da(k))}</b></i>`).join("");
+    const cena = v.get("Цена") ? `${Number(v.get("Цена")).toLocaleString("ru-RU")} ₽` : "";
+    const sozdal = v.get("Создал") ? `${v.get("Создал")}${v.get("Дата акта") ? ` · ${String(v.get("Дата акта")).slice(0, 16)}` : ""}` : "";
+    const plitki = [
+      plitka("Качество", v.get("Качество")), plitka("Комплектность", v.get("Комплектность")), plitka("Цена в акте", cena),
+      plitka("Внешний вид", v.get("Внешний вид")), plitka("Серийный номер", v.get("Серийный номер")),
+      plitka("Статус акта", v.get("Статус")), plitka("Сервисный центр", v.get("Сервисный центр")),
+      plitka("Склад приёмки", v.get("Где принят")), plitka("Куда едет по акту", v.get("Куда")),
+      plitka("Дата продажи", v.get("Дата продажи")), plitka("Поставщик", v.get("Поставщик"), true),
+      plitka("Решение оценки", v.get("Решение оценки")), plitka("Акт создал", sozdal, true),
+    ].join("");
+    return `${sut}<div class="aktDet__plitki">${plitki}${flagi ? `<div class="aktDet__pl is-shir"><span>Состояние при приёмке</span><p class="aktDet__flagi">${flagi}</p></div>` : ""}</div>`;
+  }
   function seychas(d) {
     const s = d.сейчас || {};
     if (s.ошибка) return `<div class="aktDet__seychas"><p class="aktDet__gde">Где штука сейчас — WMS не ответила</p><p class="aktDet__chto">${esc(s.ошибка)}</p></div>`;
@@ -124,9 +147,10 @@
     const b = kesh.get(oknoAkt) || {};
     const d = b.d;
     const telo = b.zhdu || !b.d ? `<p class="aktDet__pusto">${b.oshibka ? `Не открылось: ${esc(b.oshibka)}` : "Открываю акт в WMS…"}</p>`
-      : `${seychas(d)}<div class="aktDet__kol"><div class="aktDet__levo">${polyaGruppami(d)}</div>
-          <div class="aktDet__pravo"><section><h4>Фото · ${kartinki(d).length}</h4>${galereya(d)}</section>
-          <div class="aktDet__ist"><h3>История</h3>${istoriya(d)}</div></div></div>`;
+      : `${seychas(d)}${kartochki(d)}
+          <div class="aktDet__kol"><section class="aktDet__blok"><h3>Фото · ${kartinki(d).length}</h3>${galereya(d)}</section>
+          <section class="aktDet__blok"><h3>История</h3>${istoriya(d)}</section></div>
+          <details class="aktDet__vse"><summary>все поля акта как в WMS</summary>${polyaGruppami(d)}</details>`;
     okno.innerHTML = `<div class="cModal__fon" data-akt-det-zakr="1"></div>
       <section class="cModal__okno cModal__okno--shir aktDet__okno" role="dialog" aria-label="Акт целиком">
         <header class="cModal__sh aktDet__sh"><div><b>Акт ${esc(d ? d.акт : oknoAkt)}</b>${d ? `<p class="aktDet__tovar">${esc(d.товар)}</p><span>${esc(d.наклейка)} · живьём из WMS</span>` : ""}</div>

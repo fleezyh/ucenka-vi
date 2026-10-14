@@ -953,3 +953,20 @@ body.cSkin.is-svetlo .message.ok { color: #13703c; }
 body.cSkin.is-svetlo .aktDet__seychas.is-net{background:#fff6e5}
 body.cSkin.is-svetlo .aktDet__seychas.is-zhdu{background:#f1edff}
 @media (max-width:900px){.aktDet__kol{grid-template-columns:1fr}.aktDet__gde{font-size:20px}}
+/* 14.10 окно акта карточками («нужна карточная система»): суть крупно, плитки как в карточке пикалки */
+.aktDet__sut{padding:20px 22px;border-radius:16px;background:var(--cTile,rgba(255,255,255,.03));border:1px solid var(--cLine,#263345)}
+.aktDet__defekt{margin:4px 0 0;font-size:30px;font-weight:600;line-height:1.2}
+.aktDet__treb{margin:8px 0 0;font-size:18px;color:var(--muted)}
+.aktDet__plitki{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.aktDet__pl{padding:16px 18px;border-radius:16px;background:var(--cTile,rgba(255,255,255,.03));border:1px solid var(--cLine,#263345);display:flex;flex-direction:column;gap:8px;min-height:96px}
+.aktDet__pl.is-shir{grid-column:span 2}
+.aktDet__pl>span{font-size:15px;color:var(--muted)}
+.aktDet__pl>b{font-size:22px;font-weight:600;line-height:1.25}
+.aktDet__flagi{margin:0;display:flex;flex-wrap:wrap;gap:8px}
+.aktDet__flagi i{font-style:normal;font-size:17px;padding:6px 12px;border-radius:10px;background:var(--cTile2,rgba(255,255,255,.06))}
+.aktDet__flagi i.is-da{background:rgba(245,173,50,.2)}
+.aktDet__blok{padding:16px 18px;border-radius:16px;border:1px solid var(--cLine,#263345)}
+.aktDet__blok h3{margin:0 0 12px;font-size:20px;font-weight:600}
+.aktDet__vse summary{cursor:pointer;font-size:16px;color:var(--muted);padding:6px 0}
+.aktDet__vse[open]{display:grid;gap:12px}
+@media (max-width:700px){.aktDet__pl.is-shir{grid-column:auto}.aktDet__defekt{font-size:24px}}
