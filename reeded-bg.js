@@ -131,7 +131,9 @@
   const pointerUniform = gl.getUniformLocation(program, "u_pointer");
   const timeUniform = gl.getUniformLocation(program, "u_time");
   const pointer = { x: 0.5, y: 0.5, tx: 0.5, ty: 0.5 };
-  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  // 14.10 (Степан: «браузер отвалился на телефоне» в пикалке): полноэкранный WebGL каждый кадр плюс камера — на телефоне
+  // браузер выбивает вкладку. На сенсорных экранах фон рисуется одним кадром, без анимации.
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches || matchMedia("(pointer: coarse)").matches;
   let raf = 0;
   let last = 0;
 

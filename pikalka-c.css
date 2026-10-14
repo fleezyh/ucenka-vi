@@ -1067,3 +1067,10 @@ body.cSkin.is-svetlo .katVar__v{border-color:#d99a2b;background:#fff8ec}
 .katVar__ryad--stolb{flex-direction:column;align-items:stretch;gap:4px}
 .katVar__ryad--stolb .katVar__v{text-align:center}
 .katVar__ryad--stolb .katVar__ili{text-align:center;font-size:13px}
+/* 14.10: на телефоне и в обычной пикалке поле скана не сжимается кнопками (как в ТСД) */
+@media (max-width:480px){
+body.cSkin .cField{gap:6px;padding:0 6px 0 12px}
+body.cSkin .cField .action,body.cSkin .cField #cMass,body.cSkin .cField #kamera,body.cSkin .cField #go{width:46px;min-width:46px;height:48px}
+body.cSkin .cField #scan{font-size:18px}
+body.cSkin .cField .cField__ico{display:none}
+}
