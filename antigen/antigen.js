@@ -664,7 +664,10 @@
     });
     const plus7 = (iso) => new Date(new Date(iso).getTime() + 7 * 864e5).toISOString().slice(0, 10);
     const zakryty = (data.closed_weeks || [...ves.keys()]).slice().sort();
-    const posle = zakryty.filter((w) => w >= start);
+    // 14.10 («чтобы период можно было менять — через месяц посмотреть за 2 месяца сразу»): окно — первые N недель после
+    // запуска или всё, что прошло; «до» — столько же недель перед запуском
+    const vseNedeli = zakryty.filter((w) => w >= start);
+    const posle = effektOkno ? vseNedeli.slice(0, effektOkno) : vseNedeli;
     const shag = posle.length;
     if (!shag) {
       box.innerHTML = `<div class="agEffektNote">${escape(gruppa.мероприятие || gruppa.имя)} — с ${escape(datePodpis(start))}. `
@@ -687,8 +690,13 @@
     const nedeli = (list, map) => list.map((w) => `${datePodpis(w)}: ${fmt(map.get(w) || 0, measure.kind)}`).join(' · ');
     const fonImya = vidOk ? [...vidOk].join(', ') + ' целиком' : 'контур целиком';
 
+    const OKNA = [[0, 'всё после запуска'], [2, '2 недели'], [4, 'месяц'], [8, '2 месяца'], [13, 'квартал']];
+    const vybor = OKNA.filter(([n]) => !n || n <= vseNedeli.length || n === effektOkno)
+      .map(([n, imya]) => `<button type="button" class="agCrumb agEffektOkno${(effektOkno || 0) === n ? ' agGruppaChip--on' : ''}" `
+        + `data-okno="${n}">${imya}</button>`).join('');
     box.innerHTML = `<div class="agEffektHead">${escape(gruppa.мероприятие || gruppa.имя)} · с ${escape(datePodpis(start))} · `
       + `${okno} до и после</div>`
+      + `<div class="agGruppyLine agEffektOkna"><span class="agGruppyHead">окно:</span>${vybor}</div>`
       + '<div class="agEffektRow">'
       + `<div class="agEffektCell"><b>${fmt(byloSvoi, measure.kind)}</b><i>до</i></div>`
       + `<div class="agEffektCell"><b>${fmt(staloSvoi, measure.kind)}</b><i>после</i></div>`
@@ -701,6 +709,14 @@
       + (gruppa.что ? ` ${escape(gruppa.что)}` : '') + '</div>';
     return box;
   }
+
+  let effektOkno = 0;   // 0 — все закрытые недели после запуска
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest && e.target.closest('.agEffektOkno');
+    if (!b) return;
+    effektOkno = Number(b.dataset.okno) || 0;
+    render();
+  });
 
   function nowMonth() {
     const now = new Date();
