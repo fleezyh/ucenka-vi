@@ -1395,6 +1395,12 @@
      излишек. Теперь: категории нет («не раскладывать»), экран стопорится, пики паллет/товаров/актов не проходят,
      пока человек не нажмёт «Отложил в сторону». Нажатие пишется в журнал (/__akt/otlozheno) — список для Гамлета. */
   // 14.10: __vernut — списан/ушёл по вмс, а штука в руках: это не стоп, а маршрут «на учёт тем же актом → в паллету»
+  // 14.10 (Степан, скрин «Маркетплейс / Инст(РАБ) / Инст(НЕРАБ)» вылез из плитки): кегль по длине названия категории
+  const dlinaKat = (k) => {
+    const t = String(k || "");
+    const slovo = Math.max(0, ...t.split(/\s+/).map((x) => x.length));
+    return t.length > 26 || slovo > 13 ? " aktKat__imya--ochdl" : t.length > 14 || slovo > 9 ? " aktKat__imya--dl" : "";
+  };
   const neprinyat = (a) => Boolean(a && a.живьём && !(a.где && a.где.length) && !(a.транзит && (a.транзит.причина || a.транзит.едет))
     && !a.__vernut);
   /* 09.10 Гамлет: «если товар гар ремонт, акт асц, брак поставщика, диагностика, платный ремонт, ремонт 5 дней,
@@ -1704,13 +1710,13 @@
         <b class="aktKat__imya">не раскладывать</b>
         <span class="aktKat__rub">товар клиента (${esc(String(a.особый).toLowerCase())}) — в паллету для передачи курьеру</span></div>`
       : neprinyat(a) && smotryu(a) ? `<div class="aktKat"><span class="aktKat__nad">категория уценки</span>
-        <b class="aktKat__imya">${esc(a.категория || "…")}</b>
+        <b class="aktKat__imya${dlinaKat(a.категория)}">${esc(a.категория || "…")}</b>
         <span class="aktKat__rub">смотрю в WMS, что с актом: принять здесь или вернуть на учёт — секунду</span></div>`
       : neprinyat(a) ? `<div class="aktKat aktKat--stop"><span class="aktKat__nad">категория уценки</span>
         <b class="aktKat__imya">не раскладывать</b>
         <span class="aktKat__rub">акт не принят в WMS — товар в сторону, в паллету не класть</span></div>`
       : a.живьём ? `<div class="aktKat${a.гсм ? " aktKat--stop" : a.опасные ? " aktKat--opas" : ""}"><span class="aktKat__nad">категория уценки${a.цена ? ` <b class="aktKat__cena">${esc(Number(a.цена).toLocaleString("ru-RU"))} ₽${a.цена_откуда === "сайт" ? " · цена сайта" : ""}</b>` : ""}</span>
-        <b class="aktKat__imya">${esc(a.категория || "не определилась")}</b>${a.спорно ? ' <span class="aTag aTag--spor">спорно</span>' : ""}
+        <b class="aktKat__imya${dlinaKat(a.категория)}">${esc(a.категория || "не определилась")}</b>${a.спорно ? ' <span class="aTag aTag--spor">спорно</span>' : ""}
         <span class="aktKat__rub">${a.мисбокс ? "цена до 1 000 ₽ — мистери бокс · " : ""}рубрика «${esc(a.рубрика || "—")}»${a.рубрика_вмс ? ` · ${esc(a.рубрика_вмс)}` : ""}</span>${a.опасные ? `<span class="aktKat__opas">${esc(a.опасные)} — в место накопления, не в продажу</span>` : ""}</div>` : "";
     // 07.10 столы: «когда пикаешь акт — чтобы можно было его прямо там распечатать, как у контейнера»
     const vWms = `<div class="palKartaAkt__knopki"><a class="aktPs__kn" href="${esc(a.вмс || a.WMS)}" target="_blank" rel="noopener">Открыть акт в WMS</a>${
