@@ -90,27 +90,7 @@
   }
   /* 14.10 Степан: «нужна карточная система — ты ставил так же всё мелко; в чём суть?». Как карточка пикалки: сверху
      суть акта (что случилось с товаром) крупно, дальше плитки «подпись — крупное значение», да/нет — одной плиткой. */
-  function kartochki(d) {
-    const v = new Map(d.поля.map((p) => [p.имя, p.знач]));
-    const da = (k) => DA_NET[v.get(k)] || v.get(k);
-    const sut = `<div class="aktDet__sut"><p class="aktDet__nad">Суть акта${v.get("Вид обращения") ? ` · ${esc(v.get("Вид обращения"))}` : ""}</p>
-      <p class="aktDet__defekt">${esc(v.get("Заявленный дефект") || "дефект не указан")}</p>
-      ${v.get("Требование клиента") ? `<p class="aktDet__treb">клиент хочет: ${esc(v.get("Требование клиента"))}</p>` : ""}</div>`;
-    const plitka = (pod, zn, shir) => (zn ? `<div class="aktDet__pl${shir ? " is-shir" : ""}"><span>${esc(pod)}</span><b>${esc(zn)}</b></div>` : "");
-    const flagi = [["Вскрывали", "Вскрыт"], ["Упаковка", "Упаковка есть"], ["Мех. повреждения", "Повреждён"], ["Топливо", "Заправлялся"]]
-      .filter(([, k]) => v.has(k)).map(([pod, k]) => `<i class="${v.get(k) === "Да" ? "is-da" : ""}">${esc(pod)}: <b>${esc(da(k))}</b></i>`).join("");
-    const cena = v.get("Цена") ? `${Number(v.get("Цена")).toLocaleString("ru-RU")} ₽` : "";
-    const sozdal = v.get("Создал") ? `${v.get("Создал")}${v.get("Дата акта") ? ` · ${String(v.get("Дата акта")).slice(0, 16)}` : ""}` : "";
-    const plitki = [
-      plitka("Качество", v.get("Качество")), plitka("Комплектность", v.get("Комплектность")), plitka("Цена в акте", cena),
-      plitka("Внешний вид", v.get("Внешний вид")), plitka("Серийный номер", v.get("Серийный номер")),
-      plitka("Статус акта", v.get("Статус")), plitka("Сервисный центр", v.get("Сервисный центр")),
-      plitka("Склад приёмки", v.get("Где принят")), plitka("Куда едет по акту", v.get("Куда")),
-      plitka("Дата продажи", v.get("Дата продажи")), plitka("Поставщик", v.get("Поставщик"), true),
-      plitka("Решение оценки", v.get("Решение оценки")), plitka("Акт создал", sozdal, true),
-    ].join("");
-    return `${sut}<div class="aktDet__plitki">${plitki}${flagi ? `<div class="aktDet__pl is-shir"><span>Состояние при приёмке</span><p class="aktDet__flagi">${flagi}</p></div>` : ""}</div>`;
-  }
+
   /* 14.10 Степан: «мне должно в этом окне показать ВСЁ, не прокручивать; что уже видел в карточке — не ключевое,
      остальные детали крупно; я сразу хочу сфотать». Один экран: кнопка фото сверху, фото слева, справа плитки только
      того, чего нет в карточке акта, внизу история одной строкой на событие. */
@@ -119,19 +99,50 @@
   let ftNovye = [];     // [{url, b64}] — снято, ещё не отправлено
   let ftIdet = "";
   let ftItog = null;    // {ok, tekst}
-  function plitkiNeKarta(d) {
+
+  // 14.10 Степан: «информация не вся — должна быть вся», «слева странное решение». Все поля акта плитками одной сеткой,
+  // сверху суть, фото — лентой под плитками с плиткой «Сфотать» в начале.
+  function plitkiVse(d) {
     const v = new Map(d.поля.map((p) => [p.имя, p.знач]));
+    const byli = new Set();
+    const vz = (k) => { byli.add(k); return v.get(k); };
     const dt = (x) => String(x || "").slice(0, 16);
-    const pl = (pod, zn) => (zn ? `<div class="aktDet__pl"><span>${esc(pod)}</span><b>${esc(zn)}</b></div>` : "");
-    return [
-      pl("Статус акта", v.get("Статус")), pl("Требование клиента", v.get("Требование клиента")),
-      pl("Внешний вид", v.get("Внешний вид")), pl("Решение оценки", v.get("Решение оценки")),
-      pl("Склад приёмки", [v.get("Где принят"), dt(v.get("Принят"))].filter(Boolean).join(" · ")),
-      pl("Куда едет по акту", v.get("Куда")), pl("Чей сервис", v.get("Тип СЦ")),
-      pl("Поставщик", v.get("Поставщик")), pl("Заказ продажи", v.get("Заказ, по которому продан")), pl("Срок", v.get("Срок")),
-      pl("Акт создал", [v.get("Создал"), dt(v.get("Дата акта"))].filter(Boolean).join(" · ")),
-      pl("Последний изменил", [v.get("Изменил"), dt(v.get("Изменён"))].filter(Boolean).join(" · ")),
-    ].join("");
+    const da = (x) => (x === "Да" ? "да" : x === "Нет" ? "нет" : x);
+    const pl = (pod, zn, kl = "") => (zn ? `<div class="aktDet__pl${kl}"><span>${esc(pod)}</span><b>${esc(zn)}</b></div>` : "");
+    const s = d.сейчас || {};
+    const g = (s.где || [])[0];
+    const gde = g ? `${g.ячейка}${g.паллета ? ` · ${g.паллета}` : ""}${g.база ? ` · ${g.база}` : ""}` : (s.ошибка ? "WMS не ответила" : "на складе не числится");
+    const flagi = [["Вскрывали", "Вскрыт"], ["Упаковка", "Упаковка есть"], ["Мех. повреждения", "Повреждён"], ["Топливо", "Заправлялся"]]
+      .filter(([, k]) => v.has(k)).map(([pod, k]) => `${pod}: ${da(vz(k))}`).join(" · ");
+    const cena = v.get("Цена") ? `${Number(vz("Цена")).toLocaleString("ru-RU")} ₽` : "";
+    const sut = `<div class="aktDet__sut"><span>${esc(vz("Вид обращения") || "акт")}${v.get("Требование клиента") ? ` · клиент хочет: ${esc(vz("Требование клиента"))}` : ""}</span>
+      <b>${esc(vz("Заявленный дефект") || "дефект не указан")}</b></div>`;
+    const plitki = [
+      pl("Где сейчас по WMS", gde, g ? " is-shir" : " is-shir is-net"), pl("Категория уценки", s.категория),
+      pl("Качество", vz("Качество")), pl("Комплектность", vz("Комплектность")), pl("Цена в акте", cena),
+      pl("Внешний вид", vz("Внешний вид")), pl("При приёмке", flagi, " is-shir"), pl("Серийный номер", vz("Серийный номер")),
+      pl("Дата продажи", dt(vz("Дата продажи"))), pl("Заказ продажи", vz("Заказ, по которому продан"), " is-shir"),
+      pl("Поставщик", vz("Поставщик")), pl("Сервисный центр", [vz("Сервисный центр"), vz("Тип СЦ")].filter(Boolean).join(" · "), " is-shir"),
+      pl("Склад приёмки", [vz("Где принят"), dt(vz("Принят"))].filter(Boolean).join(" · "), " is-shir"),
+      pl("Куда едет по акту", vz("Куда")), pl("Решение оценки", vz("Решение оценки")), pl("Срок", vz("Срок")),
+      pl("Статус акта", vz("Статус")),
+      pl("Создал", [vz("Создал"), dt(vz("Дата акта"))].filter(Boolean).join(" · "), " is-shir"),
+      pl("Изменил", [vz("Изменил"), dt(vz("Изменён"))].filter(Boolean).join(" · "), " is-shir"),
+    ];
+    // что сервер отдаст сверх списка — тоже плиткой, чтобы ничего не пропало
+    d.поля.filter((p) => !byli.has(p.имя)).forEach((p) => plitki.push(pl(p.имя, p.знач)));
+    return `${sut}<div class="aktDet__plitki">${plitki.join("")}</div>`;
+  }
+  function lentaFoto(d) {
+    const est = kartinki(d);
+    const novye = ftNovye.length ? `<div class="aktDet__ftNov"><div class="aktDet__novye">${ftNovye.map((f, i) => `<span><img src="${f.url}" alt=""><button type="button" data-ft-ubrat="${i}" title="убрать">×</button></span>`).join("")}</div>
+      <div class="aktDet__ftTipy"><em>это:</em>${FT_TIPY.map(([id, im]) => `<button type="button" class="${id === ftTip ? "is-on" : ""}" data-ft-tip="${id}">${esc(im)}</button>`).join("")}</div>
+      <button type="button" class="aktDet__ftOtp" data-ft-otpr="1"${ftIdet ? " disabled" : ""}>${ftIdet ? esc(ftIdet) : `Отправить в акт · ${ftNovye.length} фото`}</button></div>` : "";
+    return `${novye}${ftItog ? `<p class="aktDet__ftItog${ftItog.ok ? "" : " is-osh"}">${esc(ftItog.tekst)}</p>` : ""}
+      <div class="aktDet__lentaFt">
+        ${est.map((f, i) => `<button type="button" class="aktDet__ft" data-akt-ft="${esc(d.акт)}:${i}" title="${esc(`${f.тип} · ${f.кто} · ${f.когда}`)}"><img loading="lazy" src="${src(d, f)}" alt=""><em>${esc(f.тип)}</em></button>`).join("")}
+      </div>
+      <p class="aktDet__pod">${est.length ? `фото ${est.length} · загрузил(а): ${esc([...new Set(est.map((f) => f.кто))].join(", "))}` : "в акте фото нет"}</p>`;
   }
   function istoriyaKorotko(d) {
     const str = [];
@@ -143,18 +154,7 @@
     if (!str.length) return '<p class="aktDet__pusto">С актом на сайте ничего не делали.</p>';
     return `<ul class="aktDet__lenta">${str.map(([k, t, osh]) => `<li class="${osh ? "is-osh" : ""}"><b>${esc(k)}</b> ${esc(t)}</li>`).join("")}</ul>`;
   }
-  function blokFoto(d) {
-    const est = kartinki(d);
-    const novye = ftNovye.length ? `<div class="aktDet__novye">${ftNovye.map((f, i) => `<span><img src="${f.url}" alt=""><button type="button" data-ft-ubrat="${i}" title="убрать">×</button></span>`).join("")}</div>
-      <button type="button" class="aktDet__ftOtp" data-ft-otpr="1"${ftIdet ? " disabled" : ""}>${ftIdet ? esc(ftIdet) : `Отправить в акт ${ftNovye.length} фото · ${esc(FT_TIPY.find((x) => x[0] === ftTip)[1].toLowerCase())}`}</button>` : "";
-    return `<div class="aktDet__ftPult">
-        <label class="aktDet__ftKn"><input type="file" accept="image/*" capture="environment" multiple data-ft-vybor="1" hidden>📷 Сфотать в акт</label>
-        <div class="aktDet__ftTipy">${FT_TIPY.map(([id, im]) => `<button type="button" class="${id === ftTip ? "is-on" : ""}" data-ft-tip="${id}">${esc(im)}</button>`).join("")}</div>
-      </div>
-      ${novye}
-      ${ftItog ? `<p class="aktDet__ftItog${ftItog.ok ? "" : " is-osh"}">${esc(ftItog.tekst)}</p>` : ""}
-      <div class="aktDet__ftEst">${est.length ? galereya(d) : '<p class="aktDet__pusto">В акте фото нет — сфотайте.</p>'}</div>`;
-  }
+
   async function szhat(file) {
     const url = URL.createObjectURL(file);
     try {
@@ -199,35 +199,7 @@
     if (u) { e.stopPropagation(); ftNovye.splice(Number(u.dataset.ftUbrat), 1); risovatOkno(); return; }
     if (e.target.closest("[data-ft-otpr]")) { e.stopPropagation(); otpravitFoto(); }
   }, true);
-  function seychas(d) {
-    const s = d.сейчас || {};
-    if (s.ошибка) return `<div class="aktDet__seychas"><p class="aktDet__gde">Где штука сейчас — WMS не ответила</p><p class="aktDet__chto">${esc(s.ошибка)}</p></div>`;
-    const g = (s.где || [])[0];
-    const kat = s.категория ? `<p class="aktDet__kat">категория уценки: <b>${esc(s.категория)}</b></p>` : "";
-    const vz = (d.возвраты || []).slice(-1)[0];
-    let gde, chto, cvet = "";
-    if (g) {
-      gde = `Лежит: ${esc(g.ячейка)}${g.паллета ? ` · на паллете ${esc(g.паллета)}` : " · без паллеты"}`;
-      const pod = `${g.база ? `склад ${esc(g.база)}` : ""}${g.качество ? ` · качество ${esc(g.качество).toLowerCase()}` : ""}${g.заказ ? ` · в заказе ${esc(g.заказ)}` : ""}`;
-      gde += pod ? `<span>${pod}</span>` : "";
-      if (/стол|завед|контроль уценки/i.test(`${g.ячейка} ${g.зона || ""}`) && !g.паллета) {
-        chto = `Штука на столе, в паллету ещё не положена. Пикните акт в пикалке, потом паллету${s.категория ? ` «${esc(s.категория)}»` : ""} — переедет в неё.`;
-        cvet = " is-zhdu";
-      } else if (g.паллета) chto = "Разложена на паллету — делать ничего не нужно.";
-      else chto = "Лежит в ячейке без паллеты.";
-    } else if (s.транзит && (s.транзит.едет || s.транзит.причина)) {
-      gde = "Едет через транзит — по WMS ещё в пути";
-      chto = s.транзит.причина ? `Не доехала: ${esc(s.транзит.причина)}` : "Доедет сама, перекладывать не нужно.";
-    } else {
-      // почему не числится — из причины возврата: «по вмс штука ушла со склада: 28.08.2026 · Списание товаров №338567 · …»
-      const pr = (d.возвраты || []).map((v) => String(v.почему).match(/(ушла со склада|списана)[^:]*:\s*(.*?№\s*\d+)/)).find(Boolean);
-      gde = `По WMS на складе не числится${pr ? `<span>${esc(pr[1])}: ${esc(pr[2])}</span>` : ""}`;
-      chto = vz && vz.отмена ? "Ошибочный возврат на учёт отменён — акт как был. Обработают по обычному процессу; если штука найдётся в руках — пикните акт в пикалке, потом паллету."
-        : "Не принята, списана или ушла. Если штука у вас в руках — пикните акт в пикалке: она скажет, что делать, и ничего не запишет в WMS до пика паллеты. Если штуки нет — ничего не делайте.";
-      cvet = " is-net";
-    }
-    return `<div class="aktDet__seychas${cvet}"><p class="aktDet__nad">Сейчас</p><p class="aktDet__gde">${gde}</p>${kat}<p class="aktDet__chto">${chto}</p></div>`;
-  }
+
   let okno = null;
   let oknoAkt = "";
   function risovatOkno() {
@@ -235,14 +207,14 @@
     const b = kesh.get(oknoAkt) || {};
     const d = b.d;
     const telo = b.zhdu || !b.d ? `<p class="aktDet__pusto">${b.oshibka ? `Не открылось: ${esc(b.oshibka)}` : "Открываю акт в WMS…"}</p>`
-      : `<div class="aktDet__ekran"><section class="aktDet__foto">${blokFoto(d)}</section>
-          <section class="aktDet__info"><div class="aktDet__plitki">${plitkiNeKarta(d)}</div>
-            <h3>История</h3>${istoriyaKorotko(d)}
-            <details class="aktDet__vse"><summary>все поля акта как в WMS</summary>${polyaGruppami(d)}</details></section></div>`;
+      : `<div class="aktDet__vsyo">${plitkiVse(d)}
+          <div class="aktDet__niz"><section class="aktDet__fotoBlok"><h3>Фото · ${kartinki(d).length}</h3>${lentaFoto(d)}</section>
+          <section class="aktDet__istBlok"><h3>История</h3>${istoriyaKorotko(d)}</section></div></div>`;
     okno.innerHTML = `<div class="cModal__fon" data-akt-det-zakr="1"></div>
       <section class="cModal__okno cModal__okno--shir aktDet__okno" role="dialog" aria-label="Акт целиком">
         <header class="cModal__sh aktDet__sh"><div><b>Акт ${esc(d ? d.акт : oknoAkt)}</b>${d ? `<p class="aktDet__tovar">${esc(d.товар)}</p><span>${esc(d.наклейка)} · живьём из WMS</span>` : ""}</div>
-          <button type="button" class="cBtn cBtn--sm" data-akt-det-zakr="1">закрыть</button></header>
+          <div class="aktDet__shKn">${d ? '<label class="aktDet__ftKn aktDet__ftKn--sh"><input type="file" accept="image/*" capture="environment" multiple data-ft-vybor="1" hidden>📷 Сфотать в акт</label>' : ""}
+          <button type="button" class="cBtn cBtn--sm" data-akt-det-zakr="1">закрыть</button></div></header>
         <div class="aktDet__telo">${telo}</div></section>`;
     okno.hidden = false;
   }

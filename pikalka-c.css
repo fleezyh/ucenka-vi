@@ -1000,3 +1000,49 @@ body.cSkin.is-svetlo .aktDet__seychas.is-zhdu{background:#f1edff}
 body.cSkin.is-svetlo .aktDet__lenta li.is-osh,body.cSkin.is-svetlo .aktDet__ftItog.is-osh{color:#b42335}
 body.cSkin.is-svetlo .aktDet__ftItog{color:#13703c}
 @media (max-width:900px){.aktDet__ekran{grid-template-columns:1fr;height:auto}.aktDet__telo:has(.aktDet__ekran){overflow:auto}}
+/* 14.10 окно акта v3: всё плитками одной сеткой, фото лентой («информация должна быть вся», «слева странное решение») */
+.aktDet__vsyo{display:grid;gap:14px;align-content:start}
+.aktDet__telo:has(.aktDet__vsyo){overflow:auto}
+.aktDet__sut{display:flex;flex-direction:column;gap:4px;padding:14px 18px;border-radius:16px;background:var(--cTile,rgba(255,255,255,.03));border:1px solid var(--cLine,#263345)}
+.aktDet__sut span{font-size:15px;color:var(--muted)}
+.aktDet__sut b{font-size:26px;font-weight:600;line-height:1.2}
+.aktDet__vsyo .aktDet__plitki{grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.aktDet__vsyo .aktDet__pl{min-height:0;padding:10px 14px;gap:3px}
+.aktDet__vsyo .aktDet__pl>span{font-size:13px}
+.aktDet__vsyo .aktDet__pl>b{font-size:18px;line-height:1.25;overflow-wrap:anywhere}
+.aktDet__vsyo .aktDet__pl.is-net>b{color:#f5ad32}
+.aktDet__fotoBlok h3,.aktDet__istBlok h3{margin:0 0 8px;font-size:18px;font-weight:600}
+.aktDet__lentaFt{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px}
+.aktDet__lentaFt .aktDet__ftKn{flex:none;width:150px;height:150px;flex-direction:column;gap:6px;padding:0;font-size:17px;text-align:center}
+.aktDet__lentaFt .aktDet__ftKn i{font-style:normal;font-size:34px}
+.aktDet__lentaFt .aktDet__ft{flex:none;position:relative;width:150px;height:150px;aspect-ratio:auto}
+.aktDet__lentaFt .aktDet__ft em{position:absolute;left:0;right:0;bottom:0;padding:3px 6px;font-style:normal;font-size:12px;background:rgba(0,0,0,.6);color:#fff;text-align:left}
+.aktDet__ftNov{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:10px;padding:12px;border-radius:14px;border:2px solid #7b5cf0}
+.aktDet__ftNov .aktDet__ftTipy em{font-style:normal;color:var(--muted);align-self:center;margin-right:4px}
+.aktDet__ftNov .aktDet__ftOtp{padding:0 22px}
+@media (max-width:700px){.aktDet__vsyo .aktDet__plitki{grid-template-columns:1fr 1fr}.aktDet__vsyo .aktDet__pl.is-shir{grid-column:span 2}}
+.aktDet__vsyo .aktDet__plitki{grid-auto-flow:dense;grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}
+.aktDet__niz{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:16px;align-items:start}
+.aktDet__lentaFt .aktDet__ftKn,.aktDet__lentaFt .aktDet__ft{width:120px;height:120px}
+.aktDet__lentaFt .aktDet__ftKn i{font-size:28px}
+.aktDet__sut{padding:10px 16px}
+.aktDet__sut b{font-size:24px}
+.aktDet__lenta{font-size:16px}
+@media (max-width:900px){.aktDet__niz{grid-template-columns:1fr}}
+.aktDet .aktDet__okno{height:94vh}
+.aktDet__sh b{font-size:24px}
+.aktDet__tovar{margin:2px 0;font-size:18px}
+.aktDet__shKn{display:flex;gap:10px;align-items:center;flex:none}
+.aktDet__ftKn--sh{height:56px;padding:0 22px;font-size:20px;white-space:nowrap}
+.aktDet__vsyo{gap:10px}
+.aktDet__vsyo .aktDet__pl{padding:8px 12px}
+.aktDet .aktDet__okno{width:min(1500px,96vw)}
+.aktDet__shKn{flex-direction:row;flex-wrap:nowrap}
+.aktDet__sh{align-items:flex-start}
+.aktDet__sh .aktDet__shKn{display:flex!important;flex-direction:row!important;align-items:center;gap:10px}
+.aktDet__lentaFt .aktDet__ft{width:170px;height:170px}
+.aktDet__lentaFt{flex-wrap:wrap;overflow:visible}
+.aktDet__niz{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}
+.aktDet__lentaFt .aktDet__ft{width:150px;height:150px}
+@media (max-width:700px){.aktDet__sh{flex-wrap:wrap}.aktDet__sh .aktDet__shKn{width:100%}.aktDet__ftKn--sh{flex:1;height:52px;font-size:18px}.aktDet__sh b{font-size:22px}.aktDet__tovar{font-size:16px}}
+.aktDet__vsyo .aktDet__pl>b{overflow-wrap:break-word}
