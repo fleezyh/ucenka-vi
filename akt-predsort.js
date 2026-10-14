@@ -1394,7 +1394,9 @@
      видит крупную категорию, плашку ниже не читает и кладёт штуку в паллету — по камерам не отследить, в паллете
      излишек. Теперь: категории нет («не раскладывать»), экран стопорится, пики паллет/товаров/актов не проходят,
      пока человек не нажмёт «Отложил в сторону». Нажатие пишется в журнал (/__akt/otlozheno) — список для Гамлета. */
-  const neprinyat = (a) => Boolean(a && a.живьём && !(a.где && a.где.length) && !(a.транзит && (a.транзит.причина || a.транзит.едет)));
+  // 14.10: __vernut — списан/ушёл по вмс, а штука в руках: это не стоп, а маршрут «на учёт тем же актом → в паллету»
+  const neprinyat = (a) => Boolean(a && a.живьём && !(a.где && a.где.length) && !(a.транзит && (a.транзит.причина || a.транзит.едет))
+    && !a.__vernut);
   /* 09.10 Гамлет: «если товар гар ремонт, акт асц, брак поставщика, диагностика, платный ремонт, ремонт 5 дней,
      срочный ремонт — пикалка должна не пропускать… отложить в паллет для передачи курьеру». Был вопрос «точно?» —
      теперь тот же стоп, что у непринятых: экран стоит, пока не нажмут «отложил(а) курьеру». Акт ещё не принят —
@@ -1566,33 +1568,22 @@
         return;
       }
       // 13.10 встреча (Гамлет, Будаев): списана или отгружена по WMS, а штука в руках — возвращаем на учёт инвентаризацией
-      // с тем же актом (как с отремом), не переактивируем чужие остатки. Один раз на акт за сессию.
-      if (vp.можно_вернуть && !avtoPrinyaty.has("в" + a.акт)) {
-        avtoPrinyaty.add("в" + a.акт);
-        vernutAkt(a, vp);
+      // с тем же актом (как с отремом), не переактивируем чужие остатки.
+      // 14.10 Степан (акт 5135134 заинвентаризировался и остался в «Столе для заведения»): «не должно так делать, пока
+      // не узнает весь маршрут». На скан акта в WMS ничего не делаем: карточка и «пикните паллету»; пик паллеты —
+      // сервер проверяет весь путь и только потом одним ходом заводит на учёт и перекладывает (akt_skan.v_palletu).
+      if (vp.можно_вернуть) {
+        a.__vernut = vp.текст || (vp.ушла ? "ушла со склада по WMS" : "списана по WMS");
+        a.__vernutVid = vp.ушла ? "ушёл со склада" : "списан";
+        stopSnyat();
+        if (aktK !== a) aktK = a;
+        aktPer = null;
+        signal(`Акт ${a.акт}: по WMS ${a.__vernutVid}, а штука у вас. Пикните паллету — проверю весь путь, потом заведу на учёт тем же актом и сразу переложу. До пика паллеты в WMS ничего не делаю.`);
+        risovat();
         return;
       }
     } catch (e) { if (stopAkt && stopAkt.акт === a.акт) vp = { ошибка: e.message || String(e), akt: a.акт }; }
     vpRisovat();
-  }
-  async function vernutAkt(a, bylo) {
-    vp = { ...bylo, idet: true, vozvrat: true };
-    signal(`Акт ${a.акт}: по WMS ${bylo.ушла ? "ушёл со склада" : "списан"}, а штука у вас — возвращаю на учёт тем же актом (до полуминуты)`);
-    try {
-      const o = await fetch("/__akt/vernut", { method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ акт: a.акт, стол_id: stol ? stol.id : null, причина: bylo.текст || "" }) });
-      const d = await o.json().catch(() => ({}));
-      if (!o.ok || !d.готово) throw new Error(d.ошибка || `сервер ответил ${o.status}`);
-      PikIst.dobavit({ vid: "акт", kod: a.наклейка || String(a.акт), akt: a.акт, n: a.товар || "", itog: `возвращён на учёт: ${d.ячейка}`, ok: true });
-      signal(`Акт ${a.акт} снова на учёте (инвентаризация №${d.инвентаризация}) — штука в «${d.ячейка}». Пикните паллету, куда кладёте.`);
-      window.pikalkaZvuk && window.pikalkaZvuk("ok");
-      stopSnyat();
-      aktPosl = { kod: "", t: 0 };
-      otkrytAkt(a.наклейка || `ACT ${String(a.акт).padStart(10, "0")}`);
-    } catch (e) {
-      vp = { ...bylo, ошибка: `вернуть на учёт не вышло: ${e.message || e}` };
-      vpRisovat();
-    }
   }
   async function stopPrinyat() {
     const a = stopAkt;
@@ -1684,7 +1675,7 @@
       return `<div class="aktPs__gotovo"><b>Едет через транзит СЦ→ДМД на ${esc(tr.паллета || "паллету")} — пикнули ${esc(tr.когда)}</b>
         <span>по WMS доедет сама за 10–20 минут, перекладывать не нужно.</span></div>`;
     }
-    if (!a.где || !a.где.length) {
+    if ((!a.где || !a.где.length) && !a.__vernut) {
       return `<div class="aktPs__gotovo is-oshibka"><b>В WMS эта штука сейчас не числится — переложить нельзя</b>
         <span>ещё не принята, едет в перемещении — или уже продана, списана. Отложите её: когда примут, пикните акт снова.</span></div>`;
     }
@@ -1700,7 +1691,7 @@
     const a = aktK;
     if (a.zhdu) { vyvesti('<p class="aktPs__chto">Смотрю акт в WMS…</p>', shapkaDey("Акт", "смотрю в WMS…") + bolshoyItog()); return; }
     if (a.oshibka) { vyvesti(`<p class="aktPs__net"><b class="aktPs__oshibka">${esc(a.oshibka)}</b></p>`, ""); return; }
-    const est = a.живьём && a.где && a.где.length && !klientskiy(a);
+    const est = a.живьём && ((a.где && a.где.length) || a.__vernut) && !klientskiy(a);
     const panel = Boolean(deyEl());
     const kat = klientskiy(a) ? `<div class="aktKat aktKat--stop"><span class="aktKat__nad">категория уценки</span>
         <b class="aktKat__imya">не раскладывать</b>
@@ -2013,7 +2004,9 @@
     if (krupno) {
       const idet = aktPer && aktPer.idet;
       return `<div class="cKuda"><p class="cKuda__zag">Куда положить</p>
-        <p class="cKuda__chto">${idet ? "Перекладываю…" : `Пикните паллету <b>${a.категория && !/^нет своей/.test(a.категория) ? esc(a.категория) : "(CON …)"}</b>`}</p>
+        <p class="cKuda__chto">${idet ? (a.__vernut ? "Проверяю путь → завожу на учёт тем же актом → перекладываю… (до минуты)" : "Перекладываю…")
+          : `Пикните паллету <b>${a.категория && !/^нет своей/.test(a.категория) ? esc(a.категория) : "(CON …)"}</b>`}</p>
+        ${a.__vernut && !idet ? `<p class="cKuda__pod cKuda__marshrut">по WMS акт ${esc(a.__vernutVid || "списан")}, штука у вас. Маршрут: пик паллеты → проверю паллету и категорию → заведу на учёт тем же актом (инвентаризация) → через ваш стол в паллету. Пока паллету не пикнули — в WMS ничего не делаю.</p>` : ""}
         <form class="cKuda__forma" id="aktPerForma" autocomplete="off">
           <input name="kod" placeholder="или номер паллеты" inputmode="numeric"${idet ? " disabled" : ""}>
           <button class="aktPs__kn is-on" type="submit"${idet ? " disabled" : ""}>Переложить</button></form>
@@ -2032,12 +2025,15 @@
       const otvet = await fetch("/__akt/akt_v_palletu", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ акт: aktK.наклейка || String(aktK.акт), паллета: kod, стол: stol ? stol.имя : "",
-          стол_id: stol ? stol.id : null, подтвердил: podtverdil }),
+          стол_id: stol ? stol.id : null, подтвердил: podtverdil, вернуть: aktK.__vernut || "" }),
       });
       const d = await otvet.json().catch(() => ({}));
       if (d.предупреждение) { aktPer = { vopros: { kod, tekst: d.предупреждение } }; if (navigator.vibrate) navigator.vibrate([80, 60, 80]); return; }
       if (d.нужен_вход) { vms = { подключено: false }; formaVhoda = true; oshibkaVhoda = "войдите в WMS, потом пикните паллету ещё раз"; aktPer = null; return; }
       if (d.нужен_стол) { vyborStola = true; oshibkaStola = ""; }   // 02.10: без стола перекладка не идёт — сразу выбор стола
+      // 14.10: на учёт уже вернули — дальше это обычный акт, второй раз не заводим
+      const vozvr = d.возврат ? `на учёт тем же актом (инвентаризация №${d.возврат.инвентаризация}) → ` : "";
+      if (d.возврат) { delete aktK.__vernut; delete aktK.__vernutVid; }
       if (!otvet.ok || !d.готово) {
         const e = new Error(d.ошибка || `сервер ответил ${otvet.status}`);
         e.zakaz = d.заказ_втис || "";   // 02.10: чужой заказ — кнопка «удалить во ВТИС»
@@ -2055,7 +2051,7 @@
       // 01.10: штука с СЦ — по учёту в транзите, на паллету доедет сама (wms_sc_dmd)
       aktPer = d.через_сц ? { itog: { ok: true, zag: `Принято → ${d.паллета} · через СЦ`, tekst: `${d.через_сц} · перемещение №${d.перемещение}` } }
         : { itog: { ok: true, zag: `${d.проведено ? "Перемещено" : "Перемещение черновиком"} → ${d.паллета}`,
-        tekst: `${d.откуда} → ${d.ячейка} · перемещение №${d.перемещение}${d.подходит === false ? " · паллета не своей категории" : ""}` } };
+        tekst: `${vozvr}${d.откуда} → ${d.ячейка} · перемещение №${d.перемещение}${d.подходит === false ? " · паллета не своей категории" : ""}` } };
       nePerUbrat(aktK.акт);
       // исходный контейнер — «ячейка · паллета» из ответа; сменился — проверить, не остался ли хвост в прошлом
       const ist = String(d.откуда || "").split(" · ")[1] || "";
@@ -2953,7 +2949,7 @@
     if (zhdemOtkuda()) { otkudaPoPallete(e.detail.kod); return; }
     if (massPik && korzAkty.length && !korzina.length) { aktyCel({ palleta: e.detail.kod, yacheyka: "" }); return; }
     if (massPik) { vKorzinu(e.detail.kod); return; }
-    if (!dvkRezhim && aktK && aktK.живьём && aktK.где && aktK.где.length && !(aktPer && aktPer.itog && aktPer.itog.ok)) { aktVPalletu(e.detail.kod); return; }
+    if (!dvkRezhim && aktK && aktK.живьём && ((aktK.где && aktK.где.length) || aktK.__vernut) && !(aktPer && aktPer.itog && aktPer.itog.ok)) { aktVPalletu(e.detail.kod); return; }
     if (pal && palPer && palPer.zhdemPal) { peremestitPalletu(palPer.yach, false, e.detail.kod); return; }
     otkrytPalletu(e.detail.kod);
   });

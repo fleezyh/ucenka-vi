@@ -326,7 +326,7 @@ body.cSkin.is-svetlo .cSeg { background: #eef2f8; }
 .cDey .aktKat { margin: 16px 0 0; padding: 22px 22px 20px; border-radius: 18px; gap: 8px 12px; background: rgba(123,92,240,.16); border: 1.5px solid rgba(185,162,255,.5); }
 .cDey .aktKat__nad { font-size: 15px; }
 .cDey .aktKat__cena { font-size: 22px; }
-.cDey .aktKat__imya { font-size: clamp(44px, 3.8vw, 72px); line-height: 1.02; letter-spacing: -.02em; overflow-wrap: anywhere; }
+.cDey .aktKat__imya { font-size: clamp(44px, 3.8vw, 72px); line-height: 1.02; letter-spacing: -.02em; overflow-wrap: break-word; hyphens: manual; }
 .cDey .aktKat .aTag--spor { height: 32px; font-size: 16px; }
 .cDey .aktKat__rub { font-size: 14.5px; color: var(--muted); }
 .cDey .aktKat + .aktPs__palleta, .cDey .aktKat + .aktPs__gotovo { margin-top: 14px; }
@@ -625,8 +625,12 @@ body.cSkin.is-svetlo .cKuda__forma input { background: #fff; }
 .aktStop__poka{margin:14px 0 0;font-size:13px;color:#c99aa3}
 .aktStop.is-tryas .aktStop__okno{animation:aktStopTr .35s}
 @keyframes aktStopTr{0%,100%{transform:none}20%{transform:translateX(-12px)}40%{transform:translateX(10px)}60%{transform:translateX(-7px)}80%{transform:translateX(4px)}}
-.aktKat--stop{background:rgba(240,93,114,.16)!important;border-color:rgba(240,93,114,.6)!important}
-.aktKat--stop .aktKat__imya{color:#ff6f82}
+/* 14.10 Степан: «криво» («раскладыва|ть» рвалось по буквам) и «контраст на красном нужен» — плитка стопа сплошная красная,
+   текст белый, слово целиком: кегль меньше, перенос только между словами */
+.aktKat--stop{background:#c0283c!important;border-color:#c0283c!important}
+.aktKat--stop .aktKat__imya{color:#fff!important}
+.aktKat--stop .aktKat__nad,.aktKat--stop .aktKat__rub,.aktKat--stop .aktKat__cena{color:rgba(255,255,255,.92)!important}
+.cDey .aktKat--stop .aktKat__imya{font-size:clamp(34px,2.7vw,52px);overflow-wrap:normal;word-break:keep-all}
 @media (max-width:760px){.aktStop__okno{padding:22px 18px 18px}.aktStop__zag{font-size:26px}.aktStop__chto{font-size:16px}}
 
 /* 07.10 Сверка паллеты — вкладка панели паллеты */
@@ -924,4 +928,3 @@ body.cSkin.aTsd.is-svetlo .tsdPrichina.is-on { color: #8a1426 !important; }
 body.cSkin.is-svetlo .message.warn { color: #9a5b00; }
 body.cSkin.is-svetlo .message.error { color: #b42335; }
 body.cSkin.is-svetlo .message.ok { color: #13703c; }
-body.cSkin.is-svetlo .aktKat--stop .aktKat__imya { color: #c0283c; }
