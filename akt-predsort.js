@@ -1402,6 +1402,8 @@
      теперь тот же стоп, что у непринятых: экран стоит, пока не нажмут «отложил(а) курьеру». Акт ещё не принят —
      сначала стоп «не принят» (принять можно), потом этот. Сервер тоже не перекладывает (akt_skan.KURERU). */
   const klientskiy = (a) => Boolean(a && a.живьём && a.особый && !neprinyat(a));
+  // 14.10: стоп по непринятому ещё без итога — окно скрыто, пикалка смотрит/принимает сама (окно только с итогом)
+  const smotryu = (a) => Boolean(a && stopAkt === a && !a.особый && document.getElementById("aktStop")?.hidden !== false);
   let stopAkt = null;
   /* 12.10 Бершацкая: «когда паллеты перекидываешь — ошибка про акт, этот акт вообще не из списка паллет». Акт 4095709
      пикнут 11.10 в 16:49, стоп остался открытым на ночь — утром он гасил её паллеты. Теперь на стопе видно, когда пикнут,
@@ -1463,8 +1465,11 @@
     // «примите здесь» или красный стоп, если принять нельзя. Пики пока гасятся, как и раньше.
     el.hidden = Boolean(!kl);
     if (kl) document.body.classList.add("is-aktStop");
+    risovat();   // 14.10: карточка сразу в «смотрю в WMS», а не красная
     if (!kl) {
-      signal(`Акт ${a.акт} ещё не принят в WMS — принимаю сам, держите штуку у себя. Обычно секунды; если надо выгрузить из ВТИС — до двух минут, страницу не обновляйте`);
+      // 14.10 Степан («на секунду это появляется»): пока не знаем, что с актом, — ни красного «не раскладывать», ни
+      // «принимаю сам»: акт может оказаться списанным (тогда маршрут возврата), а не непринятым
+      signal(`Акт ${a.акт}: по WMS сейчас нигде не числится — смотрю, что с ним. Держите штуку у себя, обычно секунды`);
       vpZagruzit(a);
     } else setTimeout(() => window.pikalkaZvuk && window.pikalkaZvuk("oshibka"), 300);
     setTimeout(() => el.querySelector("[data-stop-otlozhil]")?.focus(), 50);
@@ -1517,7 +1522,7 @@
     if (okno && stopAkt && !okno.querySelector(".aktStop__zag")?.textContent.startsWith("Стоп. Товар клиента")) {
       const zag = okno.querySelector(".aktStop__zag");
       const kn = okno.querySelector(".aktStop__knopki");
-      const pokazat = () => { const st = document.getElementById("aktStop"); if (st) st.hidden = false; document.body.classList.add("is-aktStop"); };
+      const pokazat = () => { const st = document.getElementById("aktStop"); if (st && st.hidden) { st.hidden = false; risovat(); } document.body.classList.add("is-aktStop"); };
       if (idet && !stopAkt.__krasno) {
         okno.classList.add("is-proverka");
         if (kn) kn.hidden = true;
@@ -1527,12 +1532,14 @@
         pokazat();
         okno.classList.remove("is-proverka");
         if (zag) zag.textContent = "Акт не принят — примите его здесь";
+        signal(`Акт ${stopAkt.акт} не принят — примите его здесь кнопкой в окне`);
         if (chto) chto.innerHTML = "Штука у вас — <b>не откладывайте</b>: примите её кнопкой ниже, потом пикните паллету. «Отложил(а)» — только если штуки нет в руках.";
         if (kn) kn.hidden = false;
       } else if (!idet) {
         pokazat();
         okno.classList.remove("is-proverka");
         if (zag) zag.textContent = "Стоп. Акт не принят в WMS";
+        signal(`Акт ${stopAkt.акт} не принят в WMS и принять здесь нельзя — отложите в сторону`);
         if (chto && !(d.шаг === "нет" || (d.шаг === "расхождение" && d.perechitano)))
           chto.innerHTML = "В паллету <b>не класть</b> — получится излишек. Отложите товар в сторону, к непринятым. Когда его примут, пикните акт снова.";
         if (kn) kn.hidden = false;
@@ -1655,7 +1662,7 @@
     const net = neprinyat(a) || klientskiy(a);
     return `<div class="cShag3">
       <div class="${stol ? "is-ok" : "is-net"}" data-smenit-stol="1" role="button" tabindex="0" title="выбрать стол"><i>1</i><span>стол · выбрать</span><b>${stol ? esc(String(stol.имя).replace(/^ФБ \(ДМД\) /, "")) : "без стола"}</b></div>
-      <div class="${a.категория && !net ? "is-ok" : "is-net"}"><i>2</i><span>категория</span><b>${neprinyat(a) ? "не принят" : net ? "клиента" : esc(a.категория || "нет")}</b></div>
+      <div class="${a.категория && !net ? "is-ok" : "is-net"}"><i>2</i><span>категория</span><b>${neprinyat(a) && smotryu(a) ? "проверяю" : neprinyat(a) ? "не принят" : net ? "клиента" : esc(a.категория || "нет")}</b></div>
       <div class="${gotovo ? "is-ok" : net ? "is-net" : "is-sled"}"><i>3</i><span>паллета</span><b>${gotovo ? "готово" : net ? "нельзя" : "пикните"}</b></div>
     </div>`;
   }
@@ -1675,7 +1682,7 @@
       return `<div class="aktPs__gotovo"><b>Едет через транзит СЦ→ДМД на ${esc(tr.паллета || "паллету")} — пикнули ${esc(tr.когда)}</b>
         <span>по WMS доедет сама за 10–20 минут, перекладывать не нужно.</span></div>`;
     }
-    if ((!a.где || !a.где.length) && !a.__vernut) {
+    if ((!a.где || !a.где.length) && !a.__vernut && !smotryu(a)) {
       return `<div class="aktPs__gotovo is-oshibka"><b>В WMS эта штука сейчас не числится — переложить нельзя</b>
         <span>ещё не принята, едет в перемещении — или уже продана, списана. Отложите её: когда примут, пикните акт снова.</span></div>`;
     }
@@ -1696,6 +1703,9 @@
     const kat = klientskiy(a) ? `<div class="aktKat aktKat--stop"><span class="aktKat__nad">категория уценки</span>
         <b class="aktKat__imya">не раскладывать</b>
         <span class="aktKat__rub">товар клиента (${esc(String(a.особый).toLowerCase())}) — в паллету для передачи курьеру</span></div>`
+      : neprinyat(a) && smotryu(a) ? `<div class="aktKat"><span class="aktKat__nad">категория уценки</span>
+        <b class="aktKat__imya">${esc(a.категория || "…")}</b>
+        <span class="aktKat__rub">смотрю в WMS, что с актом: принять здесь или вернуть на учёт — секунду</span></div>`
       : neprinyat(a) ? `<div class="aktKat aktKat--stop"><span class="aktKat__nad">категория уценки</span>
         <b class="aktKat__imya">не раскладывать</b>
         <span class="aktKat__rub">акт не принят в WMS — товар в сторону, в паллету не класть</span></div>`
