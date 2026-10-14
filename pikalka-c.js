@@ -880,3 +880,38 @@
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", zapusk);
   else zapusk();
 })();
+
+/* 15.10 «чёрный ящик» (Степан: «браузер отвалился на телефоне», дважды на карточке акта; по логам сервера петли нет).
+   Раз в 3 с пишем в этот браузер: память, число узлов страницы, видна ли вкладка, последний пик. Страницу закрыли
+   нормально — отметка «чисто». Не чисто при следующем открытии — вкладку убил браузер: шлём след на сервер
+   (/__sled, журнал действий), видна ли она была в момент гибели — значит падение, скрыта — выгрузил в фоне. */
+(function () {
+  "use strict";
+  const KL = "pikYashchik";
+  try {
+    const b = JSON.parse(localStorage.getItem(KL) || "null");
+    if (b && !b.chisto && Date.now() - b.t < 30 * 60 * 1000) {
+      const tekst = `вылет пикалки: ${b.vidna ? "на экране" : "в фоне"} · ${b.mb || "?"}МБ · ${b.uzlov}узл · ${b.posl || "—"} · ${Math.round((Date.now() - b.t) / 1000)}с назад`;
+      const telo = JSON.stringify({ "действие": tekst.slice(0, 80), "страница": location.pathname });
+      if (navigator.sendBeacon) navigator.sendBeacon("/__sled", new Blob([telo], { type: "application/json" }));
+    }
+  } catch (e) { /* ящик не повод ломать страницу */ }
+  let posl = "";
+  ["picker:akt", "picker:palleta", "picker:stol", "picker:hit", "wms:yacheyka"].forEach((t) =>
+    document.addEventListener(t, (e) => { posl = `${t.split(":")[1]} ${String((e.detail && (e.detail.kod || e.detail.barcode)) || "").slice(-10)}`; }));
+  document.addEventListener("click", (e) => {
+    const k = e.target.closest && e.target.closest("button, a, label");
+    if (k) posl = `нажал ${String(k.textContent || "").replace(/\s+/g, " ").trim().slice(0, 20)}`;
+  }, true);
+  const zapisat = (chisto) => {
+    try {
+      const m = performance.memory;
+      localStorage.setItem(KL, JSON.stringify({ t: Date.now(), chisto, vidna: document.visibilityState === "visible",
+        mb: m ? Math.round(m.usedJSHeapSize / 1e6) : null, uzlov: document.getElementsByTagName("*").length, posl }));
+    } catch (e) { /* место кончилось — без ящика */ }
+  };
+  zapisat(false);
+  setInterval(() => zapisat(false), 3000);
+  document.addEventListener("visibilitychange", () => zapisat(false));
+  addEventListener("pagehide", () => zapisat(true));
+})();
