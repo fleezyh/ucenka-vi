@@ -66,30 +66,52 @@
   const format = () => { try { const f = localStorage.getItem(KLYUCH); return FORMATY[f] ? f : "60x30"; } catch (e) { return "60x30"; } };
   const zadatFormat = (f) => { if (FORMATY[f]) try { localStorage.setItem(KLYUCH, f); } catch (e) { /* не сохранилось — не страшно */ } };
 
-  function etiketka({ shk, imya, kategoriya }, f, pov = povorot(f)) {
-    const [w, h] = FORMATY[f];
-    const krupno = h >= 50;
-    const kv = h >= 100;
-    // Повёрнутая этикетка: страница — как лента в драйвере (h×w), сама этикетка развёрнута на 90°.
+  /* 14.10 Степан: «в чём смысл два раза писать — должно остаться посередине максимально крупно в рамках наклейки,
+     и штрихкод как и везде, снизу ничего не надо; в печати вообще другое покажет». Наклейка: заголовок один раз,
+     по центру, кегль подбирается под ширину (длинный — в две строки), под ним — пояснение, только если это не повтор
+     (товар у акта), дальше штрихкод с кодом. Превью на странице наклеек рисуется этой же разметкой.
+     Данные: { shk, zag, pod } или по-старому { shk, kategoriya, imya } — повтор (имя паллеты = категория + номер) отбрасываем. */
+  function norm(d) {
+    const shk = String(d.shk || "");
+    const zag = String(d.zag || d.kategoriya || d.imya || shk).trim();
+    let pod = String(d.pod != null ? d.pod : d.imya || "").trim();
+    const cifry = (shk.match(/\d{5,}/) || [""])[0].replace(/^0+/, "");
+    if (!pod || pod === zag || pod.startsWith(zag) || zag.startsWith(pod) || (cifry && pod.includes(cifry))) pod = "";
+    return { shk, zag, pod };
+  }
+  const SHIR_BUKVY = 0.62;   // средняя ширина жирной буквы Arial в долях кегля
+  function etiketka(dannye, f, pov = povorot(f)) {
+    const { shk, zag, pod } = norm(dannye);
+    const [w, h] = FORMATY[f] || FORMATY["60x30"];
+    const pole = Math.max(1.5, Math.min(w, h) * 0.06);
+    const shir = w - 2 * pole, vys = h - 2 * pole;
+    const zagMax = vys * (pod ? 0.3 : 0.38);
+    const odna = Math.min(zagMax, shir / Math.max(3, zag.length * SHIR_BUKVY));
+    const dve = Math.min(zagMax * 0.62, shir / Math.max(3, (Math.ceil(zag.length / 2) + 1) * SHIR_BUKVY));
+    const dveStroki = zag.length > 8 && dve > odna * 1.2;
+    const kegl = dveStroki ? dve : odna;
+    const podKegl = Math.min(vys * 0.1, 4.5);
+    const kodKegl = Math.min(vys * 0.1, 4.5);
     const [pw, ph] = pov ? [h, w] : [w, h];
-    const razmer = (x) => `${Math.round(x * 10) / 10}mm`;
-    return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(imya || shk)}</title><style>
+    const mm = (x) => `${Math.round(x * 100) / 100}mm`;
+    return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(zag)}</title><style>
       @page { size: ${pw}mm ${ph}mm; margin: 0 }
-      html, body { margin: 0; padding: 0; width: ${pw}mm; height: ${ph}mm; overflow: hidden }
-      body { font-family: Arial, Helvetica, sans-serif; color: #000; -webkit-print-color-adjust: exact; print-color-adjust: exact; position: relative }
-      .l { width: ${w}mm; height: ${h}mm; box-sizing: border-box; padding: ${kv ? 5 : krupno ? 3 : 1.5}mm ${kv ? 5 : krupno ? 4 : 2.5}mm;
-           display: flex; flex-direction: column; justify-content: space-between; overflow: hidden;
-           ${pov ? `position: absolute; left: 0; top: 0; transform-origin: 0 0; transform: translate(${pw}mm, 0) rotate(90deg);` : ""} }
-      .k { font-weight: 700; font-size: ${kv ? 13 : krupno ? 6.5 : 4}mm; line-height: 1.05; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
-      .b { flex: 1; min-height: 0; margin: ${kv ? 4 : krupno ? 2 : 1}mm 0 }
+      html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden }
+      body { font-family: Arial, Helvetica, sans-serif; color: #000; -webkit-print-color-adjust: exact; print-color-adjust: exact;
+             display: flex; align-items: center; justify-content: center; background: #fff }
+      .l { flex: none; width: ${w}mm; height: ${h}mm; box-sizing: border-box; padding: ${mm(pole)}; display: flex; flex-direction: column;
+           align-items: center; justify-content: center; gap: ${mm(vys * 0.04)}; overflow: hidden; text-align: center;
+           ${pov ? "transform: rotate(90deg);" : ""} }
+      .z, .p, .k { flex: none }
+      .z { font-weight: 700; font-size: ${mm(kegl)}; line-height: 1.08; max-width: 100%; overflow: hidden; padding-bottom: .04em;
+           ${dveStroki ? "display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;" : "white-space: nowrap;"} }
+      .p { font-size: ${mm(podKegl)}; line-height: 1.1; max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis }
+      .b { flex: 1 1 auto; min-height: ${mm(vys * 0.3)}; width: 100% }
       .b svg { width: 100%; height: 100%; display: block }
-      .t { display: flex; justify-content: space-between; align-items: baseline; gap: 2mm; font-size: ${kv ? 5 : krupno ? 3 : 2.2}mm; line-height: 1.1; white-space: nowrap }
-      .t span { overflow: hidden; text-overflow: ellipsis; min-width: 0 }
-      .t b { font-family: "Courier New", monospace; font-size: ${kv ? 7 : krupno ? 3.8 : 2.8}mm }
-    </style></head><body><div class="l" data-razmer="${razmer(w)}x${razmer(h)}">
-      <div class="k">${esc(kategoriya || imya)}</div>
-      <div class="b">${svg(shk, 40)}</div>
-      <div class="t"><b>${esc(shk)}</b><span>${esc(imya)}</span></div>
+      .k { font-family: "Courier New", monospace; font-weight: 700; font-size: ${mm(kodKegl)}; line-height: 1; letter-spacing: .04em }
+    </style></head><body><div class="l">
+      <div class="z">${esc(zag)}</div>${pod ? `<div class="p">${esc(pod)}</div>` : ""}
+      <div class="b">${svg(shk, 40)}</div><div class="k">${esc(shk)}</div>
     </div></body></html>`;
   }
 
@@ -126,13 +148,14 @@
       const t = etiketka(x, f);
       return `<div class="pg">${t.slice(t.indexOf("<body>") + 6, t.lastIndexOf("</body>"))}</div>`;
     }).join("");
-    return golova.replace("</style>", `html, body { height: auto !important; overflow: visible !important }
-      .pg { position: relative; width: ${pw}mm; height: ${ph}mm; overflow: hidden; page-break-after: always; break-after: page }
+    return golova.replace("</style>", `html, body { height: auto !important; width: auto !important; overflow: visible !important; display: block !important }
+      .pg { position: relative; width: ${pw}mm; height: ${ph}mm; overflow: hidden; page-break-after: always; break-after: page;
+            display: flex; align-items: center; justify-content: center }
       .pg:last-child { page-break-after: auto; break-after: auto }</style>`) + `<body>${tela}</body></html>`;
   }
   const dannyeAkta = (nomer, tovar = "", kategoriya = "") => {
     const n = String(nomer).replace(/\D/g, "").replace(/^0+/, "");
-    return n ? { shk: `ACT ${n.padStart(10, "0")}`, imya: String(tovar || "").slice(0, 60), kategoriya: `Акт №${n}${kategoriya ? " · " + kategoriya : ""}` } : null;
+    return n ? { shk: `ACT ${n.padStart(10, "0")}`, zag: `Акт №${n}`, pod: String(tovar || "").slice(0, 80) } : null;
   };
   /** Пачка наклеек актов: [{акт, товар}] или номера. */
   function pechatAktov(spisok) {
@@ -143,7 +166,7 @@
   function pechatAkta(nomer, tovar = "", kategoriya = "") {
     const n = String(nomer).replace(/\D/g, "").replace(/^0+/, "");
     if (!n) return;
-    pechat({ shk: `ACT ${n.padStart(10, "0")}`, imya: String(tovar || "").slice(0, 60), kategoriya: `Акт №${n}${kategoriya ? " · " + kategoriya : ""}` });
+    pechat(dannyeAkta(n, tovar, kategoriya));
   }
 
   window.ShkPechat = { svg, pechat, pechatAkta, pechatAktov, etiketka, formaty: Object.keys(FORMATY), format, zadatFormat, povorot, zadatPovorot };

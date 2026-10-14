@@ -6,7 +6,7 @@
   <title>Наклейки · пикалка</title>
   <link rel="icon" type="image/svg+xml" href="../../assets/brand/vi-mark.svg">
   <link rel="stylesheet" href="../../style.css?v=20260911-3">
-  <script src="../../shk-pechat.js?v=20261009-pak"></script>
+  <script src="../../shk-pechat.js?v=20261014-centr"></script>
   <style>
     /* 14.10 Степан: «отдельную вкладку со всеми вариантами наклеек — паллеты, акта и т.д., красиво как со столами,
        и схлопнуть в одну менюху». Все наклейки пикалки на одной странице: паллеты (новая в WMS и повтор по номеру),
@@ -33,19 +33,15 @@
     .nk__tab.is-on { border-bottom-color: #7b5cf0; color: #7b5cf0 !important; -webkit-text-fill-color: #7b5cf0 !important; }
     .nk__tab small { color: #8a90a0; font-weight: 500; margin-left: 4px; }
     .nk__gr { margin: 22px 0 10px; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: #5d6372; }
-    .nk__setka { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+    .nk__setka { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 12px; }
     .nk__kat { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
     .nk__kat button { text-align: left; }
-    .nkK { background: #fff; border: 1px solid #dfe1e8; border-radius: 14px; padding: 14px 16px 12px; cursor: pointer; break-inside: avoid; position: relative; }
+    /* карточка = сама наклейка: та же разметка, что уходит в печать (ShkPechat.etiketka), уменьшенная до 300 px */
+    .nkK { background: #e9ebf1; border: 1px solid #dfe1e8; border-radius: 14px; padding: 16px 14px; cursor: pointer; break-inside: avoid; position: relative; }
     .nkK:hover { border-color: #7b5cf0; box-shadow: 0 4px 18px rgba(123,92,240,.15); }
-    .nkK__vid { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: #7b5cf0; }
-    .nkK__imya { font-size: 20px; line-height: 1.15; margin-top: 2px; }
-    .nkK__poln { font-size: 12px; color: #5d6372; font-weight: 500; margin-top: 2px; min-height: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .nkK__shk { margin: 10px 0 4px; height: 70px; }
-    .nkK__shk svg { width: 100%; height: 100%; display: block; }
-    .nkK__kod { font-size: 14px; letter-spacing: .08em; text-align: center; }
-    .nkK__niz { font-size: 12px; color: #5d6372; font-weight: 500; text-align: center; margin-top: 2px; }
-    .nkK__x { position: absolute; top: 8px; right: 10px; border: 0; background: transparent !important; color: #8a90a0 !important; -webkit-text-fill-color: #8a90a0 !important; font-size: 18px; cursor: pointer; }
+    .nkK__l { width: 300px; max-width: 100%; margin: 0 auto; overflow: hidden; background: #fff; border-radius: 4px; box-shadow: 0 1px 4px rgba(20,22,28,.18); }
+    .nkK__l iframe { border: 0; display: block; transform-origin: 0 0; pointer-events: none; background: #fff; }
+    .nkK__x { position: absolute; top: 4px; right: 8px; border: 0; background: transparent !important; color: #8a90a0 !important; -webkit-text-fill-color: #8a90a0 !important; font-size: 18px; cursor: pointer; z-index: 1; }
     .nk__ryad { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0; align-items: center; }
     .nk__osh { color: #c0283c; }
     .nk__ok { color: #1f8a4c; }
@@ -150,23 +146,27 @@
         <label><input type="checkbox" id="nkPov"${SP.povorot && SP.povorot(SP.format()) ? " checked" : ""}> печатает боком — повернуть</label>`;
     }
     document.addEventListener("change", (e) => {
-      if (e.target.id === "nkFormat") { SP.zadatFormat(e.target.value); risovatFmt(); }
+      if (e.target.id === "nkFormat") { SP.zadatFormat(e.target.value); risovatFmt(); risovatPal(); risovatAkty(); risovatStoly(); risovatYach(); }
       if (e.target.id === "nkPov" && SP.zadatPovorot) SP.zadatPovorot(SP.format(), e.target.checked);
     });
 
-    const karta = (vid, imya, poln, shk, niz, data, x) => `<div class="nkK" ${data} title="напечатать эту наклейку">
-      ${x ? `<button type="button" class="nkK__x" ${x} title="убрать">×</button>` : ""}
-      <div class="nkK__vid">${esc(vid)}</div><div class="nkK__imya">${esc(imya)}</div><div class="nkK__poln">${esc(poln || "")}</div>
-      <div class="nkK__shk">${svg(shk)}</div><div class="nkK__kod">${esc(shk)}</div><div class="nkK__niz">${esc(niz || "")}</div></div>`;
+    const PX = 300;
+    function karta(d, data, x) {
+      const f = SP ? SP.format() : "60x30";
+      const [w, h] = f.split("x").map(Number);
+      const prevyu = SP ? `<iframe tabindex="-1" aria-hidden="true" srcdoc="${esc(SP.etiketka(d, f, false))}"
+        style="width:${w}mm;height:${h}mm;transform:scale(${PX / (w * 96 / 25.4)})"></iframe>` : esc(d.shk);
+      return `<div class="nkK" ${data} title="напечатать эту наклейку">${x ? `<button type="button" class="nkK__x" ${x} title="убрать">×</button>` : ""}
+        <div class="nkK__l" style="height:${Math.round(PX * h / w)}px">${prevyu}</div></div>`;
+    }
 
     /* ── паллеты ── */
     let palIdet = "";
     function risovatPal() {
       $("#nkKat").innerHTML = KATEGORII.map((k) => `<button type="button" class="nk__kn" data-nov="${esc(k)}"${palIdet ? " disabled" : ""}>${esc(k)}</button>`).join("");
-      $("#nkPal").innerHTML = st.pal.map((p, i) => karta(p.новая ? "новая паллета" : "паллета", p.имя, p.где || "", p.shk, p.новая ? "создана сейчас" : "",
-        `data-pal="${i}"`, `data-pal-x="${i}"`)).join("") || '<p class="nk__pusto">Пикните наклейку паллеты (CON …) или наберите её номер вверху.</p>';
+      $("#nkPal").innerHTML = st.pal.map((p, i) => karta(palDannye(p), `data-pal="${i}"`, `data-pal-x="${i}"`)).join("") || '<p class="nk__pusto">Пикните наклейку паллеты (CON …) или наберите её номер вверху.</p>';
     }
-    const palDannye = (p) => ({ shk: p.shk, imya: p.имя, kategoriya: p.категория || String(p.имя || "").replace(/-\d+$/, "") });
+    const palDannye = (p) => ({ shk: p.shk, zag: p.категория || String(p.имя || "").replace(/-\d+$/, "") });
     async function sozdatPal(kat) {
       if (palIdet) return;
       palIdet = kat; risovatPal();
@@ -190,7 +190,7 @@
       soob("Ищу паллету в WMS…");
       const o = await fetch(`/__palleta/karta?kod=${encodeURIComponent(kod)}`, { cache: "no-store" });
       const d = await o.json().catch(() => ({}));
-      if (!o.ok) throw new Error(d.ошибка || `сервер ответил ${o.status}`);
+      if (!o.ok || !d.наклейка) throw new Error(d.ошибка || (o.ok ? "паллета не нашлась в WMS" : `сервер ответил ${o.status}`));
       const gde = (d.где || [])[0];
       const p = { shk: d.наклейка, имя: d.паллета, где: gde ? (gde.ячейка || gde.имя || "") : "", штук: d.штук };
       st.pal = [p, ...st.pal.filter((x) => x.shk !== p.shk)].slice(0, 30); sohranit();
@@ -201,8 +201,8 @@
     const nomerAkta = (s) => { const m = String(s || "").match(/(\d{5,12})\s*$/); return m ? String(Number(m[1])) : ""; };
     function risovatAkty() {
       $("#nkAktyN").textContent = st.akty.length ? `· ${st.akty.length}` : "";
-      $("#nkAkty").innerHTML = st.akty.map((a, i) => karta(`Акт №${a.n}`, a.товар ? a.товар.slice(0, 40) : `Акт №${a.n}`, a.категория || "",
-        `ACT ${a.n.padStart(10, "0")}`, a.ждём ? "смотрю товар в WMS…" : "", `data-akt="${i}"`, `data-akt-x="${i}"`)).join("")
+      $("#nkAkty").innerHTML = st.akty.map((a, i) => karta({ shk: `ACT ${a.n.padStart(10, "0")}`, zag: `Акт №${a.n}`, pod: a.товар || "" },
+        `data-akt="${i}"`, `data-akt-x="${i}"`)).join("")
         || '<p class="nk__pusto">Добавьте номер акта — или пикните наклейку ACT вверху.</p>';
       const q = encodeURIComponent(st.akty.map((a) => a.n).join(","));
       $("#nkAktKn").innerHTML = st.akty.length ? `<button type="button" class="nk__kn nk__kn--glav" id="nkAktVse">Печать всех ${st.akty.length}${SP ? " · " + SP.format().replace("x", "×") : ""}</button>
@@ -243,6 +243,7 @@
       if (/^СЦ-ДМД/i.test(n)) return "Уценка СЦ-ДМД";
       return "Уценка ДМД";
     }
+    const stolDannye = (x) => ({ shk: "CEL " + x.id, zag: korot(x.имя) });
     function risovatStoly() {
       const q = $("#nkStolPoisk").value.trim().toLowerCase();
       const vidno = stoly.filter((x) => !q || korot(x.имя).toLowerCase().includes(q) || String(x.id).includes(q));
@@ -252,7 +253,7 @@
       $("#nkStoly").innerHTML = ["Предсорт", "Уценка ДМД", "Отгрузка", "Уценка СЦ-ДМД"].filter((g) => gr[g]).map((g) =>
         `<p class="nk__gr">${g} · ${gr[g].length}</p><div class="nk__setka">${gr[g]
           .sort((a, b) => korot(a.имя).localeCompare(korot(b.имя), "ru", { numeric: true }))
-          .map((x) => karta("стол", korot(x.имя), x.имя, "CEL " + x.id, `${(x.исходы || []).length} решений`, `data-stol="${esc(x.id)}"`)).join("")}</div>`).join("")
+          .map((x) => karta(stolDannye(x), `data-stol="${esc(x.id)}"`)).join("")}</div>`).join("")
         || '<p class="nk__pusto">Ничего не нашлось.</p>';
     }
     fetch("/__akt/stoly", { cache: "no-store" }).then((o) => {
@@ -264,14 +265,14 @@
     /* ── ячейки ── */
     function risovatYach() {
       $("#nkYachN").textContent = st.yach.length ? `· ${st.yach.length}` : "";
-      $("#nkYach").innerHTML = st.yach.map((y, i) => karta("ячейка", y.имя, y.зона || "", "CEL " + y.id, y.склад || "", `data-yach="${i}"`, `data-yach-x="${i}"`)).join("")
+      $("#nkYach").innerHTML = st.yach.map((y, i) => karta({ shk: "CEL " + y.id, zag: y.имя }, `data-yach="${i}"`, `data-yach-x="${i}"`)).join("")
         || '<p class="nk__pusto">Пикните наклейку ячейки (CEL …) или наберите номер ячейки WMS вверху.</p>';
     }
     async function naytiYach(kod) {
       soob("Ищу ячейку в WMS…");
       const o = await fetch(`/__yacheyka/karta?kod=${encodeURIComponent(kod)}`, { cache: "no-store" });
       const d = await o.json().catch(() => ({}));
-      if (!o.ok) throw new Error(d.ошибка || `сервер ответил ${o.status}`);
+      if (!o.ok || !d.ячейка_id) throw new Error(d.ошибка || (o.ok ? "ячейка не нашлась в WMS" : `сервер ответил ${o.status}`));
       const y = { id: String(d.ячейка_id), имя: d.ячейка, зона: d.зона, склад: d.склад };
       st.yach = [y, ...st.yach.filter((x) => x.id !== y.id)].slice(0, 60); sohranit();
       otkryt("yacheyki"); risovatYach(); soob(`${d.ячейка} — клик по карточке печатает`, "nk__ok");
@@ -325,9 +326,9 @@
       const k = t.closest(".nkK");
       if (!k) return;
       if (k.dataset.pal != null) SP.pechat(palDannye(st.pal[+k.dataset.pal]));
-      else if (k.dataset.akt != null) { const a = st.akty[+k.dataset.akt]; SP.pechatAkta(a.n, a.товар, a.категория); }
-      else if (k.dataset.stol != null) { const x = stoly.find((s) => String(s.id) === k.dataset.stol); if (x) SP.pechat({ shk: "CEL " + x.id, imya: x.имя, kategoriya: korot(x.имя) }); }
-      else if (k.dataset.yach != null) { const y = st.yach[+k.dataset.yach]; SP.pechat({ shk: "CEL " + y.id, imya: y.зона || "", kategoriya: y.имя }); }
+      else if (k.dataset.akt != null) { const a = st.akty[+k.dataset.akt]; SP.pechatAkta(a.n, a.товар); }
+      else if (k.dataset.stol != null) { const x = stoly.find((s) => String(s.id) === k.dataset.stol); if (x) SP.pechat(stolDannye(x)); }
+      else if (k.dataset.yach != null) { const y = st.yach[+k.dataset.yach]; SP.pechat({ shk: "CEL " + y.id, zag: y.имя }); }
     });
 
     window.addEventListener("hashchange", () => otkryt(location.hash.slice(1)));
