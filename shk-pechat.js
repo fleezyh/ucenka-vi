@@ -80,7 +80,7 @@
     if (!pod || pod === zag || pod.startsWith(zag) || zag.startsWith(pod) || (cifry && pod.includes(cifry))) pod = "";
     return { shk, zag, pod };
   }
-  const SHIR_BUKVY = 0.55;   // ширина жирной буквы Arial в долях кегля — с запасом вверх, точнее подгоняет PODGON
+  const SHIR_BUKVY = 0.5;   // ширина жирной буквы Arial в долях кегля — с запасом вверх, точнее подгоняет PODGON
   function etiketka(dannye, f, pov = povorot(f)) {
     const { shk, zag, pod } = norm(dannye);
     const [w, h] = FORMATY[f] || FORMATY["60x30"];
@@ -97,32 +97,41 @@
     const mm = (x) => `${Math.round(x * 100) / 100}mm`;
     return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(zag)}</title><style>
       @page { size: ${pw}mm ${ph}mm; margin: 0 }
+      @font-face { font-family: "VI Sans"; src: url("${SHRIFT}VI_Sans_DemiBold.woff2") format("woff2"); font-weight: 600 }
+      @font-face { font-family: "VI Sans"; src: url("${SHRIFT}VI_Sans_Medium.woff2") format("woff2"); font-weight: 500 }
       html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden }
-      body { font-family: Arial, Helvetica, sans-serif; color: #000; -webkit-print-color-adjust: exact; print-color-adjust: exact;
+      body { font-family: "VI Sans", Arial, Helvetica, sans-serif; color: #000; -webkit-print-color-adjust: exact; print-color-adjust: exact;
              display: flex; align-items: center; justify-content: center; background: #fff }
       .l { flex: none; width: ${w}mm; height: ${h}mm; box-sizing: border-box; padding: ${mm(pole)}; display: flex; flex-direction: column;
            align-items: center; justify-content: center; gap: ${mm(vys * 0.04)}; overflow: hidden; text-align: center;
            ${pov ? "transform: rotate(90deg);" : ""} }
       .z, .p, .k { flex: none }
-      .z { font-weight: 700; font-size: ${mm(kegl)}; line-height: 1.08; max-width: 100%; overflow: hidden; padding-bottom: .04em;
+      .z { font-weight: 600; font-size: ${mm(kegl)}; line-height: 1.15; max-width: 100%; overflow: hidden;
            ${dveStroki ? "display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;" : "white-space: nowrap;"} }
-      .p { font-size: ${mm(podKegl)}; line-height: 1.1; max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis }
+      .p { font-weight: 500; font-size: ${mm(podKegl)}; line-height: 1.1; max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis }
       .b { flex: 1 1 auto; min-height: ${mm(vys * 0.3)}; width: 100% }
       .b svg { width: 100%; height: 100%; display: block }
-      .k { font-family: "Courier New", monospace; font-weight: 700; font-size: ${mm(kodKegl)}; line-height: 1; letter-spacing: .04em }
+      .k { font-weight: 600; font-size: ${mm(kodKegl)}; line-height: 1; letter-spacing: .08em }
     </style></head><body><div class="l">
-      <div class="z">${esc(zag)}</div>${pod ? `<div class="p">${esc(pod)}</div>` : ""}
+      <div class="z${dveStroki ? " z2" : ""}">${esc(zag)}</div>${pod ? `<div class="p">${esc(pod)}</div>` : ""}
       <div class="b">${svg(shk, 40)}</div><div class="k">${esc(shk)}</div>
     </div>${PODGON}</body></html>`;
   }
   // 14.10 «название паллеты должно быть целиком»: ширина букв на глаз врёт («МисБокс-0170…» обрезалось) — кегль
   // берём с запасом и уменьшаем по факту, пока заголовок не войдёт целиком (по ширине и по двум строкам).
+  // 14.10 Степан: «хочу вот так, с красивым шрифтом» — VI Sans DemiBold, как карточки сайта (шрифт с сайта по полному адресу:
+  // наклейка печатается из фрейма about:blank). Подгон — после загрузки шрифта, иначе меряется запасной Arial.
+  const SHRIFT = (typeof location !== "undefined" && location.origin && location.origin !== "null" ? location.origin : "") + "/assets/fonts/";
   const PODGON = `<script>(function () {
+    function podgon() {
     var zz = document.querySelectorAll(".z");
     for (var j = 0; j < zz.length; j++) {
       var z = zz[j], s = parseFloat(getComputedStyle(z).fontSize), i = 0;
-      while (i++ < 60 && (z.scrollWidth > z.clientWidth + 0.5 || z.scrollHeight > z.clientHeight + 0.5)) { s *= 0.96; z.style.fontSize = s + "px"; }
+      while (i++ < 60 && (z.scrollWidth > z.clientWidth + 0.5 || (z.classList.contains("z2") && z.scrollHeight > z.clientHeight + 0.5))) { s *= 0.96; z.style.fontSize = s + "px"; }
     }
+    }
+    var f = document.fonts;
+    if (f && f.load) f.load('600 20px "VI Sans"').then(podgon, podgon); else podgon();
   })();</script>`;
 
   /** Печать: скрытый фрейм с этикеткой → окно печати браузера (принтер стола).
@@ -142,7 +151,10 @@
     d.open(); d.write(Array.isArray(dannye) ? pachka(dannye, f) : etiketka(dannye, f)); d.close();
     const pusk = () => {
       const win = fr.contentWindow;
-      const shrifty = win.document.fonts && win.document.fonts.ready ? win.document.fonts.ready : Promise.resolve();
+      // 14.10: VI Sans грузится с сайта — ждём сам шрифт (и подгон кегля под него), потом печать
+      const fs = win.document.fonts;
+      const shrifty = fs && fs.load ? fs.load('600 20px "VI Sans"').catch(() => {}).then(() => fs.ready)
+        : fs && fs.ready ? fs.ready : Promise.resolve();
       // кадры фрейма за экраном Chrome не рисует (rAF там не срабатывает) — ждём таймером главного окна
       shrifty.then(() => setTimeout(() => { win.focus(); win.print(); }, 120));
     };
