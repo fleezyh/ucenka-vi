@@ -880,6 +880,9 @@ function tablica(data) {
     })).sort((a, b) => b.prognoz - a.prognoz);
   }
 
+  // 15.10 Степан «пиздец какой-то»: в ячейке одно число в строку и короткая подпись; причины — в подсказке
+  const mln = (x) => (Number(x) / 1e6).toLocaleString("ru-RU", { maximumFractionDigits: 2 }) + " млн";
+
   function polosa(o, maks, krupno) {
     const sverh = o.raznica > 0;
     return `
@@ -889,14 +892,13 @@ function tablica(data) {
              style="width:${(100 * o.prognoz / maks).toFixed(1)}%"></div>
       </div>
       <div class="zpOtdel__cifry">
-        <span>${rubli(o.fond)}<i>оклады, гросс</i></span>
+        <span>${rubli(o.fond)}<i>оклады ШР</i></span>
         <span>${rubli(o.prognoz)}<i>подадим</i></span>
-        <span class="${sverh ? "zpNad" : "zpPod"}"><b>${sverh ? "+" : ""}${rubli(o.raznica)}</b>
-          <i>${prichina(o)}</i></span>
-        ${o.cel ? `<span class="zpOtdel__cel">${rubli(o.fot)} / ${rubli(o.cel)}
-          <i>ФОТ против цели ШР${o.fot > o.cel
-            ? ", <b class=\"zpNad\">выше на " + rubli(o.fot - o.cel) + "</b>"
-            : ", запас " + rubli(o.cel - o.fot)}</i></span>` : ""}
+        <span class="${sverh ? "zpNad" : "zpPod"}" title="${prichina(o)}"><b>${sverh ? "+" : ""}${rubli(o.raznica)}</b>
+          <i>${Math.abs(o.raznica) < 1000 ? "ровно по окладам" : sverh ? "сверх окладов" : "ниже окладов"}</i></span>
+        ${o.cel ? `<span class="zpOtdel__cel ${o.fot > o.cel ? "zpNad" : "zpPod"}" title="ФОТ со взносами ${rubli(o.fot)} против цели ШР ${rubli(o.cel)}">
+          <b>${o.fot > o.cel ? "выше на " + mln(o.fot - o.cel) : "запас " + mln(o.cel - o.fot)}</b>
+          <i>ФОТ ${mln(o.fot)} из ${mln(o.cel)}</i></span>` : `<span class="zpOtdel__cel"></span>`}
       </div>`;
   }
 
@@ -1202,11 +1204,13 @@ function cheklist() {
   const narisovat = () => {
     const otkrytye = punkty.filter((p) => !p["сделано"]);
     const zakrytye = punkty.filter((p) => p["сделано"]);
-    blockCheklist.innerHTML = `
-      <div class="zpCheklist__shapka">
+    // 15.10 Степан «спрячь это в маленьком блоке»: свёрнут в одну строку, раскрытие помнится
+    const bylOtkryt = blockCheklist.querySelector("details")?.open ?? localStorage.getItem("zpCheklistOtkryt") === "1";
+    blockCheklist.innerHTML = `<details${bylOtkryt ? " open" : ""}>
+      <summary>
         <h2>Что закрыть по зарплате</h2>
         <span class="zpCheklist__schet">открыто ${otkrytye.length} из ${punkty.length}</span>
-      </div>
+      </summary>
       <ul class="zpCheklist__spisok">${otkrytye.map(punktHtml).join("")
         || '<li class="zpCheklist__pusto">Всё закрыто.</li>'}</ul>
       ${zakrytye.length ? `
@@ -1215,7 +1219,10 @@ function cheklist() {
       <form class="zpCheklist__novyy">
         <input name="tekst" type="text" maxlength="500" placeholder="Новый пункт" autocomplete="off">
         <button class="zpView zpView--glavnaya" type="submit">Добавить</button>
-      </form>`;
+      </form></details>`;
+    blockCheklist.querySelector("details").addEventListener("toggle", (e) => {
+      localStorage.setItem("zpCheklistOtkryt", e.target.open ? "1" : "0");
+    });
   };
 
   blockCheklist.addEventListener("change", (event) => {
