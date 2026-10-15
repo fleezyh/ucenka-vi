@@ -12,6 +12,7 @@ const blockMe = document.getElementById("me");
 const blockTeam = document.getElementById("team");
 const blockSvodka = document.getElementById("svodka");
 const note = document.getElementById("note");
+const blockPrava = document.getElementById("prava");
 
 const MESYACY = ["января", "февраля", "марта", "апреля", "мая", "июня",
   "июля", "августа", "сентября", "октября", "ноября", "декабря"];
@@ -1355,19 +1356,30 @@ async function start() {
       // без сводки — только панель
     }
 
+    // 15.10: «Права» — кто кого видит в панели; ручка сама решает, кому отдать (Поснова, админ)
+    let estPrava = false;
+    try {
+      if (window.ZpPrava && blockPrava) estPrava = await window.ZpPrava.podklyuchit(blockPrava);
+      if (estPrava) views.querySelector('[data-view="prava"]').hidden = false;
+    } catch (error) {
+      // без прав — остальные вкладки
+    }
+
     const otkryt = (vid) => {
       document.body.classList.toggle("zp-summary-active", vid === "svodka");
       const zagolovok = document.querySelector(".hero h1");
       const opisanie = document.querySelector(".hero .lead");
-      if (zagolovok) zagolovok.textContent = vid === "svodka" ? "Фонд оплаты труда" : vid === "team" && REZHIM_FOT ? "Панель подачи" : "Моя зарплата";
+      if (zagolovok) zagolovok.textContent = vid === "svodka" ? "Фонд оплаты труда" : vid === "prava" ? "Права и сверка" : vid === "team" && REZHIM_FOT ? "Панель подачи" : "Моя зарплата";
       if (opisanie) opisanie.textContent = vid === "svodka"
         ? "Прогноз расходов, лимит и отклонения по направлениям."
+        : vid === "prava" ? "Кто какие зарплаты видит и вносит — проверить каждого и отметить «Сверено»."
         : "Сколько заработано на сегодня и когда это придёт. Считается каждый день по вашему окладу и фактическим выходам — не нужно ждать конца месяца, чтобы понять, что получится.";
       views.querySelectorAll(".zpView")
         .forEach((item) => item.classList.toggle("is-on", item.dataset.view === vid));
       blockTeam.hidden = vid !== "team";
       blockCheklist.hidden = vid !== "team" || !estCheklist;
       blockSvodka.hidden = vid !== "svodka";
+      if (blockPrava) blockPrava.hidden = vid !== "prava";
       blockMe.hidden = vid !== "me";
       // Своей записи нет — «Моя» показывает, почему пусто.
       if (vid === "me" && !blockMe.innerHTML) {
@@ -1387,7 +1399,7 @@ async function start() {
     // Ссылку на сводку можно переслать: /zp/#svodka открывает её сразу.
     // Без своей записи открываем сводку — это первый экран руководителя.
     const zhelaemyy = location.hash.slice(1);
-    if (zhelaemyy === "team" || (zhelaemyy === "svodka" && estSvodka)) {
+    if (zhelaemyy === "team" || (zhelaemyy === "svodka" && estSvodka) || (zhelaemyy === "prava" && estPrava)) {
       otkryt(zhelaemyy);
     } else if (svoeyNet || REZHIM_FOT) {
       otkryt(estSvodka ? "svodka" : "team");
