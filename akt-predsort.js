@@ -3274,7 +3274,7 @@
   function otkNado() {
     if (!boevoy || !otk || otk.zhdu) return "";
     if (otk.уже_акт) return "Уже заактирована — откройте акт";
-    if ((otk.варианты || []).length && !otkVybor) return "Выберите, откуда взяли";
+    if ((otk.варианты || []).length && !otkVybor && !otk.заведу) return "Выберите, откуда взяли";
     return "";
   }
   function otkudaTelo(otkuda) {
@@ -3300,7 +3300,7 @@
     if (otk.на_столе) return `${zag}<p class="otkOk">✓ по WMS уже на столе</p>`;
     if (otk.уже_акт) return `${zag}<p class="aktPs__net"><b class="aktPs__oshibka">${esc(otk.уже_акт.текст)}</b></p>
       <div class="aktPs__vopros"><button type="button" class="aktPs__kn is-on" data-otk-akt="${esc(otk.уже_акт.акт)}">Открыть акт ${esc(otk.уже_акт.акт)}</button></div>`;
-    if (otk.заведу) return `${zag}<p class="otkOk">✓ ${esc(otk.заведу)}</p>`;   // 13.10: не чужой акт из остатков, а излишек
+    if (otk.заведу && !(otk.варианты || []).length) return `${zag}<p class="otkOk">✓ ${esc(otk.заведу)}</p>`;   // 13.10: не чужой акт из остатков, а излишек
     if (otk.нет) return `${zag}<p class="aktPs__net"><b class="aktPs__oshibka">${esc(otk.нет)}</b></p>`;
     if (otk.буфер && otk.сам) return `${zag}<p class="otkOk">✓ возьму из «${mesto(otk.сам)}» на стол</p>`;
     const v = otk.варианты || [];
@@ -3308,7 +3308,8 @@
     const eto = (x) => vy && x.ячейка === vy.ячейка && (x.зона || "") === (vy.зона || "") && (x.контейнер || "") === (vy.контейнер || "");
     const vidno = v.slice(0, 8);
     const vybrano = vy ? `<p class="otkOk">✓ ${vy.ячейка ? mesto(vy) : vy.id ? `ячейка CEL ${esc(vy.id)}` : `паллета ${esc(vy.контейнер)}`} → перенесу на стол</p>` : "";
-    return `${zag}${vybrano || '<p class="aktPs__podskaz">Пикните ячейку (CEL) или паллету (CON), откуда взяли, — или нажмите:</p>'}
+    // 15.10: варианты только в «потерях» — выбрать можно, не выбрали — излишек (otk.заведу)
+    return `${zag}${vybrano || (otk.заведу ? `<p class="aktPs__podskaz">${esc(otk.заведу)}</p>` : '<p class="aktPs__podskaz">Пикните ячейку (CEL) или паллету (CON), откуда взяли, — или нажмите:</p>')}
       <div class="otkVar">${vidno.map((x, i) => `<button type="button" class="aktPs__kn${eto(x) ? " is-on" : ""}" data-otk="${i}">${mesto(x)} · ${esc(x.штук)} шт</button>`).join("")}</div>
       ${v.length > vidno.length ? `<p class="aktPs__chto">и ещё ${v.length - vidno.length} мест — пикните ячейку или паллету, откуда взяли</p>` : ""}`;
   }
