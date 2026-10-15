@@ -1127,53 +1127,6 @@
     return wrap;
   }
 
-  // --- 15.10 Бэклог живьём из ВМС ------------------------------------------------
-  // Степан: «сделай для начала бэклог в хитмапе в реалтайме, как в пикалке… забирать из вмс». Регистр остатков
-  // в хранилище грузится раз в сутки — плитка вечером показывала склад на 02:25 ночи. task_backlog_zhivo.py раз
-  // в 2 минуты берёт из ВМС «Загрузку зон» и пишет data/backlog_zhivo.json; здесь — число плитки, если выбран
-  // период, в который входит сегодня, и колонка «сейчас» в разрезе по зонам. Деньги остаются из хранилища.
-  let zhivo = null;
-
-  async function zhivoPull() {
-    try {
-      const answer = await fetch("../data/backlog_zhivo.json", { cache: "no-store" });
-      zhivo = answer.ok ? await answer.json() : null;
-    } catch { zhivo = null; }
-    // старше 15 минут — задача встала: живым не притворяемся
-    if (zhivo && Date.now() - new Date(zhivo.посчитано).getTime() > 15 * 60 * 1000) zhivo = { ...zhivo, staroe: true };
-    return zhivo;
-  }
-
-  function periodSegodnya(key) {
-    if (!key) return false;
-    const { start, end } = periodBounds(key);
-    const t = new Date();
-    return t >= start && t < new Date(end.getFullYear(), end.getMonth(), end.getDate() + 1);
-  }
-
-  function zhivoNaPlitke() {
-    if (!zhivo || zhivo.staroe || !grid || !periodSegodnya(periodSelect.value)) return;
-    const cell = grid.querySelector('[data-metric="backlog"]');
-    if (!cell) return;
-    const value = cell.querySelector(".tile__value");
-    const text = value?.firstChild;
-    if (text && text.nodeType === 3) {
-      text.textContent = (zhivo.штук / 1000).toLocaleString("ru-RU", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " тыс";
-    }
-    let metka = cell.querySelector(".tile__zhivo");
-    if (!metka) {
-      metka = document.createElement("span");
-      metka.className = "tile__zhivo";
-      cell.querySelector(".tile__head")?.append(metka);
-    }
-    metka.textContent = `живьём ${zhivo.время}`;
-    metka.title = `Штуки — из ВМС сейчас (${zhivo.время}), обновляется раз в 2 минуты. ${zhivo.как}. `
-      + `Деньги и точки по неделям — из хранилища, регистр на ${zhivo.исключения_на}.`;
-  }
-
-  zhivoPull().then(zhivoNaPlitke);
-  setInterval(() => { if (!document.hidden) zhivoPull().then(zhivoNaPlitke); }, 60 * 1000);
-
   function backlogZoneRow(zone, data, table) {
     const istoriya = data.история || [];
     const pervyy = istoriya[0];
@@ -1184,13 +1137,8 @@
     const row = document.createElement("tr");
     row.className = "zones__row";
     const znak = change === null ? "" : change > 0 ? "up" : change < 0 ? "down" : "flat";
-    const seychas = zhivo && !zhivo.staroe ? zhivo.по_зонам.find((z) => z.зона === zone.зона) : null;
-    const sdvig = seychas ? seychas.штук - zone.штук : 0;
     row.innerHTML = `<td>${zone.зона}</td>`
       + `<td class="zones__num">${shtuki(zone.штук)}</td>`
-      + (zhivo && !zhivo.staroe ? `<td class="zones__num zones__zhivo">${seychas ? shtuki(seychas.штук) : "—"}`
-        + (seychas && sdvig ? `<small class="zones__${sdvig > 0 ? "up" : "down"}">${sdvig > 0 ? "+" : "−"}${shtuki(Math.abs(sdvig))}</small>` : "")
-        + "</td>" : "")
       + `<td class="zones__num">${Math.round((zone.штук / vsego) * 100)}%</td>`
       + `<td class="zones__num">${shtuki(zone.sku)}</td>`
       + `<td class="zones__num">${shtuki(zone.контейнеров)}</td>`
@@ -1207,7 +1155,7 @@
     podrobno.className = "zones__days";
     podrobno.hidden = true;
     const cell = document.createElement("td");
-    cell.colSpan = zhivo && !zhivo.staroe ? 7 : 6;
+    cell.colSpan = 6;
     cell.append(zonaGrafik(istoriya, zone.зона));
     podrobno.append(cell);
 
@@ -1447,7 +1395,7 @@
     lead.textContent = "собираю разрез по зонам…";
     box.append(title, lead);
 
-    Promise.all([backlogPull(), zhivoPull()]).then(([data]) => {
+    backlogPull().then((data) => {
       if (!data || !data.по_зонам?.length) { box.remove(); return; }
 
       const istoriya = data.история || [];
@@ -1461,13 +1409,8 @@
 
       const table = document.createElement("table");
       table.className = "zones__table";
-      const estZhivo = zhivo && !zhivo.staroe;
-      table.innerHTML = `<thead><tr><th>Зона</th><th>Штук · хранилище</th>${estZhivo ? `<th>Сейчас · ВМС ${zhivo.время}</th>` : ""}`
-        + "<th>Доля</th><th>SKU</th><th>Контейнеров</th><th>За период</th></tr></thead>";
-      if (estZhivo) {
-        lead.textContent = `Сейчас по ВМС ${shtuki(zhivo.штук)} штук (${zhivo.время}, раз в 2 минуты) · `
-          + `в хранилище ${shtuki(data.штук)} — регистр на ${zhivo.исключения_на || data.посчитано}. ` + lead.textContent;
-      }
+      table.innerHTML = "<thead><tr><th>Зона</th><th>Штук</th><th>Доля</th><th>SKU</th>"
+        + "<th>Контейнеров</th><th>За период</th></tr></thead>";
       const body = document.createElement("tbody");
       data.по_зонам.forEach((zone) => backlogZoneRow(zone, data, body));
       table.append(body);
@@ -2238,7 +2181,6 @@
     for (const tile of shown) box.appendChild(renderTile(tile));
     grid = box;
     tiles.replaceChildren(renderSummary(sorted), box);
-    zhivoNaPlitke();
 
     // Раскрытая метрика переживает смену периода и фильтра, если она осталась
     // на экране: иначе при переключении месяца панель молча исчезала.
