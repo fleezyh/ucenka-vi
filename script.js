@@ -946,15 +946,21 @@
   // (ACT/CON/CEL + цифры) — русские названия товаров не трогаем.
   const RU = "ёйцукенгшщзхъфывапролджэячсмитьбю";
   const EN = "`qwertyuiop[]asdfghjkl;'zxcvbnm,.";
+  // 15.10 (Бессонов «-СЩТ 0170505993», Евсеева «89жзФСЕ 0005243023», Вдовин «002 15530170ФСЕ 0005264673» — 20 «не найдено»
+  // за день): в поле оставался хвост прошлого ввода, и наклейка не узнавалась. Наклейку ищем в любом месте строки —
+  // последнюю, в любой раскладке; без наклейки строка остаётся как есть (названия товаров не трогаем).
   function latinica(kod) {
     const s = String(kod || "");
-    if (!/[а-яё]/i.test(s)) return s;
     const lat = [...s].map((ch) => {
       const i = RU.indexOf(ch.toLowerCase());
       if (i < 0) return ch;
       return ch === ch.toLowerCase() ? EN[i] : EN[i].toUpperCase();
     }).join("");
-    return /^(ACT|CON|CEL)\s?\d{5,12}$/i.test(lat) ? lat.toUpperCase() : s;
+    // перед наклейкой не латинская буква в исходной строке («Fact 123456» в названии — не акт)
+    const vse = [...lat.matchAll(/(ACT|CON|CEL)\s?(\d{5,12})/gi)].filter((x) => !(x.index > 0 && /[A-Za-z]/.test(s[x.index - 1])));
+    if (!vse.length) return s;
+    const m = vse[vse.length - 1];
+    return `${m[1].toUpperCase()} ${m[2]}`;
   }
   window.latinica = latinica;
 
