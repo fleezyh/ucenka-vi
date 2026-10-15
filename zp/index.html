@@ -10,7 +10,7 @@
   <link rel="preload" href="../assets/fonts/VI_Sans_Medium.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="../style.css?v=20260911-3">
   <link rel="stylesheet" href="../grafik.css?v=20260929-1">
-  <link rel="stylesheet" href="zp.css?v=20261015-szhato">
+  <link rel="stylesheet" href="zp.css?v=20261015-lyudi">
   <link rel="stylesheet" href="../reeded-bg.css?v=20260907-6">
   <link rel="stylesheet" href="../site-header.css?v=20261005-2">
   <link rel="stylesheet" href="../kabinet.css?v=20261006-7">
@@ -18,7 +18,8 @@
   <script src="../grafik.js?v=20260929-1" defer></script>
   <script src="svodka.js?v=20260929-1" defer></script>
   <script src="prava.js?v=20261015-1" defer></script>
-  <script src="zp.js?v=20261015-szhato" defer></script>
+  <script src="lyudi.js?v=20261015-1" defer></script>
+  <script src="zp.js?v=20261015-lyudi" defer></script>
   <script src="../nav.js?v=20261012-3pl" defer></script>
   <script src="../kabinet.js?v=20261006-6" defer></script>
 </head>
@@ -57,6 +58,7 @@
           <button class="zpView is-on" type="button" data-view="me">Моя</button>
           <button class="zpView" type="button" data-view="svodka" hidden>ФОТ</button>
           <button class="zpView" type="button" data-view="team">Панель</button>
+          <button class="zpView" type="button" data-view="lyudi" hidden>Люди</button>
           <button class="zpView" type="button" data-view="prava" hidden>Права</button>
         </nav>
         <p class="stamp" id="stamp"></p>
@@ -72,6 +74,8 @@
     <section class="card zpCheklist" id="cheklist" hidden></section>
     <!-- 15.10: права и сверка — кто кого видит в панели (Поснова, админ) -->
     <section class="card zpPrava" id="prava" hidden></section>
+    <!-- 15.10: справочник людей департамента — база 1С + расчёт + правки -->
+    <section class="card zpLyudi" id="lyudi" hidden></section>
 
     <p class="stockNote" id="note" hidden>
       Оклад берётся из формы, которой ваш руководитель подаёт зарплату в 1С, —

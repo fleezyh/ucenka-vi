@@ -13,6 +13,7 @@ const blockTeam = document.getElementById("team");
 const blockSvodka = document.getElementById("svodka");
 const note = document.getElementById("note");
 const blockPrava = document.getElementById("prava");
+const blockLyudi = document.getElementById("lyudi");
 
 const MESYACY = ["января", "февраля", "марта", "апреля", "мая", "июня",
   "июля", "августа", "сентября", "октября", "ноября", "декабря"];
@@ -1372,14 +1373,24 @@ async function start() {
       // без прав — остальные вкладки
     }
 
+    // 15.10: «Люди» — справочник департамента: база 1С + расчёт + правки (смотрят кто видит всех, правит админ)
+    let estLyudi = false;
+    try {
+      if (window.ZpLyudi && blockLyudi) estLyudi = await window.ZpLyudi.podklyuchit(blockLyudi);
+      if (estLyudi) views.querySelector('[data-view="lyudi"]').hidden = false;
+    } catch (error) {
+      // без справочника — остальные вкладки
+    }
+
     const otkryt = (vid) => {
       document.body.classList.toggle("zp-summary-active", vid === "svodka");
       const zagolovok = document.querySelector(".hero h1");
       const opisanie = document.querySelector(".hero .lead");
-      if (zagolovok) zagolovok.textContent = vid === "svodka" ? "Фонд оплаты труда" : vid === "prava" ? "Права и сверка" : vid === "team" && REZHIM_FOT ? "Панель подачи" : "Моя зарплата";
+      if (zagolovok) zagolovok.textContent = vid === "svodka" ? "Фонд оплаты труда" : vid === "prava" ? "Права и сверка" : vid === "lyudi" ? "Люди департамента" : vid === "team" && REZHIM_FOT ? "Панель подачи" : "Моя зарплата";
       if (opisanie) opisanie.textContent = vid === "svodka"
         ? "Прогноз расходов, лимит и отклонения по направлениям."
         : vid === "prava" ? "Кто какие зарплаты видит и вносит — проверить каждого и отметить «Сверено»."
+        : vid === "lyudi" ? "Все трудоустроенные по 1С, включая ВИ Сервис: кто подаёт, оклад, блок — с правкой и историей."
         : "Сколько заработано на сегодня и когда это придёт. Считается каждый день по вашему окладу и фактическим выходам — не нужно ждать конца месяца, чтобы понять, что получится.";
       views.querySelectorAll(".zpView")
         .forEach((item) => item.classList.toggle("is-on", item.dataset.view === vid));
@@ -1387,6 +1398,7 @@ async function start() {
       blockCheklist.hidden = vid !== "team" || !estCheklist;
       blockSvodka.hidden = vid !== "svodka";
       if (blockPrava) blockPrava.hidden = vid !== "prava";
+      if (blockLyudi) blockLyudi.hidden = vid !== "lyudi";
       blockMe.hidden = vid !== "me";
       // Своей записи нет — «Моя» показывает, почему пусто.
       if (vid === "me" && !blockMe.innerHTML) {
@@ -1406,7 +1418,7 @@ async function start() {
     // Ссылку на сводку можно переслать: /zp/#svodka открывает её сразу.
     // Без своей записи открываем сводку — это первый экран руководителя.
     const zhelaemyy = location.hash.slice(1);
-    if (zhelaemyy === "team" || (zhelaemyy === "svodka" && estSvodka) || (zhelaemyy === "prava" && estPrava)) {
+    if (zhelaemyy === "team" || (zhelaemyy === "svodka" && estSvodka) || (zhelaemyy === "prava" && estPrava) || (zhelaemyy === "lyudi" && estLyudi)) {
       otkryt(zhelaemyy);
     } else if (svoeyNet || REZHIM_FOT) {
       otkryt(estSvodka ? "svodka" : "team");
