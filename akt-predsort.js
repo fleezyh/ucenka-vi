@@ -1453,6 +1453,7 @@
         if (e.target.closest("[data-stop-otlozhil]")) stopOtlozhil();
         else if (e.target.closest("[data-stop-snova]")) stopProverit();
         else if (e.target.closest("[data-stop-prinyat]")) stopPrinyat();
+        else if (e.target.closest("[data-stop-novyy]")) novyyVmesto();
       });
     }
     el.innerHTML = `<div class="aktStop__okno">
@@ -1522,6 +1523,13 @@
     else if (d.шаг === "принят") h = `<p class="aktStop__vpOsh">${esc(String(d.текст).replace(/ — пикните акт снова$/, ""))}, `
       + "но места по акту WMS ещё не показывает — подождите минуту и нажмите «Проверить ещё раз»</p>";
     else if (d.текст || d.ошибка) h = `<p class="aktStop__vpOsh">${esc(d.ошибка || d.текст)}</p>`;
+    // 15.10 Гамлет «пусть заводит»: мёртвый акт (в WMS ни движений, ни остатка / помечен на удаление), штука в руках —
+    // пикалка сама заводит её излишком и актирует новым актом с тем же товаром и дефектом
+    if (!d.zhdu && !d.idet && (d.шаг === "нет" || (d.шаг === "расхождение" && d.perechitano))) {
+      h += d.novIdet ? '<p class="aktStop__vpChto">завожу штуку излишком, переношу на стол и создаю новый акт… (до минуты)</p>'
+        : `<button type="button" class="aktStop__vpDa" data-stop-novyy="1">Штука у меня — завести излишком и заактировать новым актом</button>
+           <p class="aktStop__vpChto">старый акт останется как есть; новую наклейку пикалка напечатает — наклейте поверх старой${stol ? "" : ". Сначала пикните наклейку своего стола (CEL …)"}</p>`;
+    }
     el.innerHTML = h;
     // 13.10 Будаев: у списанного и мёртвого акта «когда его примут, пикните снова» — неправда, примут его только излишком
     const chto = el.closest(".aktStop__okno")?.querySelector(".aktStop__chto");
@@ -1604,6 +1612,31 @@
       }
     } catch (e) { if (stopAkt && stopAkt.акт === a.акт) vp = { ошибка: e.message || String(e), akt: a.акт }; }
     vpRisovat();
+  }
+  async function novyyVmesto() {
+    const a = stopAkt;
+    if (!a || !vp || vp.novIdet) return;
+    if (!stol) { vp = { ...vp, ошибка: "сначала пикните наклейку своего стола (CEL …) — на него встанет штука" }; vpRisovat(); return; }
+    const bylo = vp;
+    vp = { ...bylo, novIdet: true, ошибка: null }; vpRisovat();
+    try {
+      const o = await fetch("/__akt/novyy_vmesto", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ акт: a.акт, стол_id: stol.id }) });
+      const d = await o.json().catch(() => ({}));
+      if (d.нужен_вход) throw new Error("войдите в WMS (кнопка вверху) — акт создаётся от вашего имени");
+      if (!o.ok || !d.готово) throw new Error(d.ошибка || `сервер ответил ${o.status}`);
+      PikIst.dobavit({ vid: "акт", kod: `ACT ${String(d.акт).padStart(10, "0")}`, akt: d.акт, n: d.товар || a.товар || "",
+        itog: `новый акт вместо мёртвого ${a.акт}`, ok: true });
+      stopSnyat();
+      signal(`Новый акт ${d.акт} вместо мёртвого ${a.акт}: штука заведена излишком и стоит на столе. Наклейте новую наклейку поверх старой и пикните паллету.`);
+      window.pikalkaZvuk && window.pikalkaZvuk("ok");
+      if (window.ShkPechat && window.ShkPechat.pechatAkta) window.ShkPechat.pechatAkta(d.акт, d.товар || a.товар, d.категория || a.категория);
+      aktPosl = { kod: "", t: 0 };
+      otkrytAkt(`ACT ${String(d.акт).padStart(10, "0")}`);
+    } catch (e) {
+      vp = { ...bylo, novIdet: false, ошибка: `не вышло: ${e.message || e}` };
+      vpRisovat();
+    }
   }
   async function stopPrinyat() {
     const a = stopAkt;
