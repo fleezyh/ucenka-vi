@@ -224,12 +224,16 @@
     if (!sp.length || localStorage.getItem("pikalka-zastryali-skryto") === klyuch) { if (el) el.remove(); return; }
     if (!el) { el = document.createElement("div"); el.id = "cZastryali"; el.className = "cZastryali"; document.body.appendChild(el); }
     const e = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-    el.innerHTML = `<b>${sp.length} шт не доехали из транзита СЦ→ДМД</b>
-      <span>Физически они на паллетах, куда вы их пикнули, по WMS — в «СЦ-ДМД Перемещение ФБ на РЦ». Не перекладывайте — Рысакову сообщено.</span>
-      <ul>${sp.slice(0, 6).map((x) => `<li>${e(x.товар)} · акт ${e(x.акт)} → ${e(x.паллета)} <small>${e(x.когда)} · ${e(x.причина)}</small></li>`).join("")}</ul>
-      ${sp.length > 6 ? `<small>…и ещё ${sp.length - 6}</small>` : ""}
-      <button type="button" data-zastryali-skryt>скрыть</button>`;
+    // 15.10 Степан: «зачем ты всё это показываешь — уже пол-экрана занимает». Одна строка внизу; список — по клику,
+    // без технических причин (человеку тут делать нечего: штуки на паллетах, круг доведёт сам, Рысакову сообщено).
+    const otkryto = el.classList.contains("is-otkr");
+    el.innerHTML = `<button type="button" class="cZastryali__str" data-zastryali-otkr>${sp.length} шт ещё едут по WMS из транзита · ${otkryto ? "свернуть" : "какие"}</button>
+      <button type="button" class="cZastryali__x" data-zastryali-skryt title="скрыть">×</button>
+      ${otkryto ? `<p class="cZastryali__pod">Они на паллетах, куда вы их пикнули. Не перекладывайте — круг доведёт сам, Рысакову сообщено.</p>
+      <ul>${sp.slice(0, 12).map((x) => `<li>акт ${e(x.акт)} · ${e(String(x.товар).slice(0, 40))} → ${e(x.паллета)}</li>`).join("")}</ul>
+      ${sp.length > 12 ? `<small>…и ещё ${sp.length - 12}</small>` : ""}` : ""}`;
     el.querySelector("[data-zastryali-skryt]").onclick = () => { localStorage.setItem("pikalka-zastryali-skryto", klyuch); el.remove(); };
+    el.querySelector("[data-zastryali-otkr]").onclick = () => { el.classList.toggle("is-otkr"); risovatZastryali(); };
   }
   // Каждый запрос пикалки в ВМС/ВТИС — вспышка нужного слова (ответ с ошибкой — красная)
   const fetchBez = window.fetch.bind(window);
@@ -243,7 +247,8 @@
     } catch (e) { if (id) vspyshka(id, true); throw e; }
   };
   setTimeout(proveritSvyaz, 800);
-  setInterval(() => { if (vklWms) proveritSvyaz(); }, 300000);
+  // 15.10: раз в минуту — разобранные штуки пропадают из «не доехали» сразу, а не через 5 минут
+  setInterval(() => { if (vklWms) proveritSvyaz(); }, 60000);
 
   function obnovitRezhim() {
     const m = B.dataset.mode || "ucenka";
