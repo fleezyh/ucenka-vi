@@ -3349,7 +3349,13 @@
   const pechatSvezhego = (n) => `<div class="aktPs__vopros svezhPechat">
       <button type="button" class="aktPs__kn is-on" data-akt-pechat="1">Наклейка акта${window.ShkPechat ? ` ${window.ShkPechat.format().replace("x", "×")}` : ""}</button>
       <a class="aktPs__kn" target="_blank" rel="noopener" href="/__akt/pechat?forma=akt&akty=${encodeURIComponent(n)}">Акт A4</a></div>`;
+  let aktIdet = false;   // 16.10: двойное нажатие «Заактировать» слало два запроса на одну штуку
   async function aktirovat(otkuda) {
+    if (aktIdet) return;
+    aktIdet = true;
+    try { await aktirovatOdin(otkuda); } finally { aktIdet = false; }
+  }
+  async function aktirovatOdin(otkuda) {
     otkudaVar = [];
     const kn = document.getElementById("aktPsGo");
     kn.disabled = true;
@@ -3368,6 +3374,7 @@
                 стол_id: stol ? stol.id : null, ...otkudaTelo(otkuda) }),
         });
         const d = await otvet.json().catch(() => ({}));
+        if (d.дубль) return;   // этот акт уже создаётся другим запросом — его ответ и покажем
         if (d.нужен_вход || /сессия вмс закончилась/.test(d.ошибка || "")) {
           vms = { подключено: false }; formaVhoda = true; oshibkaVhoda = "войдите в WMS, потом снова «Заактировать»";
           risovat(); return;
