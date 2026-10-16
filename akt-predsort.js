@@ -464,7 +464,8 @@
       ${plashkaVms()}${formaVms()}
       <div class="cSeg">${vkladki.map(([k, t]) => `<button type="button" class="${k === tab ? "is-on" : ""}" data-ptab="${k}"${zanyato && k !== tab ? " disabled" : ""}>${t}</button>`).join("")}</div>
       <div class="cDey__telo">${tab === "sverka" ? blokSverki() : tab === "per" ? blokPeremeshcheniya() : tab === "db" ? blokDb() : niz}</div>
-      <div class="cDey__niz"><button type="button" class="aktPs__kn" data-pkk="istoriya">История</button>
+      <div class="cDey__niz"><button type="button" class="aktPs__kn is-on" data-pkk="na-dvk"${zanyato || dvkRezhim ? " disabled" : ""} title="переместить паллету в «Буфер входа в ДВК со столов уценки» — если на неё ничего не едет">Закрыть — на ДВК</button>
+        <button type="button" class="aktPs__kn" data-pkk="istoriya">История</button>
         <button type="button" class="aktPs__kn" data-pkk="uz">Задание</button></div>`);
   }
 
@@ -654,27 +655,27 @@
       telo = `<p class="aktPs__net"><b class="aktPs__oshibka">${esc(p.oshibka)}</b></p>
         <button type="button" class="aktPs__kn" data-pkk="per-net">Закрыть</button>`;
     }
-    return `<div class="aktPs__palleta palPer"><p class="aktPs__zag">${vseVybrany() ? "Переместить паллету" : "Переместить выбранное"}</p>${telo}</div>`;
+    return `<div class="aktPs__palleta palPer"><p class="aktPs__zag">${p.naDvk ? "Закрыть — на ДВК" : vseVybrany() ? "Переместить паллету" : "Переместить выбранное"}</p>${telo}</div>`;
   }
 
-  async function peremestitPalletu(yach, sohranit, naPal = "") {
+  async function peremestitPalletu(yach, sohranit, naPal = "", naDvk = false) {
     // Часть паллеты едет только на другую паллету — сначала спросим её.
-    if (!vseVybrany() && !naPal) { palPer = { zhdemPal: true, yach }; risovat(); vFokus(); return; }
-    palPer = { idet: sohranit ? "Создаю перемещение в WMS…" : "Проверяю в WMS — до полуминуты…", yach, naPal };
+    if (!naDvk && !vseVybrany() && !naPal) { palPer = { zhdemPal: true, yach }; risovat(); vFokus(); return; }
+    palPer = { idet: sohranit ? "Создаю перемещение в WMS…" : naDvk ? "Проверяю, не едет ли что-то ещё на паллету, и WMS…" : "Проверяю в WMS — до полуминуты…", yach, naPal, naDvk };
     risovat();
     try {
       const o = await fetch("/__akt/palleta/peremestit", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ паллета: String(pal.паллета_id || pal.паллета), ячейка: yach, сохранить: sohranit,
-          строки: vyborDlyaServera(), на_паллету: naPal || "" }),
+          строки: naDvk ? null : vyborDlyaServera(), на_паллету: naPal || "", на_двк: naDvk }),
       });
       const d = await o.json().catch(() => ({}));
       if (d.нужен_вход) { vms = { подключено: false }; formaVhoda = true; oshibkaVhoda = "войдите в WMS, потом «Переместить» ещё раз"; palPer = { predv: palPer.predv || null, yach }; risovat(); return; }
       if (!o.ok) throw new Error(d.ошибка || `сервер ответил ${o.status}`);
-      palPer = d.готово ? { gotovo: d } : { predv: d, yach, naPal };
+      palPer = d.готово ? { gotovo: d, naDvk } : { predv: d, yach: naDvk ? "двк" : yach, naPal, naDvk };
       if (d.готово && navigator.vibrate) navigator.vibrate(150);
     } catch (e) {
-      palPer = { oshibka: e.message || String(e) };
+      palPer = { oshibka: e.message || String(e), naDvk };
     }
     risovat();
     vFokus();
@@ -3669,7 +3670,8 @@
           .then((d) => { istP = d; }).catch((err) => { istP = { oshibka: err.message || String(err) }; })
           .finally(() => { if (pal) risovat(); });
       }
-      if (pkk.dataset.pkk === "per-da" && palPer && palPer.yach) peremestitPalletu(palPer.yach, true, palPer.naPal || "");
+      if (pkk.dataset.pkk === "per-da" && palPer && palPer.yach) peremestitPalletu(palPer.naDvk ? "" : palPer.yach, true, palPer.naPal || "", !!palPer.naDvk);
+      if (pkk.dataset.pkk === "na-dvk") peremestitPalletu("", false, "", true);
       if (pkk.dataset.pkk === "per-net") { palPer = null; risovat(); vFokus(); }
       if (pkk.dataset.pkk === "db") { dbKuda = ""; dbNeBrak = ""; zakazDb(false); }
       if (pkk.dataset.pkk === "db-da" && palDb && palDb.predv) zakazDb(true);
