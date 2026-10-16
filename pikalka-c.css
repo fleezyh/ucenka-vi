@@ -1084,3 +1084,23 @@ body.cSkin .cField .cField__ico{display:none}
 body.is-svetlo .cZastryali{background:#fff7ea;color:#5a3a00;border-color:#e0a83a}
 body.is-svetlo .cZastryali__str{color:#9a5b00!important}
 body.is-svetlo .cZastryali__pod{color:#7a5520}
+
+/* 16.10 «Выгрузка всех» в истории пиков */
+.cVyg { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 6px 0 10px; padding: 10px 12px; border: 1px solid var(--line, rgba(255,255,255,.12)); border-radius: 12px; font-size: 13px; }
+.cVyg label { display: inline-flex; align-items: center; gap: 6px; }
+.cVyg input[type=date] { padding: 4px 6px; border-radius: 8px; border: 1px solid var(--line, rgba(255,255,255,.18)); background: transparent; color: inherit; font: inherit; }
+
+/* 16.10 пачка — массовое актирование */
+.pachka { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 6px; }
+.pachka__s { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto auto; align-items: center; gap: 10px; padding: 8px 12px; border: 1px solid var(--line, rgba(255,255,255,.12)); border-radius: 12px; }
+.pachka__s.is-ok { border-color: rgba(60, 207, 122, .55); }
+.pachka__s.is-osh { border-color: rgba(240, 93, 114, .65); }
+.pachka__n { opacity: .6; font-size: 13px; text-align: right; }
+.pachka__t b { display: block; font-weight: 600; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pachka__t small { opacity: .65; font-size: 12px; }
+.pachka__def { width: 170px; padding: 6px 10px; border-radius: 9px; border: 1px solid var(--line, rgba(255,255,255,.18)); background: transparent; color: inherit; font: inherit; font-size: 13px; }
+.pachka__akt { padding: 6px 12px; border-radius: 9px; border: 1px solid rgba(60, 207, 122, .6); background: transparent; color: #3ccf7a; font: inherit; font-size: 13px; cursor: pointer; }
+.pachka__idet { font-size: 13px; opacity: .75; }
+.pachka__osh { grid-column: 2 / -1; color: #ff8f9f; font-size: 12.5px; }
+.pachka__x { border: 0; background: none; color: inherit; opacity: .55; font-size: 18px; cursor: pointer; }
+.pachka__x:hover { opacity: 1; }

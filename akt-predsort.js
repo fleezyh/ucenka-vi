@@ -126,6 +126,9 @@
     { k: "некомплект", имя: "Некомплект" },   // 08.10 Шелехов: в акте — комплектность неполная, без «мех. повреждения»
   ];
   let tovar = null;
+  // 16.10 Шелехов: «массовое актирование — пикнул 10–15 штрихкодов подряд, и сразу можно было всё это заактировать».
+  // Пачка: каждый пик товара — строка; решение, крит/косм и дефект общие, у строки можно свой дефект.
+  let pachka = null;     // {stroki: [{t, svoy, akt, osh, idet}], idet, osh}
   // 08.10 Шелехов: «сначала выбрать ячейку, откуда дёргать, потом дефект — а сейчас в конце и как ошибка, и долго».
   // При пике товара сразу спрашиваем вмс, где он на складе стола, пока человек выбирает крит и дефект.
   let otk = null;        // {zhdu} | ответ /__akt/otkuda: на_столе | сам | варианты | уже_акт | нет | ошибка
@@ -2910,6 +2913,7 @@
     if (massPik && massAktViewing && aktK) { box.hidden = false; risovatAkt(); box.insertAdjacentHTML("afterbegin", knopkaNazad()); return; }
     if (massPik) { box.hidden = false; vRezhimPalety(true); risovatKorzinu(); return; }
     if (aktK && !pal) { box.hidden = false; risovatAkt(); box.insertAdjacentHTML("afterbegin", knopkaNazad()); return; }
+    if (pachka && !pal) { box.hidden = false; risovatPachku(); return; }
     if (yach && !pal) { box.hidden = false; risovatYacheyku(); return; }
     if (pal) { box.hidden = false; risovatPalletu(); box.insertAdjacentHTML("afterbegin", knopkaNazad()); return; }
     if (!tovar && vyborStola) {
@@ -2928,7 +2932,8 @@
     const shapka = `<header class="aktPs__shapka">
         <div><p class="aktPs__nad">${stol ? esc(stol.имя.replace(/^ФБ \(ДМД\) /, "")) : "Стол не выбран"}</p>
           <p class="aktPs__rezhim">${stol ? `сменить — пикните наклейку другого стола, <button type="button" class="vmsSmenit" data-smenit-stol="1">выберите</button> или <button type="button" class="vmsSmenit" data-stol-sbros="1">сбросить</button>` : "пикните наклейку стола (CEL …) — появятся его решения"}${
-            boevoy ? "" : " · демо"}${zaSmenu ? ` · за смену ${zaSmenu}` : ""}</p></div>
+            boevoy ? "" : " · демо"}${zaSmenu ? ` · за смену ${zaSmenu}` : ""}${
+            stol ? ` · <button type="button" class="vmsSmenit" data-pachka-vkl="1">актировать пачкой</button>` : ""}</p></div>
         ${plashkaVms()}
       </header>${formaVms()}`;
 
@@ -2966,6 +2971,125 @@
       ${r && !r.акт ? `<p class="aktPs__chto">«${esc(r.имя)}» — обычно без акта: сразу на паллету ниже, а нужен акт — выберите дефект.</p>${blokPalety()}` : ""}
       ${aktBlok(r ? "Крит или косм" : "Крит или косм · решение можно не выбирать")}`);
   }
+  // ── 16.10 Пачка (массовое актирование) ─────────────────────────────────
+  function vPachku(t) {
+    if (!t || !t.name) return;
+    pachka.stroki.push({ t, svoy: "", akt: null, osh: "", idet: false });
+    if (navigator.vibrate) navigator.vibrate(40);
+    risovat();
+  }
+  function risovatPachku() {
+    const r = RESHENIYA().find((x) => String(x.id) === String(reshenie));
+    const st = pachka.stroki;
+    const gotovyh = st.filter((s) => s.akt).length;
+    const zhdut = st.filter((s) => !s.akt).length;
+    const glav = `<header class="aktPs__shapka"><div><p class="aktPs__nad">Пачка · ${st.length} шт${gotovyh ? ` · заактировано ${gotovyh}` : ""}</p>
+        <p class="aktPs__rezhim">${stol ? esc(stol.имя.replace(/^ФБ \(ДМД\) /, "")) : "стол не выбран"} · пикайте штрихкоды подряд — каждый встанет строкой ·
+          <button type="button" class="vmsSmenit" data-pachka-vykl="1">выйти из пачки</button></p></div>${plashkaVms()}</header>${formaVms()}
+      ${st.length ? `<ol class="pachka">${st.map((s, i) => `<li class="pachka__s${s.akt ? " is-ok" : s.osh ? " is-osh" : ""}">
+          <span class="pachka__n">${i + 1}</span>
+          <span class="pachka__t"><b>${esc(s.t.name || "")}</b><small>${esc(s.t.kod || s.t.barcode || "")}${s.zametka ? " · " + esc(s.zametka) : ""}</small></span>
+          ${s.akt ? `<button type="button" class="pachka__akt" data-pachka-akt="${esc(s.akt)}">акт ${esc(s.akt)}</button>`
+            : s.idet ? '<span class="pachka__idet">создаю…</span>'
+            : `<input class="pachka__def" data-pachka-def="${i}" maxlength="80" placeholder="свой дефект" value="${esc(s.svoy)}">`}
+          ${s.osh ? `<span class="pachka__osh">${esc(s.osh)}</span>` : ""}
+          ${!s.akt && !s.idet && !pachka.idet ? `<button type="button" class="pachka__x" data-pachka-del="${i}" title="убрать из пачки">×</button>` : ""}
+        </li>`).join("")}</ol>` : '<p class="aktPs__chto">Пачка пустая — пикните первый штрихкод.</p>'}`;
+    const gotovKn = zhdut && krit && defekt && stol && (!boevoy || vhod()) && !pachka.idet;
+    const dey = `${shapkaDey("Пачка", `${st.length} шт`)}
+      <p class="aktPs__zag">Решение · на всю пачку</p>
+      <div class="aktPs__resheniya" style="grid-template-columns:repeat(2,minmax(0,1fr))">${RESHENIYA().map((x) => `<button type="button" class="aktPs__kn${String(x.id) === String(reshenie) ? " is-on" : ""}" data-resh="${x.id}" title="${esc(x.куда)}">${esc(x.имя)}</button>`).join("")}</div>
+      <p class="aktPs__zag">Крит или косм</p>
+      <div class="aktPs__krit">${KRIT.map((x) => `<button type="button" class="aktPs__kn${x.k === krit ? " is-on" : ""}" data-krit="${x.k}">${x.имя}</button>`).join("")}</div>
+      <p class="aktPs__zag">Дефект · у строки можно свой</p>
+      <div class="aktPs__defekty">${DEFEKTY.map((d) => `<button type="button" class="aktPs__kn aktPs__kn--def${d.k === defekt && !svoyDefekt ? " is-on" : ""}" data-def="${esc(d.k)}">${esc(d.имя)}</button>`).join("")}</div>
+      <input class="aktPs__svoy" id="aktSvoy" maxlength="80" autocomplete="off" placeholder="или свой дефект — напишите" value="${esc(svoyDefekt)}">
+      <button type="button" class="aktPs__akt" id="pachkaGo"${gotovKn ? "" : " disabled"}>${pachka.idet ? "Создаю акты…"
+        : !zhdut ? "Всё заактировано" : !krit ? "Выберите крит или косм" : !defekt ? "Выберите дефект" : !stol ? "Пикните стол"
+        : boevoy && !vhod() ? "Войдите в WMS" : `Заактировать все · ${zhdut} шт`}</button>
+      ${r && !r.акт ? `<p class="aktPs__chto">«${esc(r.имя)}» обычно без акта — акты всё равно создадутся.</p>` : ""}
+      ${pachka.osh ? `<p class="aktPs__net"><b class="aktPs__oshibka">${esc(pachka.osh)}</b></p>` : ""}
+      ${gotovyh ? `<div class="aktPs__vopros"><button type="button" class="aktPs__kn is-on" data-pachka-pechat="1">Наклейки · ${gotovyh} шт</button>
+        <a class="aktPs__kn" target="_blank" rel="noopener" href="/__akt/pechat?forma=akt&akty=${encodeURIComponent(st.filter((s) => s.akt).map((s) => s.akt).join(","))}">Акты A4</a>
+        <button type="button" class="aktPs__kn" data-pachka-chist="1">Убрать готовые</button></div>` : ""}`;
+    vyvesti(glav, dey);
+  }
+  async function aktirovatPachku() {
+    if (!pachka || pachka.idet) return;
+    pachka.osh = "";
+    const r = RESHENIYA().find((x) => String(x.id) === String(reshenie));
+    pachka.idet = true;
+    risovat();
+    try {
+      for (const s of pachka.stroki) {
+        if (s.akt) continue;
+        s.idet = true; s.osh = ""; risovat();
+        const def = `${(s.svoy || "").trim() || defekt}, ${krit}`;
+        try {
+          if (!boevoy) { await new Promise((ok) => setTimeout(ok, 200)); s.akt = nomer++; continue; }
+          const otvet = await fetch("/__akt/sozdat", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(r && r.акт
+              ? { товар: s.t.name, код: s.t.kod || "", дефект: def, решение: r.имя, исход: r.id }
+              : { товар: s.t.name, код: s.t.kod || "", дефект: def, решение: r ? r.имя : "без решения", стол_id: stol ? stol.id : null }),
+          });
+          const d = await otvet.json().catch(() => ({}));
+          if (d.нужен_вход || /сессия вмс закончилась/.test(d.ошибка || "")) {
+            vms = { подключено: false }; formaVhoda = true; s.osh = "войдите в WMS — остальные подождут"; break;
+          }
+          if (!otvet.ok || !d.акт) {
+            s.osh = (d.варианты || []).length ? "WMS не знает, откуда штука — заактируйте её отдельно, там спросит"
+              : (d.ошибка || `сервер ответил ${otvet.status}`);
+          } else {
+            s.akt = d.акт; s.zametka = d.заметка || "";
+            zaSmenu += 1;
+            PikIst.dobavit({ vid: "акт", kod: String(d.акт), akt: d.акт, n: s.t.name || "", itog: "заактирован пачкой", ok: true });
+          }
+        } catch (oshibka) {
+          s.osh = oshibka.message || String(oshibka);
+        } finally {
+          s.idet = false; risovat();
+        }
+      }
+    } finally {
+      pachka.idet = false;
+      const osh = pachka.stroki.filter((s) => s.osh).length;
+      if (osh) pachka.osh = `не создано: ${osh} — причина у строки`;
+      if (navigator.vibrate) navigator.vibrate(120);
+      risovat();
+    }
+  }
+  naPaneli("input", (e) => {
+    const p = e.target.closest && e.target.closest("[data-pachka-def]");
+    if (p && pachka) { const s = pachka.stroki[Number(p.dataset.pachkaDef)]; if (s) s.svoy = p.value; }
+    if (e.target.id === "aktSvoy" && pachka) {   // свой общий дефект — кнопка оживает без перерисовки (фокус не теряется)
+      const kn = document.getElementById("pachkaGo");
+      const zhdut = pachka.stroki.filter((s) => !s.akt).length;
+      const gotov = zhdut && krit && e.target.value.trim() && stol && (!boevoy || vhod()) && !pachka.idet;
+      if (kn) { kn.disabled = !gotov; if (gotov) kn.textContent = `Заактировать все · ${zhdut} шт`; }
+    }
+  });
+  naPaneli("click", (e) => {
+    if (e.target.closest("[data-pachka-vkl]")) {
+      pachka = { stroki: tovar && tovar.name ? [{ t: tovar, svoy: "", akt: null, osh: "", idet: false }] : [], idet: false, osh: "" };
+      tovar = null; aktK = null; risovat(); vFokus(); return;
+    }
+    if (!pachka) return;
+    if (e.target.closest("[data-pachka-vykl]")) {
+      if (pachka.stroki.some((s) => !s.akt) && !confirm("Выйти из пачки? Незаактированные строки пропадут.")) return;
+      pachka = null; risovat(); vFokus(); return;
+    }
+    const del = e.target.closest("[data-pachka-del]");
+    if (del) { pachka.stroki.splice(Number(del.dataset.pachkaDel), 1); risovat(); return; }
+    if (e.target.closest("#pachkaGo")) { aktirovatPachku(); return; }
+    if (e.target.closest("[data-pachka-pechat]") && window.ShkPechat) {
+      window.ShkPechat.pechatAktov(pachka.stroki.filter((s) => s.akt).map((s) => ({ акт: s.akt, товар: s.t.name || "" }))); return;
+    }
+    if (e.target.closest("[data-pachka-chist]")) { pachka.stroki = pachka.stroki.filter((s) => !s.akt); pachka.osh = ""; risovat(); return; }
+    const pa = e.target.closest("[data-pachka-akt]");
+    if (pa) { otkrytAkt("ACT " + String(pa.dataset.pachkaAkt).padStart(10, "0")); }
+  });
+
   function vyvestiTovar(deystviya) {
     if (!deyEl()) { box.innerHTML = deystviya + blokGde() + blokAktyTovara(); return; }
     vyvesti(blokGde() + blokAktyTovara(), `${shapkaDey("Штука", tovar.name || "")}${deystviya}`);
@@ -2979,6 +3103,7 @@
   document.addEventListener("picker:hit", (e) => {
     if (!aktivno) return;
     if (pal && palTab === "sverka") { sverkaTovar(e.detail || {}); return; }   // 07.10: штука без акта на сверке
+    if (pachka && !pal) { vPachku(e.detail || {}); return; }                   // 16.10: пачка — строкой в список
     wmsZakryt();
     tovar = e.detail; reshenie = ""; defekt = ""; krit = ""; gotovo = null; oshibkaAkta = ""; aktVsyo = false; novP = null;
     aktK = null; gdeT = null; yach = null; vozvrat = null; vyborStola = false;

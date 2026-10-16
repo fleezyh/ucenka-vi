@@ -511,7 +511,9 @@
       const tek0 = posledniyKod;
       box.innerHTML = `<div class="cSideHead"><div class="cLh"><b>История пиков</b><span>${sp.length ? `за смену: актов ${akty} · товаров ${tov} · паллет ${sp.length - akty - tov}` : "за смену пусто"}</span></div>
           <div class="cLh__btns"><button type="button" class="cBtn cBtn--sm" data-a="lenta-excel"${sp.length ? "" : " disabled"}>Excel</button>
+            <button type="button" class="cBtn cBtn--sm" data-a="vygruzka" title="все, кто пикает, построчно — за день или период">Выгрузка всех</button>
             <button type="button" class="cBtn cBtn--sm" data-a="ochistit"${sp.length ? "" : " disabled"}>очистить</button></div></div>
+        ${vygruzkaForma()}
         ${tek0 && !vklWms ? `<button type="button" class="cDeyStart" data-a="zaaktirovat"><b>Заактировать эту штуку</b><span>включит WMS — стол, решение, дефект, паллета</span></button>` : ""}
         <div class="cLenta__telo istPik__sp">${sp.length ? window.PikIst.html(sp) : '<p class="cLenta__pusto">Здесь будет всё, что вы пикнули за смену: акты — с тем, куда переложили, товары, паллеты. Нажмите строку — откроется снова.</p>'}</div>`;
       return;
@@ -530,6 +532,25 @@
       }).join("") : '<p class="cLenta__pusto">Здесь будут все пикнутые за смену: себес, категория и паллета для продаж. Нажмите строку — товар откроется снова.</p>'}</div>
       ${poslednie.length ? `<div class="cLfoot"><span>за смену</span><b>${poslednie.length} шт · ${summa.toLocaleString("ru-RU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₽</b></div>` : ""}`;
   }
+  // 16.10 Шелехов: «выгрузка кнопкой из пикалки — для всех, построчно»: все, кто пикает, все действия (или только со столов),
+  // пересорт, утиль, опасные отходы и «без категории» — отдельными видами; второй лист — свод по людям
+  let vygOtkryta = false;
+  function vygruzkaForma() {
+    if (!vygOtkryta) return "";
+    const d = new Date(Date.now() + 3 * 3600 * 1000).toISOString().slice(0, 10);
+    return `<form class="cVyg" data-a="vyg-forma">
+        <label>с <input type="date" name="ot" value="${d}" max="${d}"></label>
+        <label>по <input type="date" name="do" value="${d}" max="${d}"></label>
+        <label class="cVyg__fl"><input type="checkbox" name="stoly"> только со столов</label>
+        <button type="submit" class="cBtn cBtn--sm">Скачать Excel</button></form>`;
+  }
+  document.addEventListener("submit", (e) => {
+    const f = e.target.closest("[data-a=vyg-forma]");
+    if (!f) return;
+    e.preventDefault();
+    const q = new URLSearchParams({ ot: f.ot.value, do: f.do.value, stoly: f.stoly.checked ? "1" : "0" });
+    location.href = "/__pikalka/vygruzka?" + q;
+  });
   function lentaVExcel() {
     if (window.PikIst) {   // 08.10: выгрузка истории пиков
       const st = [["Время", "Что", "Акт", "Код", "Название", "Итог"]].concat(window.PikIst.spisok().map((x) => [x.t, x.vid, x.akt || "", x.kod, x.n || "", x.itog || ""]));
@@ -555,6 +576,7 @@
   document.addEventListener("click", (e) => {
     if (e.target.closest("[data-a=ochistit]")) { poslednie = []; localStorage.removeItem(KLYUCH); if (window.PikIst) window.PikIst.ochistit(); risovatLentu(); return; }
     if (e.target.closest("[data-a=lenta-excel]")) { lentaVExcel(); return; }
+    if (e.target.closest("[data-a=vygruzka]")) { vygOtkryta = !vygOtkryta; risovatLentu(); return; }
     if (e.target.closest("[data-a=zaaktirovat]")) { vklyuchitWms(true); return; }
     const r = e.target.closest(".cLr[data-b]");
     if (r && r.dataset.b) {
