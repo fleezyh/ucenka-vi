@@ -1220,10 +1220,15 @@
     return vozvrat ? `<button type="button" class="aktPs__kn vmsNazad" data-nazad="1">← к товару</button>` : "";
   }
   async function chitat(url) {
-    const o = await fetch(url, { cache: "no-store" });
-    const d = await o.json().catch(() => ({}));
-    if (!o.ok) throw new Error(d.ошибка || `сервер ответил ${o.status}`);
-    return d;
+    // 16.10 18:05 (Ерошин, Шмаро — «сервер ответил 502» ×5): сайт перезапускался после выкладки, секунды. Чтение
+    // безопасно повторить — до трёх раз с паузой, человек видит только задержку.
+    for (let popytka = 0; ; popytka++) {
+      const o = await fetch(url, { cache: "no-store" }).catch(() => null);
+      if (o && o.ok) return o.json().catch(() => ({}));
+      if (popytka < 3 && (!o || [502, 503, 504].includes(o.status))) { await new Promise((ok) => setTimeout(ok, 2500)); continue; }
+      const d = o ? await o.json().catch(() => ({})) : {};
+      throw new Error(d.ошибка || (o ? `сервер ответил ${o.status}` : "нет связи с сайтом"));
+    }
   }
 
   // 06.10: сканер на подставке сыпал одну наклейку 5 раз в секунду — тот же акт в течение 2 с не открываем заново
