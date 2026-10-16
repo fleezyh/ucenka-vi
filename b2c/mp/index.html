@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <script src="/tema.js?v=20260924-2"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#070c13">
+  <title>B2C · Маркетплейсы</title>
+  <link rel="icon" type="image/svg+xml" href="/assets/brand/vi-mark.svg?v=20260903-3">
+  <link rel="preload" href="/assets/fonts/VI_Sans_Regular.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/style.css?v=20260911-3">
+  <link rel="stylesheet" href="/grafik.css?v=20261012-ugol2">
+  <link rel="stylesheet" href="/perf/perf.css?v=20261009-shtat">
+  <link rel="stylesheet" href="/reeded-bg.css?v=20260907-6">
+  <link rel="stylesheet" href="/site-header.css?v=20261005-2">
+  <link rel="stylesheet" href="mp.css?v=20261017-1">
+  <script src="/reeded-bg.js?v=20260906-7" defer></script>
+  <script src="/grafik.js?v=20261012-ugol" defer></script>
+  <script src="mp.js?v=20261017-1" defer></script>
+</head>
+<!-- 17.10.2026: дашборд НИП и маркетплейсов вместо Superset 259 (ТЗ Павла + борды Ромы).
+     Данные — ../data/mp.json, собирает сервер из витрин (/opt/ucenka/vitriny, README там же). -->
+<body data-mode="mp">
+  <main class="shell">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="B2C — главная">
+        <img class="brand__mark" src="/assets/brand/vi-mark.svg?v=20260903-3" alt="" width="36" height="36">
+        <span>B2C</span>
+      </a>
+      <nav class="siteNav" aria-label="Разделы">
+        <a class="navLink" href="/mp/" aria-current="page">Маркетплейсы</a>
+        <a class="navLink" href="/__logout">Выйти</a>
+      </nav>
+    </header>
+
+    <section class="heroPerf">
+      <div>
+        <p class="eyebrow">НИП · маркетплейсы Ozon, Яндекс Маркет, Wildberries</p>
+        <h1>Маркетплейсы</h1>
+        <p class="lead">Сверху — итог за период, ниже — динамика. Клик по любой полосе ставит фильтр, повторный — снимает.</p>
+      </div>
+      <div class="perfTools">
+        <nav class="perfViews" id="vkladki" aria-label="Страницы">
+          <a class="perfView is-on" href="#top" data-vkl="top">Топ метрик</a>
+          <a class="perfView" href="#vozvraty" data-vkl="vozvraty">Возвраты и отмены</a>
+          <a class="perfView" href="#oper" data-vkl="oper">Операционка</a>
+        </nav>
+        <p class="stamp" id="stamp"></p>
+      </div>
+    </section>
+
+    <section class="mpFiltry" id="filtry" aria-label="Фильтры"></section>
+    <p class="message" id="message">Загружаю данные…</p>
+    <section id="mp" aria-live="polite"></section>
+    <p class="stockNote" id="primechanie"></p>
+  </main>
+</body>
+</html>
