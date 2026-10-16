@@ -183,7 +183,7 @@
     void mk;
   }
   function kudaOtkuda() {
-    malo($("bkKat"), (D.категории || []).slice(0, 9).map((q) => ({ что: q.что === "—" ? "без категории" : q.что, штук: q.штук })), C.svoy, "пока ничего");
+    malo($("bkKat"), (D.категории || []).slice(0, 9).map((q) => ({ что: q.что === "—" ? "без паллеты" : q.что, штук: q.штук })), C.svoy, "пока ничего");
     const box = $("bkOtk");
     box.innerHTML = "";
     const a = document.createElement("div"), b = document.createElement("div");
@@ -276,7 +276,7 @@
     const moi = (D.лента || []).filter((x) => x.кто === p.кто).slice(0, 12);
     karta(`КТО РАЗБИРАЕТ · ${ddmm(D.день)}`, `${esc(p.кто)}: ${f(p.штук)} шт, с ${p.с} до ${p.по}`,
       `<p>${D.сегодня ? `За последний час ${f(p.за_час)} шт.` : ""} Работал ${Object.keys(p.часы || {}).length} ч, в среднем ${f(p.штук / Math.max(1, Object.keys(p.часы || {}).length))} шт в час работы.</p>`
-      + svg + `<table><thead><tr><th>куда разобрал (категория)</th><th>штук</th></tr></thead><tbody>${kat.map(([k, v]) => `<tr><td>${esc(k === "—" ? "без категории" : k)}</td><td>${f(v)}</td></tr>`).join("")}</tbody></table>`
+      + svg + `<table><thead><tr><th>куда положил (паллета)</th><th>штук</th></tr></thead><tbody>${kat.map(([k, v]) => `<tr><td>${esc(k === "—" ? "без паллеты" : k)}</td><td>${f(v)}</td></tr>`).join("")}</tbody></table>`
       + (moi.length ? `<table><thead><tr><th>последние</th><th>товар</th><th>паллета</th></tr></thead><tbody>${moi.map((x) => `<tr><td>${esc(x.когда)}</td><td>${esc(x.товар)}</td><td>${esc(x.паллета)}</td></tr>`).join("")}</tbody></table>` : ""));
   }
 
