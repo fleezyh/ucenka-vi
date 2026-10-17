@@ -3455,7 +3455,17 @@
     oshibkaAkta = "";
     risovat();
   }
+  // 17.10 Боева/Гамлет: в «Зависших перемещениях» штуки уже с актом — новый акт не нужен, берём готовый: открыть акт,
+  // распечатать наклейку и положить по решению
   function blokOtkuda() {
+    const osn = blokOtkudaOsn();
+    const sa = otk && (otk.с_актом || []);
+    if (!sa || !sa.length) return osn;
+    return osn + `<p class="aktPs__zag">Уже заактированы — в зависших перемещениях</p>
+      <p class="aktPs__podskaz">Взяли оттуда — новый акт не нужен: откройте готовый, распечатайте наклейку и положите по решению.</p>
+      <div class="otkVar">${sa.map((x) => `<button type="button" class="aktPs__kn" data-otk-akt="${esc(x.акт)}">акт ${esc(x.акт)} · ${esc(x.ячейка)}${x.паллета ? " · " + esc(x.паллета) : ""}</button>`).join("")}</div>`;
+  }
+  function blokOtkudaOsn() {
     if (!boevoy || !otk) return "";
     const zag = '<p class="aktPs__zag">Откуда взяли</p>';
     const mesto = (x) => `${esc(x.ячейка)}${x.контейнер ? ` · ${esc(x.контейнер)}` : ""}`;
